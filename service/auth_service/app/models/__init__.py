@@ -1,9 +1,9 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
-from .user import Base, User
-from ..core.settings import settings
-from ..core.logger import auth_logger
+from models.user import Base, User
+from core.settings import settings
+from core.logger import auth_logger
 
 # 데이터베이스 엔진 생성
 def create_database_engine():

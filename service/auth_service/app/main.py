@@ -2,10 +2,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from .core.settings import settings
-from .core.logger import LoggingMiddleware, auth_logger
-from .models import create_tables
-from .api.routes import router as auth_router
+from core.settings import settings
+from core.logger import LoggingMiddleware, auth_logger
+from models import create_tables
+from api.routes import router as auth_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from ..models import get_db, User
-from ..schemas.auth import RegisterIn, LoginIn, TokenOut, UserOut
-from ..core.security import get_current_user, authenticate_user, get_password_hash, create_access_token
-from ..core.logger import auth_logger
+from models import get_db, User
+from schemas.auth import RegisterIn, LoginIn, TokenOut, UserOut
+from core.security import get_current_user, authenticate_user, get_password_hash, create_access_token
+from core.logger import auth_logger
 
 # 라우터 생성
 router = APIRouter(prefix="/auth", tags=["auth"])

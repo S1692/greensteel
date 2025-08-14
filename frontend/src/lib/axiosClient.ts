@@ -6,6 +6,15 @@ import axios, {
 } from 'axios';
 import { env } from './env';
 
+// 요청 중복 방지를 위한 pending requests 관리
+const pendingRequests = new Map<string, AbortController>();
+
+// 요청 키 생성 함수
+const generateRequestKey = (config: AxiosRequestConfig): string => {
+  const { method, url, data, params } = config;
+  return `${method?.toUpperCase() || 'GET'}:${url}:${JSON.stringify(data || {})}:${JSON.stringify(params || {})}`;
+};
+
 // Gateway 외 요청 차단을 위한 인터셉터
 const isGatewayRequest = (url: string): boolean => {
   try {
@@ -60,6 +69,22 @@ const axiosClient: AxiosInstance = axios.create({
 // 요청 인터셉터
 axiosClient.interceptors.request.use(
   config => {
+    // 요청 키 생성
+    const requestKey = generateRequestKey(config);
+    
+    // 이미 진행 중인 동일한 요청이 있으면 취소
+    if (pendingRequests.has(requestKey)) {
+      const controller = pendingRequests.get(requestKey);
+      if (controller) {
+        controller.abort();
+      }
+    }
+    
+    // 새로운 AbortController 생성
+    const controller = new AbortController();
+    config.signal = controller.signal;
+    pendingRequests.set(requestKey, controller);
+    
     // Gateway 외 요청 차단
     if (config.url && !isGatewayRequest(config.baseURL + config.url)) {
       throw new Error(
@@ -90,8 +115,19 @@ axiosClient.interceptors.request.use(
 
 // 응답 인터셉터
 axiosClient.interceptors.response.use(
-  response => response,
+  response => {
+    // 요청 완료 시 pending requests에서 제거
+    const requestKey = generateRequestKey(response.config);
+    pendingRequests.delete(requestKey);
+    return response;
+  },
   async error => {
+    // 요청 완료 시 pending requests에서 제거
+    if (error.config) {
+      const requestKey = generateRequestKey(error.config);
+      pendingRequests.delete(requestKey);
+    }
+    
     // 5xx 오류나 네트워크 오류 시 재시도
     if (error.response?.status >= 500 || !error.response) {
       const config = error.config;

@@ -54,53 +54,58 @@ def get_logger(name: str) -> logging.Logger:
 class LoggingMiddleware:
     """요청/응답 로깅 미들웨어"""
     
-    def __init__(self):
+    def __init__(self, app):
+        self.app = app
         self.logger = get_logger("auth_service.middleware")
     
-    async def __call__(self, request, call_next):
-        # 요청 로깅
-        self.log_request(request)
-        
-        # 응답 처리
-        response = await call_next(request)
-        
-        # 응답 로깅
-        self.log_response(response)
-        
-        return response
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            # HTTP 요청인 경우에만 로깅
+            request = type('Request', (), {
+                'method': scope.get('method', ''),
+                'url': type('URL', (), {'path': scope.get('path', '')})(),
+                'query_params': scope.get('query_string', b'').decode() if scope.get('query_string') else '',
+                'headers': dict(scope.get('headers', []))
+            })()
+            
+            # 요청 로깅
+            self.log_request(request)
+            
+            # 응답 처리
+            await self.app(scope, receive, send)
+            
+            # 응답 로깅 (간단한 형태)
+            self.log_response_simple(scope.get('method', ''), scope.get('path', ''))
+        else:
+            # HTTP가 아닌 경우 (예: WebSocket) 직접 전달
+            await self.app(scope, receive, send)
     
     def log_request(self, request):
         """요청 로깅"""
         try:
-            # 요청 바디 읽기 (비동기 처리 고려)
-            body = None
-            if request.method in ["POST", "PUT", "PATCH"]:
-                # 실제 구현에서는 request.body()를 await해야 하지만
-                # 미들웨어에서는 제한적이므로 기본 정보만 로깅
-                body = "***REQUEST_BODY***"
-            
             # 쿼리 파라미터
-            query_params = dict(request.query_params) if request.query_params else {}
+            query_params = {}
+            if request.query_params:
+                # 간단한 쿼리 파라미터 파싱
+                for param in request.query_params.split('&'):
+                    if '=' in param:
+                        key, value = param.split('=', 1)
+                        query_params[key] = value
             
             # 민감한 정보 마스킹
             masked_query = mask_payload(query_params)
-            masked_body = mask_payload(body) if body else None
             
             self.logger.info(
                 f"REQUEST: {request.method} {request.url.path} | "
-                f"Query: {masked_query} | "
-                f"Body: {masked_body}"
+                f"Query: {masked_query}"
             )
         except Exception as e:
             self.logger.error(f"Request logging error: {str(e)}")
     
-    def log_response(self, response):
-        """응답 로깅"""
+    def log_response_simple(self, method, path):
+        """간단한 응답 로깅"""
         try:
-            self.logger.info(
-                f"RESPONSE: Status: {response.status_code} | "
-                f"Headers: {dict(response.headers)}"
-            )
+            self.logger.info(f"RESPONSE: {method} {path}")
         except Exception as e:
             self.logger.error(f"Response logging error: {str(e)}")
 

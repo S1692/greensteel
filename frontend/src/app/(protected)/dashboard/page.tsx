@@ -11,11 +11,8 @@ const DashboardPage: React.FC = () => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
-    // 사용자 이메일 가져오기
     const email = authUtils.getUserEmail();
     setUserEmail(email);
-
-    // 로그인 상태 확인
     if (!authUtils.isAuthenticated()) {
       router.push('/');
     }
@@ -26,22 +23,19 @@ const DashboardPage: React.FC = () => {
       setIsLoggingOut(true);
       try {
         await authUtils.logout();
-        // 로그아웃 후 홈으로 이동 (authUtils.logout에서 처리됨)
       } catch (error) {
-        console.error('로그아웃 오류:', error);
+        // 로그아웃 오류는 무시하고 로컬 스토리지만 정리
         setIsLoggingOut(false);
       }
     }
   };
 
+  // 사용자 이메일이 로드되지 않았으면 로딩 표시
   if (!userEmail) {
     return (
       <CommonShell>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-ecotrace-accent mx-auto mb-4"></div>
-            <p className="text-ecotrace-textSecondary">로딩 중...</p>
-          </div>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-ecotrace-primary"></div>
         </div>
       </CommonShell>
     );
@@ -50,20 +44,21 @@ const DashboardPage: React.FC = () => {
   return (
     <CommonShell>
       <div className="space-y-8">
-        {/* 헤더 섹션 - 사용자 정보와 로그아웃 */}
+        {/* 헤더 */}
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-ecotrace-text">
-              greensteel에 오신 것을 환영합니다
+              대시보드
             </h1>
-            <p className="text-ecotrace-textSecondary text-lg">
-              {userEmail}님, ESG 관리 플랫폼을 시작해보세요
+            <p className="text-ecotrace-textSecondary">
+              안녕하세요, {userEmail}님
             </p>
           </div>
+
           <button
             onClick={handleLogout}
             disabled={isLoggingOut}
-            className="px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white rounded-lg transition-colors duration-200 flex items-center space-x-2"
+            className="flex items-center space-x-2 bg-red-500 hover:bg-red-600 disabled:bg-red-400 text-white px-4 py-2 rounded-lg transition-colors duration-200"
           >
             {isLoggingOut ? (
               <>
@@ -72,8 +67,18 @@ const DashboardPage: React.FC = () => {
               </>
             ) : (
               <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
                 </svg>
                 <span>로그아웃</span>
               </>
@@ -87,7 +92,8 @@ const DashboardPage: React.FC = () => {
             ESG 관리 플랫폼을 시작해보세요
           </h2>
           <p className="text-white/90 text-lg">
-            생명주기 평가(LCA), 탄소 국경 조정(CBAM), 지속가능성 보고서를 한 곳에서 관리하고 분석하세요
+            생명주기 평가(LCA), 탄소 국경 조정(CBAM), 지속가능성 보고서를 한
+            곳에서 관리하고 분석하세요
           </p>
         </div>
 
@@ -169,7 +175,9 @@ const DashboardPage: React.FC = () => {
             <h3 className="text-lg font-semibold text-ecotrace-text mb-2">
               데이터 업로드
             </h3>
-            <p className="text-ecotrace-textSecondary text-sm">파일 업로드</p>
+            <p className="text-ecotrace-textSecondary text-sm">
+              데이터 수집 및 관리
+            </p>
           </div>
 
           <div
@@ -201,47 +209,27 @@ const DashboardPage: React.FC = () => {
               설정
             </h3>
             <p className="text-ecotrace-textSecondary text-sm">
-              애플리케이션 설정
+              계정 및 조직 설정
             </p>
           </div>
         </div>
 
         {/* 최근 활동 */}
-        <div className="bg-ecotrace-surface border border-ecotrace-border rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-ecotrace-text mb-4">
+        <div className="bg-ecotrace-surface border border-ecotrace-border rounded-xl p-6">
+          <h3 className="text-xl font-semibold text-ecotrace-text mb-4">
             최근 활동
-          </h2>
-          <div className="text-center py-8 text-ecotrace-textSecondary">
-            아직 활동이 없습니다. 위의 카드를 클릭하여 시작해보세요.
-          </div>
-        </div>
-
-        {/* 통계 요약 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-ecotrace-surface border border-ecotrace-border rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-ecotrace-text mb-2">
-              프로젝트
-            </h3>
-            <p className="text-3xl font-bold text-ecotrace-accent">0</p>
-            <p className="text-sm text-ecotrace-textSecondary">
-              생성된 프로젝트
-            </p>
-          </div>
-
-          <div className="bg-ecotrace-surface border border-ecotrace-border rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-ecotrace-text mb-2">
-              계산
-            </h3>
-            <p className="text-3xl font-bold text-ecotrace-accent">0</p>
-            <p className="text-sm text-ecotrace-textSecondary">완료된 계산</p>
-          </div>
-
-          <div className="bg-ecotrace-surface border border-ecotrace-border rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-ecotrace-text mb-2">
-              보고서
-            </h3>
-            <p className="text-3xl font-bold text-ecotrace-accent">0</p>
-            <p className="text-sm text-ecotrace-textSecondary">생성된 보고서</p>
+          </h3>
+          <div className="space-y-3">
+            <div className="flex items-center space-x-3 text-ecotrace-textSecondary">
+              <div className="w-2 h-2 bg-ecotrace-accent rounded-full"></div>
+              <span>로그인 완료</span>
+              <span className="text-sm opacity-75">방금 전</span>
+            </div>
+            <div className="flex items-center space-x-3 text-ecotrace-textSecondary">
+              <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+              <span>대시보드 접속</span>
+              <span className="text-sm opacity-75">방금 전</span>
+            </div>
           </div>
         </div>
       </div>

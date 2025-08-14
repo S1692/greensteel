@@ -7,6 +7,16 @@ import Input from '@/components/atoms/Input';
 import CommonShell from '@/components/CommonShell';
 import axiosClient, { apiEndpoints } from '@/lib/axiosClient';
 
+interface RegisterError {
+  response?: {
+    data?: {
+      detail?: string;
+      message?: string;
+    };
+  };
+  message?: string;
+}
+
 const RegisterPage: React.FC = () => {
   const router = useRouter();
   const [formData, setFormData] = useState({
@@ -57,15 +67,15 @@ const RegisterPage: React.FC = () => {
         alert('회원가입이 완료되었습니다. 로그인해주세요.');
         router.push('/');
       }
-    } catch (error: any) {
-      console.error('회원가입 오류:', error);
-      
-      if (error.response?.data?.detail) {
-        setError(error.response.data.detail);
-      } else if (error.response?.data?.message) {
-        setError(error.response.data.message);
-      } else if (error.message) {
-        setError(error.message);
+    } catch (error: unknown) {
+      const registerError = error as RegisterError;
+
+      if (registerError.response?.data?.detail) {
+        setError(registerError.response.data.detail);
+      } else if (registerError.response?.data?.message) {
+        setError(registerError.response.data.message);
+      } else if (registerError.message) {
+        setError(registerError.message);
       } else {
         setError('회원가입 중 오류가 발생했습니다. 다시 시도해주세요.');
       }
@@ -147,9 +157,9 @@ const RegisterPage: React.FC = () => {
                 minLength={8}
               />
 
-              <Button 
-                type="submit" 
-                className="w-full" 
+              <Button
+                type="submit"
+                className="w-full"
                 size="lg"
                 disabled={isLoading}
               >

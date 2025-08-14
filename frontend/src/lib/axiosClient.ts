@@ -170,7 +170,7 @@ export const authUtils = {
       // 서버에 로그아웃 요청
       await axiosClient.post(apiEndpoints.auth.logout);
     } catch (error) {
-      console.warn('Logout request failed, but clearing local storage');
+      // 로그아웃 요청 실패 시에도 로컬 스토리지는 정리
     } finally {
       // 로컬 스토리지 정리
       if (typeof window !== 'undefined') {
@@ -201,7 +201,6 @@ export const authUtils = {
       }
       return false;
     } catch (error) {
-      console.error('Token refresh failed:', error);
       // 토큰 갱신 실패 시 로그아웃
       authUtils.logout();
       return false;

@@ -7,6 +7,16 @@ import Input from '@/components/atoms/Input';
 import CommonShell from '@/components/CommonShell';
 import axiosClient, { apiEndpoints } from '@/lib/axiosClient';
 
+interface LoginError {
+  response?: {
+    data?: {
+      detail?: string;
+      message?: string;
+    };
+  };
+  message?: string;
+}
+
 const LandingPage: React.FC = () => {
   const router = useRouter();
   const [formData, setFormData] = useState({
@@ -46,7 +56,7 @@ const LandingPage: React.FC = () => {
       if (response.status === 200) {
         // 로그인 성공 시 토큰 저장
         const { access_token, refresh_token, user } = response.data;
-        
+
         if (access_token) {
           localStorage.setItem('auth_token', access_token);
           if (refresh_token) {
@@ -55,22 +65,22 @@ const LandingPage: React.FC = () => {
           if (user?.email) {
             localStorage.setItem('user_email', user.email);
           }
-          
+
           // 로그인 성공 후 대시보드로 이동
           router.push('/dashboard');
         } else {
           setError('로그인 토큰을 받지 못했습니다.');
         }
       }
-    } catch (error: any) {
-      console.error('로그인 오류:', error);
-      
-      if (error.response?.data?.detail) {
-        setError(error.response.data.detail);
-      } else if (error.response?.data?.message) {
-        setError(error.response.data.message);
-      } else if (error.message) {
-        setError(error.message);
+    } catch (error: unknown) {
+      const loginError = error as LoginError;
+
+      if (loginError.response?.data?.detail) {
+        setError(loginError.response.data.detail);
+      } else if (loginError.response?.data?.message) {
+        setError(loginError.response.data.message);
+      } else if (loginError.message) {
+        setError(loginError.message);
       } else {
         setError('로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
       }
@@ -137,9 +147,9 @@ const LandingPage: React.FC = () => {
                     disabled={isLoading}
                   />
 
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
+                  <Button
+                    type="submit"
+                    className="w-full"
                     size="lg"
                     disabled={isLoading}
                   >

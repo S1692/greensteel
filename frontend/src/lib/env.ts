@@ -15,10 +15,14 @@ if (process.env.NEXT_PUBLIC_GATEWAY_URL) {
   try {
     const url = new URL(env.NEXT_PUBLIC_GATEWAY_URL);
     // localhost, 127.0.0.1, http://*3000 등은 허용하지 않음
-    if (url.hostname === 'localhost' || 
-        url.hostname === '127.0.0.1' || 
-        url.hostname.includes('3000')) {
-      console.warn('Warning: localhost or development URLs are not allowed in production');
+    if (
+      url.hostname === 'localhost' ||
+      url.hostname === '127.0.0.1' ||
+      url.hostname.includes('3000')
+    ) {
+      console.warn(
+        'Warning: localhost or development URLs are not allowed in production'
+      );
     }
   } catch {
     // URL이 유효하지 않으면 기본값 사용

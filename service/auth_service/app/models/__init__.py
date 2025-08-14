@@ -1,9 +1,14 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
-from models.user import Base, User
+from models.user import Base as UserBase, User
+from models.company import Base as CompanyBase, Company
 from core.settings import settings
 from core.logger import auth_logger
+
+# 모든 모델의 Base를 통합
+Base = UserBase
+Base.metadata.update(CompanyBase.metadata.tables)
 
 # 데이터베이스 엔진 생성
 def create_database_engine():
@@ -68,4 +73,4 @@ def drop_tables():
         raise
 
 # 모델들을 한 곳에서 import할 수 있도록
-__all__ = ["User", "Base", "engine", "SessionLocal", "get_db", "create_tables", "drop_tables"]
+__all__ = ["User", "Company", "Base", "engine", "SessionLocal", "get_db", "create_tables", "drop_tables"]

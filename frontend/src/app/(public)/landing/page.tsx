@@ -1,88 +1,55 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Button from '@/components/atoms/Button';
-import Input from '@/components/atoms/Input';
-import CommonShell from '@/components/CommonShell';
-import axiosClient, { apiEndpoints } from '@/lib/axiosClient';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { axiosClient } from "@/lib/axiosClient";
 
 interface LoginError {
-  response?: {
-    data?: {
-      detail?: string;
-      message?: string;
-    };
-  };
-  message?: string;
+  message: string;
 }
 
-const LandingPage: React.FC = () => {
-  const router = useRouter();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
+export default function LandingPage() {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-    // 에러 메시지 초기화
-    if (error) setError('');
-  };
+  const [error, setError] = useState<LoginError | null>(null);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-
-    if (!formData.email || !formData.password) {
-      setError('이메일과 비밀번호를 모두 입력해주세요.');
+    if (isLoading) return;
+    
+    // 클라이언트 측 유효성 검사
+    if (!username.trim() || !password.trim()) {
+      setError({ message: "ID와 비밀번호를 모두 입력해주세요." });
       return;
     }
 
     setIsLoading(true);
+    setError(null);
 
     try {
-      // 로그인 API 호출
-      const response = await axiosClient.post(apiEndpoints.auth.login, {
-        email: formData.email,
-        password: formData.password,
+      const response = await axiosClient.post("/auth/login", {
+        username: username.trim(),
+        password: password,
       });
 
-      if (response.status === 200) {
-        // 로그인 성공 시 토큰 저장
-        const { access_token, refresh_token, user } = response.data;
+      // 토큰과 사용자 정보 저장
+      localStorage.setItem("access_token", response.data.access_token);
+      localStorage.setItem("user_email", response.data.user.username); // username으로 변경
 
-        if (access_token) {
-          localStorage.setItem('auth_token', access_token);
-          if (refresh_token) {
-            localStorage.setItem('refresh_token', refresh_token);
-          }
-          if (user?.email) {
-            localStorage.setItem('user_email', user.email);
-          }
-
-          // 로그인 성공 후 대시보드로 이동
-          router.push('/dashboard');
+      // 대시보드로 리다이렉트
+      router.push("/dashboard");
+    } catch (err: unknown) {
+      if (err && typeof err === "object" && "response" in err) {
+        const axiosError = err as any;
+        if (axiosError.response?.data?.detail) {
+          setError({ message: axiosError.response.data.detail });
         } else {
-          setError('로그인 토큰을 받지 못했습니다.');
+          setError({ message: "로그인에 실패했습니다." });
         }
-      }
-    } catch (error: unknown) {
-      const loginError = error as LoginError;
-
-      if (loginError.response?.data?.detail) {
-        setError(loginError.response.data.detail);
-      } else if (loginError.response?.data?.message) {
-        setError(loginError.response.data.message);
-      } else if (loginError.message) {
-        setError(loginError.message);
       } else {
-        setError('로그인 중 오류가 발생했습니다. 다시 시도해주세요.');
+        setError({ message: "로그인 중 오류가 발생했습니다." });
       }
     } finally {
       setIsLoading(false);
@@ -90,142 +57,81 @@ const LandingPage: React.FC = () => {
   };
 
   return (
-    <CommonShell>
-      <div className="space-y-12">
-        {/* 메인 섹션 - 로그인 폼과 함께 */}
-        <section className="text-center py-16">
-          <div className="max-w-6xl mx-auto">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-              {/* 왼쪽: 브랜딩 및 소개 */}
-              <div className="text-left">
-                <h1 className="text-4xl md:text-5xl font-bold text-ecotrace-text mb-8">
-                  <span className="bg-gradient-to-r from-ecotrace-accent to-ecotrace-primary bg-clip-text text-transparent">
-                    greensteel
-                  </span>
-                </h1>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            GreenSteel
+          </h1>
+          <p className="text-gray-600">지속가능한 미래를 위한 ESG 솔루션</p>
+        </div>
 
-                <p className="text-xl text-ecotrace-textSecondary mb-8">
-                  ESG 관리 플랫폼
-                </p>
+        <div className="bg-white rounded-lg shadow-lg p-8">
+          <h2 className="text-2xl font-semibold text-center text-gray-900 mb-6">
+            로그인
+          </h2>
 
-                <p className="text-ecotrace-textSecondary mb-8">
-                  생명주기 평가(LCA), 탄소 국경 조정(CBAM), 지속가능성 보고서를
-                  한 곳에서 관리하고 분석하세요.
-                </p>
-              </div>
-
-              {/* 오른쪽: 로그인 폼 */}
-              <div className="bg-ecotrace-surface border border-ecotrace-border rounded-xl p-8">
-                <h2 className="text-2xl font-bold text-ecotrace-text mb-6 text-center">
-                  로그인
-                </h2>
-
-                {error && (
-                  <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-md text-sm">
-                    {error}
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <Input
-                    label="이메일"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                    disabled={isLoading}
-                  />
-
-                  <Input
-                    label="비밀번호"
-                    name="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    required
-                    disabled={isLoading}
-                  />
-
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    size="lg"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? '로그인 중...' : '로그인'}
-                  </Button>
-                </form>
-
-                <div className="mt-6 text-center">
-                  <p className="text-ecotrace-textSecondary text-sm">
-                    계정이 없으신가요?{' '}
-                    <button
-                      onClick={() => router.push('/register')}
-                      className="text-ecotrace-accent hover:underline cursor-pointer"
-                      disabled={isLoading}
-                    >
-                      회원가입
-                    </button>
-                  </p>
-
-                  {/* 테스트용 아이디 정보 */}
-                  <div className="mt-4 p-3 bg-ecotrace-secondary/10 rounded-lg border border-ecotrace-border">
-                    <p className="text-xs text-ecotrace-textSecondary mb-2">
-                      🧪 테스트용 계정
-                    </p>
-                    <p className="text-xs text-ecotrace-textSecondary">
-                      이메일: test@greensteel.com
-                    </p>
-                    <p className="text-xs text-ecotrace-textSecondary">
-                      비밀번호: test123
-                    </p>
-                  </div>
-                </div>
-              </div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+                ID
+              </label>
+              <input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="예: smartuser"
+                disabled={isLoading}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:bg-gray-100"
+                required
+              />
             </div>
-          </div>
-        </section>
 
-        {/* 기능 섹션 */}
-        <section className="py-12">
-          <div className="max-w-6xl mx-auto">
-            <h2 className="text-3xl font-bold text-ecotrace-text text-center mb-12">
-              주요 기능
-            </h2>
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="bg-ecotrace-secondary/5 border border-ecotrace-border rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-ecotrace-text mb-3">
-                  LCA
-                </h3>
-                <p className="text-ecotrace-textSecondary text-sm">
-                  생명주기 평가
-                </p>
-              </div>
-
-              <div className="bg-ecotrace-secondary/5 border border-ecotrace-border rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-ecotrace-text mb-3">
-                  CBAM
-                </h3>
-                <p className="text-ecotrace-textSecondary text-sm">
-                  탄소 국경 조정
-                </p>
-              </div>
-
-              <div className="bg-ecotrace-secondary/5 border border-ecotrace-border rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-ecotrace-text mb-3">
-                  데이터
-                </h3>
-                <p className="text-ecotrace-textSecondary text-sm">
-                  업로드 및 관리
-                </p>
-              </div>
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                비밀번호
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="********"
+                disabled={isLoading}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:bg-gray-100"
+                required
+              />
             </div>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                <p className="text-sm text-red-600">{error.message}</p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? "로그인 중..." : "로그인"}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              계정이 없으신가요?{" "}
+              <a
+                href="/register"
+                className="font-medium text-green-600 hover:text-green-500"
+              >
+                회원가입
+              </a>
+            </p>
           </div>
-        </section>
+        </div>
       </div>
-    </CommonShell>
+    </div>
   );
-};
-
-export default LandingPage;
+}

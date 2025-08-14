@@ -102,7 +102,7 @@ async def get_current_user(
                 headers={"WWW-Authenticate": "Bearer"}
             )
         
-        auth_logger.info(f"User authenticated: {user.email}")
+        auth_logger.info(f"User authenticated: {user.username}")
         return user
         
     except HTTPException:
@@ -114,26 +114,3 @@ async def get_current_user(
             detail="Authentication failed",
             headers={"WWW-Authenticate": "Bearer"}
         )
-
-def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
-    """사용자 인증 (이메일/비밀번호)"""
-    try:
-        # 사용자 조회
-        user = db.query(User).filter(User.email == email).first()
-        if not user:
-            return None
-        
-        # 비밀번호 검증
-        if not verify_password(password, user.hashed_password):
-            return None
-        
-        # 사용자 활성 상태 확인
-        if not user.is_active:
-            return None
-        
-        auth_logger.info(f"User authenticated successfully: {email}")
-        return user
-        
-    except Exception as e:
-        auth_logger.error(f"Authentication error for {email}: {str(e)}")
-        return None

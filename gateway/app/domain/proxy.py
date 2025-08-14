@@ -55,47 +55,74 @@ class ProxyController:
                 return service_url
         return None
     
-    def validate_request_data(self, path: str, method: str, body: bytes) -> bool:
-        """요청 데이터 검증 (회원가입, 로그인 등 특정 엔드포인트)"""
-        if not body:
-            return True  # GET 요청 등은 검증 불필요
-        
+    def validate_request_data(self, path: str, method: str, data: dict) -> bool:
+        """요청 데이터 검증"""
         try:
-            data = json.loads(body)
-        except json.JSONDecodeError:
+            if method == "POST":
+                if path == "/auth/register/company":
+                    # 기업 회원가입 검증
+                    required_fields = ["name_ko", "biz_no", "manager_name", "manager_phone"]
+                    for field in required_fields:
+                        if not data.get(field):
+                            gateway_logger.warning(f"Missing required field: {field}")
+                            return False
+                    
+                    # 사업자번호 형식 검증 (숫자만)
+                    biz_no = data.get("biz_no", "")
+                    if not biz_no.isdigit():
+                        gateway_logger.warning("Invalid business number format")
+                        return False
+                    
+                    # 담당자 연락처 형식 검증
+                    manager_phone = data.get("manager_phone", "")
+                    if not manager_phone.replace("-", "").replace(" ", "").isdigit():
+                        gateway_logger.warning("Invalid phone number format")
+                        return False
+                    
+                elif path == "/auth/register/user":
+                    # User 회원가입 검증
+                    required_fields = ["username", "password", "full_name", "company_id"]
+                    for field in required_fields:
+                        if not data.get(field):
+                            gateway_logger.warning(f"Missing required field: {field}")
+                            return False
+                    
+                    # username 길이 검증
+                    username = data.get("username", "")
+                    if len(username) < 3:
+                        gateway_logger.warning("Username too short (minimum 3 characters)")
+                        return False
+                    
+                    # 비밀번호 길이 검증
+                    password = data.get("password", "")
+                    if len(password) < 8:
+                        gateway_logger.warning("Password too short (minimum 8 characters)")
+                        return False
+                    
+                    # company_id 숫자 검증
+                    try:
+                        int(data.get("company_id", ""))
+                    except (ValueError, TypeError):
+                        gateway_logger.warning("Invalid company ID format")
+                        return False
+                    
+                elif path == "/auth/login":
+                    # 로그인 검증
+                    if not data.get("username") or not data.get("password"):
+                        gateway_logger.warning("Missing username or password")
+                        return False
+                    
+                    # username 길이 검증
+                    username = data.get("username", "")
+                    if len(username) < 3:
+                        gateway_logger.warning("Username too short")
+                        return False
+            
+            return True
+            
+        except Exception as e:
+            gateway_logger.error(f"Validation error: {str(e)}")
             return False
-        
-        # 회원가입 검증
-        if path.startswith("/auth/register") and method == "POST":
-            required_fields = ["name", "company", "email", "password"]
-            
-            # 필수 필드 확인
-            for field in required_fields:
-                if field not in data or not data[field]:
-                    return False
-            
-            # 이메일 형식 검증 (간단한 검증)
-            if "@" not in data["email"] or "." not in data["email"]:
-                return False
-            
-            # 비밀번호 길이 검증
-            if len(data["password"]) < 8:
-                return False
-        
-        # 로그인 검증
-        elif path.startswith("/auth/login") and method == "POST":
-            required_fields = ["email", "password"]
-            
-            # 필수 필드 확인
-            for field in required_fields:
-                if field not in data or not data[field]:
-                    return False
-            
-            # 이메일 형식 검증 (간단한 검증)
-            if "@" not in data["email"] or "." not in data["email"]:
-                return False
-        
-        return True
     
     def prepare_headers(self, request: Request) -> Dict[str, str]:
         """프록시 요청을 위한 헤더 준비"""

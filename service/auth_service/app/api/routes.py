@@ -1,94 +1,150 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from models import get_db, User
-from schemas.auth import RegisterIn, LoginIn, TokenOut, UserOut
-from core.security import get_current_user, authenticate_user, get_password_hash, create_access_token
+from models import get_db, User, Company
+from schemas.auth import (
+    CompanyRegisterIn, CompanyRegisterOut,
+    UserRegisterIn, UserRegisterOut,
+    LoginIn, TokenOut, UserOut, HealthCheck
+)
+from core.security import get_password_hash, verify_password, create_access_token, get_current_user
 from core.logger import auth_logger
+from datetime import datetime
 
-# 라우터 생성
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(prefix="/auth", tags=["authentication"])
 
-@router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-async def register(user_data: RegisterIn, db: Session = Depends(get_db)):
-    """사용자 회원가입"""
-    auth_logger.info(f"Registration attempt for email: {user_data.email}")
+@router.post("/register/company", response_model=CompanyRegisterOut, status_code=status.HTTP_201_CREATED)
+async def register_company(
+    company_data: CompanyRegisterIn,
+    db: Session = Depends(get_db)
+):
+    """기업 회원가입"""
+    auth_logger.info(f"Company registration attempt for business number: {company_data.biz_no}")
     
     try:
-        # 이메일 중복 체크
-        existing_user = db.query(User).filter(User.email == user_data.email).first()
-        if existing_user:
-            auth_logger.warning(f"Registration failed: Email already exists - {user_data.email}")
+        # 사업자번호 중복 확인
+        existing_company = db.query(Company).filter(Company.biz_no == company_data.biz_no).first()
+        if existing_company:
             raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="이미 등록된 이메일입니다."
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="이미 등록된 사업자번호입니다."
             )
         
-        # 비밀번호 해시 생성
-        hashed_password = get_password_hash(user_data.password)
+        # 새 기업 생성
+        new_company = Company(**company_data.model_dump())
+        db.add(new_company)
+        db.commit()
+        db.refresh(new_company)
+        
+        auth_logger.info(f"Company registered successfully: {new_company.id}")
+        return new_company
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        auth_logger.error(f"Unexpected error during company registration: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="기업 등록 중 오류가 발생했습니다."
+        )
+
+@router.post("/register/user", response_model=UserRegisterOut, status_code=status.HTTP_201_CREATED)
+async def register_user(
+    user_data: UserRegisterIn,
+    db: Session = Depends(get_db)
+):
+    """User 회원가입"""
+    auth_logger.info(f"User registration attempt for username: {user_data.username}")
+    
+    try:
+        # 기업 존재 확인
+        company = db.query(Company).filter(Company.id == user_data.company_id).first()
+        if not company:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="존재하지 않는 기업 ID입니다."
+            )
+        
+        # username 중복 확인
+        existing_user = db.query(User).filter(User.username == user_data.username).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="이미 사용 중인 ID입니다."
+            )
         
         # 새 사용자 생성
         new_user = User(
-            email=user_data.email,
-            hashed_password=hashed_password,
+            username=user_data.username,
+            hashed_password=get_password_hash(user_data.password),
             full_name=user_data.full_name,
-            is_active=True
+            company_id=user_data.company_id
         )
-        
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
         
-        auth_logger.info(f"User registered successfully: {new_user.email}")
+        auth_logger.info(f"User registered successfully: {new_user.id}")
+        return new_user
         
-        # UserOut 스키마로 변환하여 반환
-        return UserOut(
-            id=new_user.id,
-            email=new_user.email,
-            full_name=new_user.full_name,
-            is_active=new_user.is_active,
-            created_at=new_user.created_at
-        )
-        
-    except IntegrityError as e:
-        db.rollback()
-        auth_logger.error(f"Database integrity error during registration: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="데이터베이스 오류가 발생했습니다."
-        )
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
-        auth_logger.error(f"Unexpected error during registration: {str(e)}")
+        auth_logger.error(f"Unexpected error during user registration: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="서버 오류가 발생했습니다."
+            detail="사용자 등록 중 오류가 발생했습니다."
         )
 
 @router.post("/login", response_model=TokenOut)
-async def login(user_credentials: LoginIn, db: Session = Depends(get_db)):
+async def login(
+    login_data: LoginIn,
+    db: Session = Depends(get_db)
+):
     """사용자 로그인"""
-    auth_logger.info(f"Login attempt for email: {user_credentials.email}")
+    auth_logger.info(f"Login attempt for username: {login_data.username}")
     
     try:
-        # 사용자 인증
-        user = authenticate_user(db, user_credentials.email, user_credentials.password)
+        # 사용자 조회
+        user = db.query(User).filter(User.username == login_data.username).first()
         if not user:
-            auth_logger.warning(f"Login failed: Invalid credentials for {user_credentials.email}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="이메일 또는 비밀번호가 올바르지 않습니다.",
-                headers={"WWW-Authenticate": "Bearer"}
+                detail="잘못된 ID 또는 비밀번호입니다."
+            )
+        
+        # 비밀번호 확인
+        if not verify_password(login_data.password, user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="잘못된 ID 또는 비밀번호입니다."
+            )
+        
+        # 사용자 상태 확인
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="비활성화된 계정입니다."
             )
         
         # 액세스 토큰 생성
-        access_token = create_access_token(data={"sub": user.id})
+        access_token = create_access_token(data={"sub": str(user.id)})
         
-        auth_logger.info(f"User logged in successfully: {user.email}")
+        auth_logger.info(f"User logged in successfully: {user.id}")
         
         return TokenOut(
             access_token=access_token,
-            token_type="bearer"
+            token_type="bearer",
+            user=UserOut(
+                id=user.id,
+                username=user.username,
+                full_name=user.full_name,
+                company_id=user.company_id,
+                is_active=user.is_active,
+                created_at=user.created_at
+            )
         )
         
     except HTTPException:
@@ -97,27 +153,33 @@ async def login(user_credentials: LoginIn, db: Session = Depends(get_db)):
         auth_logger.error(f"Unexpected error during login: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="서버 오류가 발생했습니다."
+            detail="로그인 중 오류가 발생했습니다."
         )
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-async def logout(current_user: User = Depends(get_current_user)):
-    """사용자 로그아웃 (토큰 무효화 없음, 클라이언트 측에서 처리)"""
-    auth_logger.info(f"User logout: {current_user.email}")
-    
-    # 현재는 단순히 204 응답만 반환
-    # 향후 토큰 블랙리스트 기능 확장 가능
+async def logout():
+    """사용자 로그아웃 (클라이언트 측에서 토큰 제거)"""
     return None
 
 @router.get("/me", response_model=UserOut)
-async def get_profile(current_user: User = Depends(get_current_user)):
-    """현재 사용자 프로필 조회"""
-    auth_logger.info(f"Profile request for user: {current_user.email}")
-    
+async def get_current_user_info(
+    current_user: User = Depends(get_current_user)
+):
+    """현재 로그인한 사용자 정보 조회"""
     return UserOut(
         id=current_user.id,
-        email=current_user.email,
+        username=current_user.username,
         full_name=current_user.full_name,
+        company_id=current_user.company_id,
         is_active=current_user.is_active,
         created_at=current_user.created_at
+    )
+
+@router.get("/health", response_model=HealthCheck)
+async def health_check():
+    """서비스 헬스체크"""
+    return HealthCheck(
+        status="ok",
+        timestamp=datetime.now(),
+        service="auth-service"
     )

@@ -108,12 +108,10 @@ export default function RegisterPage() {
         confirm_password: companyData.confirm_password,
       };
 
-      const response = await axiosClient.post('/auth/register/company', requestData);
-      
-      // 디버깅: 요청 데이터 로그 (개발 환경에서만)
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Company registration request data:', requestData);
-      }
+      const response = await axiosClient.post(
+        '/auth/register/company',
+        requestData
+      );
 
       // 응답 데이터 안전한 검증
       if (response && response.data) {

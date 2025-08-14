@@ -15,7 +15,7 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(255), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime, default=func.utc_timestamp(), nullable=False)
+    created_at = Column(DateTime, default=func.now(), nullable=False)
     
     # 인덱스 설정
     __table_args__ = (

@@ -88,10 +88,32 @@ export default function RegisterPage() {
     setSuccess(null);
 
     try {
-      const response = await axiosClient.post('/auth/register/company', {
-        ...companyData,
+      // Auth Service 스키마에 맞는 데이터만 전송
+      const requestData = {
+        name_ko: companyData.name_ko,
+        name_en: companyData.name_en,
+        biz_no: companyData.biz_no,
+        ceo_name: companyData.ceo_name,
+        country: companyData.country,
+        zipcode: companyData.zipcode,
+        city: companyData.city,
+        address1: companyData.address1,
+        sector: companyData.sector,
+        industry_code: companyData.industry_code,
+        manager_name: companyData.manager_name,
+        manager_phone: companyData.manager_phone,
+        manager_email: companyData.manager_email,
+        username: companyData.name_ko.toLowerCase().replace(/\s+/g, ''), // 기업명을 기반으로 username 생성
         password: companyData.password,
-      });
+        confirm_password: companyData.confirm_password,
+      };
+
+      const response = await axiosClient.post('/auth/register/company', requestData);
+      
+      // 디버깅: 요청 데이터 로그 (개발 환경에서만)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Company registration request data:', requestData);
+      }
 
       // 응답 데이터 안전한 검증
       if (response && response.data) {

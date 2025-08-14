@@ -5,10 +5,7 @@ import { useRouter } from 'next/navigation';
 import Button from '@/components/atoms/Button';
 import Input from '@/components/atoms/Input';
 import CommonShell from '@/components/CommonShell';
-<<<<<<< HEAD
 import axiosClient, { apiEndpoints } from '@/lib/axiosClient';
-=======
->>>>>>> 93e7901ca2a41eb487391e27f1175db084942ffd
 
 const LandingPage: React.FC = () => {
   const router = useRouter();
@@ -16,27 +13,20 @@ const LandingPage: React.FC = () => {
     email: '',
     password: '',
   });
-<<<<<<< HEAD
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-=======
->>>>>>> 93e7901ca2a41eb487391e27f1175db084942ffd
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
-<<<<<<< HEAD
     // 에러 메시지 초기화
     if (error) setError('');
-=======
->>>>>>> 93e7901ca2a41eb487391e27f1175db084942ffd
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-<<<<<<< HEAD
     setError('');
 
     if (!formData.email || !formData.password) {
@@ -87,14 +77,6 @@ const LandingPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-=======
-
-    // 로그인 처리
-    // 실제로는 API 호출
-    localStorage.setItem('auth_token', 'dummy_token');
-    localStorage.setItem('user_email', formData.email);
-    router.push('/dashboard');
->>>>>>> 93e7901ca2a41eb487391e27f1175db084942ffd
   };
 
   return (
@@ -128,15 +110,12 @@ const LandingPage: React.FC = () => {
                   로그인
                 </h2>
 
-<<<<<<< HEAD
                 {error && (
                   <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-md text-sm">
                     {error}
                   </div>
                 )}
 
-=======
->>>>>>> 93e7901ca2a41eb487391e27f1175db084942ffd
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <Input
                     label="이메일"
@@ -145,10 +124,7 @@ const LandingPage: React.FC = () => {
                     value={formData.email}
                     onChange={handleInputChange}
                     required
-<<<<<<< HEAD
                     disabled={isLoading}
-=======
->>>>>>> 93e7901ca2a41eb487391e27f1175db084942ffd
                   />
 
                   <Input
@@ -158,7 +134,6 @@ const LandingPage: React.FC = () => {
                     value={formData.password}
                     onChange={handleInputChange}
                     required
-<<<<<<< HEAD
                     disabled={isLoading}
                   />
 
@@ -169,12 +144,6 @@ const LandingPage: React.FC = () => {
                     disabled={isLoading}
                   >
                     {isLoading ? '로그인 중...' : '로그인'}
-=======
-                  />
-
-                  <Button type="submit" className="w-full" size="lg">
-                    로그인
->>>>>>> 93e7901ca2a41eb487391e27f1175db084942ffd
                   </Button>
                 </form>
 
@@ -184,10 +153,7 @@ const LandingPage: React.FC = () => {
                     <button
                       onClick={() => router.push('/register')}
                       className="text-ecotrace-accent hover:underline cursor-pointer"
-<<<<<<< HEAD
                       disabled={isLoading}
-=======
->>>>>>> 93e7901ca2a41eb487391e27f1175db084942ffd
                     >
                       회원가입
                     </button>

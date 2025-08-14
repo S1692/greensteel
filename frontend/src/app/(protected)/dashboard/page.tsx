@@ -32,7 +32,7 @@ export default function DashboardPage() {
       await authUtils.logout();
       router.push('/landing');
     } catch (error) {
-      console.error('로그아웃 오류:', error);
+      // 로그아웃 오류는 무시하고 진행
     } finally {
       setLogoutLoading(false);
     }

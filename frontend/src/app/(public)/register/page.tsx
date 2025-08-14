@@ -85,7 +85,7 @@ export default function RegisterPage() {
       setActiveTab('user');
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
-        const axiosError = err as any;
+        const axiosError = err as { response?: { data?: { detail?: string } } };
         if (axiosError.response?.data?.detail) {
           setError({ message: axiosError.response.data.detail });
         } else {
@@ -141,7 +141,7 @@ export default function RegisterPage() {
       }, 2000);
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
-        const axiosError = err as any;
+        const axiosError = err as { response?: { data?: { detail?: string } } };
         if (axiosError.response?.data?.detail) {
           setError({ message: axiosError.response.data.detail });
         } else {
@@ -534,7 +534,8 @@ export default function RegisterPage() {
                     required
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    기업 회원가입을 먼저 완료한 후 발급받은 기업 ID를 입력해주세요.
+                    기업 회원가입을 먼저 완료한 후 발급받은 기업 ID를
+                    입력해주세요.
                   </p>
                 </div>
               </div>

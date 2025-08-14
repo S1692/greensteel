@@ -42,7 +42,7 @@ export default function LandingPage() {
       router.push('/dashboard');
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
-        const axiosError = err as any;
+        const axiosError = err as { response?: { data?: { detail?: string } } };
         if (axiosError.response?.data?.detail) {
           setError({ message: axiosError.response.data.detail });
         } else {

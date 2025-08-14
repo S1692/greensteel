@@ -71,7 +71,7 @@ axiosClient.interceptors.request.use(
   config => {
     // 요청 키 생성
     const requestKey = generateRequestKey(config);
-    
+
     // 이미 진행 중인 동일한 요청이 있으면 취소
     if (pendingRequests.has(requestKey)) {
       const controller = pendingRequests.get(requestKey);
@@ -79,12 +79,12 @@ axiosClient.interceptors.request.use(
         controller.abort();
       }
     }
-    
+
     // 새로운 AbortController 생성
     const controller = new AbortController();
     config.signal = controller.signal;
     pendingRequests.set(requestKey, controller);
-    
+
     // Gateway 외 요청 차단
     if (config.url && !isGatewayRequest(config.baseURL + config.url)) {
       throw new Error(
@@ -127,7 +127,7 @@ axiosClient.interceptors.response.use(
       const requestKey = generateRequestKey(error.config);
       pendingRequests.delete(requestKey);
     }
-    
+
     // 5xx 오류나 네트워크 오류 시 재시도
     if (error.response?.status >= 500 || !error.response) {
       const config = error.config;

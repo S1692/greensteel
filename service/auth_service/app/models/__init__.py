@@ -61,28 +61,12 @@ def get_db() -> Session:
 def create_tables():
     """데이터베이스 테이블 생성"""
     try:
-        # 기존 테이블과 인덱스를 모두 삭제 (1회만 실행)
-        auth_logger.info("Dropping existing tables and indexes...")
-        Base.metadata.drop_all(bind=engine)
-        auth_logger.info("Existing tables and indexes dropped successfully")
-        
-        # 새로운 테이블과 인덱스 생성
-        auth_logger.info("Creating new tables and indexes...")
-        Base.metadata.create_all(bind=engine)
-        
+        # 테이블과 인덱스 생성 (기존 객체는 무시)
+        Base.metadata.create_all(bind=engine, checkfirst=True)
         auth_logger.info("Database tables and indexes created successfully")
     except Exception as e:
         auth_logger.error(f"Table creation failed: {str(e)}")
         raise
 
-def drop_tables():
-    """데이터베이스 테이블 삭제 (개발용)"""
-    try:
-        Base.metadata.drop_all(bind=engine)
-        auth_logger.info("Database tables dropped successfully")
-    except Exception as e:
-        auth_logger.error(f"Table drop failed: {str(e)}")
-        raise
-
 # 모델들을 한 곳에서 import할 수 있도록
-__all__ = ["User", "Company", "Base", "engine", "SessionLocal", "get_db", "create_tables", "drop_tables"]
+__all__ = ["User", "Company", "Base", "engine", "SessionLocal", "get_db", "create_tables"]

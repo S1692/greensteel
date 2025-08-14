@@ -92,14 +92,20 @@ export default function RegisterPage() {
         ...companyData,
         password: companyData.password,
       });
-      setSuccess(`기업 등록이 완료되었습니다! 기업 ID: ${response.data.id}`);
+      
+      // 응답 데이터 검증
+      if (response.data && response.data.id) {
+        setSuccess(`기업 등록이 완료되었습니다! 기업 ID: ${response.data.id}`);
 
-      // 기업 ID를 User 회원가입에 설정
-      setUserData(prev => ({
-        ...prev,
-        company_id: response.data.id.toString(),
-      }));
-      setActiveTab('user');
+        // 기업 ID를 User 회원가입에 설정
+        setUserData((prev: typeof userData) => ({
+          ...prev,
+          company_id: response.data.id.toString(),
+        }));
+        setActiveTab('user');
+      } else {
+        setError({ message: '기업 등록은 성공했지만 ID를 받지 못했습니다.' });
+      }
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
         const axiosError = err as { response?: { data?: { detail?: string } } };

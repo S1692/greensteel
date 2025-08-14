@@ -36,14 +36,14 @@ export default function RegisterPage() {
     manager_phone: '',
     manager_email: '',
     password: '',
-    confirmPassword: '',
+    confirm_password: '',
   });
 
   // User 회원가입 상태
   const [userData, setUserData] = useState({
     username: '',
     password: '',
-    confirmPassword: '',
+    confirm_password: '',
     full_name: '',
     company_id: '',
   });
@@ -67,13 +67,13 @@ export default function RegisterPage() {
       !companyData.manager_name ||
       !companyData.manager_phone ||
       !companyData.password ||
-      !companyData.confirmPassword
+      !companyData.confirm_password
     ) {
       setError({ message: '필수 필드를 모두 입력해주세요.' });
       return;
     }
 
-    if (companyData.password !== companyData.confirmPassword) {
+    if (companyData.password !== companyData.confirm_password) {
       setError({ message: '비밀번호가 일치하지 않습니다.' });
       return;
     }
@@ -147,7 +147,7 @@ export default function RegisterPage() {
       return;
     }
 
-    if (userData.password !== userData.confirmPassword) {
+    if (userData.password !== userData.confirm_password) {
       setError({ message: '비밀번호가 일치하지 않습니다.' });
       return;
     }
@@ -421,9 +421,9 @@ export default function RegisterPage() {
               <label className="stitch-label mb-1 block">비밀번호 확인 *</label>
               <Input
                 type="password"
-                value={companyData.confirmPassword}
+                value={companyData.confirm_password}
                 onChange={e =>
-                  handleCompanyInputChange('confirmPassword', e.target.value)
+                  handleCompanyInputChange('confirm_password', e.target.value)
                 }
                 placeholder="********"
                 disabled={isLoading}
@@ -475,9 +475,9 @@ export default function RegisterPage() {
               <label className="stitch-label mb-1 block">비밀번호 확인 *</label>
               <Input
                 type="password"
-                value={userData.confirmPassword}
+                value={userData.confirm_password}
                 onChange={e =>
-                  handleUserInputChange('confirmPassword', e.target.value)
+                  handleUserInputChange('confirm_password', e.target.value)
                 }
                 placeholder="********"
                 disabled={isLoading}

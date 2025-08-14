@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axiosClient from '@/lib/axiosClient';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
 
 interface LoginError {
   message: string;
@@ -19,27 +21,20 @@ export default function LandingPage() {
     e.preventDefault();
     if (isLoading) return;
 
-    // 클라이언트 측 유효성 검사
-    if (!username.trim() || !password.trim()) {
-      setError({ message: 'ID와 비밀번호를 모두 입력해주세요.' });
-      return;
-    }
-
     setIsLoading(true);
     setError(null);
 
     try {
       const response = await axiosClient.post('/auth/login', {
-        username: username.trim(),
-        password: password,
+        username,
+        password,
       });
 
-      // 토큰과 사용자 정보 저장
-      localStorage.setItem('access_token', response.data.access_token);
-      localStorage.setItem('user_email', response.data.user.username); // username으로 변경
-
-      // 대시보드로 리다이렉트
-      router.push('/dashboard');
+      if (response.data.access_token) {
+        localStorage.setItem('auth_token', response.data.access_token);
+        localStorage.setItem('user_email', username);
+        router.push('/dashboard');
+      }
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
         const axiosError = err as { response?: { data?: { detail?: string } } };
@@ -57,72 +52,49 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">GreenSteel</h1>
-          <p className="text-gray-600">로그인</p>
-        </div>
+    <div className="min-h-screen stitch-bg flex items-center justify-center px-4">
+      <div className="stitch-card w-full max-w-md p-8">
+        <h1 className="stitch-h1 text-3xl font-semibold text-center">GreenSteel</h1>
+        <p className="text-center text-[13px] mt-1" style={{color: 'var(--text-muted)'}}>로그인</p>
 
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                ID <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={username}
-                onChange={e => setUsername(e.target.value)}
-                placeholder="예: smartuser"
-                disabled={isLoading}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                비밀번호 <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="********"
-                disabled={isLoading}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                required
-              />
-            </div>
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-md p-3">
-                <p className="text-sm text-red-600">{error.message}</p>
-              </div>
-            )}
-
-            <button
-              type="submit"
+        <form onSubmit={handleSubmit} className="space-y-4 mt-6">
+          <div>
+            <label className="stitch-label mb-1 block">ID *</label>
+            <Input
+              type="text"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              placeholder="예: smartuser"
               disabled={isLoading}
-              className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isLoading ? '로그인 중...' : '로그인'}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              계정이 없으신가요?{' '}
-              <a
-                href="/register"
-                className="font-medium text-green-600 hover:text-green-500 transition-colors"
-              >
-                회원가입
-              </a>
-            </p>
+              required
+            />
           </div>
-        </div>
+
+          <div>
+            <label className="stitch-label mb-1 block">비밀번호 *</label>
+            <Input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="********"
+              disabled={isLoading}
+              required
+            />
+          </div>
+
+          {error && (
+            <p className="stitch-error mt-1">{error.message}</p>
+          )}
+
+          <Button className="mt-2" disabled={isLoading}>
+            {isLoading ? '로그인 중...' : '로그인'}
+          </Button>
+        </form>
+
+        <p className="text-center mt-4 text-[13px]" style={{color:'var(--text-muted)'}}>
+          계정이 없으신가요?{' '}
+          <a href="/register" className="text-[var(--accent)] hover:underline">회원가입</a>
+        </p>
       </div>
     </div>
   );

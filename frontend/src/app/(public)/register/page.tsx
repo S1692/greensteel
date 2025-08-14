@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axiosClient from '@/lib/axiosClient';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { SectionTitle } from '@/components/ui/SectionTitle';
 
 interface RegisterError {
   message: string;
@@ -170,453 +173,283 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
-      <div className="max-w-4xl w-full space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">GreenSteel</h1>
-          <p className="text-gray-600">회원가입</p>
+    <div className="min-h-screen stitch-bg py-14 px-4">
+      <div className="stitch-card max-w-4xl mx-auto p-8">
+        <h1 className="stitch-h1 text-2xl font-semibold text-center">GreenSteel</h1>
+        <p className="text-center text-[13px] mt-1" style={{color:'var(--text-muted)'}}>회원가입</p>
+
+        {/* 탭 네비게이션 */}
+        <div className="flex gap-2 bg-[rgba(255,255,255,.05)] p-1 rounded-full w-full max-w-md mx-auto mb-6">
+          <button 
+            className="stitch-tab w-1/2" 
+            data-active={activeTab === 'company'} 
+            onClick={() => setActiveTab('company')}
+          >
+            기업 회원가입
+          </button>
+          <button 
+            className="stitch-tab w-1/2" 
+            data-active={activeTab === 'user'} 
+            onClick={() => setActiveTab('user')}
+          >
+            User 회원가입
+          </button>
         </div>
 
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          {/* 탭 네비게이션 */}
-          <div className="flex space-x-1 mb-8">
-            <button
-              onClick={() => setActiveTab('company')}
-              className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-                activeTab === 'company'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              기업 회원가입
-            </button>
-            <button
-              onClick={() => setActiveTab('user')}
-              className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-                activeTab === 'user'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              User 회원가입
-            </button>
+        {error && (
+          <div className="mb-6 bg-[rgba(239,68,68,.1)] border border-[rgba(239,68,68,.35)] rounded-md p-3">
+            <p className="stitch-error">{error.message}</p>
           </div>
+        )}
 
-          {error && (
-            <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-3">
-              <p className="text-sm text-red-600">{error.message}</p>
-            </div>
-          )}
+        {success && (
+          <div className="mb-6 bg-[rgba(34,197,94,.1)] border border-[rgba(34,197,94,.35)] rounded-md p-3">
+            <p className="text-[var(--text-1)] text-sm">{success}</p>
+          </div>
+        )}
 
-          {success && (
-            <div className="mb-6 bg-green-50 border border-green-200 rounded-md p-3">
-              <p className="text-sm text-green-600">{success}</p>
-            </div>
-          )}
-
-          {/* 기업 회원가입 폼 */}
-          {activeTab === 'company' && (
-            <form onSubmit={handleCompanySubmit} className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                기업 정보
-              </h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    사업자(상점) 국문 이름{' '}
-                    <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={companyData.name_ko}
-                    onChange={e =>
-                      handleCompanyInputChange('name_ko', e.target.value)
-                    }
-                    placeholder="예: 스마트에스지"
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    사업자(상점) 영문 이름
-                  </label>
-                  <input
-                    type="text"
-                    value={companyData.name_en}
-                    onChange={e =>
-                      handleCompanyInputChange('name_en', e.target.value)
-                    }
-                    placeholder="예: Smart ESG"
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    사업자번호 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={companyData.biz_no}
-                    onChange={e =>
-                      handleCompanyInputChange('biz_no', e.target.value)
-                    }
-                    placeholder="예: 1234567890"
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    대표자명
-                  </label>
-                  <input
-                    type="text"
-                    value={companyData.ceo_name}
-                    onChange={e =>
-                      handleCompanyInputChange('ceo_name', e.target.value)
-                    }
-                    placeholder="예: 홍길동"
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                  />
-                </div>
-              </div>
-
-              <h3 className="text-lg font-medium text-gray-900 mt-6 mb-4">
-                주소 정보
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    국가
-                  </label>
-                  <input
-                    type="text"
-                    value={companyData.country}
-                    onChange={e =>
-                      handleCompanyInputChange('country', e.target.value)
-                    }
-                    placeholder="예: KR"
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    우편번호
-                  </label>
-                  <input
-                    type="text"
-                    value={companyData.zipcode}
-                    onChange={e =>
-                      handleCompanyInputChange('zipcode', e.target.value)
-                    }
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    광역 도시명
-                  </label>
-                  <input
-                    type="text"
-                    value={companyData.city}
-                    onChange={e =>
-                      handleCompanyInputChange('city', e.target.value)
-                    }
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    상세 주소
-                  </label>
-                  <input
-                    type="text"
-                    value={companyData.address1}
-                    onChange={e =>
-                      handleCompanyInputChange('address1', e.target.value)
-                    }
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                  />
-                </div>
-              </div>
-
-              <h3 className="text-lg font-medium text-gray-900 mt-6 mb-4">
-                업종 정보
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    업태/업종
-                  </label>
-                  <input
-                    type="text"
-                    value={companyData.sector}
-                    onChange={e =>
-                      handleCompanyInputChange('sector', e.target.value)
-                    }
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    업종 코드
-                  </label>
-                  <input
-                    type="text"
-                    value={companyData.industry_code}
-                    onChange={e =>
-                      handleCompanyInputChange('industry_code', e.target.value)
-                    }
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                  />
-                </div>
-              </div>
-
-              <h3 className="text-lg font-medium text-gray-900 mt-6 mb-4">
-                담당자 정보
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    당직자 이름 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={companyData.manager_name}
-                    onChange={e =>
-                      handleCompanyInputChange('manager_name', e.target.value)
-                    }
-                    placeholder="예: 김길동"
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    당직자 연락처 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={companyData.manager_phone}
-                    onChange={e =>
-                      handleCompanyInputChange('manager_phone', e.target.value)
-                    }
-                    placeholder="예: 010-1234-5678"
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                    required
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    당직자 이메일
-                  </label>
-                  <input
-                    type="email"
-                    value={companyData.manager_email}
-                    onChange={e =>
-                      handleCompanyInputChange('manager_email', e.target.value)
-                    }
-                    placeholder="예: manager@smartesg.com"
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                  />
-                </div>
-              </div>
-
-              <h3 className="text-lg font-medium text-gray-900 mt-6 mb-4">
-                계정 정보
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    비밀번호 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    value={companyData.password}
-                    onChange={e =>
-                      handleCompanyInputChange('password', e.target.value)
-                    }
-                    placeholder="********"
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    비밀번호 확인 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    value={companyData.confirmPassword}
-                    onChange={e =>
-                      handleCompanyInputChange(
-                        'confirmPassword',
-                        e.target.value
-                      )
-                    }
-                    placeholder="********"
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                    required
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
+        {/* 기업 회원가입 폼 */}
+        {activeTab === 'company' && (
+          <form onSubmit={handleCompanySubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <SectionTitle>기업 정보</SectionTitle>
+            <div className="md:col-span-1">
+              <label className="stitch-label mb-1 block">사업자(상점) 국문 이름 *</label>
+              <Input
+                type="text"
+                value={companyData.name_ko}
+                onChange={e => handleCompanyInputChange('name_ko', e.target.value)}
+                placeholder="예: 스마트에스지"
                 disabled={isLoading}
-                className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
+                required
+              />
+            </div>
+            <div className="md:col-span-1">
+              <label className="stitch-label mb-1 block">사업자(상점) 영문 이름</label>
+              <Input
+                type="text"
+                value={companyData.name_en}
+                onChange={e => handleCompanyInputChange('name_en', e.target.value)}
+                placeholder="예: Smart ESG"
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="md:col-span-1">
+              <label className="stitch-label mb-1 block">사업자번호 *</label>
+              <Input
+                type="text"
+                value={companyData.biz_no}
+                onChange={e => handleCompanyInputChange('biz_no', e.target.value)}
+                placeholder="예: 1234567890"
+                disabled={isLoading}
+                required
+              />
+            </div>
+            <div className="md:col-span-1">
+              <label className="stitch-label mb-1 block">대표자명</label>
+              <Input
+                type="text"
+                value={companyData.ceo_name}
+                onChange={e => handleCompanyInputChange('ceo_name', e.target.value)}
+                placeholder="예: 홍길동"
+                disabled={isLoading}
+              />
+            </div>
+
+            <SectionTitle>주소 정보</SectionTitle>
+            <div>
+              <label className="stitch-label mb-1 block">국가</label>
+              <Input
+                type="text"
+                value={companyData.country}
+                onChange={e => handleCompanyInputChange('country', e.target.value)}
+                placeholder="예: KR"
+                disabled={isLoading}
+              />
+            </div>
+            <div>
+              <label className="stitch-label mb-1 block">우편번호</label>
+              <Input
+                type="text"
+                value={companyData.zipcode}
+                onChange={e => handleCompanyInputChange('zipcode', e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+            <div>
+              <label className="stitch-label mb-1 block">광역 도시명</label>
+              <Input
+                type="text"
+                value={companyData.city}
+                onChange={e => handleCompanyInputChange('city', e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+            <div>
+              <label className="stitch-label mb-1 block">상세 주소</label>
+              <Input
+                type="text"
+                value={companyData.address1}
+                onChange={e => handleCompanyInputChange('address1', e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+
+            <SectionTitle>업종 정보</SectionTitle>
+            <div>
+              <label className="stitch-label mb-1 block">업태/업종</label>
+              <Input
+                type="text"
+                value={companyData.sector}
+                onChange={e => handleCompanyInputChange('sector', e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+            <div>
+              <label className="stitch-label mb-1 block">업종 코드</label>
+              <Input
+                type="text"
+                value={companyData.industry_code}
+                onChange={e => handleCompanyInputChange('industry_code', e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+
+            <SectionTitle>담당자 정보</SectionTitle>
+            <div>
+              <label className="stitch-label mb-1 block">당직자 이름 *</label>
+              <Input
+                type="text"
+                value={companyData.manager_name}
+                onChange={e => handleCompanyInputChange('manager_name', e.target.value)}
+                placeholder="예: 김길동"
+                disabled={isLoading}
+                required
+              />
+            </div>
+            <div>
+              <label className="stitch-label mb-1 block">당직자 연락처 *</label>
+              <Input
+                type="text"
+                value={companyData.manager_phone}
+                onChange={e => handleCompanyInputChange('manager_phone', e.target.value)}
+                placeholder="예: 010-1234-5678"
+                disabled={isLoading}
+                required
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="stitch-label mb-1 block">당직자 이메일</label>
+              <Input
+                type="email"
+                value={companyData.manager_email}
+                onChange={e => handleCompanyInputChange('manager_email', e.target.value)}
+                placeholder="예: manager@smartesg.com"
+                disabled={isLoading}
+              />
+            </div>
+
+            <SectionTitle>계정 정보</SectionTitle>
+            <div>
+              <label className="stitch-label mb-1 block">비밀번호 *</label>
+              <Input
+                type="password"
+                value={companyData.password}
+                onChange={e => handleCompanyInputChange('password', e.target.value)}
+                placeholder="********"
+                disabled={isLoading}
+                required
+              />
+            </div>
+            <div>
+              <label className="stitch-label mb-1 block">비밀번호 확인 *</label>
+              <Input
+                type="password"
+                value={companyData.confirmPassword}
+                onChange={e => handleCompanyInputChange('confirmPassword', e.target.value)}
+                placeholder="********"
+                disabled={isLoading}
+                required
+              />
+            </div>
+
+            <div className="md:col-span-2 mt-2">
+              <Button disabled={isLoading}>
                 {isLoading ? '등록 중...' : '기업 등록'}
-              </button>
-            </form>
-          )}
+              </Button>
+            </div>
+          </form>
+        )}
 
-          {/* User 회원가입 폼 */}
-          {activeTab === 'user' && (
-            <form onSubmit={handleUserSubmit} className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                사용자 정보
-              </h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    ID <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={userData.username}
-                    onChange={e =>
-                      handleUserInputChange('username', e.target.value)
-                    }
-                    placeholder="예: smartuser"
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    이름 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={userData.full_name}
-                    onChange={e =>
-                      handleUserInputChange('full_name', e.target.value)
-                    }
-                    placeholder="예: 홍길동"
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    비밀번호 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    value={userData.password}
-                    onChange={e =>
-                      handleUserInputChange('password', e.target.value)
-                    }
-                    placeholder="********"
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    비밀번호 확인 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    value={userData.confirmPassword}
-                    onChange={e =>
-                      handleUserInputChange('confirmPassword', e.target.value)
-                    }
-                    placeholder="********"
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                    required
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    기업 ID <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={userData.company_id}
-                    onChange={e =>
-                      handleUserInputChange('company_id', e.target.value)
-                    }
-                    placeholder="기업 등록 후 발급된 ID"
-                    disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                    required
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    기업 회원가입을 먼저 완료한 후 발급받은 기업 ID를
-                    입력해주세요.
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="submit"
+        {/* User 회원가입 폼 */}
+        {activeTab === 'user' && (
+          <form onSubmit={handleUserSubmit} className="space-y-4 max-w-md mx-auto">
+            <div>
+              <label className="stitch-label mb-1 block">ID *</label>
+              <Input
+                type="text"
+                value={userData.username}
+                onChange={e => handleUserInputChange('username', e.target.value)}
+                placeholder="예: smartuser"
                 disabled={isLoading}
-                className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isLoading ? '등록 중...' : '사용자 등록'}
-              </button>
-            </form>
-          )}
+                required
+              />
+            </div>
+            <div>
+              <label className="stitch-label mb-1 block">비밀번호 *</label>
+              <Input
+                type="password"
+                value={userData.password}
+                onChange={e => handleUserInputChange('password', e.target.value)}
+                placeholder="********"
+                disabled={isLoading}
+                required
+              />
+            </div>
+            <div>
+              <label className="stitch-label mb-1 block">비밀번호 확인 *</label>
+              <Input
+                type="password"
+                value={userData.confirmPassword}
+                onChange={e => handleUserInputChange('confirmPassword', e.target.value)}
+                placeholder="********"
+                disabled={isLoading}
+                required
+              />
+            </div>
+            <div>
+              <label className="stitch-label mb-1 block">이름 *</label>
+              <Input
+                type="text"
+                value={userData.full_name}
+                onChange={e => handleUserInputChange('full_name', e.target.value)}
+                placeholder="예: 홍길동"
+                disabled={isLoading}
+                required
+              />
+            </div>
+            <div>
+              <label className="stitch-label mb-1 block">기업 ID *</label>
+              <Input
+                type="text"
+                value={userData.company_id}
+                onChange={e => handleUserInputChange('company_id', e.target.value)}
+                placeholder="기업 등록 후 발급된 ID"
+                disabled={isLoading}
+                required
+              />
+            </div>
+            <Button disabled={isLoading}>
+              {isLoading ? '등록 중...' : '사용자 등록'}
+            </Button>
+          </form>
+        )}
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              이미 계정이 있으신가요?{' '}
-              <a
-                href="/landing"
-                className="font-medium text-green-600 hover:text-green-500 transition-colors"
-              >
-                로그인
-              </a>
-            </p>
-          </div>
+        <div className="mt-6 text-center">
+          <p className="text-[13px]" style={{color:'var(--text-muted)'}}>
+            이미 계정이 있으신가요?{' '}
+            <a href="/landing" className="text-[var(--accent)] hover:underline">로그인</a>
+          </p>
         </div>
       </div>
     </div>

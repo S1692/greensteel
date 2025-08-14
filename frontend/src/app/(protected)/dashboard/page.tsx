@@ -47,9 +47,7 @@ const DashboardPage: React.FC = () => {
         {/* 헤더 */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-ecotrace-text">
-              대시보드
-            </h1>
+            <h1 className="text-3xl font-bold text-ecotrace-text">대시보드</h1>
             <p className="text-ecotrace-textSecondary">
               안녕하세요, {userEmail}님
             </p>

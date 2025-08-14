@@ -20,12 +20,9 @@ if (process.env.NEXT_PUBLIC_GATEWAY_URL) {
       url.hostname === '127.0.0.1' ||
       url.hostname.includes('3000')
     ) {
-      console.warn(
-        'Warning: localhost or development URLs are not allowed in production'
-      );
+      // 개발 환경 URL 사용 시 경고 (프로덕션에서는 허용되지 않음)
     }
   } catch {
     // URL이 유효하지 않으면 기본값 사용
-    console.warn('Invalid Gateway URL, using default');
   }
 }

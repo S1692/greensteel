@@ -12,6 +12,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update && apt-get install -y \
     gcc \
     curl \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Python 의존성 설치

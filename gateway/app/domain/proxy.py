@@ -146,7 +146,7 @@ class ProxyController:
     async def proxy_request(self, request: Request) -> Response:
         """프록시 요청 처리"""
         try:
-            path = request.path
+            path = request.url.path
             method = request.method
             target_service = self.get_target_service(path)
             

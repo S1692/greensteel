@@ -15,6 +15,6 @@ if (process.env.NEXT_PUBLIC_GATEWAY_URL) {
   try {
     new URL(env.NEXT_PUBLIC_GATEWAY_URL);
   } catch {
-    console.warn('NEXT_PUBLIC_GATEWAY_URL is not a valid URL, using default');
+    // URL이 유효하지 않으면 기본값 사용
   }
 }

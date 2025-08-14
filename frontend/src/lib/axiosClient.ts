@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import { env } from './env';
 
 // Gateway 외 요청 차단을 위한 인터셉터
@@ -30,7 +30,11 @@ const retryRequest = async (
   try {
     return await axiosInstance(config);
   } catch (error: unknown) {
-    if (retries > 0 && (error as any)?.response?.status >= 500 || !(error as any)?.response) {
+    const axiosError = error as AxiosError;
+    if (
+      retries > 0 &&
+      (axiosError.response?.status >= 500 || !axiosError.response)
+    ) {
       await new Promise(resolve => setTimeout(resolve, 1000 * (4 - retries)));
       return retryRequest(axiosInstance, config, retries - 1);
     }

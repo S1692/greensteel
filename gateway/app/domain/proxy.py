@@ -12,12 +12,12 @@ class ProxyController:
     def __init__(self):
         self.gateway_name = os.getenv("GATEWAY_NAME", "greensteel-gateway")
         
-        # 서비스 매핑 - OCP 원칙 적용
+        # 서비스 매핑 - OCP 원칙 적용 (URL 정리 포함)
         self.service_map = {
-            "/auth": os.getenv("AUTH_SERVICE_URL", ""),
-            "/cbam": os.getenv("CBAM_SERVICE_URL", ""),
-            "/datagather": os.getenv("DATAGATHER_SERVICE_URL", ""),
-            "/lci": os.getenv("LCI_SERVICE_URL", "")
+            "/auth": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "")),
+            "/cbam": self._clean_service_url(os.getenv("CBAM_SERVICE_URL", "")),
+            "/datagather": self._clean_service_url(os.getenv("DATAGATHER_SERVICE_URL", "")),
+            "/lci": self._clean_service_url(os.getenv("LCI_SERVICE_URL", ""))
         }
         
         # HTTP 클라이언트 설정 - 모든 타임아웃 파라미터 명시적 설정
@@ -30,6 +30,20 @@ class ProxyController:
         
         gateway_logger.log_info(f"Gateway initialized: {self.gateway_name}")
         gateway_logger.log_info(f"Service map: {self.service_map}")
+    
+    def _clean_service_url(self, url: str) -> str:
+        """서비스 URL 정리 (공백, 세미콜론, 따옴표 제거)"""
+        if not url:
+            return ""
+        
+        # 공백, 세미콜론, 따옴표 제거
+        cleaned_url = url.strip().rstrip(';').strip('"\'')
+        
+        # 프로토콜이 없으면 https:// 추가
+        if cleaned_url and not cleaned_url.startswith(('http://', 'https://')):
+            cleaned_url = f"https://{cleaned_url}"
+        
+        return cleaned_url
     
     def get_target_service(self, path: str) -> Optional[str]:
         """경로에 따른 타겟 서비스 URL 반환"""

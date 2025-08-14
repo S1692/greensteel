@@ -105,9 +105,13 @@ axiosClient.interceptors.response.use(
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('auth_token');
+<<<<<<< HEAD
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user_email');
         window.location.href = '/';
+=======
+        window.location.href = '/auth/login';
+>>>>>>> 93e7901ca2a41eb487391e27f1175db084942ffd
       }
     }
 
@@ -115,6 +119,7 @@ axiosClient.interceptors.response.use(
   }
 );
 
+<<<<<<< HEAD
 // API 엔드포인트 헬퍼 (Gateway 경로에 맞게 수정)
 export const apiEndpoints = {
   auth: {
@@ -209,4 +214,40 @@ export const authUtils = {
   },
 };
 
+=======
+// API 엔드포인트 헬퍼
+export const apiEndpoints = {
+  auth: {
+    login: '/v1/auth/login',
+    register: '/v1/auth/register',
+    logout: '/v1/auth/logout',
+    refresh: '/v1/auth/refresh',
+  },
+  lca: {
+    projects: '/v1/lca/projects',
+    calculations: '/v1/lca/calculations',
+    templates: '/v1/lca/templates',
+  },
+  cbam: {
+    reports: '/v1/cbam/reports',
+    calculations: '/v1/cbam/calculations',
+    templates: '/v1/cbam/templates',
+  },
+  upload: {
+    data: '/v1/upload/data',
+    validate: '/v1/upload/validate',
+  },
+  dashboard: {
+    overview: '/v1/dashboard/overview',
+    stats: '/v1/dashboard/stats',
+  },
+  settings: {
+    profile: '/v1/settings/profile',
+    organization: '/v1/settings/organization',
+    users: '/v1/settings/users',
+    apiKeys: '/v1/settings/api-keys',
+  },
+} as const;
+
+>>>>>>> 93e7901ca2a41eb487391e27f1175db084942ffd
 export default axiosClient;

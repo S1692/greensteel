@@ -5,7 +5,10 @@ import { useRouter } from 'next/navigation';
 import Button from '@/components/atoms/Button';
 import Input from '@/components/atoms/Input';
 import CommonShell from '@/components/CommonShell';
+<<<<<<< HEAD
 import axiosClient, { apiEndpoints } from '@/lib/axiosClient';
+=======
+>>>>>>> 93e7901ca2a41eb487391e27f1175db084942ffd
 
 const RegisterPage: React.FC = () => {
   const router = useRouter();
@@ -16,20 +19,27 @@ const RegisterPage: React.FC = () => {
     password: '',
     confirmPassword: '',
   });
+<<<<<<< HEAD
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+=======
+>>>>>>> 93e7901ca2a41eb487391e27f1175db084942ffd
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
+<<<<<<< HEAD
     // 에러 메시지 초기화
     if (error) setError('');
+=======
+>>>>>>> 93e7901ca2a41eb487391e27f1175db084942ffd
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+<<<<<<< HEAD
     setError('');
 
     if (formData.password !== formData.confirmPassword) {
@@ -72,6 +82,18 @@ const RegisterPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+=======
+
+    if (formData.password !== formData.confirmPassword) {
+      alert('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
+    // 회원가입 처리
+    // 실제로는 API 호출
+    alert('회원가입이 완료되었습니다. 로그인해주세요.');
+    router.push('/');
+>>>>>>> 93e7901ca2a41eb487391e27f1175db084942ffd
   };
 
   return (
@@ -88,12 +110,15 @@ const RegisterPage: React.FC = () => {
           </div>
 
           <div className="bg-ecotrace-surface border border-ecotrace-border rounded-xl p-8">
+<<<<<<< HEAD
             {error && (
               <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-md text-sm">
                 {error}
               </div>
             )}
 
+=======
+>>>>>>> 93e7901ca2a41eb487391e27f1175db084942ffd
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input
                 label="이름"
@@ -102,7 +127,10 @@ const RegisterPage: React.FC = () => {
                 value={formData.name}
                 onChange={handleInputChange}
                 required
+<<<<<<< HEAD
                 disabled={isLoading}
+=======
+>>>>>>> 93e7901ca2a41eb487391e27f1175db084942ffd
               />
 
               <Input
@@ -112,7 +140,10 @@ const RegisterPage: React.FC = () => {
                 value={formData.company}
                 onChange={handleInputChange}
                 required
+<<<<<<< HEAD
                 disabled={isLoading}
+=======
+>>>>>>> 93e7901ca2a41eb487391e27f1175db084942ffd
               />
 
               <Input
@@ -122,7 +153,10 @@ const RegisterPage: React.FC = () => {
                 value={formData.email}
                 onChange={handleInputChange}
                 required
+<<<<<<< HEAD
                 disabled={isLoading}
+=======
+>>>>>>> 93e7901ca2a41eb487391e27f1175db084942ffd
               />
 
               <Input
@@ -132,8 +166,11 @@ const RegisterPage: React.FC = () => {
                 value={formData.password}
                 onChange={handleInputChange}
                 required
+<<<<<<< HEAD
                 disabled={isLoading}
                 minLength={8}
+=======
+>>>>>>> 93e7901ca2a41eb487391e27f1175db084942ffd
               />
 
               <Input
@@ -143,6 +180,7 @@ const RegisterPage: React.FC = () => {
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
                 required
+<<<<<<< HEAD
                 disabled={isLoading}
                 minLength={8}
               />
@@ -154,6 +192,12 @@ const RegisterPage: React.FC = () => {
                 disabled={isLoading}
               >
                 {isLoading ? '처리 중...' : '회원가입'}
+=======
+              />
+
+              <Button type="submit" className="w-full" size="lg">
+                회원가입
+>>>>>>> 93e7901ca2a41eb487391e27f1175db084942ffd
               </Button>
             </form>
 
@@ -163,7 +207,10 @@ const RegisterPage: React.FC = () => {
                 <button
                   onClick={() => router.push('/')}
                   className="text-ecotrace-accent hover:underline cursor-pointer"
+<<<<<<< HEAD
                   disabled={isLoading}
+=======
+>>>>>>> 93e7901ca2a41eb487391e27f1175db084942ffd
                 >
                   로그인
                 </button>

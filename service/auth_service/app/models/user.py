@@ -20,13 +20,13 @@ class User(Base):
     company_id = Column(Integer, ForeignKey("companies.id", ondelete="CASCADE"), nullable=False)
     
     # 권한 정보 (Company에서 부여)
-    role = Column(String(50), default="user", nullable=False, description="사용자 역할")
-    permissions = Column(JSON, default=dict, nullable=False, description="세부 권한")
-    is_company_admin = Column(Boolean, default=False, nullable=False, description="기업 관리자 여부")
-    can_manage_users = Column(Boolean, default=False, nullable=False, description="사용자 관리 권한")
-    can_view_reports = Column(Boolean, default=False, nullable=False, description="리포트 조회 권한")
-    can_edit_data = Column(Boolean, default=False, nullable=False, description="데이터 편집 권한")
-    can_export_data = Column(Boolean, default=False, nullable=False, description="데이터 내보내기 권한")
+    role = Column(String(50), default="user", nullable=False)
+    permissions = Column(JSON, default=dict, nullable=False)
+    is_company_admin = Column(Boolean, default=False, nullable=False)
+    can_manage_users = Column(Boolean, default=False, nullable=False)
+    can_view_reports = Column(Boolean, default=False, nullable=False)
+    can_edit_data = Column(Boolean, default=False, nullable=False)
+    can_export_data = Column(Boolean, default=False, nullable=False)
     
     # 상태 필드
     is_active = Column(Boolean, default=True, nullable=False)

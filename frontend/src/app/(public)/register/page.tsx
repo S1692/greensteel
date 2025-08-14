@@ -92,7 +92,7 @@ export default function RegisterPage() {
         ...companyData,
         password: companyData.password,
       });
-      
+
       // 응답 데이터 검증
       if (response.data && response.data.id) {
         setSuccess(`기업 등록이 완료되었습니다! 기업 ID: ${response.data.id}`);

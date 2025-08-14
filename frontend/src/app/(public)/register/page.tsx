@@ -307,9 +307,7 @@ export default function RegisterPage() {
               <Input
                 type="text"
                 value={companyData.city}
-                onChange={e =>
-                  handleCompanyInputChange('city', e.target.value)
-                }
+                onChange={e => handleCompanyInputChange('city', e.target.value)}
                 disabled={isLoading}
               />
             </div>
@@ -503,10 +501,7 @@ export default function RegisterPage() {
         )}
 
         <div className="mt-6 text-center">
-          <p
-            className="text-[13px]"
-            style={{ color: 'var(--text-muted)' }}
-          >
+          <p className="text-[13px]" style={{ color: 'var(--text-muted)' }}>
             이미 계정이 있으신가요?{' '}
             <a href="/landing" className="text-[var(--accent)] hover:underline">
               로그인

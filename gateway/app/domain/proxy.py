@@ -1,20 +1,18 @@
-import httpx
-from fastapi import Request, Response, HTTPException
-from fastapi.responses import StreamingResponse
-from typing import Dict, Optional, Any
 import os
-from ..common.utility.logger import gateway_logger
-import time
 import json
+import time
+import httpx
+from typing import Dict, Optional, Any
+from fastapi import Request, Response, HTTPException
+from ..common.utility.logger import gateway_logger
 
 class ProxyController:
     """프록시 컨트롤러 - MVC의 Controller 역할"""
     
     def __init__(self):
-        # 환경변수에서 서비스 URL들을 가져오고 기본값 설정
-        self.gateway_name = os.getenv("GATEWAY_NAME", "gateway")
+        self.gateway_name = os.getenv("GATEWAY_NAME", "greensteel-gateway")
         
-        # 서비스 URL 매핑 (OCP 원칙으로 확장 가능)
+        # 서비스 매핑 - OCP 원칙 적용
         self.service_map = {
             "/auth": os.getenv("AUTH_SERVICE_URL", ""),
             "/cbam": os.getenv("CBAM_SERVICE_URL", ""),
@@ -22,11 +20,12 @@ class ProxyController:
             "/lci": os.getenv("LCI_SERVICE_URL", "")
         }
         
-        # HTTP 클라이언트 설정
+        # HTTP 클라이언트 설정 - 모든 타임아웃 파라미터 명시적 설정
         self.timeout = httpx.Timeout(
-            connect=15.0,  # 연결 타임아웃
-            read=300.0,    # 읽기 타임아웃
-            write=60.0     # 쓰기 타임아웃
+            connect=15.0,      # 연결 타임아웃
+            read=300.0,        # 읽기 타임아웃
+            write=60.0,        # 쓰기 타임아웃
+            pool=30.0          # 연결 풀 타임아웃
         )
         
         gateway_logger.log_info(f"Gateway initialized: {self.gateway_name}")
@@ -118,96 +117,95 @@ class ProxyController:
         # 요청 바디 읽기
         body = await request.body()
         
-        # 요청 데이터 검증
+        # 요청 데이터 검증 (특정 엔드포인트)
         if not self.validate_request_data(path, method, body):
-            gateway_logger.log_warning(f"Invalid request data for {method} {path}")
             raise HTTPException(status_code=400, detail="Invalid request data")
         
-        # 요청 로깅
-        gateway_logger.log_request(request, body)
-        
         # 타겟 URL 구성
-        target_url = f"{target_service.rstrip('/')}{path}"
+        target_url = f"{target_service}{path}"
+        if request.url.query:
+            target_url += f"?{request.url.query}"
+        
+        # 헤더 준비
+        headers = self.prepare_headers(request)
         
         try:
+            # httpx.AsyncClient로 프록시 요청 실행
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                # 프록시 요청 실행
                 response = await client.request(
                     method=method,
                     url=target_url,
-                    headers=self.prepare_headers(request),
-                    params=request.query_params,
-                    content=body
+                    headers=headers,
+                    content=body,
+                    follow_redirects=False
                 )
                 
                 # 응답 로깅
                 response_time = time.time() - start_time
                 gateway_logger.log_response(method, path, response.status_code, response_time)
                 
-                # 스트리밍 응답 반환 (대용량 데이터 지원)
-                return StreamingResponse(
-                    content=response.aiter_bytes(),
+                # 응답 반환
+                return Response(
+                    content=response.content,
                     status_code=response.status_code,
                     headers=dict(response.headers),
                     media_type=response.headers.get("content-type")
                 )
                 
-        except httpx.TimeoutException as e:
-            gateway_logger.log_error(f"Request timeout to {target_service}: {str(e)}")
+        except httpx.TimeoutException:
+            gateway_logger.log_error(f"Timeout error for {method} {path}")
             raise HTTPException(status_code=504, detail="Gateway timeout")
-        except httpx.ConnectError as e:
-            gateway_logger.log_error(f"Connection error to {target_service}: {str(e)}")
-            raise HTTPException(status_code=502, detail="Service unavailable")
+            
         except httpx.HTTPStatusError as e:
-            # HTTP 상태 코드 오류 처리
-            gateway_logger.log_error(f"HTTP error from {target_service}: {e.response.status_code}")
-            return StreamingResponse(
-                content=e.response.aiter_bytes(),
-                status_code=e.response.status_code,
-                headers=dict(e.response.headers),
-                media_type=e.response.headers.get("content-type")
-            )
+            gateway_logger.log_error(f"HTTP error for {method} {path}: {e.response.status_code}")
+            raise HTTPException(status_code=e.response.status_code, detail="Service error")
+            
         except Exception as e:
-            gateway_logger.log_error(f"Unexpected error proxying to {target_service}: {str(e)}")
+            gateway_logger.log_error(f"Unexpected error for {method} {path}: {str(e)}")
             raise HTTPException(status_code=500, detail="Internal gateway error")
     
-    def health_check(self) -> Dict[str, str]:
-        """헬스체크 응답"""
+    def health_check(self) -> Dict[str, Any]:
+        """헬스 체크 - 서비스 상태 확인"""
         return {
-            "status": "ok",
-            "name": self.gateway_name
+            "status": "healthy",
+            "gateway": self.gateway_name,
+            "timestamp": time.time(),
+            "services": {
+                prefix: "configured" if url else "not configured"
+                for prefix, url in self.service_map.items()
+            }
         }
     
     def get_service_status(self) -> Dict[str, Any]:
         """서비스 상태 정보 반환"""
-        status = {
+        return {
             "gateway_name": self.gateway_name,
-            "services": {}
-        }
-        
-        for prefix, url in self.service_map.items():
-            status["services"][prefix] = {
-                "configured": bool(url),
-                "url": url if url else "Not configured"
+            "uptime": time.time(),
+            "service_config": self.service_map,
+            "timeout_settings": {
+                "connect": self.timeout.connect,
+                "read": self.timeout.read,
+                "write": self.timeout.write,
+                "pool": self.timeout.pool
             }
-        
-        return status
+        }
     
     def get_routing_info(self) -> Dict[str, Any]:
         """라우팅 정보 반환"""
         return {
             "gateway_name": self.gateway_name,
             "routing_rules": {
-                "/auth/*": "AUTH_SERVICE_URL",
-                "/cbam/*": "CBAM_SERVICE_URL", 
-                "/datagather/*": "DATAGATHER_SERVICE_URL",
-                "/lci/*": "LCI_SERVICE_URL"
+                "/auth/*": "Authentication Service",
+                "/cbam/*": "CBAM Service", 
+                "/datagather/*": "Data Gathering Service",
+                "/lci/*": "Life Cycle Inventory Service"
             },
             "supported_methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
             "timeout_settings": {
-                "connect": "15s",
-                "read": "300s", 
-                "write": "60s"
+                "connect": f"{self.timeout.connect}s",
+                "read": f"{self.timeout.read}s",
+                "write": f"{self.timeout.write}s",
+                "pool": f"{self.timeout.pool}s"
             },
             "validation_rules": {
                 "auth_register": ["name", "company", "email", "password (min 8 chars)"],

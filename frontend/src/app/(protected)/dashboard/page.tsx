@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { authUtils } from "@/lib/axiosClient";
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { authUtils } from '@/lib/axiosClient';
 
 export default function DashboardPage() {
-  const [username, setUsername] = useState<string>("");
+  const [username, setUsername] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [logoutLoading, setLogoutLoading] = useState(false);
   const router = useRouter();
@@ -13,7 +13,7 @@ export default function DashboardPage() {
   useEffect(() => {
     // 인증 상태 확인
     if (!authUtils.isAuthenticated()) {
-      router.push("/landing");
+      router.push('/landing');
       return;
     }
 
@@ -22,7 +22,7 @@ export default function DashboardPage() {
     if (userEmail) {
       setUsername(userEmail);
     }
-    
+
     setIsLoading(false);
   }, [router]);
 
@@ -30,9 +30,9 @@ export default function DashboardPage() {
     setLogoutLoading(true);
     try {
       await authUtils.logout();
-      router.push("/landing");
+      router.push('/landing');
     } catch (error) {
-      console.error("로그아웃 오류:", error);
+      console.error('로그아웃 오류:', error);
     } finally {
       setLogoutLoading(false);
     }
@@ -62,7 +62,7 @@ export default function DashboardPage() {
               disabled={logoutLoading}
               className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {logoutLoading ? "로그아웃 중..." : "로그아웃"}
+              {logoutLoading ? '로그아웃 중...' : '로그아웃'}
             </button>
           </div>
 
@@ -71,7 +71,8 @@ export default function DashboardPage() {
               환영합니다!
             </h2>
             <p className="text-green-700">
-              ID: <span className="font-medium">{username}</span>님, GreenSteel에 오신 것을 환영합니다.
+              ID: <span className="font-medium">{username}</span>님,
+              GreenSteel에 오신 것을 환영합니다.
             </p>
           </div>
 
@@ -82,12 +83,16 @@ export default function DashboardPage() {
             </div>
 
             <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-purple-800 mb-2">CBAM</h3>
+              <h3 className="text-lg font-semibold text-purple-800 mb-2">
+                CBAM
+              </h3>
               <p className="text-purple-700 text-sm">탄소 국경 조정</p>
             </div>
 
             <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-orange-800 mb-2">데이터</h3>
+              <h3 className="text-lg font-semibold text-orange-800 mb-2">
+                데이터
+              </h3>
               <p className="text-orange-700 text-sm">업로드 및 관리</p>
             </div>
           </div>

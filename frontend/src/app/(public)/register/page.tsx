@@ -85,13 +85,10 @@ export default function RegisterPage() {
     setSuccess(null);
 
     try {
-      const response = await axiosClient.post(
-        '/auth/register/company',
-        {
-          ...companyData,
-          password: companyData.password,
-        }
-      );
+      const response = await axiosClient.post('/auth/register/company', {
+        ...companyData,
+        password: companyData.password,
+      });
       setSuccess(`기업 등록이 완료되었습니다! 기업 ID: ${response.data.id}`);
 
       // 기업 ID를 User 회원가입에 설정
@@ -478,7 +475,10 @@ export default function RegisterPage() {
                     type="password"
                     value={companyData.confirmPassword}
                     onChange={e =>
-                      handleCompanyInputChange('confirmPassword', e.target.value)
+                      handleCompanyInputChange(
+                        'confirmPassword',
+                        e.target.value
+                      )
                     }
                     placeholder="********"
                     disabled={isLoading}

@@ -92,21 +92,35 @@ export default function RegisterPage() {
         ...companyData,
         password: companyData.password,
       });
+      
+      // 응답 데이터 안전한 검증
+      console.log('Company registration response:', response); // 디버깅용
+      
+      if (response && response.data) {
+        const responseData = response.data;
+        
+        // 응답 데이터 구조 확인
+        if (typeof responseData === 'object' && responseData.id) {
+          setSuccess(`기업 등록이 완료되었습니다! 기업 ID: ${responseData.id}`);
 
-      // 응답 데이터 검증
-      if (response.data && response.data.id) {
-        setSuccess(`기업 등록이 완료되었습니다! 기업 ID: ${response.data.id}`);
-
-        // 기업 ID를 User 회원가입에 설정
-        setUserData((prev: typeof userData) => ({
-          ...prev,
-          company_id: response.data.id.toString(),
-        }));
-        setActiveTab('user');
+          // 기업 ID를 User 회원가입에 설정
+          setUserData((prev: typeof userData) => ({
+            ...prev,
+            company_id: responseData.id.toString(),
+          }));
+          setActiveTab('user');
+        } else if (responseData.message) {
+          // 메시지만 있는 경우
+          setSuccess(responseData.message);
+        } else {
+          setError({ message: '기업 등록은 성공했지만 ID를 받지 못했습니다.' });
+        }
       } else {
-        setError({ message: '기업 등록은 성공했지만 ID를 받지 못했습니다.' });
+        setError({ message: '기업 등록 응답을 받지 못했습니다.' });
       }
     } catch (err: unknown) {
+      console.error('Company registration error:', err); // 디버깅용
+      
       if (err && typeof err === 'object' && 'response' in err) {
         const axiosError = err as { response?: { data?: { detail?: string } } };
         if (axiosError.response?.data?.detail) {

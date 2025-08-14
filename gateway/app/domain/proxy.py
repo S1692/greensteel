@@ -61,7 +61,7 @@ class ProxyController:
             if method == "POST":
                 if path == "/auth/register/company":
                     # 기업 회원가입 검증
-                    required_fields = ["name_ko", "biz_no", "manager_name", "manager_phone"]
+                    required_fields = ["name_ko", "biz_no", "manager_name", "manager_phone", "password"]
                     for field in required_fields:
                         if not data.get(field):
                             gateway_logger.warning(f"Missing required field: {field}")
@@ -77,6 +77,12 @@ class ProxyController:
                     manager_phone = data.get("manager_phone", "")
                     if not manager_phone.replace("-", "").replace(" ", "").isdigit():
                         gateway_logger.warning("Invalid phone number format")
+                        return False
+                    
+                    # 비밀번호 길이 검증
+                    password = data.get("password", "")
+                    if len(password) < 8:
+                        gateway_logger.warning("Password too short (minimum 8 characters)")
                         return False
                     
                 elif path == "/auth/register/user":

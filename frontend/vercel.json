@@ -1,0 +1,36 @@
+{
+  "version": 2,
+  "name": "greensteel-frontend",
+  "env": {
+    "NEXT_PUBLIC_ENV": "production",
+    "NEXT_PUBLIC_APP_NAME": "greensteel",
+    "NEXT_PUBLIC_APP_VERSION": "1.0.0",
+    "NEXT_PUBLIC_ENABLE_LCA": "true",
+    "NEXT_PUBLIC_ENABLE_CBAM": "true",
+    "NEXT_PUBLIC_ENABLE_DATA_UPLOAD": "true"
+  },
+  "functions": {
+    "src/app/api/**/*.ts": {
+      "maxDuration": 30
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ]
+}

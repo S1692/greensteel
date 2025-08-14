@@ -7,13 +7,13 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // 폼 데이터를 객체로 변환
-export function formDataToObject(formData: FormData): Record<string, any> {
-  const obj: Record<string, any> = {};
+export function formDataToObject(formData: FormData): Record<string, unknown> {
+  const obj: Record<string, unknown> = {};
 
   for (const [key, value] of formData.entries()) {
     if (obj[key]) {
       if (Array.isArray(obj[key])) {
-        obj[key].push(value);
+        (obj[key] as unknown[]).push(value);
       } else {
         obj[key] = [obj[key], value];
       }
@@ -83,7 +83,7 @@ export function getPasswordStrength(password: string): {
 }
 
 // 디바운스 함수
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
@@ -97,7 +97,7 @@ export function debounce<T extends (...args: any[]) => any>(
 
 // 로컬 스토리지 헬퍼
 export const storage = {
-  get: (key: string): any => {
+  get: (key: string): unknown => {
     if (typeof window === 'undefined') return null;
     try {
       const item = localStorage.getItem(key);
@@ -107,7 +107,7 @@ export const storage = {
     }
   },
 
-  set: (key: string, value: any): void => {
+  set: (key: string, value: unknown): void => {
     if (typeof window === 'undefined') return;
     try {
       localStorage.setItem(key, JSON.stringify(value));

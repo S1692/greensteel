@@ -9,14 +9,24 @@
     font-family: 'Inter', system-ui, sans-serif;
   }
 
-  body {
-    @apply bg-ecotrace-background text-ecotrace-text;
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-  }
-
-  /* 다크 테마 기본 설정 */
+  /* 다크 테마 강제 적용 */
   :root {
     color-scheme: dark;
+    --ecotrace-primary: #0D80F2;
+    --ecotrace-secondary: #293038;
+    --ecotrace-accent: #E6E8EB;
+    --ecotrace-text: #FFFFFF;
+    --ecotrace-text-secondary: #9CABBA;
+    --ecotrace-background: #121417;
+    --ecotrace-surface: #1C2126;
+    --ecotrace-border: #3B4754;
+  }
+
+  body {
+    @apply bg-ecotrace-background text-ecotrace-text;
+    background-color: var(--ecotrace-background);
+    color: var(--ecotrace-text);
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
 
   /* 스크롤바 스타일링 */
@@ -27,14 +37,17 @@
 
   ::-webkit-scrollbar-track {
     @apply bg-ecotrace-surface;
+    background-color: var(--ecotrace-surface);
   }
 
   ::-webkit-scrollbar-thumb {
     @apply bg-ecotrace-border rounded-full;
+    background-color: var(--ecotrace-border);
   }
 
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-ecotrace-textSecondary;
+    background-color: var(--ecotrace-text-secondary);
   }
 }
 
@@ -47,11 +60,20 @@
   /* 카드 스타일 */
   .card {
     @apply bg-ecotrace-surface border border-ecotrace-border rounded-lg p-6;
+    background-color: var(--ecotrace-surface);
+    border-color: var(--ecotrace-border);
   }
 
   /* 입력 필드 공통 스타일 */
   .input-field {
     @apply w-full px-4 py-3 bg-ecotrace-surface border border-ecotrace-border rounded-lg text-ecotrace-text placeholder-ecotrace-textSecondary transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-ecotrace-primary focus:border-ecotrace-primary;
+    background-color: var(--ecotrace-surface);
+    border-color: var(--ecotrace-border);
+    color: var(--ecotrace-text);
+  }
+
+  .input-field::placeholder {
+    color: var(--ecotrace-text-secondary);
   }
 
   /* 버튼 공통 스타일 */
@@ -61,14 +83,22 @@
 
   .btn-primary {
     @apply btn bg-ecotrace-primary text-white hover:bg-blue-600 focus:ring-ecotrace-primary;
+    background-color: var(--ecotrace-primary);
   }
 
   .btn-secondary {
     @apply btn bg-ecotrace-secondary text-white hover:bg-gray-700 focus:ring-ecotrace-secondary;
+    background-color: var(--ecotrace-secondary);
   }
 
   .btn-outline {
     @apply btn border border-ecotrace-border bg-transparent text-ecotrace-text hover:bg-ecotrace-surface focus:ring-ecotrace-border;
+    border-color: var(--ecotrace-border);
+    color: var(--ecotrace-text);
+  }
+
+  .btn-outline:hover {
+    background-color: var(--ecotrace-surface);
   }
 }
 

@@ -61,17 +61,14 @@ def get_db() -> Session:
 def create_tables():
     """데이터베이스 테이블 생성"""
     try:
-        # 테이블만 생성 (인덱스 제외)
-        Base.metadata.create_all(bind=engine, checkfirst=True)
+        # 기존 테이블과 인덱스를 모두 삭제 (1회만 실행)
+        auth_logger.info("Dropping existing tables and indexes...")
+        Base.metadata.drop_all(bind=engine)
+        auth_logger.info("Existing tables and indexes dropped successfully")
         
-        # 인덱스는 별도로 생성 (중복 방지)
-        for table in Base.metadata.tables.values():
-            for index in table.indexes:
-                try:
-                    index.create(bind=engine, checkfirst=True)
-                except Exception as e:
-                    # 인덱스가 이미 존재하는 경우 무시
-                    auth_logger.info(f"Index {index.name} already exists, skipping...")
+        # 새로운 테이블과 인덱스 생성
+        auth_logger.info("Creating new tables and indexes...")
+        Base.metadata.create_all(bind=engine)
         
         auth_logger.info("Database tables and indexes created successfully")
     except Exception as e:

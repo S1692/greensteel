@@ -54,8 +54,15 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen stitch-bg flex items-center justify-center px-4">
       <div className="stitch-card w-full max-w-md p-8">
-        <h1 className="stitch-h1 text-3xl font-semibold text-center">GreenSteel</h1>
-        <p className="text-center text-[13px] mt-1" style={{color: 'var(--text-muted)'}}>로그인</p>
+        <h1 className="stitch-h1 text-3xl font-semibold text-center">
+          GreenSteel
+        </h1>
+        <p
+          className="text-center text-[13px] mt-1"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          로그인
+        </p>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-6">
           <div>
@@ -82,18 +89,21 @@ export default function LandingPage() {
             />
           </div>
 
-          {error && (
-            <p className="stitch-error mt-1">{error.message}</p>
-          )}
+          {error && <p className="stitch-error mt-1">{error.message}</p>}
 
           <Button className="mt-2" disabled={isLoading}>
             {isLoading ? '로그인 중...' : '로그인'}
           </Button>
         </form>
 
-        <p className="text-center mt-4 text-[13px]" style={{color:'var(--text-muted)'}}>
+        <p
+          className="text-center mt-4 text-[13px]"
+          style={{ color: 'var(--text-muted)' }}
+        >
           계정이 없으신가요?{' '}
-          <a href="/register" className="text-[var(--accent)] hover:underline">회원가입</a>
+          <a href="/register" className="text-[var(--accent)] hover:underline">
+            회원가입
+          </a>
         </p>
       </div>
     </div>

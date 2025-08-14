@@ -175,21 +175,28 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen stitch-bg py-14 px-4">
       <div className="stitch-card max-w-4xl mx-auto p-8">
-        <h1 className="stitch-h1 text-2xl font-semibold text-center">GreenSteel</h1>
-        <p className="text-center text-[13px] mt-1" style={{color:'var(--text-muted)'}}>회원가입</p>
+        <h1 className="stitch-h1 text-2xl font-semibold text-center">
+          GreenSteel
+        </h1>
+        <p
+          className="text-center text-[13px] mt-1"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          회원가입
+        </p>
 
         {/* 탭 네비게이션 */}
         <div className="flex gap-2 bg-[rgba(255,255,255,.05)] p-1 rounded-full w-full max-w-md mx-auto mb-6">
-          <button 
-            className="stitch-tab w-1/2" 
-            data-active={activeTab === 'company'} 
+          <button
+            className="stitch-tab w-1/2"
+            data-active={activeTab === 'company'}
             onClick={() => setActiveTab('company')}
           >
             기업 회원가입
           </button>
-          <button 
-            className="stitch-tab w-1/2" 
-            data-active={activeTab === 'user'} 
+          <button
+            className="stitch-tab w-1/2"
+            data-active={activeTab === 'user'}
             onClick={() => setActiveTab('user')}
           >
             User 회원가입
@@ -210,25 +217,36 @@ export default function RegisterPage() {
 
         {/* 기업 회원가입 폼 */}
         {activeTab === 'company' && (
-          <form onSubmit={handleCompanySubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form
+            onSubmit={handleCompanySubmit}
+            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+          >
             <SectionTitle>기업 정보</SectionTitle>
             <div className="md:col-span-1">
-              <label className="stitch-label mb-1 block">사업자(상점) 국문 이름 *</label>
+              <label className="stitch-label mb-1 block">
+                사업자(상점) 국문 이름 *
+              </label>
               <Input
                 type="text"
                 value={companyData.name_ko}
-                onChange={e => handleCompanyInputChange('name_ko', e.target.value)}
+                onChange={e =>
+                  handleCompanyInputChange('name_ko', e.target.value)
+                }
                 placeholder="예: 스마트에스지"
                 disabled={isLoading}
                 required
               />
             </div>
             <div className="md:col-span-1">
-              <label className="stitch-label mb-1 block">사업자(상점) 영문 이름</label>
+              <label className="stitch-label mb-1 block">
+                사업자(상점) 영문 이름
+              </label>
               <Input
                 type="text"
                 value={companyData.name_en}
-                onChange={e => handleCompanyInputChange('name_en', e.target.value)}
+                onChange={e =>
+                  handleCompanyInputChange('name_en', e.target.value)
+                }
                 placeholder="예: Smart ESG"
                 disabled={isLoading}
               />
@@ -239,7 +257,9 @@ export default function RegisterPage() {
               <Input
                 type="text"
                 value={companyData.biz_no}
-                onChange={e => handleCompanyInputChange('biz_no', e.target.value)}
+                onChange={e =>
+                  handleCompanyInputChange('biz_no', e.target.value)
+                }
                 placeholder="예: 1234567890"
                 disabled={isLoading}
                 required
@@ -250,7 +270,9 @@ export default function RegisterPage() {
               <Input
                 type="text"
                 value={companyData.ceo_name}
-                onChange={e => handleCompanyInputChange('ceo_name', e.target.value)}
+                onChange={e =>
+                  handleCompanyInputChange('ceo_name', e.target.value)
+                }
                 placeholder="예: 홍길동"
                 disabled={isLoading}
               />
@@ -262,7 +284,9 @@ export default function RegisterPage() {
               <Input
                 type="text"
                 value={companyData.country}
-                onChange={e => handleCompanyInputChange('country', e.target.value)}
+                onChange={e =>
+                  handleCompanyInputChange('country', e.target.value)
+                }
                 placeholder="예: KR"
                 disabled={isLoading}
               />
@@ -272,7 +296,9 @@ export default function RegisterPage() {
               <Input
                 type="text"
                 value={companyData.zipcode}
-                onChange={e => handleCompanyInputChange('zipcode', e.target.value)}
+                onChange={e =>
+                  handleCompanyInputChange('zipcode', e.target.value)
+                }
                 disabled={isLoading}
               />
             </div>
@@ -281,7 +307,9 @@ export default function RegisterPage() {
               <Input
                 type="text"
                 value={companyData.city}
-                onChange={e => handleCompanyInputChange('city', e.target.value)}
+                onChange={e =>
+                  handleCompanyInputChange('city', e.target.value)
+                }
                 disabled={isLoading}
               />
             </div>
@@ -290,7 +318,9 @@ export default function RegisterPage() {
               <Input
                 type="text"
                 value={companyData.address1}
-                onChange={e => handleCompanyInputChange('address1', e.target.value)}
+                onChange={e =>
+                  handleCompanyInputChange('address1', e.target.value)
+                }
                 disabled={isLoading}
               />
             </div>
@@ -301,7 +331,9 @@ export default function RegisterPage() {
               <Input
                 type="text"
                 value={companyData.sector}
-                onChange={e => handleCompanyInputChange('sector', e.target.value)}
+                onChange={e =>
+                  handleCompanyInputChange('sector', e.target.value)
+                }
                 disabled={isLoading}
               />
             </div>
@@ -310,7 +342,9 @@ export default function RegisterPage() {
               <Input
                 type="text"
                 value={companyData.industry_code}
-                onChange={e => handleCompanyInputChange('industry_code', e.target.value)}
+                onChange={e =>
+                  handleCompanyInputChange('industry_code', e.target.value)
+                }
                 disabled={isLoading}
               />
             </div>
@@ -321,7 +355,9 @@ export default function RegisterPage() {
               <Input
                 type="text"
                 value={companyData.manager_name}
-                onChange={e => handleCompanyInputChange('manager_name', e.target.value)}
+                onChange={e =>
+                  handleCompanyInputChange('manager_name', e.target.value)
+                }
                 placeholder="예: 김길동"
                 disabled={isLoading}
                 required
@@ -332,7 +368,9 @@ export default function RegisterPage() {
               <Input
                 type="text"
                 value={companyData.manager_phone}
-                onChange={e => handleCompanyInputChange('manager_phone', e.target.value)}
+                onChange={e =>
+                  handleCompanyInputChange('manager_phone', e.target.value)
+                }
                 placeholder="예: 010-1234-5678"
                 disabled={isLoading}
                 required
@@ -343,7 +381,9 @@ export default function RegisterPage() {
               <Input
                 type="email"
                 value={companyData.manager_email}
-                onChange={e => handleCompanyInputChange('manager_email', e.target.value)}
+                onChange={e =>
+                  handleCompanyInputChange('manager_email', e.target.value)
+                }
                 placeholder="예: manager@smartesg.com"
                 disabled={isLoading}
               />
@@ -355,7 +395,9 @@ export default function RegisterPage() {
               <Input
                 type="password"
                 value={companyData.password}
-                onChange={e => handleCompanyInputChange('password', e.target.value)}
+                onChange={e =>
+                  handleCompanyInputChange('password', e.target.value)
+                }
                 placeholder="********"
                 disabled={isLoading}
                 required
@@ -366,7 +408,9 @@ export default function RegisterPage() {
               <Input
                 type="password"
                 value={companyData.confirmPassword}
-                onChange={e => handleCompanyInputChange('confirmPassword', e.target.value)}
+                onChange={e =>
+                  handleCompanyInputChange('confirmPassword', e.target.value)
+                }
                 placeholder="********"
                 disabled={isLoading}
                 required
@@ -383,13 +427,18 @@ export default function RegisterPage() {
 
         {/* User 회원가입 폼 */}
         {activeTab === 'user' && (
-          <form onSubmit={handleUserSubmit} className="space-y-4 max-w-md mx-auto">
+          <form
+            onSubmit={handleUserSubmit}
+            className="space-y-4 max-w-md mx-auto"
+          >
             <div>
               <label className="stitch-label mb-1 block">ID *</label>
               <Input
                 type="text"
                 value={userData.username}
-                onChange={e => handleUserInputChange('username', e.target.value)}
+                onChange={e =>
+                  handleUserInputChange('username', e.target.value)
+                }
                 placeholder="예: smartuser"
                 disabled={isLoading}
                 required
@@ -400,7 +449,9 @@ export default function RegisterPage() {
               <Input
                 type="password"
                 value={userData.password}
-                onChange={e => handleUserInputChange('password', e.target.value)}
+                onChange={e =>
+                  handleUserInputChange('password', e.target.value)
+                }
                 placeholder="********"
                 disabled={isLoading}
                 required
@@ -411,7 +462,9 @@ export default function RegisterPage() {
               <Input
                 type="password"
                 value={userData.confirmPassword}
-                onChange={e => handleUserInputChange('confirmPassword', e.target.value)}
+                onChange={e =>
+                  handleUserInputChange('confirmPassword', e.target.value)
+                }
                 placeholder="********"
                 disabled={isLoading}
                 required
@@ -422,7 +475,9 @@ export default function RegisterPage() {
               <Input
                 type="text"
                 value={userData.full_name}
-                onChange={e => handleUserInputChange('full_name', e.target.value)}
+                onChange={e =>
+                  handleUserInputChange('full_name', e.target.value)
+                }
                 placeholder="예: 홍길동"
                 disabled={isLoading}
                 required
@@ -433,7 +488,9 @@ export default function RegisterPage() {
               <Input
                 type="text"
                 value={userData.company_id}
-                onChange={e => handleUserInputChange('company_id', e.target.value)}
+                onChange={e =>
+                  handleUserInputChange('company_id', e.target.value)
+                }
                 placeholder="기업 등록 후 발급된 ID"
                 disabled={isLoading}
                 required
@@ -446,9 +503,14 @@ export default function RegisterPage() {
         )}
 
         <div className="mt-6 text-center">
-          <p className="text-[13px]" style={{color:'var(--text-muted)'}}>
+          <p
+            className="text-[13px]"
+            style={{ color: 'var(--text-muted)' }}
+          >
             이미 계정이 있으신가요?{' '}
-            <a href="/landing" className="text-[var(--accent)] hover:underline">로그인</a>
+            <a href="/landing" className="text-[var(--accent)] hover:underline">
+              로그인
+            </a>
           </p>
         </div>
       </div>

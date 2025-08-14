@@ -8,7 +8,11 @@ from core.logger import auth_logger
 
 # 모든 모델의 Base를 통합
 Base = UserBase
-Base.metadata.update(CompanyBase.metadata.tables)
+
+# Company 모델의 테이블을 UserBase의 메타데이터에 추가
+for table_name, table in CompanyBase.metadata.tables.items():
+    if table_name not in Base.metadata.tables:
+        table.tometadata(Base.metadata)
 
 # 데이터베이스 엔진 생성
 def create_database_engine():

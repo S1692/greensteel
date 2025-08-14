@@ -61,49 +61,37 @@ export default function LandingPage() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">GreenSteel</h1>
-          <p className="text-gray-600">지속가능한 미래를 위한 ESG 솔루션</p>
+          <p className="text-gray-600">로그인</p>
         </div>
 
         <div className="bg-white rounded-lg shadow-lg p-8">
-          <h2 className="text-2xl font-semibold text-center text-gray-900 mb-6">
-            로그인
-          </h2>
-
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label
-                htmlFor="username"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                ID
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                ID <span className="text-red-500">*</span>
               </label>
               <input
-                id="username"
                 type="text"
                 value={username}
                 onChange={e => setUsername(e.target.value)}
                 placeholder="예: smartuser"
                 disabled={isLoading}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:bg-gray-100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 required
               />
             </div>
 
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                비밀번호
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                비밀번호 <span className="text-red-500">*</span>
               </label>
               <input
-                id="password"
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="********"
                 disabled={isLoading}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:bg-gray-100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 required
               />
             </div>
@@ -117,7 +105,7 @@ export default function LandingPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isLoading ? '로그인 중...' : '로그인'}
             </button>
@@ -128,7 +116,7 @@ export default function LandingPage() {
               계정이 없으신가요?{' '}
               <a
                 href="/register"
-                className="font-medium text-green-600 hover:text-green-500"
+                className="font-medium text-green-600 hover:text-green-500 transition-colors"
               >
                 회원가입
               </a>

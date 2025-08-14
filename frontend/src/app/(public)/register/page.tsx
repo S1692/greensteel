@@ -32,6 +32,8 @@ export default function RegisterPage() {
     manager_name: '',
     manager_phone: '',
     manager_email: '',
+    password: '',
+    confirmPassword: '',
   });
 
   // User 회원가입 상태
@@ -60,9 +62,21 @@ export default function RegisterPage() {
       !companyData.name_ko ||
       !companyData.biz_no ||
       !companyData.manager_name ||
-      !companyData.manager_phone
+      !companyData.manager_phone ||
+      !companyData.password ||
+      !companyData.confirmPassword
     ) {
       setError({ message: '필수 필드를 모두 입력해주세요.' });
+      return;
+    }
+
+    if (companyData.password !== companyData.confirmPassword) {
+      setError({ message: '비밀번호가 일치하지 않습니다.' });
+      return;
+    }
+
+    if (companyData.password.length < 8) {
+      setError({ message: '비밀번호는 최소 8자 이상이어야 합니다.' });
       return;
     }
 
@@ -73,7 +87,10 @@ export default function RegisterPage() {
     try {
       const response = await axiosClient.post(
         '/auth/register/company',
-        companyData
+        {
+          ...companyData,
+          password: companyData.password,
+        }
       );
       setSuccess(`기업 등록이 완료되었습니다! 기업 ID: ${response.data.id}`);
 
@@ -221,7 +238,7 @@ export default function RegisterPage() {
                     }
                     placeholder="예: 스마트에스지"
                     disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                     required
                   />
                 </div>
@@ -238,7 +255,7 @@ export default function RegisterPage() {
                     }
                     placeholder="예: Smart ESG"
                     disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   />
                 </div>
 
@@ -254,7 +271,7 @@ export default function RegisterPage() {
                     }
                     placeholder="예: 1234567890"
                     disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                     required
                   />
                 </div>
@@ -271,7 +288,7 @@ export default function RegisterPage() {
                     }
                     placeholder="예: 홍길동"
                     disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   />
                 </div>
               </div>
@@ -292,7 +309,7 @@ export default function RegisterPage() {
                     }
                     placeholder="예: KR"
                     disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   />
                 </div>
 
@@ -307,7 +324,7 @@ export default function RegisterPage() {
                       handleCompanyInputChange('zipcode', e.target.value)
                     }
                     disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   />
                 </div>
 
@@ -322,7 +339,7 @@ export default function RegisterPage() {
                       handleCompanyInputChange('city', e.target.value)
                     }
                     disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   />
                 </div>
 
@@ -337,7 +354,7 @@ export default function RegisterPage() {
                       handleCompanyInputChange('address1', e.target.value)
                     }
                     disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   />
                 </div>
               </div>
@@ -357,7 +374,7 @@ export default function RegisterPage() {
                       handleCompanyInputChange('sector', e.target.value)
                     }
                     disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   />
                 </div>
 
@@ -372,7 +389,7 @@ export default function RegisterPage() {
                       handleCompanyInputChange('industry_code', e.target.value)
                     }
                     disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                   />
                 </div>
               </div>
@@ -393,7 +410,7 @@ export default function RegisterPage() {
                     }
                     placeholder="예: 김길동"
                     disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                     required
                   />
                 </div>
@@ -410,7 +427,7 @@ export default function RegisterPage() {
                     }
                     placeholder="예: 010-1234-5678"
                     disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                     required
                   />
                 </div>
@@ -427,7 +444,46 @@ export default function RegisterPage() {
                     }
                     placeholder="예: manager@smartesg.com"
                     disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  />
+                </div>
+              </div>
+
+              <h3 className="text-lg font-medium text-gray-900 mt-6 mb-4">
+                계정 정보
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    비밀번호 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    value={companyData.password}
+                    onChange={e =>
+                      handleCompanyInputChange('password', e.target.value)
+                    }
+                    placeholder="********"
+                    disabled={isLoading}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    비밀번호 확인 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    value={companyData.confirmPassword}
+                    onChange={e =>
+                      handleCompanyInputChange('confirmPassword', e.target.value)
+                    }
+                    placeholder="********"
+                    disabled={isLoading}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    required
                   />
                 </div>
               </div>
@@ -435,7 +491,7 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isLoading ? '등록 중...' : '기업 등록'}
               </button>
@@ -462,7 +518,7 @@ export default function RegisterPage() {
                     }
                     placeholder="예: smartuser"
                     disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                     required
                   />
                 </div>
@@ -479,7 +535,7 @@ export default function RegisterPage() {
                     }
                     placeholder="예: 홍길동"
                     disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                     required
                   />
                 </div>
@@ -496,7 +552,7 @@ export default function RegisterPage() {
                     }
                     placeholder="********"
                     disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                     required
                   />
                 </div>
@@ -513,7 +569,7 @@ export default function RegisterPage() {
                     }
                     placeholder="********"
                     disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                     required
                   />
                 </div>
@@ -530,7 +586,7 @@ export default function RegisterPage() {
                     }
                     placeholder="기업 등록 후 발급된 ID"
                     disabled={isLoading}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                     required
                   />
                   <p className="text-xs text-gray-500 mt-1">
@@ -543,7 +599,7 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isLoading ? '등록 중...' : '사용자 등록'}
               </button>
@@ -555,7 +611,7 @@ export default function RegisterPage() {
               이미 계정이 있으신가요?{' '}
               <a
                 href="/landing"
-                className="font-medium text-green-600 hover:text-green-500"
+                className="font-medium text-green-600 hover:text-green-500 transition-colors"
               >
                 로그인
               </a>

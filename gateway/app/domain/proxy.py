@@ -140,6 +140,9 @@ class ProxyController:
         if request.url.query:
             target_url += f"?{request.url.query}"
         
+        # 디버깅을 위한 URL 로깅
+        gateway_logger.log_info(f"Proxying {method} {path} to: {target_url}")
+        
         # 헤더 준비
         headers = self.prepare_headers(request)
         
@@ -167,15 +170,19 @@ class ProxyController:
                 )
                 
         except httpx.TimeoutException:
-            gateway_logger.log_error(f"Timeout error for {method} {path}")
+            gateway_logger.log_error(f"Timeout error for {method} {path} to {target_url}")
             raise HTTPException(status_code=504, detail="Gateway timeout")
+            
+        except httpx.ConnectError as e:
+            gateway_logger.log_error(f"Connection error for {method} {path} to {target_url}: {str(e)}")
+            raise HTTPException(status_code=502, detail="Service connection failed")
             
         except httpx.HTTPStatusError as e:
             gateway_logger.log_error(f"HTTP error for {method} {path}: {e.response.status_code}")
             raise HTTPException(status_code=e.response.status_code, detail="Service error")
             
         except Exception as e:
-            gateway_logger.log_error(f"Unexpected error for {method} {path}: {str(e)}")
+            gateway_logger.log_error(f"Unexpected error for {method} {path} to {target_url}: {str(e)}")
             raise HTTPException(status_code=500, detail="Internal gateway error")
     
     def health_check(self) -> Dict[str, Any]:

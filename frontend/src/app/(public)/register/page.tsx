@@ -40,6 +40,12 @@ const RegisterPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 이미 로딩 중이면 중복 요청 방지
+    if (isLoading) {
+      return;
+    }
+    
     setError('');
 
     if (formData.password !== formData.confirmPassword) {

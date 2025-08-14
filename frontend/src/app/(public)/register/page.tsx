@@ -31,8 +31,8 @@ const RegisterPage: React.FC = () => {
       return;
     }
 
-            // 회원가입 처리
-        // 실제로는 API 호출
+    // 회원가입 처리
+    // 실제로는 API 호출
     alert('회원가입이 완료되었습니다. 로그인해주세요.');
     router.push('/');
   };

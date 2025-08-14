@@ -23,8 +23,8 @@ const LandingPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-            // 로그인 처리
-        // 실제로는 API 호출
+    // 로그인 처리
+    // 실제로는 API 호출
     localStorage.setItem('auth_token', 'dummy_token');
     localStorage.setItem('user_email', formData.email);
     router.push('/dashboard');

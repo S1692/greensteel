@@ -196,7 +196,7 @@ export default function RegisterPage() {
 
           {success && (
             <div className="mb-6 bg-green-50 border border-green-200 rounded-md p-3">
-              <p className="text-sm text-green-600">{success.message}</p>
+              <p className="text-sm text-green-600">{success}</p>
             </div>
           )}
 

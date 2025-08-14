@@ -43,14 +43,14 @@ module.exports = {
           background: '#121417',
           surface: '#1C2126',
           border: '#3B4754',
-        }
+        },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
       spacing: {
-        '18': '4.5rem',
-        '88': '22rem',
+        18: '4.5rem',
+        88: '22rem',
       },
       container: {
         center: true,
@@ -79,4 +79,4 @@ module.exports = {
     },
   },
   plugins: [],
-}
+};

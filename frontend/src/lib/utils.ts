@@ -9,7 +9,7 @@ export function cn(...inputs: ClassValue[]) {
 // 폼 데이터를 객체로 변환
 export function formDataToObject(formData: FormData): Record<string, any> {
   const obj: Record<string, any> = {};
-  
+
   for (const [key, value] of formData.entries()) {
     if (obj[key]) {
       if (Array.isArray(obj[key])) {
@@ -21,18 +21,18 @@ export function formDataToObject(formData: FormData): Record<string, any> {
       obj[key] = value;
     }
   }
-  
+
   return obj;
 }
 
 // 파일 크기 포맷팅
 export function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 Bytes';
-  
+
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
+
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
@@ -59,16 +59,22 @@ export function getPasswordStrength(password: string): {
   color: string;
 } {
   let score = 0;
-  
+
   if (password.length >= 8) score++;
   if (/[a-z]/.test(password)) score++;
   if (/[A-Z]/.test(password)) score++;
   if (/[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
-  
+
   const labels = ['매우 약함', '약함', '보통', '강함', '매우 강함'];
-  const colors = ['text-red-500', 'text-orange-500', 'text-yellow-500', 'text-blue-500', 'text-green-500'];
-  
+  const colors = [
+    'text-red-500',
+    'text-orange-500',
+    'text-yellow-500',
+    'text-blue-500',
+    'text-green-500',
+  ];
+
   return {
     score,
     label: labels[score - 1] || '매우 약함',
@@ -82,7 +88,7 @@ export function debounce<T extends (...args: any[]) => any>(
   wait: number
 ): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout;
-  
+
   return (...args: Parameters<T>) => {
     clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), wait);
@@ -100,7 +106,7 @@ export const storage = {
       return null;
     }
   },
-  
+
   set: (key: string, value: any): void => {
     if (typeof window === 'undefined') return;
     try {
@@ -109,7 +115,7 @@ export const storage = {
       // 무시
     }
   },
-  
+
   remove: (key: string): void => {
     if (typeof window === 'undefined') return;
     try {
@@ -127,14 +133,14 @@ export const urlParams = {
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get(key);
   },
-  
+
   set: (key: string, value: string): void => {
     if (typeof window === 'undefined') return;
     const url = new URL(window.location.href);
     url.searchParams.set(key, value);
     window.history.replaceState({}, '', url.toString());
   },
-  
+
   remove: (key: string): void => {
     if (typeof window === 'undefined') return;
     const url = new URL(window.location.href);

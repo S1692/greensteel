@@ -10,22 +10,21 @@ const LandingPage: React.FC = () => {
   const router = useRouter();
   const [formData, setFormData] = useState({
     email: '',
-    password: ''
+    password: '',
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // 로그인 처리
-    console.log('로그인:', formData.email, formData.password);
-    // 실제로는 API 호출
+
+            // 로그인 처리
+        // 실제로는 API 호출
     localStorage.setItem('auth_token', 'dummy_token');
     localStorage.setItem('user_email', formData.email);
     router.push('/dashboard');
@@ -45,16 +44,15 @@ const LandingPage: React.FC = () => {
                     greensteel
                   </span>
                 </h1>
-                
+
                 <p className="text-xl text-ecotrace-textSecondary mb-8">
                   ESG 관리 플랫폼
                 </p>
-                
+
                 <p className="text-ecotrace-textSecondary mb-8">
-                  생명주기 평가(LCA), 탄소 국경 조정(CBAM), 지속가능성 보고서를 
+                  생명주기 평가(LCA), 탄소 국경 조정(CBAM), 지속가능성 보고서를
                   한 곳에서 관리하고 분석하세요.
                 </p>
-
               </div>
 
               {/* 오른쪽: 로그인 폼 */}
@@ -62,7 +60,7 @@ const LandingPage: React.FC = () => {
                 <h2 className="text-2xl font-bold text-ecotrace-text mb-6 text-center">
                   로그인
                 </h2>
-                
+
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <Input
                     label="이메일"
@@ -72,7 +70,7 @@ const LandingPage: React.FC = () => {
                     onChange={handleInputChange}
                     required
                   />
-                  
+
                   <Input
                     label="비밀번호"
                     name="password"
@@ -82,11 +80,7 @@ const LandingPage: React.FC = () => {
                     required
                   />
 
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    size="lg"
-                  >
+                  <Button type="submit" className="w-full" size="lg">
                     로그인
                   </Button>
                 </form>
@@ -101,7 +95,7 @@ const LandingPage: React.FC = () => {
                       회원가입
                     </button>
                   </p>
-                  
+
                   {/* 테스트용 아이디 정보 */}
                   <div className="mt-4 p-3 bg-ecotrace-secondary/10 rounded-lg border border-ecotrace-border">
                     <p className="text-xs text-ecotrace-textSecondary mb-2">
@@ -128,21 +122,27 @@ const LandingPage: React.FC = () => {
             </h2>
             <div className="grid md:grid-cols-3 gap-8">
               <div className="bg-ecotrace-secondary/5 border border-ecotrace-border rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-ecotrace-text mb-3">LCA</h3>
+                <h3 className="text-lg font-semibold text-ecotrace-text mb-3">
+                  LCA
+                </h3>
                 <p className="text-ecotrace-textSecondary text-sm">
                   생명주기 평가
                 </p>
               </div>
 
               <div className="bg-ecotrace-secondary/5 border border-ecotrace-border rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-ecotrace-text mb-3">CBAM</h3>
+                <h3 className="text-lg font-semibold text-ecotrace-text mb-3">
+                  CBAM
+                </h3>
                 <p className="text-ecotrace-textSecondary text-sm">
                   탄소 국경 조정
                 </p>
               </div>
 
               <div className="bg-ecotrace-secondary/5 border border-ecotrace-border rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-ecotrace-text mb-3">데이터</h3>
+                <h3 className="text-lg font-semibold text-ecotrace-text mb-3">
+                  데이터
+                </h3>
                 <p className="text-ecotrace-textSecondary text-sm">
                   업로드 및 관리
                 </p>

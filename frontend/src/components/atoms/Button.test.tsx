@@ -5,7 +5,9 @@ import Button from './Button';
 describe('Button Component', () => {
   it('renders button with children', () => {
     render(<Button>Click me</Button>);
-    expect(screen.getByRole('button', { name: 'Click me' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Click me' })
+    ).toBeInTheDocument();
   });
 
   it('applies primary variant styles by default', () => {
@@ -59,10 +61,10 @@ describe('Button Component', () => {
   it('calls onClick handler when clicked', () => {
     const handleClick = jest.fn();
     render(<Button onClick={handleClick}>Clickable Button</Button>);
-    
+
     const button = screen.getByRole('button');
     fireEvent.click(button);
-    
+
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
 
@@ -73,7 +75,11 @@ describe('Button Component', () => {
   });
 
   it('forwards additional props', () => {
-    render(<Button data-testid="test-button" aria-label="Test">Test Button</Button>);
+    render(
+      <Button data-testid="test-button" aria-label="Test">
+        Test Button
+      </Button>
+    );
     const button = screen.getByTestId('test-button');
     expect(button).toHaveAttribute('aria-label', 'Test');
   });

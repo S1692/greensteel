@@ -10,7 +10,10 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, helperText, leftIcon, rightIcon, className, id, ...props }, ref) => {
+  (
+    { label, error, helperText, leftIcon, rightIcon, className, id, ...props },
+    ref
+  ) => {
     const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
 
     return (
@@ -23,14 +26,14 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             {label}
           </label>
         )}
-        
+
         <div className="relative">
           {leftIcon && (
             <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-ecotrace-textSecondary">
               {leftIcon}
             </div>
           )}
-          
+
           <input
             ref={ref}
             id={inputId}
@@ -45,20 +48,20 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             )}
             {...props}
           />
-          
+
           {rightIcon && (
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-ecotrace-textSecondary">
               {rightIcon}
             </div>
           )}
         </div>
-        
-        {error && (
-          <p className="mt-1 text-sm text-red-500">{error}</p>
-        )}
-        
+
+        {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
+
         {helperText && !error && (
-          <p className="mt-1 text-sm text-ecotrace-textSecondary">{helperText}</p>
+          <p className="mt-1 text-sm text-ecotrace-textSecondary">
+            {helperText}
+          </p>
         )}
       </div>
     );

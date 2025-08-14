@@ -1,7 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-  assetPrefix: process.env.NODE_ENV === 'production' ? 'https://greensteel.site' : '',
+  assetPrefix:
+    process.env.NODE_ENV === 'production' ? 'https://greensteel.site' : '',
   basePath: '',
   trailingSlash: false,
   poweredByHeader: false,

@@ -13,27 +13,26 @@ const RegisterPage: React.FC = () => {
     company: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (formData.password !== formData.confirmPassword) {
       alert('비밀번호가 일치하지 않습니다.');
       return;
     }
-    
-    // 회원가입 처리
-    console.log('회원가입:', formData);
-    // 실제로는 API 호출
+
+            // 회원가입 처리
+        // 실제로는 API 호출
     alert('회원가입이 완료되었습니다. 로그인해주세요.');
     router.push('/');
   };
@@ -48,9 +47,7 @@ const RegisterPage: React.FC = () => {
                 greensteel
               </span>
             </h1>
-            <p className="text-ecotrace-textSecondary">
-              회원가입
-            </p>
+            <p className="text-ecotrace-textSecondary">회원가입</p>
           </div>
 
           <div className="bg-ecotrace-surface border border-ecotrace-border rounded-xl p-8">
@@ -63,7 +60,7 @@ const RegisterPage: React.FC = () => {
                 onChange={handleInputChange}
                 required
               />
-              
+
               <Input
                 label="회사명"
                 name="company"
@@ -72,7 +69,7 @@ const RegisterPage: React.FC = () => {
                 onChange={handleInputChange}
                 required
               />
-              
+
               <Input
                 label="이메일"
                 name="email"
@@ -81,7 +78,7 @@ const RegisterPage: React.FC = () => {
                 onChange={handleInputChange}
                 required
               />
-              
+
               <Input
                 label="비밀번호"
                 name="password"
@@ -100,11 +97,7 @@ const RegisterPage: React.FC = () => {
                 required
               />
 
-              <Button
-                type="submit"
-                className="w-full"
-                size="lg"
-              >
+              <Button type="submit" className="w-full" size="lg">
                 회원가입
               </Button>
             </form>

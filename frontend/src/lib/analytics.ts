@@ -59,5 +59,10 @@ export const trackPageVisit = (pageName: string) => {
 
 // 에러 추적
 export const trackError = (errorMessage: string, errorCode?: string) => {
-  trackEvent('error', 'system', errorMessage, errorCode ? parseInt(errorCode) : undefined);
+  trackEvent(
+    'error',
+    'system',
+    errorMessage,
+    errorCode ? parseInt(errorCode) : undefined
+  );
 };

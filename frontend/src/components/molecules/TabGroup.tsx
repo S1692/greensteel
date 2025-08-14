@@ -35,21 +35,25 @@ const TabGroup: React.FC<TabGroupProps> = ({
   };
 
   const inactiveVariants = {
-    default: 'text-ecotrace-textSecondary hover:text-ecotrace-text hover:bg-ecotrace-surface',
-    underline: 'border-transparent text-ecotrace-textSecondary hover:text-ecotrace-text',
+    default:
+      'text-ecotrace-textSecondary hover:text-ecotrace-text hover:bg-ecotrace-surface',
+    underline:
+      'border-transparent text-ecotrace-textSecondary hover:text-ecotrace-text',
   };
 
   return (
     <div className={cn('w-full', className)}>
       {/* 탭 헤더 */}
       <div className="flex border-b border-ecotrace-border">
-        {tabs.map((tab) => (
+        {tabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
             className={cn(
               tabVariants[variant],
-              activeTab === tab.id ? activeVariants[variant] : inactiveVariants[variant],
+              activeTab === tab.id
+                ? activeVariants[variant]
+                : inactiveVariants[variant],
               'focus:outline-none focus:ring-2 focus:ring-ecotrace-primary focus:ring-offset-2 focus:ring-offset-ecotrace-background'
             )}
             role="tab"
@@ -62,16 +66,13 @@ const TabGroup: React.FC<TabGroupProps> = ({
       </div>
 
       {/* 탭 패널 */}
-      {tabs.map((tab) => (
+      {tabs.map(tab => (
         <div
           key={tab.id}
           id={`panel-${tab.id}`}
           role="tabpanel"
           aria-labelledby={`tab-${tab.id}`}
-          className={cn(
-            'mt-4',
-            activeTab === tab.id ? 'block' : 'hidden'
-          )}
+          className={cn('mt-4', activeTab === tab.id ? 'block' : 'hidden')}
         >
           {tab.content}
         </div>

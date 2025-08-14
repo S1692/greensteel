@@ -49,10 +49,12 @@ const axiosClient: AxiosInstance = axios.create({
 
 // 요청 인터셉터
 axiosClient.interceptors.request.use(
-  (config) => {
+  config => {
     // Gateway 외 요청 차단
     if (config.url && !isGatewayRequest(config.baseURL + config.url)) {
-      throw new Error('Direct service access is not allowed. Use Gateway only.');
+      throw new Error(
+        'Direct service access is not allowed. Use Gateway only.'
+      );
     }
 
     // CSRF 토큰 추가
@@ -71,15 +73,15 @@ axiosClient.interceptors.request.use(
 
     return config;
   },
-  (error) => {
+  error => {
     return Promise.reject(error);
   }
 );
 
 // 응답 인터셉터
 axiosClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
+  response => response,
+  async error => {
     // 5xx 오류나 네트워크 오류 시 재시도
     if (error.response?.status >= 500 || !error.response) {
       const config = error.config;

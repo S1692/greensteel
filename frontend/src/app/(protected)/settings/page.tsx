@@ -9,7 +9,6 @@ import { cn } from '@/lib/utils';
 
 const SettingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('organization');
-  const [loading, setLoading] = useState(false);
 
   const tabs = [
     {
@@ -27,15 +26,17 @@ const SettingsPage: React.FC = () => {
               placeholder="Organization name in English"
             />
           </div>
-          
+
           <Input
             label="허용된 도메인"
             placeholder="example.com"
             helperText="이메일 도메인을 입력하면 해당 도메인의 사용자만 초대할 수 있습니다"
           />
-          
+
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-ecotrace-text">초대 링크</h3>
+            <h3 className="text-lg font-semibold text-ecotrace-text">
+              초대 링크
+            </h3>
             <div className="flex gap-3">
               <Input
                 placeholder="초대 링크가 생성됩니다"
@@ -62,7 +63,9 @@ const SettingsPage: React.FC = () => {
             <div className="bg-ecotrace-background p-4 border-b border-ecotrace-border">
               <div className="grid grid-cols-2 gap-4">
                 <span className="font-medium text-ecotrace-text">역할</span>
-                <span className="font-medium text-ecotrace-text">전체 권한</span>
+                <span className="font-medium text-ecotrace-text">
+                  전체 권한
+                </span>
               </div>
             </div>
             <div className="divide-y divide-ecotrace-border">
@@ -74,10 +77,14 @@ const SettingsPage: React.FC = () => {
               ].map((item, index) => (
                 <div key={index} className="grid grid-cols-2 gap-4 p-4">
                   <span className="text-ecotrace-text">{item.role}</span>
-                  <span className={cn(
-                    'text-center',
-                    item.permissions === 'true' ? 'text-black' : 'text-ecotrace-text'
-                  )}>
+                  <span
+                    className={cn(
+                      'text-center',
+                      item.permissions === 'true'
+                        ? 'text-black'
+                        : 'text-ecotrace-text'
+                    )}
+                  >
                     {item.permissions}
                   </span>
                 </div>
@@ -99,7 +106,9 @@ const SettingsPage: React.FC = () => {
             <div className="bg-ecotrace-background p-4 border-b border-ecotrace-border">
               <div className="grid grid-cols-7 gap-4 text-sm">
                 <span className="font-medium text-ecotrace-text">이름</span>
-                <span className="font-medium text-ecotrace-text col-span-2">이메일</span>
+                <span className="font-medium text-ecotrace-text col-span-2">
+                  이메일
+                </span>
                 <span className="font-medium text-ecotrace-text">역할</span>
                 <span className="font-medium text-ecotrace-text">상태</span>
                 <span className="font-medium text-ecotrace-text">2FA</span>
@@ -135,22 +144,32 @@ const SettingsPage: React.FC = () => {
               ].map((user, index) => (
                 <div key={index} className="grid grid-cols-7 gap-4 p-4">
                   <span className="text-ecotrace-text">{user.name}</span>
-                  <span className="text-ecotrace-textSecondary col-span-2">{user.email}</span>
+                  <span className="text-ecotrace-textSecondary col-span-2">
+                    {user.email}
+                  </span>
                   <div className="flex justify-center">
                     <span className="px-3 py-1 bg-ecotrace-secondary text-white text-sm rounded-lg">
                       {user.role}
                     </span>
                   </div>
                   <div className="flex justify-center">
-                    <span className={cn(
-                      'px-3 py-1 text-sm rounded-lg',
-                      user.status === '활성' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                    )}>
+                    <span
+                      className={cn(
+                        'px-3 py-1 text-sm rounded-lg',
+                        user.status === '활성'
+                          ? 'bg-green-500/20 text-green-400'
+                          : 'bg-red-500/20 text-red-400'
+                      )}
+                    >
                       {user.status}
                     </span>
                   </div>
-                  <span className="text-ecotrace-textSecondary text-center">{user.twoFA}</span>
-                  <span className="text-ecotrace-textSecondary text-center">{user.lastActivity}</span>
+                  <span className="text-ecotrace-textSecondary text-center">
+                    {user.twoFA}
+                  </span>
+                  <span className="text-ecotrace-textSecondary text-center">
+                    {user.lastActivity}
+                  </span>
                 </div>
               ))}
             </div>
@@ -175,7 +194,7 @@ const SettingsPage: React.FC = () => {
               readOnly
             />
           </div>
-          
+
           <Button variant="secondary" size="lg">
             감사 로그 다운로드
           </Button>
@@ -189,9 +208,7 @@ const SettingsPage: React.FC = () => {
       <div className="space-y-6">
         {/* 헤더 */}
         <div className="flex flex-col gap-3">
-          <h1 className="text-3xl font-bold text-ecotrace-text">
-            설정
-          </h1>
+          <h1 className="text-3xl font-bold text-ecotrace-text">설정</h1>
           <p className="text-ecotrace-textSecondary">
             계정 설정 및 환경 설정을 관리하세요
           </p>

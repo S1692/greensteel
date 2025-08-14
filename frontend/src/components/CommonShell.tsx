@@ -17,7 +17,11 @@ const CommonShell: React.FC<CommonShellProps> = ({ children }) => {
     { name: '홈', href: '/dashboard', current: pathname === '/dashboard' },
     { name: 'LCA', href: '/lca', current: pathname.startsWith('/lca') },
     { name: 'CBAM', href: '/cbam', current: pathname.startsWith('/cbam') },
-    { name: '데이터 업로드', href: '/data-upload', current: pathname === '/data-upload' },
+    {
+      name: '데이터 업로드',
+      href: '/data-upload',
+      current: pathname === '/data-upload',
+    },
     { name: '설정', href: '/settings', current: pathname === '/settings' },
   ];
 
@@ -34,21 +38,33 @@ const CommonShell: React.FC<CommonShellProps> = ({ children }) => {
             {/* 로고 및 브랜드 */}
             <div className="flex items-center gap-4">
               <div className="w-8 h-8 bg-gradient-to-br from-ecotrace-accent to-ecotrace-accent/70 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                <svg
+                  className="w-5 h-5 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
                 </svg>
               </div>
               <div className="flex flex-col">
                 <span className="text-xl font-bold text-white">
                   {env.NEXT_PUBLIC_APP_NAME}
                 </span>
-                <span className="text-xs text-ecotrace-textSecondary">ESG Platform</span>
+                <span className="text-xs text-ecotrace-textSecondary">
+                  ESG Platform
+                </span>
               </div>
             </div>
 
             {/* 네비게이션 - 항상 표시 */}
             <nav className="hidden lg:flex items-center gap-6">
-              {navigation.map((item) => (
+              {navigation.map(item => (
                 <button
                   key={item.name}
                   onClick={() => handleNavigation(item.href)}
@@ -73,9 +89,7 @@ const CommonShell: React.FC<CommonShellProps> = ({ children }) => {
       </header>
 
       {/* 메인 컨텐츠 */}
-      <main className="mx-auto max-w-7xl px-6 py-8">
-        {children}
-      </main>
+      <main className="mx-auto max-w-7xl px-6 py-8">{children}</main>
     </div>
   );
 };

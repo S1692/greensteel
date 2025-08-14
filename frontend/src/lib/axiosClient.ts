@@ -38,7 +38,8 @@ const retryRequest = async (
     const axiosError = error as AxiosError;
     if (
       retries > 0 &&
-      (axiosError.response?.status >= 500 || !axiosError.response)
+      ((axiosError.response?.status && axiosError.response.status >= 500) ||
+        !axiosError.response)
     ) {
       await new Promise(resolve => setTimeout(resolve, 1000 * (4 - retries)));
       return retryRequest(axiosInstance, config, retries - 1);

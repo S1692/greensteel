@@ -30,8 +30,21 @@ async def register_company(
                 detail="이미 등록된 사업자번호입니다."
             )
         
+        # username 중복 확인
+        existing_username = db.query(Company).filter(Company.username == company_data.username).first()
+        if existing_username:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="이미 사용 중인 ID입니다."
+            )
+        
+        # Company 모델에 맞는 데이터 준비 (password -> hashed_password, confirm_password 제거)
+        company_dict = company_data.model_dump()
+        company_dict.pop('confirm_password', None)  # confirm_password 필드 제거
+        company_dict['hashed_password'] = get_password_hash(company_dict.pop('password'))  # password를 hashed_password로 변환
+        
         # 새 기업 생성
-        new_company = Company(**company_data.model_dump())
+        new_company = Company(**company_dict)
         db.add(new_company)
         db.commit()
         db.refresh(new_company)

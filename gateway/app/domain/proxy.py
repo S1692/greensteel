@@ -144,23 +144,62 @@ class ProxyController:
         return headers
     
     async def proxy_request(self, request: Request) -> Response:
-        """프록시 요청 처리 - MVC의 Controller 메서드"""
+        """프록시 요청 처리"""
+        try:
+            path = request.path
+            method = request.method
+            target_service = self.get_target_service(path)
+            
+            if not target_service:
+                gateway_logger.log_error(f"No service configured for path: {path}")
+                raise HTTPException(
+                    status_code=503, 
+                    detail=f"Service not available for path: {path}. Please check service configuration."
+                )
+            
+            # 서비스 연결 상태 확인
+            if not await self._check_service_health(target_service):
+                gateway_logger.log_error(f"Service {target_service} is not responding")
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"Service {target_service} is not available. Please try again later."
+                )
+            
+            # 요청 데이터 검증
+            if method in ["POST", "PUT", "PATCH"]:
+                try:
+                    body = await request.body()
+                    if body:
+                        data = json.loads(body)
+                        if not self.validate_request_data(path, method, data):
+                            raise HTTPException(status_code=400, detail="Invalid request data")
+                except json.JSONDecodeError:
+                    gateway_logger.log_warning("Invalid JSON in request body")
+                    raise HTTPException(status_code=400, detail="Invalid JSON format")
+            
+            # 프록시 요청 실행
+            return await self._execute_proxy_request(request, target_service, path)
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            gateway_logger.log_error(f"Unexpected error in proxy_request: {str(e)}")
+            raise HTTPException(status_code=500, detail="Internal gateway error")
+
+    async def _check_service_health(self, service_url: str) -> bool:
+        """서비스 헬스체크"""
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(f"{service_url}/health")
+                return response.status_code == 200
+        except Exception as e:
+            gateway_logger.log_warning(f"Health check failed for {service_url}: {str(e)}")
+            return False
+    
+    async def _execute_proxy_request(self, request: Request, target_service: str, path: str) -> Response:
+        """실제 프록시 요청 실행"""
         start_time = time.time()
-        path = request.url.path
         method = request.method
-        
-        # 타겟 서비스 찾기
-        target_service = self.get_target_service(path)
-        if not target_service:
-            gateway_logger.log_error(f"No target service found for path: {path}")
-            raise HTTPException(status_code=502, detail="Service not configured")
-        
-        # 요청 바디 읽기
-        body = await request.body()
-        
-        # 요청 데이터 검증 (특정 엔드포인트)
-        if not self.validate_request_data(path, method, body):
-            raise HTTPException(status_code=400, detail="Invalid request data")
         
         # 타겟 URL 구성
         target_url = f"{target_service}{path}"
@@ -172,6 +211,9 @@ class ProxyController:
         
         # 헤더 준비
         headers = self.prepare_headers(request)
+        
+        # 요청 바디 읽기
+        body = await request.body()
         
         try:
             # httpx.AsyncClient로 프록시 요청 실행
@@ -224,19 +266,35 @@ class ProxyController:
             }
         }
     
-    def get_service_status(self) -> Dict[str, Any]:
+    async def get_service_status(self) -> Dict[str, Any]:
         """서비스 상태 정보 반환"""
-        return {
-            "gateway_name": self.gateway_name,
-            "uptime": time.time(),
-            "service_config": self.service_map,
-            "timeout_settings": {
-                "connect": self.timeout.connect,
-                "read": self.timeout.read,
-                "write": self.timeout.write,
-                "pool": self.timeout.pool
-            }
+        status_info = {
+            "gateway": {
+                "name": self.gateway_name,
+                "status": "running",
+                "timestamp": time.time()
+            },
+            "services": {}
         }
+        
+        # 각 서비스의 상태 확인
+        for prefix, service_url in self.service_map.items():
+            if not service_url:
+                status_info["services"][prefix] = {
+                    "status": "not_configured",
+                    "url": None,
+                    "message": "Service URL not configured"
+                }
+            else:
+                # 서비스 헬스체크 수행
+                is_healthy = await self._check_service_health(service_url)
+                status_info["services"][prefix] = {
+                    "status": "healthy" if is_healthy else "unhealthy",
+                    "url": service_url,
+                    "message": "Service responding" if is_healthy else "Service not responding"
+                }
+        
+        return status_info
     
     def get_routing_info(self) -> Dict[str, Any]:
         """라우팅 정보 반환"""

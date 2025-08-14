@@ -74,7 +74,7 @@ async def health_check():
 @app.get("/status")
 async def service_status():
     """서비스 상태 정보"""
-    return proxy_controller.get_service_status()
+    return await proxy_controller.get_service_status()
 
 # 라우팅 정보 엔드포인트
 @app.get("/routing")

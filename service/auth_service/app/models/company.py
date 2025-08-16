@@ -40,10 +40,10 @@ class Company(Base):
     hashed_password = Column(String(255), nullable=False)
     
     # 스트림 구조 필드
-    stream_id = Column(String(100), nullable=True, index=True, description="스트림 식별자")
-    stream_version = Column(Integer, default=1, nullable=False, description="스트림 버전")
-    stream_metadata = Column(Text, nullable=True, description="스트림 메타데이터 (JSON)")
-    is_stream_active = Column(Boolean, default=True, nullable=False, description="스트림 활성 상태")
+    stream_id = Column(String(100), nullable=True, index=True, comment="스트림 식별자")
+    stream_version = Column(Integer, default=1, nullable=False, comment="스트림 버전")
+    stream_metadata = Column(Text, nullable=True, comment="스트림 메타데이터 (JSON)")
+    is_stream_active = Column(Boolean, default=True, nullable=False, comment="스트림 활성 상태")
     
     # 시스템 필드
     created_at = Column(DateTime, default=func.now(), nullable=False)

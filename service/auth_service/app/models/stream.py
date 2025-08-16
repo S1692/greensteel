@@ -16,20 +16,20 @@ class StreamEvent(Base):
     uuid = Column(String(36), unique=True, index=True, nullable=False, default=lambda: str(uuid.uuid4()))
     
     # 스트림 식별 정보
-    stream_id = Column(String(100), nullable=False, index=True, description="스트림 식별자")
-    stream_type = Column(String(50), nullable=False, index=True, description="스트림 타입 (company, user, lca, cbam 등)")
-    entity_id = Column(Integer, nullable=False, description="연관된 엔티티 ID")
-    entity_type = Column(String(50), nullable=False, description="엔티티 타입")
+    stream_id = Column(String(100), nullable=False, index=True, comment="스트림 식별자")
+    stream_type = Column(String(50), nullable=False, index=True, comment="스트림 타입 (company, user, lca, cbam 등)")
+    entity_id = Column(Integer, nullable=False, comment="연관된 엔티티 ID")
+    entity_type = Column(String(50), nullable=False, comment="엔티티 타입")
     
     # 이벤트 정보
-    event_type = Column(String(100), nullable=False, description="이벤트 타입 (create, update, delete, status_change 등)")
-    event_version = Column(Integer, nullable=False, description="이벤트 버전")
-    event_data = Column(JSON, nullable=True, description="이벤트 데이터")
-    event_metadata = Column(Text, nullable=True, description="이벤트 메타데이터 (JSON)")
+    event_type = Column(String(100), nullable=False, comment="이벤트 타입 (create, update, delete, status_change 등)")
+    event_version = Column(Integer, nullable=False, comment="이벤트 버전")
+    event_data = Column(JSON, nullable=True, comment="이벤트 데이터")
+    event_metadata = Column(Text, nullable=True, comment="이벤트 메타데이터 (JSON)")
     
     # 상태 정보
-    is_active = Column(Boolean, default=True, nullable=False, description="이벤트 활성 상태")
-    processed_at = Column(DateTime, nullable=True, description="처리 완료 시간")
+    is_active = Column(Boolean, default=True, nullable=False, comment="이벤트 활성 상태")
+    processed_at = Column(DateTime, nullable=True, comment="처리 완료 시간")
     
     # 시스템 필드
     created_at = Column(DateTime, default=func.now(), nullable=False)
@@ -76,19 +76,19 @@ class StreamSnapshot(Base):
     uuid = Column(String(36), unique=True, index=True, nullable=False, default=lambda: str(uuid.uuid4()))
     
     # 스트림 식별 정보
-    stream_id = Column(String(100), nullable=False, index=True, description="스트림 식별자")
-    stream_type = Column(String(50), nullable=False, index=True, description="스트림 타입")
-    entity_id = Column(Integer, nullable=False, description="연관된 엔티티 ID")
-    entity_type = Column(String(50), nullable=False, description="엔티티 타입")
+    stream_id = Column(String(100), nullable=False, index=True, comment="스트림 식별자")
+    stream_type = Column(String(50), nullable=False, index=True, comment="스트림 타입")
+    entity_id = Column(Integer, nullable=False, comment="연관된 엔티티 ID")
+    entity_type = Column(String(50), nullable=False, comment="엔티티 타입")
     
     # 스냅샷 정보
-    snapshot_version = Column(Integer, nullable=False, description="스냅샷 버전")
-    snapshot_data = Column(JSON, nullable=False, description="스냅샷 데이터")
-    snapshot_metadata = Column(Text, nullable=True, description="스냅샷 메타데이터 (JSON)")
+    snapshot_version = Column(Integer, nullable=False, comment="스냅샷 버전")
+    snapshot_data = Column(JSON, nullable=False, comment="스냅샷 데이터")
+    snapshot_metadata = Column(Text, nullable=True, comment="스냅샷 메타데이터 (JSON)")
     
     # 상태 정보
-    is_latest = Column(Boolean, default=False, nullable=False, description="최신 스냅샷 여부")
-    is_active = Column(Boolean, default=True, nullable=False, description="스냅샷 활성 상태")
+    is_latest = Column(Boolean, default=False, nullable=False, comment="최신 스냅샷 여부")
+    is_active = Column(Boolean, default=True, nullable=False, comment="스냅샷 활성 상태")
     
     # 시스템 필드
     created_at = Column(DateTime, default=func.now(), nullable=False)
@@ -135,17 +135,17 @@ class StreamAudit(Base):
     uuid = Column(String(36), unique=True, index=True, nullable=False, default=lambda: str(uuid.uuid4()))
     
     # 스트림 식별 정보
-    stream_id = Column(String(100), nullable=False, index=True, description="스트림 식별자")
-    stream_type = Column(String(50), nullable=False, index=True, description="스트림 타입")
-    entity_id = Column(Integer, nullable=False, description="연관된 엔티티 ID")
-    entity_type = Column(String(50), nullable=False, description="엔티티 타입")
+    stream_id = Column(String(100), nullable=False, index=True, comment="스트림 식별자")
+    stream_type = Column(String(50), nullable=False, index=True, comment="스트림 타입")
+    entity_id = Column(Integer, nullable=False, comment="연관된 엔티티 ID")
+    entity_type = Column(String(50), nullable=False, comment="엔티티 타입")
     
     # 감사 정보
-    action = Column(String(100), nullable=False, description="수행된 액션")
-    user_id = Column(Integer, nullable=True, description="수행한 사용자 ID")
-    user_type = Column(String(50), nullable=True, description="사용자 타입 (company, user)")
-    changes = Column(JSON, nullable=True, description="변경 사항")
-    reason = Column(String(500), nullable=True, description="변경 사유")
+    action = Column(String(100), nullable=False, comment="수행된 액션")
+    user_id = Column(Integer, nullable=True, comment="수행한 사용자 ID")
+    user_type = Column(String(50), nullable=True, comment="사용자 타입 (company, user)")
+    changes = Column(JSON, nullable=True, comment="변경 사항")
+    reason = Column(String(500), nullable=True, comment="변경 사유")
     
     # 시스템 필드
     created_at = Column(DateTime, default=func.now(), nullable=False)

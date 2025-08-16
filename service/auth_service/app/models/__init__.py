@@ -1,11 +1,11 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
-from app.models.user import Base as UserBase, User
-from app.models.company import Base as CompanyBase, Company
-from app.models.stream import Base as StreamBase, StreamEvent, StreamSnapshot, StreamAudit
-from app.core.settings import settings
-from app.core.logger import auth_logger
+from .user import Base as UserBase, User
+from .company import Base as CompanyBase, Company
+from .stream import Base as StreamBase, StreamEvent, StreamSnapshot, StreamAudit
+from ..core.settings import settings
+from ..core.logger import auth_logger
 
 # 모든 모델의 Base를 통합
 Base = UserBase

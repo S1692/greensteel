@@ -5,8 +5,7 @@ WORKDIR /app
 
 # 환경 변수 설정
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app/app
+    PYTHONUNBUFFERED=1
 
 # 시스템 패키지 업데이트 및 필요한 패키지 설치
 RUN apt-get update && apt-get install -y \
@@ -31,5 +30,5 @@ EXPOSE 8081
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8081/health || exit 1
 
-# 애플리케이션 실행 (main.py)
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8081", "--proxy-headers"]
+# 애플리케이션 실행 (app.main:app)
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8081", "--proxy-headers"]

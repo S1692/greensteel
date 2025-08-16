@@ -4,14 +4,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from app.models import get_db, StreamEvent, StreamSnapshot, StreamAudit
-from app.schemas.stream import (
+from ..models import get_db, StreamEvent, StreamSnapshot, StreamAudit
+from ..schemas.stream import (
     StreamEventIn, StreamEventOut, StreamSnapshotIn, StreamSnapshotOut,
     StreamAuditOut, StreamHistoryQuery, StreamHistoryOut, StreamMetadataUpdate,
     StreamDeactivation, StreamStats, StreamSearchQuery, StreamSearchResult,
     StreamStatus
 )
-from app.lib.stream_utils import (
+from ..lib.stream_utils import (
     create_stream_event, create_stream_snapshot, create_stream_audit,
     get_stream_events, get_latest_snapshot, get_stream_history,
     update_stream_metadata, deactivate_stream

@@ -11,7 +11,7 @@ from schemas.stream import (
     StreamDeactivation, StreamStats, StreamSearchQuery, StreamSearchResult,
     StreamStatus
 )
-from lib.stream_utils import (
+from ..lib.stream_utils import (
     create_stream_event, create_stream_snapshot, create_stream_audit,
     get_stream_events, get_latest_snapshot, get_stream_history,
     update_stream_metadata, deactivate_stream

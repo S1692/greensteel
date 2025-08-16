@@ -9,7 +9,7 @@ from schemas.auth import (
 )
 from core.security import get_password_hash, verify_password, create_access_token, get_current_user
 from core.logger import auth_logger
-from lib.stream_utils import (
+from ..lib.stream_utils import (
     generate_stream_id, create_stream_event, create_stream_snapshot
 )
 from datetime import datetime

@@ -35,6 +35,7 @@ export default function RegisterPage() {
     manager_name: '',
     manager_phone: '',
     manager_email: '',
+    username: '', // ID 필드 추가
     password: '',
     confirm_password: '',
   });
@@ -66,6 +67,7 @@ export default function RegisterPage() {
       !companyData.biz_no ||
       !companyData.manager_name ||
       !companyData.manager_phone ||
+      !companyData.username || // ID 필드 검증 추가
       !companyData.password ||
       !companyData.confirm_password
     ) {
@@ -80,6 +82,12 @@ export default function RegisterPage() {
 
     if (companyData.password.length < 8) {
       setError({ message: '비밀번호는 최소 8자 이상이어야 합니다.' });
+      return;
+    }
+
+    // ID 길이 검증
+    if (companyData.username.length < 3) {
+      setError({ message: 'ID는 최소 3자 이상이어야 합니다.' });
       return;
     }
 
@@ -103,7 +111,7 @@ export default function RegisterPage() {
         manager_name: companyData.manager_name,
         manager_phone: companyData.manager_phone,
         manager_email: companyData.manager_email,
-        username: companyData.name_ko.toLowerCase().replace(/\s+/g, ''), // 기업명을 기반으로 username 생성
+        username: companyData.username, // 사용자가 입력한 ID 사용
         password: companyData.password,
         confirm_password: companyData.confirm_password,
       };
@@ -424,6 +432,19 @@ export default function RegisterPage() {
             </div>
 
             <SectionTitle>계정 정보</SectionTitle>
+            <div>
+              <label className="stitch-label mb-1 block">ID *</label>
+              <Input
+                type="text"
+                value={companyData.username}
+                onChange={e =>
+                  handleCompanyInputChange('username', e.target.value)
+                }
+                placeholder="예: smartesg"
+                disabled={isLoading}
+                required
+              />
+            </div>
             <div>
               <label className="stitch-label mb-1 block">비밀번호 *</label>
               <Input

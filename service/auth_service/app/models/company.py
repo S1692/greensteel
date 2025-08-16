@@ -1,16 +1,20 @@
-from sqlalchemy import Column, Integer, String, DateTime, Index
+from sqlalchemy import Column, Integer, String, DateTime, Index, Text, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from datetime import datetime
+import uuid
 
 Base = declarative_base()
 
 class Company(Base):
-    """기업 모델"""
+    """기업 모델 (스트림 구조)"""
     __tablename__ = "companies"
     
     # 기본 필드
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    uuid = Column(String(36), unique=True, index=True, nullable=False, default=lambda: str(uuid.uuid4()))
+    
+    # 기업 정보
     name_ko = Column(String(255), nullable=False)
     name_en = Column(String(255), nullable=True)
     biz_no = Column(String(20), unique=True, index=True, nullable=False)
@@ -35,24 +39,33 @@ class Company(Base):
     username = Column(String(100), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     
+    # 스트림 구조 필드
+    stream_id = Column(String(100), nullable=True, index=True, description="스트림 식별자")
+    stream_version = Column(Integer, default=1, nullable=False, description="스트림 버전")
+    stream_metadata = Column(Text, nullable=True, description="스트림 메타데이터 (JSON)")
+    is_stream_active = Column(Boolean, default=True, nullable=False, description="스트림 활성 상태")
+    
     # 시스템 필드
     created_at = Column(DateTime, default=func.now(), nullable=False)
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
     
     # 인덱스 설정
     __table_args__ = (
+        Index('idx_company_uuid', 'uuid'),
         Index('idx_company_biz_no', 'biz_no'),
         Index('idx_company_username', 'username'),
+        Index('idx_company_stream_id', 'stream_id'),
         Index('idx_company_created_at', 'created_at'),
     )
     
     def __repr__(self):
-        return f"<Company(id={self.id}, name_ko='{self.name_ko}', biz_no='{self.biz_no}')>"
+        return f"<Company(id={self.id}, uuid='{self.uuid}', name_ko='{self.name_ko}', biz_no='{self.biz_no}')>"
     
     def to_dict(self):
         """기업 정보를 딕셔너리로 변환"""
         return {
             "id": self.id,
+            "uuid": self.uuid,
             "name_ko": self.name_ko,
             "name_en": self.name_en,
             "biz_no": self.biz_no,
@@ -67,6 +80,10 @@ class Company(Base):
             "manager_phone": self.manager_phone,
             "manager_email": self.manager_email,
             "username": self.username,
+            "stream_id": self.stream_id,
+            "stream_version": self.stream_version,
+            "stream_metadata": self.stream_metadata,
+            "is_stream_active": self.is_stream_active,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
@@ -75,6 +92,7 @@ class Company(Base):
         """공개용 기업 정보 (민감한 정보 제외)"""
         return {
             "id": self.id,
+            "uuid": self.uuid,
             "name_ko": self.name_ko,
             "name_en": self.name_en,
             "biz_no": self.biz_no,
@@ -88,6 +106,9 @@ class Company(Base):
             "manager_name": self.manager_name,
             "manager_phone": self.manager_phone,
             "manager_email": self.manager_email,
+            "stream_id": self.stream_id,
+            "stream_version": self.stream_version,
+            "is_stream_active": self.is_stream_active,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
@@ -115,3 +136,14 @@ class Company(Base):
             return True
         
         return False
+    
+    def update_stream_version(self):
+        """스트림 버전 업데이트"""
+        self.stream_version += 1
+        self.updated_at = func.now()
+    
+    def set_stream_metadata(self, metadata: dict):
+        """스트림 메타데이터 설정"""
+        import json
+        self.stream_metadata = json.dumps(metadata, ensure_ascii=False)
+        self.update_stream_version()

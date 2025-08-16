@@ -3,6 +3,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
 from models.user import Base as UserBase, User
 from models.company import Base as CompanyBase, Company
+from models.stream import Base as StreamBase, StreamEvent, StreamSnapshot, StreamAudit
 from core.settings import settings
 from core.logger import auth_logger
 
@@ -11,6 +12,11 @@ Base = UserBase
 
 # Company 모델의 테이블을 UserBase의 메타데이터에 추가
 for table_name, table in CompanyBase.metadata.tables.items():
+    if table_name not in Base.metadata.tables:
+        table.tometadata(Base.metadata)
+
+# Stream 모델들의 테이블을 Base의 메타데이터에 추가
+for table_name, table in StreamBase.metadata.tables.items():
     if table_name not in Base.metadata.tables:
         table.tometadata(Base.metadata)
 
@@ -69,4 +75,7 @@ def create_tables():
         raise
 
 # 모델들을 한 곳에서 import할 수 있도록
-__all__ = ["User", "Company", "Base", "engine", "SessionLocal", "get_db", "create_tables"]
+__all__ = [
+    "User", "Company", "StreamEvent", "StreamSnapshot", "StreamAudit",
+    "Base", "engine", "SessionLocal", "get_db", "create_tables"
+]

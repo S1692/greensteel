@@ -15,6 +15,7 @@ class ProxyController:
         # 서비스 매핑 - OCP 원칙 적용 (URL 정리 포함)
         self.service_map = {
             "/auth": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "")),
+            "/stream": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "")),  # 스트림 API는 Auth Service에 포함
             "/cbam": self._clean_service_url(os.getenv("CBAM_SERVICE_URL", "")),
             "/datagather": self._clean_service_url(os.getenv("DATAGATHER_SERVICE_URL", "")),
             "/lci": self._clean_service_url(os.getenv("LCI_SERVICE_URL", ""))
@@ -61,11 +62,17 @@ class ProxyController:
             if method == "POST":
                 if path == "/auth/register/company":
                     # 기업 회원가입 검증
-                    required_fields = ["name_ko", "biz_no", "manager_name", "manager_phone", "password"]
+                    required_fields = ["name_ko", "biz_no", "manager_name", "manager_phone", "username", "password"]
                     for field in required_fields:
                         if not data.get(field):
                             gateway_logger.warning(f"Missing required field: {field}")
                             return False
+                    
+                    # ID 길이 검증
+                    username = data.get("username", "")
+                    if len(username) < 3:
+                        gateway_logger.warning("Username too short (minimum 3 characters)")
+                        return False
                     
                     # 사업자번호 형식 검증 (숫자만)
                     biz_no = data.get("biz_no", "")
@@ -123,6 +130,36 @@ class ProxyController:
                     if len(username) < 3:
                         gateway_logger.warning("Username too short")
                         return False
+                
+                elif path.startswith("/stream/"):
+                    # 스트림 API 검증
+                    if path == "/stream/events":
+                        required_fields = ["stream_id", "stream_type", "entity_id", "entity_type", "event_type"]
+                        for field in required_fields:
+                            if not data.get(field):
+                                gateway_logger.warning(f"Missing required field for stream event: {field}")
+                                return False
+                    
+                    elif path == "/stream/snapshots":
+                        required_fields = ["stream_id", "stream_type", "entity_id", "entity_type", "snapshot_data"]
+                        for field in required_fields:
+                            if not data.get(field):
+                                gateway_logger.warning(f"Missing required field for stream snapshot: {field}")
+                                return False
+                    
+                    elif path == "/stream/metadata":
+                        required_fields = ["stream_id", "metadata"]
+                        for field in required_fields:
+                            if not data.get(field):
+                                gateway_logger.warning(f"Missing required field for stream metadata: {field}")
+                                return False
+                    
+                    elif path == "/stream/deactivate":
+                        required_fields = ["stream_id"]
+                        for field in required_fields:
+                            if not data.get(field):
+                                gateway_logger.warning(f"Missing required field for stream deactivation: {field}")
+                                return False
             
             return True
             
@@ -308,6 +345,7 @@ class ProxyController:
             "gateway_name": self.gateway_name,
             "routing_rules": {
                 "/auth/*": "Authentication Service",
+                "/stream/*": "Stream API (Auth Service)",  # 스트림 API 라우팅 정보 추가
                 "/cbam/*": "CBAM Service", 
                 "/datagather/*": "Data Gathering Service",
                 "/lci/*": "Life Cycle Inventory Service"
@@ -320,7 +358,15 @@ class ProxyController:
                 "pool": f"{self.timeout.pool}s"
             },
             "validation_rules": {
-                "auth_register": ["name", "company", "email", "password (min 8 chars)"],
-                "auth_login": ["email", "password"]
+                "auth_register_company": ["name_ko", "biz_no", "manager_name", "manager_phone", "username", "password (min 8 chars)"],
+                "auth_register_user": ["username", "password", "full_name", "company_id"],
+                "auth_login": ["username", "password"],
+                "stream_events": ["stream_id", "stream_type", "entity_id", "entity_type", "event_type"],
+                "stream_snapshots": ["stream_id", "stream_type", "entity_id", "entity_type", "snapshot_data"]
+            },
+            "stream_architecture": {
+                "description": "Event-driven stream processing with event sourcing",
+                "supported_stream_types": ["company", "user", "lca", "cbam"],
+                "features": ["event tracking", "snapshot management", "audit logging", "version control"]
             }
         }

@@ -1,325 +1,168 @@
 # GreenSteel API Gateway
 
-마이크로서비스 아키텍처를 위한 FastAPI 기반 API Gateway입니다.
+마이크로서비스 아키텍처를 위한 API 게이트웨이입니다. 모든 서비스 요청을 프록시하고 라우팅하며, 스트림 구조를 지원합니다.
 
 ## 🚀 주요 기능
 
-- **프록시 라우팅**: 모든 HTTP 메서드 지원
-- **CORS 관리**: greensteel.site 및 Vercel/Railway 프리뷰 도메인 지원
-- **로깅**: 요청/응답 로깅 (민감정보 자동 마스킹)
-- **헬스체크**: `/health` 엔드포인트
-- **서비스 상태**: `/status` 엔드포인트
-- **라우팅 정보**: `/routing` 엔드포인트
-- **요청 검증**: 회원가입, 로그인 등 특정 엔드포인트 데이터 검증
+### 프록시 및 라우팅
+- **서비스 프록시**: 모든 마이크로서비스 요청을 적절한 서비스로 라우팅
+- **동적 라우팅**: 환경변수 기반 서비스 URL 매핑
+- **로드 밸런싱**: 서비스 헬스체크 기반 상태 확인
+
+### 스트림 구조 지원
+- **스트림 API 라우팅**: `/stream/*` 경로를 Auth Service로 라우팅
+- **이벤트 소싱**: 스트림 이벤트, 스냅샷, 감사 로그 API 지원
+- **스트림 검증**: 스트림 관련 요청 데이터 검증
+
+### 보안 및 검증
+- **요청 검증**: 회원가입, 로그인, 스트림 API 요청 데이터 검증
+- **CORS 지원**: 크로스 오리진 요청 처리
+- **신뢰할 수 있는 호스트**: 보안 강화를 위한 호스트 검증
 
 ## 🏗️ 아키텍처
 
-### MVC 패턴
-- **Controller**: `domain/proxy.py` - 프록시 로직 처리
-- **View**: 프록시 응답 (별도 템플릿 없음)
-- **Model**: 없음 (게이트웨이는 DB 미접근)
-
-### 디자인 패턴
-- **Proxy Pattern**: Gateway가 대리인으로 라우팅
-- **Middleware Pattern**: 로깅 및 CORS 미들웨어
-- **OCP**: SERVICE_MAP에 항목만 추가하면 라우트 확장
-
-## 📁 폴더 구조
-
+### 서비스 매핑
 ```
-gateway/
-├── app/
-│   ├── common/
-│   │   └── utility/
-│   │       └── logger.py          # 로깅 유틸리티
-│   ├── domain/
-│   │   └── proxy.py               # 프록시 컨트롤러
-│   └── main.py                    # FastAPI 애플리케이션
-├── requirements.txt                # Python 의존성
-├── Dockerfile                     # Docker 설정
-├── .dockerignore                  # Docker 제외 파일
-├── env.example                    # 환경변수 예시
-├── frontend-axios-example.js      # 프론트엔드 Axios 설정 예시
-└── README.md                      # 이 파일
+/auth/* → Authentication Service
+/stream/* → Authentication Service (Stream API)
+/cbam/* → CBAM Service
+/datagather/* → Data Gathering Service
+/lci/* → Life Cycle Inventory Service
+```
+
+### 스트림 구조 지원
+- **Stream Events**: 이벤트 생성 및 조회
+- **Stream Snapshots**: 상태 스냅샷 관리
+- **Stream Audits**: 감사 로그 추적
+- **Stream Metadata**: 메타데이터 업데이트
+
+## 📋 API 엔드포인트
+
+### 게이트웨이 관리
+- `GET /health` - 게이트웨이 헬스체크
+- `GET /status` - 서비스 상태 정보
+- `GET /routing` - 라우팅 규칙 및 설정 정보
+
+### 프록시 라우팅
+- `/{path:path}` - 모든 경로에 대한 프록시 라우팅
+- 지원 메서드: GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS
+
+## 🛠️ 설치 및 실행
+
+### 1. 환경변수 설정
+```bash
+cp env.example .env
+# .env 파일을 편집하여 서비스 URL 설정
+```
+
+### 2. 의존성 설치
+```bash
+pip install -r requirements.txt
+```
+
+### 3. 서비스 실행
+```bash
+python -m app.main
+```
+
+### 4. Docker로 실행
+```bash
+docker build -t greensteel-gateway .
+docker run -p 8080:8080 --env-file .env greensteel-gateway
 ```
 
 ## ⚙️ 환경변수
 
-| 변수명 | 기본값 | 설명 |
-|--------|--------|------|
-| `GATEWAY_NAME` | `"gateway"` | 게이트웨이 이름 |
-| `AUTH_SERVICE_URL` | `""` | 인증 서비스 URL |
-| `CBAM_SERVICE_URL` | `""` | CBAM 서비스 URL |
-| `DATAGATHER_SERVICE_URL` | `""` | 데이터 수집 서비스 URL |
-| `LCI_SERVICE_URL` | `""` | LCI 서비스 URL |
-| `ALLOWED_ORIGINS` | `"https://greensteel.site,https://www.greensteel.site"` | 허용된 오리진 |
-| `ALLOWED_ORIGIN_REGEX` | `"^https://.*\\.vercel\\.app$|^https://.*\\.up\\.railway\\.app$"` | 허용된 오리진 정규식 |
-| `LOG_LEVEL` | `"INFO"` | 로깅 레벨 |
+### 필수 환경변수
+- `AUTH_SERVICE_URL`: 인증 서비스 URL
+- `CBAM_SERVICE_URL`: CBAM 서비스 URL
+- `DATAGATHER_SERVICE_URL`: 데이터 수집 서비스 URL
+- `LCI_SERVICE_URL`: LCI 서비스 URL
 
-## 🚫 제약사항
+### 선택 환경변수
+- `GATEWAY_NAME`: 게이트웨이 이름 (기본값: greensteel-gateway)
+- `ALLOWED_ORIGINS`: 허용된 CORS 오리진
+- `ALLOWED_ORIGIN_REGEX`: 허용된 CORS 오리진 정규식
+- `LOG_LEVEL`: 로그 레벨 (기본값: INFO)
 
-- **localhost 사용 금지**: 어떤 형태의 localhost, 127.0.0.1, http://*3000도 허용하지 않음
-- **프론트엔드**: Vercel의 https://greensteel.site만 사용
-- **포트**: Railway 컨테이너 포트 8080 사용
+## 🔒 보안 기능
 
-## 🛣️ 라우팅 규칙
+### 요청 검증
+- **기업 회원가입**: 필수 필드, ID 길이, 사업자번호 형식, 연락처 형식, 비밀번호 길이 검증
+- **사용자 회원가입**: 필수 필드, ID 길이, 비밀번호 길이, 기업 ID 형식 검증
+- **로그인**: 사용자명, 비밀번호 필수 필드 및 길이 검증
+- **스트림 API**: 스트림 타입별 필수 필드 검증
 
-| 경로 | 대상 서비스 |
-|------|-------------|
-| `/auth/*` | `AUTH_SERVICE_URL` |
-| `/cbam/*` | `CBAM_SERVICE_URL` |
-| `/datagather/*` | `DATAGATHER_SERVICE_URL` |
-| `/lci/*` | `LCI_SERVICE_URL` |
+### CORS 설정
+- 허용된 오리진 기반 CORS 정책
+- 정규식 기반 동적 오리진 허용
+- 자격 증명 포함 요청 지원
 
-## 🔐 인증 플로우
-
-### 1. 회원가입
-```
-사용자 입력 → 폼 검증 → Gateway로 POST /auth/register 요청 → AUTH_SERVICE로 프록시
-```
-
-### 2. 로그인
-```
-사용자 입력 → 폼 검증 → Gateway로 POST /auth/login 요청 → AUTH_SERVICE로 프록시 → 토큰 반환
-```
-
-### 3. 로그아웃
-```
-로그아웃 버튼 → Gateway로 POST /auth/logout 요청 → AUTH_SERVICE로 프록시 → 로컬 스토리지 정리
-```
-
-### 4. 토큰 갱신
-```
-토큰 만료 → Gateway로 POST /auth/refresh 요청 → AUTH_SERVICE로 프록시 → 새 토큰 반환
-```
-
-### 5. 데이터 검증 규칙
-- **회원가입**: name, company, email, password (최소 8자)
-- **로그인**: email, password
-- **이메일**: @와 . 포함 여부 확인
-
-### 6. 프론트엔드 설정
-```bash
-# .env.local
-NEXT_PUBLIC_GATEWAY_URL=https://your-gateway.railway.app
-```
-
-## 📊 로깅
-
-### 요청 로깅
-- HTTP 메서드, 경로, 쿼리 파라미터
-- 요청 바디 (민감정보 자동 마스킹)
-- 클라이언트 IP, User-Agent
-
-### 응답 로깅
-- HTTP 메서드, 경로, 상태 코드
-- 응답 시간 (밀리초)
-
-### 민감정보 마스킹
-다음 키들은 자동으로 `***MASKED***`로 마스킹됩니다:
-- `password`, `token`, `authorization`
-- `secret`, `key`, `api_key`
-- `access_token`, `refresh_token`
-- `client_secret`, `private_key`
-
-## 🐳 Docker 실행
-
-```bash
-# 이미지 빌드
-docker build -t greensteel-gateway .
-
-# 컨테이너 실행
-docker run -p 8080:8080 \
-  -e AUTH_SERVICE_URL=https://your-auth-service.railway.app \
-  -e CBAM_SERVICE_URL=https://your-cbam-service.railway.app \
-  greensteel-gateway
-```
-
-## 🚂 Railway 배포
-
-1. **Railway 프로젝트 생성**
-2. **GitHub 저장소 연결**
-3. **환경변수 설정** (Railway Variables에서)
-4. **자동 배포** (Git push 시)
-
-### Railway 환경변수 설정 예시
-```
-GATEWAY_NAME=greensteel-gateway
-AUTH_SERVICE_URL=https://your-auth-service.railway.app
-CBAM_SERVICE_URL=https://your-cbam-service.railway.app
-DATAGATHER_SERVICE_URL=https://your-datagather-service.railway.app
-LCI_SERVICE_URL=https://your-lci-service.railway.app
-ALLOWED_ORIGINS=https://greensteel.site,https://www.greensteel.site
-ALLOWED_ORIGIN_REGEX=^https://.*\.vercel\.app$|^https://.*\.up\.railway\.app$
-LOG_LEVEL=INFO
-```
-
-## 🔧 로컬 개발
-
-```bash
-# 의존성 설치
-pip install -r requirements.txt
-
-# 환경변수 설정
-cp env.example .env
-# .env 파일 편집
-
-# 개발 서버 실행
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
-```
-
-## 📡 API 엔드포인트
+## 📊 모니터링
 
 ### 헬스체크
-```http
-GET /health
-```
-응답:
-```json
-{
-  "status": "ok",
-  "name": "gateway"
-}
-```
+- 게이트웨이 상태 확인
+- 서비스별 연결 상태 확인
+- 응답 시간 측정
 
-### 서비스 상태
-```http
-GET /status
-```
-응답:
-```json
-{
-  "gateway_name": "gateway",
-  "services": {
-    "/auth": {
-      "configured": true,
-      "url": "https://auth-service.railway.app"
-    },
-    "/cbam": {
-      "configured": false,
-      "url": "Not configured"
-    }
-  }
-}
-```
+### 로깅
+- 요청/응답 로깅
+- 에러 로깅
+- 성능 메트릭 로깅
 
-### 라우팅 정보
-```http
-GET /routing
-```
-응답:
-```json
-{
-  "gateway_name": "gateway",
-  "routing_rules": {
-    "/auth/*": "AUTH_SERVICE_URL",
-    "/cbam/*": "CBAM_SERVICE_URL",
-    "/datagather/*": "DATAGATHER_SERVICE_URL",
-    "/lci/*": "LCI_SERVICE_URL"
-  },
-  "supported_methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
-  "timeout_settings": {
-    "connect": "15s",
-    "read": "300s",
-    "write": "60s"
-  },
-  "validation_rules": {
-    "auth_register": ["name", "company", "email", "password (min 8 chars)"],
-    "auth_login": ["email", "password"]
-  }
-}
-```
+## 🔄 스트림 구조 통합
 
-## 🔒 보안
+### 이벤트 소싱
+- 모든 데이터 변경사항을 이벤트로 기록
+- 스트림별 버전 관리
+- 감사 로그 추적
 
-- **CORS**: 명시적으로 허용된 도메인만 접근 가능
-- **신뢰할 수 있는 호스트**: TrustedHostMiddleware 적용
-- **민감정보 마스킹**: 로그에 민감정보 노출 방지
-- **타임아웃**: 연결/읽기/쓰기 타임아웃 설정
-- **요청 검증**: 회원가입, 로그인 등 특정 엔드포인트 데이터 검증
+### 스트림 API 지원
+- 이벤트 생성 및 조회
+- 스냅샷 생성 및 관리
+- 메타데이터 업데이트
+- 스트림 비활성화
 
-## 📝 로그 예시
+## 🚨 에러 처리
 
-### 요청 로그
-```
-2024-01-01 12:00:00 - gateway - INFO - REQUEST: {"method":"POST","path":"/auth/register","query_params":{},"body":{"name":"홍길동","company":"GreenSteel","email":"hong@greensteel.com","password":"***MASKED***"},"client_ip":"192.168.1.1","user_agent":"Mozilla/5.0..."}
-```
+### HTTP 상태 코드
+- `400`: 잘못된 요청 (검증 실패)
+- `404`: 경로를 찾을 수 없음
+- `500`: 내부 서버 오류
+- `502`: 서비스 연결 실패
+- `503`: 서비스 사용 불가
+- `504`: 게이트웨이 타임아웃
 
-### 응답 로그
-```
-2024-01-01 12:00:01 - gateway - INFO - RESPONSE: {"method":"POST","path":"/auth/register","status_code":201,"response_time_ms":150.25}
-```
+### 예외 처리
+- 서비스 연결 실패
+- 타임아웃 에러
+- JSON 파싱 에러
+- 검증 실패
 
-## 🚀 확장 방법
+## 📈 성능 최적화
 
-새로운 서비스를 추가하려면:
+### 타임아웃 설정
+- 연결 타임아웃: 15초
+- 읽기 타임아웃: 300초
+- 쓰기 타임아웃: 60초
+- 연결 풀 타임아웃: 30초
 
-1. **환경변수 추가**:
-   ```bash
-   NEW_SERVICE_URL=https://new-service.railway.app
-   ```
+### 연결 풀링
+- HTTP 클라이언트 연결 재사용
+- 비동기 요청 처리
+- 효율적인 리소스 관리
 
-2. **SERVICE_MAP에 추가** (`domain/proxy.py`):
-   ```python
-   self.service_map = {
-       # ... 기존 서비스들
-       "/newservice": os.getenv("NEW_SERVICE_URL", "")
-   }
-   ```
+## 🤝 기여하기
 
-3. **Railway Variables에 환경변수 추가**
+1. 이 저장소를 포크합니다
+2. 기능 브랜치를 생성합니다
+3. 변경사항을 커밋합니다
+4. Pull Request를 생성합니다
 
-## 🔗 프론트엔드 연동
+## �� 라이선스
 
-### 1. 환경변수 설정
-```bash
-# frontend/.env.local
-NEXT_PUBLIC_GATEWAY_URL=https://your-gateway.railway.app
-```
+이 프로젝트는 MIT 라이선스 하에 배포됩니다.
 
-### 2. Axios 설정
-```typescript
-// frontend/src/lib/axiosClient.ts
-const axiosClient = axios.create({
-  baseURL: env.NEXT_PUBLIC_GATEWAY_URL,
-  timeout: 30000,
-});
-```
+---
 
-### 3. API 호출
-```typescript
-// 회원가입 예시
-const response = await axiosClient.post('/auth/register', {
-  name: '홍길동',
-  company: 'GreenSteel',
-  email: 'hong@greensteel.com',
-  password: 'password123'
-});
-
-// 로그인 예시
-const response = await axiosClient.post('/auth/login', {
-  email: 'hong@greensteel.com',
-  password: 'password123'
-});
-
-// 로그아웃 예시
-await authUtils.logout();
-```
-
-### 4. 인증 상태 관리
-```typescript
-// 로그인 상태 확인
-if (authUtils.isAuthenticated()) {
-  // 로그인된 사용자
-}
-
-// 사용자 이메일 가져오기
-const email = authUtils.getUserEmail();
-
-// 토큰 갱신
-await authUtils.refreshToken();
-```
-
-## 📞 지원
-
-문제가 발생하면 로그를 확인하고, 필요시 `/status` 엔드포인트로 서비스 상태를 점검하세요.
+**스트림 구조를 지원하는 고성능 API 게이트웨이로 마이크로서비스 아키텍처를 안전하게 관리합니다.**

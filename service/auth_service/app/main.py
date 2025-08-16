@@ -6,6 +6,7 @@ from core.settings import settings
 from core.logger import LoggingMiddleware, auth_logger
 from models import create_tables
 from api.routes import router as auth_router
+from api.stream_routes import router as stream_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -28,9 +29,9 @@ async def lifespan(app: FastAPI):
 
 # FastAPI 애플리케이션 생성
 app = FastAPI(
-    title="Auth Service (minimal)",
-    description="심플한 인증 서비스 - 회원가입, 로그인, 로그아웃",
-    version="1.0.0",
+    title="Auth Service (Stream Architecture)",
+    description="스트림 구조를 지원하는 인증 서비스 - 회원가입, 로그인, 로그아웃, 스트림 이벤트 관리",
+    version="2.0.0",
     lifespan=lifespan
 )
 
@@ -51,6 +52,9 @@ app.add_middleware(LoggingMiddleware)
 
 # 인증 라우터 포함
 app.include_router(auth_router)
+
+# 스트림 라우터 포함
+app.include_router(stream_router)
 
 @app.get("/health")
 async def health_check():

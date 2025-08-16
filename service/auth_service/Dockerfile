@@ -18,11 +18,11 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Python 의존성 설치
-COPY app/requirements.txt /app/requirements.txt
+COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 애플리케이션 코드 복사
-COPY app/ /app/
+COPY . /app/
 
 # 포트 노출
 EXPOSE 8081
@@ -31,5 +31,5 @@ EXPOSE 8081
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8081/health || exit 1
 
-# 애플리케이션 실행 (Python 모듈 경로 문제 해결)
+# 애플리케이션 실행 (새로운 main.py 위치)
 CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8081", "--proxy-headers"]

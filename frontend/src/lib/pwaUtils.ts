@@ -217,8 +217,6 @@ export class PerformanceMetrics {
     callback();
     const duration = performance.now() - start;
 
-    console.log(`Interaction "${name}" took ${duration.toFixed(2)}ms`);
-
     // Google Analytics에 전송 (선택사항)
     if (typeof window !== 'undefined' && window.gtag) {
       window.gtag('event', 'interaction_performance', {
@@ -269,7 +267,7 @@ export function checkInstallStatus(): boolean {
 // 앱 업데이트 확인
 export function checkForAppUpdate(): Promise<boolean> {
   return new Promise(resolve => {
-    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
       resolve(false);
       return;
     }
@@ -282,16 +280,16 @@ export function checkForAppUpdate(): Promise<boolean> {
 
       registration.addEventListener('updatefound', () => {
         const newWorker = registration.installing;
-        if (!newWorker) return;
-
-        newWorker.addEventListener('statechange', () => {
-          if (
-            newWorker.state === 'installed' &&
-            navigator.serviceWorker.controller
-          ) {
-            resolve(true);
-          }
-        });
+        if (newWorker) {
+          newWorker.addEventListener('statechange', () => {
+            if (
+              newWorker.state === 'installed' &&
+              navigator.serviceWorker.controller
+            ) {
+              resolve(true);
+            }
+          });
+        }
       });
 
       resolve(false);
@@ -301,23 +299,41 @@ export function checkForAppUpdate(): Promise<boolean> {
 
 // 설치 프롬프트 표시
 export async function showInstallPrompt(): Promise<boolean> {
-  if (typeof window === 'undefined') return false;
-
   return new Promise(resolve => {
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      resolve(true);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    // 5초 후 자동으로 false 반환
-    setTimeout(() => {
-      window.removeEventListener(
-        'beforeinstallprompt',
-        handleBeforeInstallPrompt
-      );
+    if (typeof window === 'undefined') {
       resolve(false);
+      return;
+    }
+
+    // 설치 프롬프트 표시
+    const installButton = document.createElement('button');
+    installButton.textContent = '앱 설치';
+    installButton.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      padding: 10px 20px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    `;
+
+    installButton.addEventListener('click', () => {
+      document.body.removeChild(installButton);
+      resolve(true);
+    });
+
+    document.body.appendChild(installButton);
+
+    // 5초 후 자동 제거
+    setTimeout(() => {
+      if (document.body.contains(installButton)) {
+        document.body.removeChild(installButton);
+        resolve(false);
+      }
     }, 5000);
   });
 }

@@ -7,12 +7,14 @@ GreenSteel 프로젝트를 **DDD(Domain-Driven Design)** 아키텍처로 리팩�
 ## 🎯 **DDD vs EDD 선택 이유**
 
 ### **DDD (Domain-Driven Design) 선택**
+
 - ✅ **비즈니스 도메인 중심**: ESG, CBAM, LCI 등 핵심 비즈니스 영역에 집중
 - ✅ **도메인 규칙 명확화**: 각 도메인의 비즈니스 규칙을 명확하게 모델링
 - ✅ **확장성**: 새로운 도메인 추가 시 기존 코드 영향 최소화
 - ✅ **팀 협업**: 도메인 전문가와 개발자 간 명확한 의사소통
 
 ### **EDD (Event-Driven Design) 미선택 이유**
+
 - ❌ **복잡성**: 이벤트 소싱과 CQRS 패턴의 복잡성
 - ❌ **학습 곡선**: 팀원들의 이벤트 기반 아키텍처 이해도
 - ❌ **디버깅 어려움**: 이벤트 흐름 추적의 복잡성
@@ -20,6 +22,7 @@ GreenSteel 프로젝트를 **DDD(Domain-Driven Design)** 아키텍처로 리팩�
 ## 🏛️ **DDD 아키텍처 구조**
 
 ### **1. 레이어 구조**
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    Presentation Layer                       │
@@ -37,6 +40,7 @@ GreenSteel 프로젝트를 **DDD(Domain-Driven Design)** 아키텍처로 리팩�
 ```
 
 ### **2. 도메인 분리**
+
 ```
 ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
 │ Identity &      │  │ Carbon Border   │  │ Data Collection │
@@ -52,6 +56,7 @@ GreenSteel 프로젝트를 **DDD(Domain-Driven Design)** 아키텍처로 리팩�
 ## 🔧 **구현된 DDD 패턴**
 
 ### **1. Aggregate Root**
+
 ```python
 # Company Aggregate Root
 class Company:
@@ -61,20 +66,21 @@ class Company:
         self.biz_no = biz_no
         self.users: List[User] = []
         self._domain_events: List[DomainEvent] = []
-    
+
     def add_user(self, user: User):
         # 도메인 규칙 검증
         if not self.can_add_user(user):
             raise DomainException("Cannot add user to company")
-        
+
         self.users.append(user)
         self._add_domain_event(UserAddedEvent(user, self))
-    
+
     def _add_domain_event(self, event: DomainEvent):
         self._domain_events.append(event)
 ```
 
 ### **2. Value Objects**
+
 ```python
 # Address Value Object
 @dataclass(frozen=True)
@@ -83,45 +89,47 @@ class Address:
     city: str
     country: str
     zipcode: str
-    
+
     def __post_init__(self):
         if not self.street or not self.city:
             raise ValueError("Address must have street and city")
-    
+
     @property
     def full_address(self) -> str:
         return f"{self.street}, {self.city}, {self.country} {self.zipcode}"
 ```
 
 ### **3. Domain Services**
+
 ```python
 # Authentication Domain Service
 class AuthenticationService:
-    def __init__(self, user_repository: UserRepository, 
+    def __init__(self, user_repository: UserRepository,
                  password_hasher: PasswordHasher):
         self.user_repository = user_repository
         self.password_hasher = password_hasher
-    
+
     def authenticate_user(self, username: str, password: str) -> User:
         user = self.user_repository.find_by_username(username)
         if not user or not self.password_hasher.verify(password, user.password_hash):
             raise AuthenticationException("Invalid credentials")
-        
+
         return user
 ```
 
 ### **4. Repository Pattern**
+
 ```python
 # User Repository Interface
 class UserRepository(ABC):
     @abstractmethod
     def save(self, user: User) -> User:
         pass
-    
+
     @abstractmethod
     def find_by_id(self, user_id: str) -> Optional[User]:
         pass
-    
+
     @abstractmethod
     def find_by_username(self, username: str) -> Optional[User]:
         pass
@@ -130,7 +138,7 @@ class UserRepository(ABC):
 class PostgreSQLUserRepository(UserRepository):
     def __init__(self, session: Session):
         self.session = session
-    
+
     def save(self, user: User) -> User:
         self.session.add(user)
         self.session.commit()
@@ -140,6 +148,7 @@ class PostgreSQLUserRepository(UserRepository):
 ## 🚀 **Gateway와 Auth Service 연동**
 
 ### **1. 포트 설정**
+
 ```bash
 # Gateway: 8080
 # Auth Service: 8081
@@ -149,6 +158,7 @@ class PostgreSQLUserRepository(UserRepository):
 ```
 
 ### **2. 환경 변수 설정**
+
 ```bash
 # Gateway (.env)
 AUTH_SERVICE_URL=http://localhost:8081
@@ -163,6 +173,7 @@ GATEWAY_URL=http://localhost:8080
 ```
 
 ### **3. 라우팅 규칙**
+
 ```python
 # Gateway Proxy Controller
 self.service_map = {
@@ -179,6 +190,7 @@ self.service_map = {
 ## 📁 **파일 구조**
 
 ### **Gateway 구조**
+
 ```
 gateway/
 ├── app/
@@ -193,6 +205,7 @@ gateway/
 ```
 
 ### **Auth Service 구조**
+
 ```
 service/auth_service/
 ├── app/
@@ -219,23 +232,27 @@ service/auth_service/
 ## 🔄 **마이그레이션 단계**
 
 ### **1단계: 기존 구조 분석**
+
 - [x] 현재 레이어 구조 파악
 - [x] 도메인 경계 식별
 - [x] 의존성 매핑
 
 ### **2단계: DDD 구조 설계**
+
 - [x] 도메인 모델 설계
 - [x] Aggregate Root 정의
 - [x] Value Object 설계
 - [x] Domain Service 정의
 
 ### **3단계: 코드 리팩토링**
+
 - [x] Gateway DDD 구조 적용
 - [x] Auth Service DDD 구조 적용
 - [x] 환경 변수 설정 업데이트
 - [x] 포트 설정 수정
 
 ### **4단계: 테스트 및 검증**
+
 - [ ] 단위 테스트 작성
 - [ ] 통합 테스트 작성
 - [ ] 성능 테스트 수행
@@ -244,6 +261,7 @@ service/auth_service/
 ## 🧪 **테스트 전략**
 
 ### **1. 단위 테스트**
+
 ```python
 # Domain Service 테스트
 def test_authentication_service_authenticate_valid_user():
@@ -252,15 +270,16 @@ def test_authentication_service_authenticate_valid_user():
     user_repo = MockUserRepository([user])
     password_hasher = MockPasswordHasher()
     auth_service = AuthenticationService(user_repo, password_hasher)
-    
+
     # When
     result = auth_service.authenticate_user("testuser", "password123")
-    
+
     # Then
     assert result == user
 ```
 
 ### **2. 통합 테스트**
+
 ```python
 # Repository 통합 테스트
 def test_user_repository_save_and_find():
@@ -269,12 +288,12 @@ def test_user_repository_save_and_find():
     Base.metadata.create_all(engine)
     session = Session(engine)
     repo = PostgreSQLUserRepository(session)
-    
+
     # When
     user = User("testuser", "password123")
     saved_user = repo.save(user)
     found_user = repo.find_by_username("testuser")
-    
+
     # Then
     assert found_user.username == "testuser"
 ```
@@ -282,16 +301,19 @@ def test_user_repository_save_and_find():
 ## 📊 **성능 최적화**
 
 ### **1. 데이터베이스 최적화**
+
 - [ ] 인덱스 최적화
 - [ ] 쿼리 최적화
 - [ ] 연결 풀 설정
 
 ### **2. 캐싱 전략**
+
 - [ ] Redis 캐싱
 - [ ] 메모리 캐싱
 - [ ] CDN 캐싱
 
 ### **3. 비동기 처리**
+
 - [ ] Celery 작업 큐
 - [ ] FastAPI 백그라운드 태스크
 - [ ] 이벤트 스트림 처리
@@ -299,16 +321,19 @@ def test_user_repository_save_and_find():
 ## 🔒 **보안 고려사항**
 
 ### **1. 인증 및 권한**
+
 - [ ] JWT 토큰 검증
 - [ ] Role-based Access Control (RBAC)
 - [ ] API 키 관리
 
 ### **2. 데이터 보호**
+
 - [ ] PII 데이터 암호화
 - [ ] 민감 정보 마스킹
 - [ ] 감사 로그 기록
 
 ### **3. API 보안**
+
 - [ ] Rate Limiting
 - [ ] Input Validation
 - [ ] SQL Injection 방지
@@ -316,6 +341,7 @@ def test_user_repository_save_and_find():
 ## 🚀 **배포 및 운영**
 
 ### **1. Docker 컨테이너화**
+
 ```dockerfile
 # Gateway Dockerfile
 FROM python:3.11-slim
@@ -327,6 +353,7 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
 ```
 
 ### **2. Kubernetes 배포**
+
 ```yaml
 # Gateway Deployment
 apiVersion: apps/v1
@@ -344,13 +371,14 @@ spec:
         app: gateway
     spec:
       containers:
-      - name: gateway
-        image: greensteel/gateway:latest
-        ports:
-        - containerPort: 8080
+        - name: gateway
+          image: greensteel/gateway:latest
+          ports:
+            - containerPort: 8080
 ```
 
 ### **3. 모니터링 및 로깅**
+
 - [ ] Prometheus 메트릭 수집
 - [ ] Grafana 대시보드
 - [ ] ELK 스택 로그 분석
@@ -359,26 +387,31 @@ spec:
 ## 📚 **참고 자료**
 
 ### **1. DDD 관련**
+
 - [Domain-Driven Design by Eric Evans](https://www.amazon.com/Domain-Driven-Design-Tackling-Complexity-Software/dp/0321125215)
 - [Implementing Domain-Driven Design by Vaughn Vernon](https://www.amazon.com/Implementing-Domain-Driven-Design-Vaughn-Vernon/dp/0321834577)
 
 ### **2. FastAPI 관련**
+
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
 - [FastAPI Best Practices](https://github.com/zhanymkanov/fastapi-best-practices)
 
 ### **3. 마이크로서비스 관련**
+
 - [Building Microservices by Sam Newman](https://www.amazon.com/Building-Microservices-Designing-Fine-Grained-Systems/dp/1491950358)
 - [Microservices Patterns by Chris Richardson](https://www.amazon.com/Microservices-Patterns-Examples-Chris-Richardson/dp/1617294543)
 
 ## 🤝 **기여 가이드**
 
 ### **1. 코드 스타일**
+
 - Python: PEP 8 준수
 - Type Hints 사용
 - Docstring 작성
 - 테스트 코드 작성
 
 ### **2. 커밋 메시지**
+
 ```
 feat: 새로운 도메인 서비스 추가
 fix: 인증 로직 버그 수정
@@ -388,6 +421,7 @@ test: 테스트 케이스 추가
 ```
 
 ### **3. Pull Request**
+
 - 기능별 브랜치 생성
 - 테스트 코드 포함
 - 문서 업데이트

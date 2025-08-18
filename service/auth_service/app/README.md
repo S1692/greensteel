@@ -72,9 +72,11 @@ docker run -p 8081:8081 --env-file .env auth-service
 ### 인증 엔드포인트
 
 #### POST /auth/register
+
 사용자 회원가입
 
 **요청 본문:**
+
 ```json
 {
   "email": "user@example.com",
@@ -84,6 +86,7 @@ docker run -p 8081:8081 --env-file .env auth-service
 ```
 
 **응답 (201):**
+
 ```json
 {
   "id": 1,
@@ -95,9 +98,11 @@ docker run -p 8081:8081 --env-file .env auth-service
 ```
 
 #### POST /auth/login
+
 사용자 로그인
 
 **요청 본문:**
+
 ```json
 {
   "email": "user@example.com",
@@ -106,6 +111,7 @@ docker run -p 8081:8081 --env-file .env auth-service
 ```
 
 **응답 (200):**
+
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -114,9 +120,11 @@ docker run -p 8081:8081 --env-file .env auth-service
 ```
 
 #### POST /auth/logout
+
 사용자 로그아웃 (인증 필요)
 
 **헤더:**
+
 ```
 Authorization: Bearer <access_token>
 ```
@@ -124,14 +132,17 @@ Authorization: Bearer <access_token>
 **응답 (204):** No Content
 
 #### GET /auth/me
+
 현재 사용자 프로필 조회 (인증 필요)
 
 **헤더:**
+
 ```
 Authorization: Bearer <access_token>
 ```
 
 **응답 (200):**
+
 ```json
 {
   "id": 1,
@@ -145,9 +156,11 @@ Authorization: Bearer <access_token>
 ### 시스템 엔드포인트
 
 #### GET /health
+
 헬스 체크
 
 **응답 (200):**
+
 ```json
 {
   "status": "ok",
@@ -157,22 +170,23 @@ Authorization: Bearer <access_token>
 ```
 
 #### GET /favicon.ico
+
 파비콘 (204 No Content)
 
 ## 🔧 설정
 
 ### 환경 변수
 
-| 변수명 | 설명 | 기본값 |
-|--------|------|--------|
-| `SERVICE_NAME` | 서비스 이름 | `auth-service` |
-| `DATABASE_URL` | 데이터베이스 연결 URL | SQLite 폴백 |
-| `JWT_SECRET` | JWT 시크릿 키 | 자동 생성 |
-| `JWT_ALG` | JWT 알고리즘 | `HS256` |
-| `ACCESS_EXPIRES_MIN` | 액세스 토큰 만료 시간(분) | `30` |
-| `ALLOWED_ORIGINS` | 허용된 CORS 오리진 | `https://greensteel.site,https://www.greensteel.site` |
-| `ALLOWED_ORIGIN_REGEX` | 허용된 CORS 오리진 정규식 | Vercel/Railway 앱 |
-| `LOG_LEVEL` | 로그 레벨 | `INFO` |
+| 변수명                 | 설명                      | 기본값                                                |
+| ---------------------- | ------------------------- | ----------------------------------------------------- |
+| `SERVICE_NAME`         | 서비스 이름               | `auth-service`                                        |
+| `DATABASE_URL`         | 데이터베이스 연결 URL     | SQLite 폴백                                           |
+| `JWT_SECRET`           | JWT 시크릿 키             | 자동 생성                                             |
+| `JWT_ALG`              | JWT 알고리즘              | `HS256`                                               |
+| `ACCESS_EXPIRES_MIN`   | 액세스 토큰 만료 시간(분) | `30`                                                  |
+| `ALLOWED_ORIGINS`      | 허용된 CORS 오리진        | `https://greensteel.site,https://www.greensteel.site` |
+| `ALLOWED_ORIGIN_REGEX` | 허용된 CORS 오리진 정규식 | Vercel/Railway 앱                                     |
+| `LOG_LEVEL`            | 로그 레벨                 | `INFO`                                                |
 
 ### 데이터베이스
 

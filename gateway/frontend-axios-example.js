@@ -1,69 +1,70 @@
 // 프론트엔드에서 사용할 Axios 설정 예시
 // 이 파일은 참고용이며, 실제로는 frontend/src/lib/axiosClient.ts를 사용합니다
 
-import axios from 'axios';
+import axios from "axios";
 
 // Gateway URL 설정 (Railway 배포 후 실제 도메인으로 변경)
-const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://your-gateway.railway.app';
+const GATEWAY_URL =
+  process.env.NEXT_PUBLIC_GATEWAY_URL || "https://your-gateway.railway.app";
 
 // Axios 인스턴스 생성
 const axiosClient = axios.create({
   baseURL: GATEWAY_URL,
   timeout: 30000,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
 // 요청 인터셉터
 axiosClient.interceptors.request.use(
-  config => {
+  (config) => {
     // 인증 토큰 추가
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('auth_token');
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("auth_token");
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
     }
     return config;
   },
-  error => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // 응답 인터셉터
 axiosClient.interceptors.response.use(
-  response => response,
-  error => {
+  (response) => response,
+  (error) => {
     // 401 오류 시 토큰 제거
     if (error.response?.status === 401) {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('auth_token');
-        window.location.href = '/';
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("auth_token");
+        window.location.href = "/";
       }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 // API 엔드포인트
 export const apiEndpoints = {
   auth: {
-    login: '/auth/login',
-    register: '/auth/register',
-    logout: '/auth/logout',
-    refresh: '/auth/refresh',
+    login: "/auth/login",
+    register: "/auth/register",
+    logout: "/auth/logout",
+    refresh: "/auth/refresh",
   },
   cbam: {
-    reports: '/cbam/reports',
-    calculations: '/cbam/calculations',
+    reports: "/cbam/reports",
+    calculations: "/cbam/calculations",
   },
   datagather: {
-    upload: '/datagather/upload',
-    validate: '/datagather/validate',
+    upload: "/datagather/upload",
+    validate: "/datagather/validate",
   },
   lci: {
-    projects: '/lci/projects',
-    calculations: '/lci/calculations',
+    projects: "/lci/projects",
+    calculations: "/lci/calculations",
   },
 };
 
@@ -71,16 +72,22 @@ export const apiEndpoints = {
 export const authAPI = {
   // 회원가입
   register: async (userData) => {
-    const response = await axiosClient.post(apiEndpoints.auth.register, userData);
+    const response = await axiosClient.post(
+      apiEndpoints.auth.register,
+      userData,
+    );
     return response.data;
   },
-  
+
   // 로그인
   login: async (credentials) => {
-    const response = await axiosClient.post(apiEndpoints.auth.login, credentials);
+    const response = await axiosClient.post(
+      apiEndpoints.auth.login,
+      credentials,
+    );
     return response.data;
   },
-  
+
   // 로그아웃
   logout: async () => {
     const response = await axiosClient.post(apiEndpoints.auth.logout);

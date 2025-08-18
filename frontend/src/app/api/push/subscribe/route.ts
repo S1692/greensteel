@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { subscription, userAgent } = body;
+    const { subscription } = body;
 
     if (!subscription) {
       return NextResponse.json(

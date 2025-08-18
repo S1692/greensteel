@@ -9,7 +9,7 @@ from .domain.proxy import ProxyController
 from .common.utility.logger import gateway_logger
 
 # 환경변수에서 설정 가져오기 (기본값 포함)
-GATEWAY_NAME = os.getenv("GATEWAY_NAME", "gateway")
+GATEWAY_NAME = os.getenv("GATEWAY_NAME", "greensteel-gateway")
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "https://greensteel.site,https://www.greensteel.site")
 ALLOWED_ORIGIN_REGEX = os.getenv("ALLOWED_ORIGIN_REGEX", "^https://.*\\.vercel\\.app$|^https://.*\\.up\\.railway\\.app$")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
@@ -19,18 +19,20 @@ allowed_origins = [origin.strip() for origin in ALLOWED_ORIGINS.split(",") if or
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """애플리케이션 생명주기 관리"""
+    """애플리케이션 생명주기 관리 - DDD Architecture"""
     # 시작 시
     gateway_logger.log_info(f"Gateway {GATEWAY_NAME} starting up...")
+    gateway_logger.log_info("Architecture: DDD (Domain-Driven Design)")
+    gateway_logger.log_info("Domain Services: Identity-Access, Carbon-Border, Data-Collection, Lifecycle-Inventory")
     yield
     # 종료 시
     gateway_logger.log_info(f"Gateway {GATEWAY_NAME} shutting down...")
 
 # FastAPI 애플리케이션 생성
 app = FastAPI(
-    title=f"{GATEWAY_NAME} API Gateway",
-    description="Microservices API Gateway with proxy routing and CORS support",
-    version="1.0.0",
+    title=f"{GATEWAY_NAME} - DDD API Gateway",
+    description="도메인 주도 설계(DDD)를 적용한 마이크로서비스 API Gateway - 프록시 라우팅 및 CORS 지원",
+    version="2.0.0",
     lifespan=lifespan
 )
 
@@ -67,25 +69,74 @@ async def add_process_time_header(request: Request, call_next):
 # 헬스체크 엔드포인트
 @app.get("/health")
 async def health_check():
-    """게이트웨이 헬스체크"""
+    """게이트웨이 헬스체크 - DDD 도메인 서비스 상태"""
     return proxy_controller.health_check()
 
 # 서비스 상태 확인 엔드포인트
 @app.get("/status")
 async def service_status():
-    """서비스 상태 정보"""
+    """서비스 상태 정보 - DDD 도메인별 상태"""
     return await proxy_controller.get_service_status()
 
 # 라우팅 정보 엔드포인트
 @app.get("/routing")
 async def routing_info():
-    """라우팅 규칙 및 설정 정보"""
+    """라우팅 규칙 및 설정 정보 - DDD 도메인 구조 기반"""
     return proxy_controller.get_routing_info()
+
+# 아키텍처 정보 엔드포인트
+@app.get("/architecture")
+async def architecture_info():
+    """DDD 아키텍처 정보"""
+    return {
+        "gateway": GATEWAY_NAME,
+        "architecture": "DDD (Domain-Driven Design)",
+        "version": "2.0.0",
+        "description": "도메인 주도 설계를 적용한 마이크로서비스 API Gateway",
+        "domains": {
+            "identity-access": {
+                "description": "사용자 인증, 권한 관리, 이벤트 스트림",
+                "service": "Authentication Service",
+                "port": "8081",
+                "paths": ["/auth/*", "/stream/*", "/company/*", "/user/*"]
+            },
+            "carbon-border": {
+                "description": "탄소국경조정메커니즘 관리",
+                "service": "CBAM Service",
+                "port": "8082",
+                "paths": ["/cbam/*"]
+            },
+            "data-collection": {
+                "description": "ESG 데이터 수집 및 관리",
+                "service": "Data Gathering Service",
+                "port": "8083",
+                "paths": ["/datagather/*"]
+            },
+            "lifecycle-inventory": {
+                "description": "생명주기 평가 및 인벤토리",
+                "service": "Life Cycle Inventory Service",
+                "port": "8084",
+                "paths": ["/lci/*"]
+            }
+        },
+        "features": {
+            "domain_events": "스트림 기반 이벤트 소싱",
+            "aggregate_roots": "Company, User, Stream, CBAM, LCI",
+            "value_objects": "Address, BusinessNumber, ContactInfo",
+            "domain_services": "Authentication, StreamProcessing, Validation"
+        },
+        "layers": {
+            "gateway": "API Gateway (프록시, 라우팅, 검증)",
+            "application": "Application Services (유스케이스, 워크플로우)",
+            "domain": "Domain Services (비즈니스 로직, 규칙)",
+            "infrastructure": "Infrastructure (데이터베이스, 외부 서비스)"
+        }
+    }
 
 # 모든 HTTP 메서드에 대한 프록시 라우팅
 @app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"])
 async def proxy_route(request: Request, path: str):
-    """모든 경로에 대한 프록시 라우팅"""
+    """모든 경로에 대한 프록시 라우팅 - DDD 도메인 서비스 라우팅"""
     # 루트 경로는 헬스체크로 리다이렉트
     if path == "" or path == "/":
         return {"message": "Gateway is running", "health_check": "/health"}
@@ -96,14 +147,24 @@ async def proxy_route(request: Request, path: str):
 # 루트 경로
 @app.get("/")
 async def root():
-    """루트 경로"""
+    """루트 경로 - DDD 아키텍처 정보"""
     return {
-        "message": f"{GATEWAY_NAME} API Gateway",
-        "version": "1.0.0",
-        "health_check": "/health",
-        "status": "/status",
-        "routing": "/routing",
-        "documentation": "/docs"
+        "message": f"{GATEWAY_NAME} - DDD API Gateway",
+        "version": "2.0.0",
+        "architecture": "DDD (Domain-Driven Design)",
+        "endpoints": {
+            "health_check": "/health",
+            "status": "/status",
+            "routing": "/routing",
+            "architecture": "/architecture",
+            "documentation": "/docs"
+        },
+        "domains": [
+            "identity-access (포트 8081)",
+            "carbon-border (포트 8082)",
+            "data-collection (포트 8083)",
+            "lifecycle-inventory (포트 8084)"
+        ]
     }
 
 # 예외 처리

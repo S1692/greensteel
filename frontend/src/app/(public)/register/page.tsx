@@ -553,7 +553,9 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="stitch-label mb-1 block">비밀번호 확인 *</label>
+                  <label className="stitch-label mb-1 block">
+                    비밀번호 확인 *
+                  </label>
                   <Input
                     type="password"
                     value={userData.confirm_password}

@@ -53,7 +53,6 @@ export class PushNotificationService {
     try {
       const subscription = await this.swRegistration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: this.urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ''),
       });
 
       // 서버에 구독 정보 전송
@@ -88,21 +87,6 @@ export class PushNotificationService {
   private getUserId(): string | null {
     // 로컬 스토리지나 세션에서 사용자 ID 가져오기
     return localStorage.getItem('userId') || sessionStorage.getItem('userId');
-  }
-
-  private urlBase64ToUint8Array(base64String: string): Uint8Array {
-    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding)
-      .replace(/-/g, '+')
-      .replace(/_/g, '/');
-
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray;
   }
 
   async showNotification(title: string, options?: NotificationOptions): Promise<void> {

@@ -17,7 +17,6 @@ Amazon 스타일을 참조하여 구현된 고도화된 Progressive Web App입�
 
 ### 3. **푸시 알림**
 - 실시간 업데이트 알림
-- VAPID 키 기반 보안
 - 사용자 맞춤 알림 설정
 
 ### 4. **성능 최적화**
@@ -52,7 +51,6 @@ Amazon 스타일을 참조하여 구현된 고도화된 Progressive Web App입�
 
 ```bash
 # PWA Configuration
-NEXT_PUBLIC_VAPID_PUBLIC_KEY=your_vapid_public_key_here
 NEXT_PUBLIC_PWA_ENABLED=true
 
 # Feature Flags
@@ -65,21 +63,7 @@ NEXT_PUBLIC_CACHE_DURATION=86400
 NEXT_PUBLIC_MAX_CACHE_ENTRIES=100
 ```
 
-### 2. **VAPID 키 생성**
-
-푸시 알림을 위해 VAPID 키를 생성해야 합니다:
-
-```bash
-# web-push 패키지 설치
-npm install -g web-push
-
-# VAPID 키 생성
-web-push generate-vapid-keys
-```
-
-생성된 키를 환경 변수에 설정하세요.
-
-### 3. **의존성 설치**
+### 2. **의존성 설치**
 
 ```bash
 pnpm install

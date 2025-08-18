@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from typing import Union
 from app.common.db import get_db
 from app.domain.entities.user import User
 from app.domain.entities.company import Company

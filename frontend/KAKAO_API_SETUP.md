@@ -16,6 +16,14 @@ from origin 'https://greensteel.site' has been blocked by CORS policy:
 No 'Access-Control-Allow-Origin' header is present on the requested resource.
 ```
 
+### **🚨 중요: 두 가지 도메인 모두 등록 필요**
+
+#### **현재 발생하는 문제**
+1. **Vercel 임시 도메인**: `https://greensteel-epxl12-*.vercel.app`
+2. **사용자 커스텀 도메인**: `https://greensteel.site`
+
+**두 도메인 모두 카카오 개발자 콘솔에 등록해야 CORS 오류가 해결됩니다!**
+
 ### **즉시 해결 방법**
 
 #### **1단계: 카카오 개발자 콘솔 도메인 설정**
@@ -26,10 +34,12 @@ No 'Access-Control-Allow-Origin' header is present on the requested resource.
 
 2. **플랫폼 설정 수정**
    - **플랫폼** → **Web** 선택
-   - **사이트 도메인**에 다음 추가:
+   - **사이트 도메인**에 다음 **모두** 추가:
      ```
      https://greensteel.site
      https://www.greensteel.site
+     https://greensteel-epxl12-ppbavw4k2-smh1692-hsackrs-projects.vercel.app
+     https://greensteel-epxl12-*.vercel.app
      ```
 
 3. **JavaScript 키 확인**
@@ -50,6 +60,20 @@ No 'Access-Control-Allow-Origin' header is present on the requested resource.
 1. **Vercel 재배포 실행**
 2. **브라우저 캐시 삭제**
 3. **새로고침 후 테스트**
+
+### **🔍 도메인 차이점 설명**
+
+#### **Vercel 임시 도메인**
+- **형식**: `https://greensteel-epxl12-[random]-smh1692-hsackrs-projects.vercel.app`
+- **용도**: 개발 및 테스트 중 사용
+- **특징**: 자동 생성되며 변경될 수 있음
+
+#### **사용자 커스텀 도메인**
+- **형식**: `https://greensteel.site`
+- **용도**: 프로덕션 환경에서 사용
+- **특징**: 사용자가 직접 설정한 고정 도메인
+
+**두 도메인 모두 카카오 API를 사용하므로, 카카오 개발자 콘솔에 모두 등록해야 합니다.**
 
 ---
 

@@ -6,7 +6,7 @@ import json
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 from sqlalchemy.orm import Session
-from app.models import StreamEvent, StreamSnapshot, StreamAudit
+from app.domain.entities.stream import StreamEvent, StreamSnapshot, StreamAudit
 
 def generate_stream_id(entity_type: str, entity_id: int, prefix: str = "") -> str:
     """스트림 ID 생성"""

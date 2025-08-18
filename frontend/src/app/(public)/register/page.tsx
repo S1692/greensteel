@@ -263,217 +263,241 @@ export default function RegisterPage() {
         {activeTab === 'company' && (
           <form
             onSubmit={handleCompanySubmit}
-            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+            className="space-y-6"
           >
-            <SectionTitle>기업 정보</SectionTitle>
-            <div className="md:col-span-1">
-              <label className="stitch-label mb-1 block">
-                사업자(상점) 국문 이름 *
-              </label>
-              <Input
-                type="text"
-                value={companyData.name_ko}
-                onChange={e =>
-                  handleCompanyInputChange('name_ko', e.target.value)
-                }
-                placeholder="예: 스마트에스지"
-                disabled={isLoading}
-                required
-              />
-            </div>
-            <div className="md:col-span-1">
-              <label className="stitch-label mb-1 block">
-                사업자(상점) 영문 이름
-              </label>
-              <Input
-                type="text"
-                value={companyData.name_en}
-                onChange={e =>
-                  handleCompanyInputChange('name_en', e.target.value)
-                }
-                placeholder="예: Smart ESG"
-                disabled={isLoading}
-              />
-            </div>
-
-            <div className="md:col-span-1">
-              <label className="stitch-label mb-1 block">사업자번호 *</label>
-              <Input
-                type="text"
-                value={companyData.biz_no}
-                onChange={e =>
-                  handleCompanyInputChange('biz_no', e.target.value)
-                }
-                placeholder="예: 1234567890"
-                disabled={isLoading}
-                required
-              />
-            </div>
-            <div className="md:col-span-1">
-              <label className="stitch-label mb-1 block">대표자명</label>
-              <Input
-                type="text"
-                value={companyData.ceo_name}
-                onChange={e =>
-                  handleCompanyInputChange('ceo_name', e.target.value)
-                }
-                placeholder="예: 홍길동"
-                disabled={isLoading}
-              />
+            {/* 계정 정보를 상단으로 이동 */}
+            <div className="bg-[rgba(255,255,255,.03)] p-6 rounded-lg border border-[rgba(255,255,255,.1)]">
+              <SectionTitle>계정 정보</SectionTitle>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="stitch-label mb-1 block">ID *</label>
+                  <Input
+                    type="text"
+                    value={companyData.username}
+                    onChange={e =>
+                      handleCompanyInputChange('username', e.target.value)
+                    }
+                    placeholder="예: smartesg"
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="stitch-label mb-1 block">비밀번호 *</label>
+                  <Input
+                    type="password"
+                    value={companyData.password}
+                    onChange={e =>
+                      handleCompanyInputChange('password', e.target.value)
+                    }
+                    placeholder="********"
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="stitch-label mb-1 block">비밀번호 확인 *</label>
+                  <Input
+                    type="password"
+                    value={companyData.confirm_password}
+                    onChange={e =>
+                      handleCompanyInputChange('confirm_password', e.target.value)
+                    }
+                    placeholder="********"
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+              </div>
             </div>
 
-            <SectionTitle>주소 정보</SectionTitle>
-            <div>
-              <label className="stitch-label mb-1 block">국가</label>
-              <Input
-                type="text"
-                value={companyData.country}
-                onChange={e =>
-                  handleCompanyInputChange('country', e.target.value)
-                }
-                placeholder="예: KR"
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label className="stitch-label mb-1 block">우편번호</label>
-              <Input
-                type="text"
-                value={companyData.zipcode}
-                onChange={e =>
-                  handleCompanyInputChange('zipcode', e.target.value)
-                }
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label className="stitch-label mb-1 block">광역 도시명</label>
-              <Input
-                type="text"
-                value={companyData.city}
-                onChange={e => handleCompanyInputChange('city', e.target.value)}
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label className="stitch-label mb-1 block">상세 주소</label>
-              <Input
-                type="text"
-                value={companyData.address1}
-                onChange={e =>
-                  handleCompanyInputChange('address1', e.target.value)
-                }
-                disabled={isLoading}
-              />
-            </div>
-
-            <SectionTitle>업종 정보</SectionTitle>
-            <div>
-              <label className="stitch-label mb-1 block">업태/업종</label>
-              <Input
-                type="text"
-                value={companyData.sector}
-                onChange={e =>
-                  handleCompanyInputChange('sector', e.target.value)
-                }
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label className="stitch-label mb-1 block">업종 코드</label>
-              <Input
-                type="text"
-                value={companyData.industry_code}
-                onChange={e =>
-                  handleCompanyInputChange('industry_code', e.target.value)
-                }
-                disabled={isLoading}
-              />
+            {/* 기업 정보 */}
+            <div className="bg-[rgba(255,255,255,.03)] p-6 rounded-lg border border-[rgba(255,255,255,.1)]">
+              <SectionTitle>기업 정보</SectionTitle>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="stitch-label mb-1 block">
+                    사업자(상점) 국문 이름 *
+                  </label>
+                  <Input
+                    type="text"
+                    value={companyData.name_ko}
+                    onChange={e =>
+                      handleCompanyInputChange('name_ko', e.target.value)
+                    }
+                    placeholder="예: 스마트에스지"
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="stitch-label mb-1 block">
+                    사업자(상점) 영문 이름
+                  </label>
+                  <Input
+                    type="text"
+                    value={companyData.name_en}
+                    onChange={e =>
+                      handleCompanyInputChange('name_en', e.target.value)
+                    }
+                    placeholder="예: Smart ESG"
+                    disabled={isLoading}
+                  />
+                </div>
+                <div>
+                  <label className="stitch-label mb-1 block">사업자번호 *</label>
+                  <Input
+                    type="text"
+                    value={companyData.biz_no}
+                    onChange={e =>
+                      handleCompanyInputChange('biz_no', e.target.value)
+                    }
+                    placeholder="예: 1234567890"
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="stitch-label mb-1 block">대표자명</label>
+                  <Input
+                    type="text"
+                    value={companyData.ceo_name}
+                    onChange={e =>
+                      handleCompanyInputChange('ceo_name', e.target.value)
+                    }
+                    placeholder="예: 홍길동"
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
             </div>
 
-            <SectionTitle>담당자 정보</SectionTitle>
-            <div>
-              <label className="stitch-label mb-1 block">당직자 이름 *</label>
-              <Input
-                type="text"
-                value={companyData.manager_name}
-                onChange={e =>
-                  handleCompanyInputChange('manager_name', e.target.value)
-                }
-                placeholder="예: 김길동"
-                disabled={isLoading}
-                required
-              />
-            </div>
-            <div>
-              <label className="stitch-label mb-1 block">당직자 연락처 *</label>
-              <Input
-                type="text"
-                value={companyData.manager_phone}
-                onChange={e =>
-                  handleCompanyInputChange('manager_phone', e.target.value)
-                }
-                placeholder="예: 010-1234-5678"
-                disabled={isLoading}
-                required
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="stitch-label mb-1 block">당직자 이메일</label>
-              <Input
-                type="email"
-                value={companyData.manager_email}
-                onChange={e =>
-                  handleCompanyInputChange('manager_email', e.target.value)
-                }
-                placeholder="예: manager@smartesg.com"
-                disabled={isLoading}
-              />
-            </div>
-
-            <SectionTitle>계정 정보</SectionTitle>
-            <div>
-              <label className="stitch-label mb-1 block">ID *</label>
-              <Input
-                type="text"
-                value={companyData.username}
-                onChange={e =>
-                  handleCompanyInputChange('username', e.target.value)
-                }
-                placeholder="예: smartesg"
-                disabled={isLoading}
-                required
-              />
-            </div>
-            <div>
-              <label className="stitch-label mb-1 block">비밀번호 *</label>
-              <Input
-                type="password"
-                value={companyData.password}
-                onChange={e =>
-                  handleCompanyInputChange('password', e.target.value)
-                }
-                placeholder="********"
-                disabled={isLoading}
-                required
-              />
-            </div>
-            <div>
-              <label className="stitch-label mb-1 block">비밀번호 확인 *</label>
-              <Input
-                type="password"
-                value={companyData.confirm_password}
-                onChange={e =>
-                  handleCompanyInputChange('confirm_password', e.target.value)
-                }
-                placeholder="********"
-                disabled={isLoading}
-                required
-              />
+            {/* 주소 정보 */}
+            <div className="bg-[rgba(255,255,255,.03)] p-6 rounded-lg border border-[rgba(255,255,255,.1)]">
+              <SectionTitle>주소 정보</SectionTitle>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="stitch-label mb-1 block">국가</label>
+                  <Input
+                    type="text"
+                    value={companyData.country}
+                    onChange={e =>
+                      handleCompanyInputChange('country', e.target.value)
+                    }
+                    placeholder="예: KR"
+                    disabled={isLoading}
+                  />
+                </div>
+                <div>
+                  <label className="stitch-label mb-1 block">우편번호</label>
+                  <Input
+                    type="text"
+                    value={companyData.zipcode}
+                    onChange={e =>
+                      handleCompanyInputChange('zipcode', e.target.value)
+                    }
+                    disabled={isLoading}
+                  />
+                </div>
+                <div>
+                  <label className="stitch-label mb-1 block">광역 도시명</label>
+                  <Input
+                    type="text"
+                    value={companyData.city}
+                    onChange={e => handleCompanyInputChange('city', e.target.value)}
+                    disabled={isLoading}
+                  />
+                </div>
+                <div>
+                  <label className="stitch-label mb-1 block">상세 주소</label>
+                  <Input
+                    type="text"
+                    value={companyData.address1}
+                    onChange={e =>
+                      handleCompanyInputChange('address1', e.target.value)
+                    }
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="md:col-span-2 mt-2">
-              <Button disabled={isLoading}>
+            {/* 업종 정보 */}
+            <div className="bg-[rgba(255,255,255,.03)] p-6 rounded-lg border border-[rgba(255,255,255,.1)]">
+              <SectionTitle>업종 정보</SectionTitle>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="stitch-label mb-1 block">업태/업종</label>
+                  <Input
+                    type="text"
+                    value={companyData.sector}
+                    onChange={e =>
+                      handleCompanyInputChange('sector', e.target.value)
+                    }
+                    disabled={isLoading}
+                  />
+                </div>
+                <div>
+                  <label className="stitch-label mb-1 block">업종 코드</label>
+                  <Input
+                    type="text"
+                    value={companyData.industry_code}
+                    onChange={e =>
+                      handleCompanyInputChange('industry_code', e.target.value)
+                    }
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 담당자 정보 */}
+            <div className="bg-[rgba(255,255,255,.03)] p-6 rounded-lg border border-[rgba(255,255,255,.1)]">
+              <SectionTitle>담당자 정보</SectionTitle>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="stitch-label mb-1 block">당직자 이름 *</label>
+                  <Input
+                    type="text"
+                    value={companyData.manager_name}
+                    onChange={e =>
+                      handleCompanyInputChange('manager_name', e.target.value)
+                    }
+                    placeholder="예: 김길동"
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="stitch-label mb-1 block">당직자 연락처 *</label>
+                  <Input
+                    type="text"
+                    value={companyData.manager_phone}
+                    onChange={e =>
+                      handleCompanyInputChange('manager_phone', e.target.value)
+                    }
+                    placeholder="예: 010-1234-5678"
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="stitch-label mb-1 block">당직자 이메일</label>
+                  <Input
+                    type="email"
+                    value={companyData.manager_email}
+                    onChange={e =>
+                      handleCompanyInputChange('manager_email', e.target.value)
+                    }
+                    placeholder="예: manager@smartesg.com"
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="text-center pt-4">
+              <Button disabled={isLoading} className="w-full max-w-md">
                 {isLoading ? '등록 중...' : '기업 등록'}
               </Button>
             </div>

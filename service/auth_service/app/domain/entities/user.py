@@ -1,11 +1,10 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Index, ForeignKey, JSON, Text
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import uuid
 
-Base = declarative_base()
+from app.common.db import Base
 
 class User(Base):
     """사용자 모델 (Company에 종속, 스트림 구조)"""

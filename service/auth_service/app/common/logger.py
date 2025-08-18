@@ -2,7 +2,7 @@ import json
 import logging
 import logging.handlers
 from typing import Any, Dict, List, Union
-from ..core.settings import settings
+from app.common.settings import settings
 
 # 민감한 키들 정의
 SENSITIVE_KEYS = {

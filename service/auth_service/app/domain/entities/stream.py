@@ -1,11 +1,10 @@
 from sqlalchemy import Column, Integer, String, DateTime, Index, Text, Boolean, JSON, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import uuid
 
-Base = declarative_base()
+from app.common.db import Base
 
 class StreamEvent(Base):
     """스트림 이벤트 모델"""

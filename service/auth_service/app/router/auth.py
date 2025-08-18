@@ -1,14 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from ..models import get_db, User, Company
-from ..schemas.auth import (
+from app.common.db import get_db
+from app.domain.entities.user import User
+from app.domain.entities.company import Company
+from app.domain.schemas.auth import (
     CompanyRegisterIn, CompanyRegisterOut,
     UserRegisterIn, UserRegisterOut,
     LoginIn, TokenOut, UserOut, HealthCheck
 )
-from ..core.security import get_password_hash, verify_password, create_access_token, get_current_user
-from ..core.logger import auth_logger
+from app.common.security import get_password_hash, verify_password, create_access_token, get_current_user
+from app.common.logger import auth_logger
 from lib.stream_utils import (
     generate_stream_id, create_stream_event, create_stream_snapshot
 )

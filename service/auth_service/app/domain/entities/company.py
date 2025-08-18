@@ -1,10 +1,9 @@
 from sqlalchemy import Column, Integer, String, DateTime, Index, Text, Boolean
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 from datetime import datetime
 import uuid
 
-Base = declarative_base()
+from app.common.db import Base
 
 class Company(Base):
     """기업 모델 (스트림 구조)"""

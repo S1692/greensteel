@@ -56,25 +56,27 @@ export default function PWAInstallBanner() {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
+    if (!deferredPrompt) {
+      return;
+    }
 
     try {
-      await deferredPrompt.prompt();
+      // 설치 프롬프트 표시
+      deferredPrompt.prompt();
+
+      // 사용자 응답 대기
       const { outcome } = await deferredPrompt.userChoice;
 
       if (outcome === 'accepted') {
-        console.log('PWA 설치가 수락되었습니다.');
-        setShowBanner(false);
-        setIsInstalled(true);
-        localStorage.setItem('pwa-installed', 'true');
-      } else {
-        console.log('PWA 설치가 거부되었습니다.');
+        // 사용자가 설치를 수락한 경우
         setShowBanner(false);
       }
     } catch (error) {
-      console.error('PWA 설치 중 오류가 발생했습니다:', error);
+      // 설치 중 오류 발생
+      setShowBanner(false);
     }
 
+    // 프롬프트 초기화
     setDeferredPrompt(null);
   };
 

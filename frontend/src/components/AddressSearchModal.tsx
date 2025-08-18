@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 
@@ -90,16 +90,19 @@ declare global {
   interface Window {
     kakao: {
       maps: {
-        Map: new (container: HTMLElement, options: any) => KakaoMap;
+        Map: new (
+          container: HTMLElement,
+          options: Record<string, unknown>
+        ) => KakaoMap;
         LatLng: new (lat: number, lng: number) => KakaoLatLng;
-        Marker: new (options?: any) => KakaoMarker;
-        InfoWindow: new (options: any) => KakaoInfoWindow;
+        Marker: new (options?: Record<string, unknown>) => KakaoMarker;
+        InfoWindow: new (options: Record<string, unknown>) => KakaoInfoWindow;
         services: KakaoMapsServices;
         event: {
           addListener(
             map: KakaoMap,
             event: string,
-            callback: (event: any) => void
+            callback: (event: { latLng: KakaoLatLng }) => void
           ): void;
         };
       };
@@ -123,48 +126,11 @@ export default function AddressSearchModal({
   const modalRef = useRef<HTMLDivElement>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    // 카카오 지도 API 스크립트 로드
-    const script = document.createElement('script');
-    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${
-      process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY || 'YOUR_KAKAO_MAP_API_KEY'
-    }&libraries=services`;
-    script.async = true;
-    script.onload = initializeMap;
-    document.head.appendChild(script);
-
-    return () => {
-      if (script.parentNode) {
-        document.head.removeChild(script);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    // 모달 외부 클릭 시 닫기
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        modalRef.current &&
-        !modalRef.current.contains(event.target as Node)
-      ) {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen, onClose]);
-
-  const initializeMap = () => {
+  const initializeMap = useCallback(() => {
     if (!mapContainerRef.current || !window.kakao) return;
 
     const options = {
-      center: new window.kakao.maps.LatLng(37.5665, 126.9780), // 서울시청
+      center: new window.kakao.maps.LatLng(37.5665, 126.978), // 서울시청
       level: 3,
     };
 
@@ -186,12 +152,49 @@ export default function AddressSearchModal({
     window.kakao.maps.event.addListener(
       kakaoMap,
       'click',
-      (mouseEvent: any) => {
+      (mouseEvent: { latLng: KakaoLatLng }) => {
         const latlng = mouseEvent.latLng;
         handleMapClick(latlng);
       }
     );
-  };
+  }, []);
+
+  useEffect(() => {
+    // 카카오 지도 API 스크립트 로드
+    const script = document.createElement('script');
+    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${
+      process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY || 'YOUR_KAKAO_MAP_API_KEY'
+    }&libraries=services`;
+    script.async = true;
+    script.onload = initializeMap;
+    document.head.appendChild(script);
+
+    return () => {
+      if (script.parentNode) {
+        document.head.removeChild(script);
+      }
+    };
+  }, [initializeMap]);
+
+  useEffect(() => {
+    // 모달 외부 클릭 시 닫기
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        modalRef.current &&
+        !modalRef.current.contains(event.target as Node)
+      ) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen, onClose]);
 
   const handleMapClick = async (latlng: KakaoLatLng) => {
     if (!map || !marker || !infoWindow) return;
@@ -201,7 +204,7 @@ export default function AddressSearchModal({
     marker.setMap(map);
 
     // 좌표를 주소로 변환
-    const geocoder = new window.kakao.maps.services.Gecoder();
+    const geocoder = new window.kakao.maps.services.Geocoder();
     geocoder.coord2Address(
       latlng.getLng(),
       latlng.getLat(),
@@ -294,7 +297,7 @@ export default function AddressSearchModal({
   };
 
   const handleCurrentLocation = () => {
-    if (!navigator.geolocation) {
+    if (!navigator.geolocation || !map) {
       alert('현재 위치를 가져올 수 없습니다.');
       return;
     }
@@ -310,7 +313,7 @@ export default function AddressSearchModal({
         map.setLevel(3);
         handleMapClick(latlng);
       },
-      error => {
+      () => {
         alert('현재 위치를 가져오는데 실패했습니다.');
       }
     );
@@ -490,7 +493,8 @@ export default function AddressSearchModal({
         {/* 푸터 */}
         <div className="flex justify-between items-center p-6 border-t border-gray-200 dark:border-gray-700">
           <div className="text-sm text-gray-500 dark:text-gray-400">
-            💡 지도에서 원하는 위치를 클릭하거나 검색어를 입력하여 주소를 찾으세요
+            💡 지도에서 원하는 위치를 클릭하거나 검색어를 입력하여 주소를
+            찾으세요
           </div>
           <div className="flex space-x-2">
             <Button onClick={onClose} variant="outline">

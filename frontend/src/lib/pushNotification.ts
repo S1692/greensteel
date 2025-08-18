@@ -11,31 +11,18 @@ export class PushNotificationService {
     return PushNotificationService.instance;
   }
 
-  async initialize(): Promise<boolean> {
+  async initialize(): Promise<void> {
     try {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        console.log('Push notifications are not supported');
-        return false;
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        this.swRegistration = await navigator.serviceWorker.register('/sw.js');
+        // Service Worker 등록 성공
       }
-
-      this.swRegistration = await navigator.serviceWorker.register('/sw.js');
-      console.log('Service Worker registered successfully');
-
-      // 알림 권한 요청
-      const permission = await this.requestNotificationPermission();
-      if (permission === 'granted') {
-        await this.subscribeToPushNotifications();
-        return true;
-      }
-
-      return false;
     } catch (error) {
-      console.error('Failed to initialize push notifications:', error);
-      return false;
+      // Service Worker 등록 실패
     }
   }
 
-  private async requestNotificationPermission(): Promise<NotificationPermission> {
+  async requestPermission(): Promise<NotificationPermission> {
     if (!('Notification' in window)) {
       return 'denied';
     }
@@ -47,19 +34,28 @@ export class PushNotificationService {
     return Notification.permission;
   }
 
-  private async subscribeToPushNotifications(): Promise<void> {
-    if (!this.swRegistration) return;
+  async subscribe(): Promise<PushSubscription | null> {
+    if (!this.swRegistration) {
+      return null;
+    }
 
     try {
+      const permission = await this.requestPermission();
+      if (permission !== 'granted') {
+        return null;
+      }
+
       const subscription = await this.swRegistration.pushManager.subscribe({
         userVisibleOnly: true,
       });
 
       // 서버에 구독 정보 전송
       await this.sendSubscriptionToServer(subscription);
-      console.log('Push notification subscription successful');
+
+      return subscription;
     } catch (error) {
-      console.error('Failed to subscribe to push notifications:', error);
+      // 구독 실패
+      return null;
     }
   }
 
@@ -73,22 +69,36 @@ export class PushNotificationService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          subscription: subscription.toJSON(),
-          userId: this.getUserId(), // 사용자 ID 가져오기
+          subscription,
+          userAgent: navigator.userAgent,
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to send subscription to server');
+        // 서버 전송 실패
       }
     } catch (error) {
-      console.error('Error sending subscription to server:', error);
+      // 네트워크 오류
     }
   }
 
-  private getUserId(): string | null {
-    // 로컬 스토리지나 세션에서 사용자 ID 가져오기
-    return localStorage.getItem('userId') || sessionStorage.getItem('userId');
+  async unsubscribe(): Promise<boolean> {
+    if (!this.swRegistration) {
+      return false;
+    }
+
+    try {
+      const subscription =
+        await this.swRegistration.pushManager.getSubscription();
+      if (subscription) {
+        await subscription.unsubscribe();
+        // 서버에서 구독 정보 제거
+        return true;
+      }
+      return false;
+    } catch (error) {
+      return false;
+    }
   }
 
   async showNotification(
@@ -96,28 +106,23 @@ export class PushNotificationService {
     options?: NotificationOptions
   ): Promise<void> {
     if (Notification.permission === 'granted') {
-      new Notification(title, {
-        icon: '/icon-192x192.png',
-        badge: '/icon-192x192.png',
-        ...options,
-      });
+      new Notification(title, options);
     }
   }
 
-  async unsubscribe(): Promise<void> {
-    if (!this.swRegistration) return;
+  async getSubscription(): Promise<PushSubscription | null> {
+    if (!this.swRegistration) {
+      return null;
+    }
 
     try {
-      const subscription =
-        await this.swRegistration.pushManager.getSubscription();
-      if (subscription) {
-        await subscription.unsubscribe();
-        console.log('Unsubscribed from push notifications');
-      }
+      return await this.swRegistration.pushManager.getSubscription();
     } catch (error) {
-      console.error('Error unsubscribing from push notifications:', error);
+      return null;
     }
   }
-}
 
-export const pushNotificationService = PushNotificationService.getInstance();
+  isSupported(): boolean {
+    return 'serviceWorker' in navigator && 'PushManager' in window;
+  }
+}

@@ -2,33 +2,37 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { subscription, userId } = await request.json();
+    const body = await request.json();
+    const { subscription, userAgent } = body;
 
-    if (!subscription || !userId) {
+    if (!subscription) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Subscription object is required' },
         { status: 400 }
       );
     }
 
-    // 여기서 실제로는 데이터베이스에 구독 정보를 저장합니다
-    // 현재는 로그만 출력
-    console.log('Push notification subscription received:', {
-      userId,
-      subscription: subscription.endpoint,
-      keys: subscription.keys,
-    });
+    // TODO: 실제 데이터베이스에 구독 정보 저장
+    // const savedSubscription = await saveSubscriptionToDatabase(subscription);
 
-    // 성공 응답
+    // TODO: 실제 푸시 알림 서비스로 전송
+    // await sendPushNotification(subscription, {
+    //   title: 'GreenSteel 알림',
+    //   body: '푸시 알림이 활성화되었습니다!',
+    //   icon: '/icon-192x192.png',
+    // });
+
     return NextResponse.json({
       success: true,
       message: 'Push notification subscription successful',
-      subscriptionId: `sub_${Date.now()}`,
+      subscription: {
+        endpoint: subscription.endpoint,
+        keys: subscription.keys,
+      },
     });
   } catch (error) {
-    console.error('Error processing push subscription:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to process subscription' },
       { status: 500 }
     );
   }

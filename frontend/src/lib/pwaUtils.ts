@@ -187,41 +187,28 @@ export class OfflineStorage {
 export class PerformanceMetrics {
   // 페이지 로드 성능 측정
   static measurePageLoad(): void {
-    if (typeof window === 'undefined' || !('performance' in window)) {
-      return;
-    }
+    if (typeof window !== 'undefined' && window.performance) {
+      const navigation = window.performance.getEntriesByType(
+        'navigation'
+      )[0] as PerformanceNavigationTiming;
 
-    window.addEventListener('load', () => {
-      setTimeout(() => {
-        const navigation = performance.getEntriesByType(
-          'navigation'
-        )[0] as PerformanceNavigationTiming;
-        const paint = performance.getEntriesByType('paint');
+      if (navigation) {
+        const loadTime = navigation.loadEventEnd - navigation.loadEventStart;
+        const domContentLoaded =
+          navigation.domContentLoadedEventEnd -
+          navigation.domContentLoadedEventStart;
 
-        const metrics = {
-          dnsLookup: navigation.domainLookupEnd - navigation.domainLookupStart,
-          tcpConnection: navigation.connectEnd - navigation.connectStart,
-          serverResponse: navigation.responseEnd - navigation.requestStart,
-          domContentLoaded:
-            navigation.domContentLoadedEventEnd -
-            navigation.domContentLoadedEventStart,
-          firstContentfulPaint:
-            paint.find(p => p.name === 'first-contentful-paint')?.startTime ||
-            0,
-        };
-
-        console.log('Page Load Performance:', metrics);
-
-        // Google Analytics에 전송 (선택사항)
-        if (typeof window !== 'undefined' && window.gtag) {
-          window.gtag('event', 'page_performance', {
-            event_category: 'performance',
-            event_label: 'page_load',
-            value: Math.round(metrics.domContentLoaded),
+        // Google Analytics에 성능 메트릭 전송
+        if (typeof window.gtag !== 'undefined') {
+          window.gtag('event', 'performance_measurement', {
+            event_category: 'Performance',
+            event_label: 'Page Load',
+            value: Math.round(loadTime),
+            custom_metric_1: Math.round(domContentLoaded),
           });
         }
-      }, 0);
-    });
+      }
+    }
   }
 
   // 상호작용 성능 측정
@@ -244,9 +231,9 @@ export class PerformanceMetrics {
 
   // 메모리 사용량 측정
   static measureMemoryUsage(): void {
-    if (typeof performance !== 'undefined' && 'memory' in performance) {
+    if (typeof window !== 'undefined' && 'memory' in window.performance) {
       const memory = (
-        performance as Performance & {
+        window.performance as Performance & {
           memory: {
             usedJSHeapSize: number;
             totalJSHeapSize: number;
@@ -254,11 +241,18 @@ export class PerformanceMetrics {
           };
         }
       ).memory;
-      console.log('Memory Usage:', {
-        used: `${Math.round(memory.usedJSHeapSize / 1024 / 1024)}MB`,
-        total: `${Math.round(memory.totalJSHeapSize / 1024 / 1024)}MB`,
-        limit: `${Math.round(memory.jsHeapSizeLimit / 1024 / 1024)}MB`,
-      });
+      const usedMemory = memory.usedJSHeapSize / 1024 / 1024; // MB
+      const totalMemory = memory.totalJSHeapSize / 1024 / 1024; // MB
+
+      // Google Analytics에 메모리 사용량 전송
+      if (typeof window.gtag !== 'undefined') {
+        window.gtag('event', 'memory_usage', {
+          event_category: 'Performance',
+          event_label: 'Memory',
+          value: Math.round(usedMemory),
+          custom_metric_1: Math.round(totalMemory),
+        });
+      }
     }
   }
 }

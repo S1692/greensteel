@@ -3,7 +3,7 @@
   "name": "greensteel-frontend",
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
-  "installCommand": "npm install",
+  "installCommand": "pnpm install",
   "framework": "nextjs",
   "headers": [
     {

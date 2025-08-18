@@ -5,16 +5,16 @@ import uuid
 
 from app.common.db import Base
 
-class Company(Base):
+class Admin(Base):
     """Admin(기업) 모델 (이미지 데이터 구조 기반) - 스트림 구조 지원"""
-    __tablename__ = "companies"
+    __tablename__ = "admins"
     
     # 기본 필드
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     uuid = Column(String(36), unique=True, index=True, nullable=False, default=lambda: str(uuid.uuid4()))
     
     # 계정 정보
-    company_id = Column(String(100), unique=True, index=True, nullable=False, comment="로그인 ID")
+    admin_id = Column(String(100), unique=True, index=True, nullable=False, comment="Admin 로그인 ID")
     hashed_password = Column(String(255), nullable=False, comment="해시된 비밀번호")
     
     # 사용자 직접 입력 필드
@@ -53,25 +53,25 @@ class Company(Base):
     
     # 인덱스 설정
     __table_args__ = (
-        Index('idx_company_uuid', 'uuid'),
-        Index('idx_company_id', 'company_id'),
-        Index('idx_company_installation', 'Installation'),
-        Index('idx_company_postcode', 'postcode'),
-        Index('idx_company_city', 'city'),
-        Index('idx_company_country', 'country'),
-        Index('idx_company_stream_id', 'stream_id'),
-        Index('idx_company_created_at', 'created_at'),
+        Index('idx_admin_uuid', 'uuid'),
+        Index('idx_admin_id', 'admin_id'),
+        Index('idx_admin_installation', 'Installation'),
+        Index('idx_admin_postcode', 'postcode'),
+        Index('idx_admin_city', 'city'),
+        Index('idx_admin_country', 'country'),
+        Index('idx_admin_stream_id', 'stream_id'),
+        Index('idx_admin_created_at', 'created_at'),
     )
     
     def __repr__(self):
-        return f"<Company(id={self.id}, uuid='{self.uuid}', Installation='{self.Installation}', company_id='{self.company_id}')>"
+        return f"<Admin(id={self.id}, uuid='{self.uuid}', Installation='{self.Installation}', admin_id='{self.admin_id}')>"
     
     def to_dict(self):
-        """기업 정보를 딕셔너리로 변환"""
+        """Admin 정보를 딕셔너리로 변환"""
         return {
             "id": self.id,
             "uuid": self.uuid,
-            "company_id": self.company_id,
+            "admin_id": self.admin_id,
             "Installation": self.Installation,
             "Installation_en": self.Installation_en,
             "economic_activity": self.economic_activity,
@@ -101,7 +101,7 @@ class Company(Base):
         }
     
     def to_public_dict(self):
-        """공개용 기업 정보 (민감한 정보 제외)"""
+        """공개용 Admin 정보 (민감한 정보 제외)"""
         return {
             "id": self.id,
             "uuid": self.uuid,
@@ -150,11 +150,8 @@ class Company(Base):
         if not user:
             return False
         
-        # Company 관리자는 모든 사용자 관리 가능
-        if self.company_id:  # Company가 로그인 가능한 경우
-            return True
-        
-        return False
+        # Admin은 모든 사용자 관리 가능
+        return True
     
     def update_stream_version(self):
         """스트림 버전 업데이트"""

@@ -2,10 +2,10 @@ from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, Union, Dict, Any
 from datetime import datetime
 
-# Admin(기업) 회원가입 스키마 (이미지 데이터 구조 기반)
-class CompanyRegisterIn(BaseModel):
+# Admin 회원가입 스키마 (이미지 데이터 구조 기반)
+class AdminRegisterIn(BaseModel):
     # 계정 정보
-    company_id: str = Field(..., min_length=3, max_length=100, description="로그인 ID")
+    admin_id: str = Field(..., min_length=3, max_length=100, description="Admin 로그인 ID")
     password: str = Field(..., min_length=8, description="비밀번호")
     confirm_password: str = Field(..., description="비밀번호 확인")
     
@@ -37,10 +37,10 @@ class CompanyRegisterIn(BaseModel):
     stream_id: Optional[str] = Field(None, max_length=100, description="스트림 식별자")
     stream_metadata: Optional[Dict[str, Any]] = Field(None, description="스트림 메타데이터")
 
-class CompanyRegisterOut(BaseModel):
+class AdminRegisterOut(BaseModel):
     id: int
     uuid: str
-    company_id: str
+    admin_id: str
     Installation: str
     Installation_en: Optional[str]
     economic_activity: Optional[str]
@@ -63,7 +63,7 @@ class CompanyRegisterOut(BaseModel):
     sourcelongitude: Optional[float]
     stream_id: Optional[str]
     stream_version: int
-    message: str = "Admin(기업) 등록이 완료되었습니다."
+    message: str = "Admin 등록이 완료되었습니다."
 
 # User 회원가입 스키마
 class UserRegisterIn(BaseModel):
@@ -71,7 +71,7 @@ class UserRegisterIn(BaseModel):
     password: str = Field(..., min_length=8, description="비밀번호")
     confirm_password: str = Field(..., description="비밀번호 확인")
     full_name: str = Field(..., min_length=1, max_length=255, description="사용자명")
-    company_id: int = Field(..., description="소속 기업 ID")
+    admin_id: int = Field(..., description="소속 Admin ID")
     
     # 스트림 구조 정보
     stream_id: Optional[str] = Field(None, max_length=100, description="스트림 식별자")
@@ -82,7 +82,7 @@ class UserRegisterOut(BaseModel):
     uuid: str
     username: str
     full_name: str
-    company_id: int
+    admin_id: int
     stream_id: Optional[str]
     stream_version: int
     message: str = "사용자 등록이 완료되었습니다."
@@ -96,14 +96,14 @@ class LoginIn(BaseModel):
 class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
-    user_type: str  # "company" 또는 "user"
-    user_info: Union["CompanyOut", "UserOut"]
+    user_type: str  # "admin" 또는 "user"
+    user_info: Union["AdminOut", "UserOut"]
 
-# Admin(기업) 정보 스키마 (공개용)
-class CompanyOut(BaseModel):
+# Admin 정보 스키마 (공개용)
+class AdminOut(BaseModel):
     id: int
     uuid: str
-    company_id: str
+    admin_id: str
     Installation: str
     Installation_en: Optional[str]
     economic_activity: Optional[str]
@@ -136,11 +136,11 @@ class UserOut(BaseModel):
     uuid: str
     username: str
     full_name: str
-    company_id: int
-    company_info: Optional[dict] = None
+    admin_id: int
+    admin_info: Optional[dict] = None
     role: str
     permissions: dict
-    is_company_admin: bool
+    is_admin_user: bool
     can_manage_users: bool
     can_view_reports: bool
     can_edit_data: bool
@@ -158,7 +158,7 @@ class UserPermissionUpdate(BaseModel):
     user_id: int
     role: Optional[str] = None
     permissions: Optional[dict] = None
-    is_company_admin: Optional[bool] = None
+    is_admin_user: Optional[bool] = None
     can_manage_users: Optional[bool] = None
     can_view_reports: Optional[bool] = None
     can_edit_data: Optional[bool] = None
@@ -171,7 +171,7 @@ class UserListOut(BaseModel):
     users: list[UserOut]
     total_count: int
     active_count: int
-    company_id: int
+    admin_id: int
 
 # 권한 정보 스키마
 class PermissionInfo(BaseModel):

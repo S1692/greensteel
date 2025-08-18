@@ -7,7 +7,7 @@ from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from app.common.db import get_db
 from app.domain.entities.user import User
-from app.domain.entities.company import Company
+from app.domain.entities.admin import Admin
 from app.common.settings import settings
 from app.common.logger import auth_logger
 
@@ -66,8 +66,8 @@ def verify_token(token: str) -> Optional[dict]:
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
-) -> Union[User, Company]:
-    """현재 인증된 사용자 반환 (Company/User 구분)"""
+) -> Union[User, Admin]:
+    """현재 인증된 사용자 반환 (Admin/User 구분)"""
     try:
         # 토큰 검증
         payload = verify_token(credentials.credentials)
@@ -89,18 +89,18 @@ async def get_current_user(
                 headers={"WWW-Authenticate": "Bearer"}
             )
         
-        # Company인 경우
-        if user_type == "company":
-            company = db.query(Company).filter(Company.id == user_id).first()
-            if company is None:
+        # Admin인 경우
+        if user_type == "admin":
+            admin = db.query(Admin).filter(Admin.id == user_id).first()
+            if admin is None:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Company not found",
+                    detail="Admin not found",
                     headers={"WWW-Authenticate": "Bearer"}
                 )
             
-            auth_logger.info(f"Company authenticated: {company.company_id}")
-            return company
+            auth_logger.info(f"Admin authenticated: {admin.admin_id}")
+            return admin
         
         # User인 경우
         else:

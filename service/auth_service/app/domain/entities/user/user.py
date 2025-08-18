@@ -7,7 +7,7 @@ import uuid
 from app.common.db import Base
 
 class User(Base):
-    """사용자 모델 (Company에 종속, 스트림 구조)"""
+    """사용자 모델 (Admin에 종속, 스트림 구조)"""
     __tablename__ = "users"
     
     # 기본 필드
@@ -17,13 +17,13 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(255), nullable=False)
     
-    # 소속 정보 (Company에 강제 종속)
-    company_id = Column(Integer, ForeignKey("companies.id", ondelete="CASCADE"), nullable=False)
+    # 소속 정보 (Admin에 강제 종속)
+    admin_id = Column(Integer, ForeignKey("admins.id", ondelete="CASCADE"), nullable=False)
     
-    # 권한 정보 (Company에서 부여)
+    # 권한 정보 (Admin에서 부여)
     role = Column(String(50), default="user", nullable=False)
     permissions = Column(JSON, default=dict, nullable=False)
-    is_company_admin = Column(Boolean, default=False, nullable=False)
+    is_admin_user = Column(Boolean, default=False, nullable=False)
     can_manage_users = Column(Boolean, default=False, nullable=False)
     can_view_reports = Column(Boolean, default=False, nullable=False)
     can_edit_data = Column(Boolean, default=False, nullable=False)
@@ -40,21 +40,21 @@ class User(Base):
     created_at = Column(DateTime, default=func.now(), nullable=False)
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
     
-    # 관계 설정 (Admin/Company 정보는 읽기 전용)
-    company = relationship("Company", backref="users", lazy="joined")
+    # 관계 설정 (Admin 정보는 읽기 전용)
+    admin = relationship("Admin", backref="users", lazy="joined")
     
     # 인덱스 설정
     __table_args__ = (
         Index('idx_user_uuid', 'uuid'),
         Index('idx_user_username', 'username'),
-        Index('idx_user_company_id', 'company_id'),
+        Index('idx_user_admin_id', 'admin_id'),
         Index('idx_user_role', 'role'),
         Index('idx_user_stream_id', 'stream_id'),
         Index('idx_user_created_at', 'created_at'),
     )
     
     def __repr__(self):
-        return f"<User(id={self.id}, uuid='{self.uuid}', username='{self.username}', full_name='{self.full_name}', company_id={self.company_id}, role='{self.role}')>"
+        return f"<User(id={self.id}, uuid='{self.uuid}', username='{self.username}', full_name='{self.full_name}', admin_id={self.admin_id}, role='{self.role}')>"
     
     def to_dict(self):
         """사용자 정보를 딕셔너리로 변환 (민감한 정보 제외)"""
@@ -63,10 +63,10 @@ class User(Base):
             "uuid": self.uuid,
             "username": self.username,
             "full_name": self.full_name,
-            "company_id": self.company_id,
+            "admin_id": self.admin_id,
             "role": self.role,
             "permissions": self.permissions,
-            "is_company_admin": self.is_company_admin,
+            "is_admin_user": self.is_admin_user,
             "can_manage_users": self.can_manage_users,
             "can_view_reports": self.can_view_reports,
             "can_edit_data": self.can_edit_data,
@@ -80,22 +80,22 @@ class User(Base):
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
     
-    def to_dict_with_company_info(self):
-        """Admin(Company) 기본 정보와 함께 사용자 정보 반환 (읽기 전용)"""
-        company_info = None
-        if self.company:
-            company_info = {
-                "id": self.company.id,
-                "uuid": self.company.uuid,
-                "company_id": self.company.company_id,
-                "Installation": self.company.Installation,
-                "Installation_en": self.company.Installation_en,
-                "economic_activity": self.company.economic_activity,
-                "economic_activity_en": self.company.economic_activity_en,
-                "representative": self.company.representative,
-                "representative_en": self.company.representative_en,
-                "email": self.company.email,
-                "telephone": self.company.telephone
+    def to_dict_with_admin_info(self):
+        """Admin 기본 정보와 함께 사용자 정보 반환 (읽기 전용)"""
+        admin_info = None
+        if self.admin:
+            admin_info = {
+                "id": self.admin.id,
+                "uuid": self.admin.uuid,
+                "admin_id": self.admin.admin_id,
+                "Installation": self.admin.Installation,
+                "Installation_en": self.admin.Installation_en,
+                "economic_activity": self.admin.economic_activity,
+                "economic_activity_en": self.admin.economic_activity_en,
+                "representative": self.admin.representative,
+                "representative_en": self.admin.representative_en,
+                "email": self.admin.email,
+                "telephone": self.admin.telephone
             }
         
         return {
@@ -103,11 +103,11 @@ class User(Base):
             "uuid": self.uuid,
             "username": self.username,
             "full_name": self.full_name,
-            "company_id": self.company_id,
-            "company_info": company_info,
+            "admin_id": self.admin_id,
+            "admin_info": admin_info,
             "role": self.role,
             "permissions": self.permissions,
-            "is_company_admin": self.is_company_admin,
+            "is_admin_user": self.is_admin_user,
             "can_manage_users": self.can_manage_users,
             "can_view_reports": self.can_view_reports,
             "can_edit_data": self.can_edit_data,
@@ -123,7 +123,7 @@ class User(Base):
     
     def has_permission(self, permission_name: str) -> bool:
         """특정 권한이 있는지 확인"""
-        if self.is_company_admin:
+        if self.is_admin_user:
             return True
         
         if hasattr(self, permission_name):

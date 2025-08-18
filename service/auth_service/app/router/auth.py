@@ -4,11 +4,11 @@ from sqlalchemy.exc import IntegrityError
 from typing import Union
 from app.common.db import get_db
 from app.domain.entities.user import User
-from app.domain.entities.company import Company
+from app.domain.entities.admin import Admin
 from app.domain.schemas.auth import (
-    CompanyRegisterIn, CompanyRegisterOut,
+    AdminRegisterIn, AdminRegisterOut,
     UserRegisterIn, UserRegisterOut,
-    LoginIn, TokenOut, UserOut, HealthCheck
+    LoginIn, TokenOut, UserOut, AdminOut, HealthCheck
 )
 from app.common.security import get_password_hash, verify_password, create_access_token, get_current_user
 from app.common.logger import auth_logger
@@ -19,59 +19,59 @@ from datetime import datetime
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
-@router.post("/register/company", response_model=CompanyRegisterOut, status_code=status.HTTP_201_CREATED)
-async def register_company(
-    company_data: CompanyRegisterIn,
+@router.post("/register/admin", response_model=AdminRegisterOut, status_code=status.HTTP_201_CREATED)
+async def register_admin(
+    admin_data: AdminRegisterIn,
     db: Session = Depends(get_db)
 ):
-    """Admin(기업) 회원가입 (이미지 데이터 구조 기반)"""
-    auth_logger.info(f"Admin(Company) registration attempt for company_id: {company_data.company_id}")
+    """Admin 회원가입 (이미지 데이터 구조 기반)"""
+    auth_logger.info(f"Admin registration attempt for admin_id: {admin_data.admin_id}")
     
     try:
-        # company_id 중복 확인
-        existing_company = db.query(Company).filter(Company.company_id == company_data.company_id).first()
-        if existing_company:
+        # admin_id 중복 확인
+        existing_admin = db.query(Admin).filter(Admin.admin_id == admin_data.admin_id).first()
+        if existing_admin:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="이미 사용 중인 Admin ID입니다."
             )
         
-        # Admin(Company) 모델에 맞는 데이터 준비 (password -> hashed_password, confirm_password 제거)
-        company_dict = company_data.model_dump()
-        company_dict.pop('confirm_password', None)  # confirm_password 필드 제거
-        company_dict['hashed_password'] = get_password_hash(company_dict.pop('password'))  # password를 hashed_password로 변환
+        # Admin 모델에 맞는 데이터 준비 (password -> hashed_password, confirm_password 제거)
+        admin_dict = admin_data.model_dump()
+        admin_dict.pop('confirm_password', None)  # confirm_password 필드 제거
+        admin_dict['hashed_password'] = get_password_hash(admin_dict.pop('password'))  # password를 hashed_password로 변환
         
         # 스트림 ID 생성
-        stream_id = company_data.stream_id or generate_stream_id("company", 0, "auth")
-        company_dict['stream_id'] = stream_id
+        stream_id = admin_data.stream_id or generate_stream_id("admin", 0, "auth")
+        admin_dict['stream_id'] = stream_id
         
-        # 새 Admin(기업) 생성
-        new_company = Company(**company_dict)
-        db.add(new_company)
+        # 새 Admin 생성
+        new_admin = Admin(**admin_dict)
+        db.add(new_admin)
         db.commit()
-        db.refresh(new_company)
+        db.refresh(new_admin)
         
         # 스트림 이벤트 생성
         try:
             create_stream_event(
                 db=db,
                 stream_id=stream_id,
-                stream_type="company",
-                entity_id=new_company.id,
-                entity_type="company",
-                event_type="company_created",
+                stream_type="admin",
+                entity_id=new_admin.id,
+                entity_type="admin",
+                event_type="admin_created",
                 event_data={
-                    "company_id": new_company.id,
-                    "company_uuid": new_company.uuid,
-                    "company_login_id": new_company.company_id,
-                    "Installation": new_company.Installation,
-                    "postcode": new_company.postcode,
-                    "city": new_company.city,
-                    "country": new_company.country
+                    "admin_id": new_admin.id,
+                    "admin_uuid": new_admin.uuid,
+                    "admin_login_id": new_admin.admin_id,
+                    "Installation": new_admin.Installation,
+                    "postcode": new_admin.postcode,
+                    "city": new_admin.city,
+                    "country": new_admin.country
                 },
                 event_metadata={
                     "registration_source": "auth_service",
-                    "stream_metadata": company_data.stream_metadata
+                    "stream_metadata": admin_data.stream_metadata
                 }
             )
             
@@ -79,30 +79,30 @@ async def register_company(
             create_stream_snapshot(
                 db=db,
                 stream_id=stream_id,
-                stream_type="company",
-                entity_id=new_company.id,
-                entity_type="company",
-                snapshot_data=new_company.to_dict(),
+                stream_type="admin",
+                entity_id=new_admin.id,
+                entity_type="admin",
+                snapshot_data=new_admin.to_dict(),
                 snapshot_metadata={
-                    "snapshot_type": "company_registration",
+                    "snapshot_type": "admin_registration",
                     "created_by": "auth_service"
                 }
             )
         except Exception as stream_error:
-            auth_logger.warning(f"Stream event/snapshot creation failed for company {new_company.id}: {str(stream_error)}")
+            auth_logger.warning(f"Stream event/snapshot creation failed for admin {new_admin.id}: {str(stream_error)}")
             # 스트림 생성 실패는 회원가입을 막지 않음
         
-        auth_logger.info(f"Admin(Company) registered successfully: {new_company.id} with stream_id: {stream_id}")
-        return new_company
+        auth_logger.info(f"Admin registered successfully: {new_admin.id} with stream_id: {stream_id}")
+        return new_admin
         
     except HTTPException:
         raise
     except Exception as e:
         db.rollback()
-        auth_logger.error(f"Unexpected error during admin(company) registration: {str(e)}")
+        auth_logger.error(f"Unexpected error during admin registration: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Admin(기업) 등록 중 오류가 발생했습니다."
+            detail="Admin 등록 중 오류가 발생했습니다."
         )
 
 @router.post("/register/user", response_model=UserRegisterOut, status_code=status.HTTP_201_CREATED)
@@ -110,16 +110,16 @@ async def register_user(
     user_data: UserRegisterIn,
     db: Session = Depends(get_db)
 ):
-    """User 회원가입 (Admin/기업에 종속, 스트림 구조 지원)"""
+    """User 회원가입 (Admin에 종속, 스트림 구조 지원)"""
     auth_logger.info(f"User registration attempt for username: {user_data.username}")
     
     try:
-        # Admin(기업) 존재 확인
-        company = db.query(Company).filter(Company.id == user_data.company_id).first()
-        if not company:
+        # Admin 존재 확인
+        admin = db.query(Admin).filter(Admin.id == user_data.admin_id).first()
+        if not admin:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="존재하지 않는 Admin(기업) ID입니다."
+                detail="존재하지 않는 Admin ID입니다."
             )
         
         # username 중복 확인
@@ -138,7 +138,7 @@ async def register_user(
             username=user_data.username,
             hashed_password=get_password_hash(user_data.password),
             full_name=user_data.full_name,
-            company_id=user_data.company_id,
+            admin_id=user_data.admin_id,
             stream_id=stream_id
         )
         db.add(new_user)
@@ -158,7 +158,7 @@ async def register_user(
                     "user_id": new_user.id,
                     "user_uuid": new_user.uuid,
                     "username": new_user.username,
-                    "company_id": new_user.company_id
+                    "admin_id": new_user.admin_id
                 },
                 event_metadata={
                     "registration_source": "auth_service",
@@ -201,35 +201,35 @@ async def login(
     login_data: LoginIn,
     db: Session = Depends(get_db)
 ):
-    """사용자 로그인 (Admin/Company와 User 구분)"""
+    """사용자 로그인 (Admin과 User 구분)"""
     auth_logger.info(f"Login attempt for username: {login_data.username}")
     
     try:
-        # Admin(Company) 로그인 시도
-        company = db.query(Company).filter(Company.company_id == login_data.username).first()
-        if company:
+        # Admin 로그인 시도
+        admin = db.query(Admin).filter(Admin.admin_id == login_data.username).first()
+        if admin:
             # 비밀번호 확인
-            if not verify_password(login_data.password, company.hashed_password):
+            if not verify_password(login_data.password, admin.hashed_password):
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="잘못된 Admin ID 또는 비밀번호입니다."
                 )
             
             # 액세스 토큰 생성
-            access_token = create_access_token(data={"sub": str(company.id), "type": "company"})
+            access_token = create_access_token(data={"sub": str(admin.id), "type": "admin"})
             
-            # 스트림 이벤트 생성 (Admin/Company 로그인)
-            if company.stream_id:
+            # 스트림 이벤트 생성 (Admin 로그인)
+            if admin.stream_id:
                 try:
                     create_stream_event(
                         db=db,
-                        stream_id=company.stream_id,
-                        stream_type="company",
-                        entity_id=company.id,
-                        entity_type="company",
-                        event_type="company_login",
+                        stream_id=admin.stream_id,
+                        stream_type="admin",
+                        entity_id=admin.id,
+                        entity_type="admin",
+                        event_type="admin_login",
                         event_data={
-                            "company_id": company.id,
+                            "admin_id": admin.id,
                             "login_timestamp": datetime.now().isoformat(),
                             "ip_address": "unknown"  # 실제로는 요청에서 추출
                         },
@@ -239,13 +239,13 @@ async def login(
                         }
                     )
                 except Exception as stream_error:
-                    auth_logger.warning(f"Stream event creation failed for admin(company) login {company.id}: {str(stream_error)}")
+                    auth_logger.warning(f"Stream event creation failed for admin login {admin.id}: {str(stream_error)}")
             
-            auth_logger.info(f"Admin(Company) login successful: {company.id}")
+            auth_logger.info(f"Admin login successful: {admin.id}")
             return TokenOut(
                 access_token=access_token,
-                user_type="company",
-                user_info=company
+                user_type="admin",
+                user_info=admin
             )
         
         # User 로그인 시도
@@ -307,11 +307,11 @@ async def login(
                 uuid=user.uuid,
                 username=user.username,
                 full_name=user.full_name,
-                company_id=user.company_id,
-                company_info=None,
+                admin_id=user.admin_id,
+                admin_info=None,
                 role=user.role,
                 permissions=user.permissions,
-                is_company_admin=user.is_company_admin,
+                is_admin_user=user.is_admin_user,
                 can_manage_users=user.can_manage_users,
                 can_view_reports=user.can_view_reports,
                 can_edit_data=user.can_edit_data,
@@ -342,20 +342,20 @@ async def logout():
 
 @router.get("/me")
 async def get_current_user_info(
-    current_user: Union[User, Company] = Depends(get_current_user)
+    current_user: Union[User, Admin] = Depends(get_current_user)
 ):
-    """현재 로그인한 사용자 정보 조회 (Admin/Company와 User 구분)"""
+    """현재 로그인한 사용자 정보 조회 (Admin과 User 구분)"""
     if hasattr(current_user, 'username'):  # User인 경우
         return UserOut(
             id=current_user.id,
             uuid=current_user.uuid,
             username=current_user.username,
             full_name=current_user.full_name,
-            company_id=current_user.company_id,
-            company_info=None,
+            admin_id=current_user.admin_id,
+            admin_info=None,
             role=current_user.role,
             permissions=current_user.permissions,
-            is_company_admin=current_user.is_company_admin,
+            is_admin_user=current_user.is_admin_user,
             can_manage_users=current_user.can_manage_users,
             can_view_reports=current_user.can_view_reports,
             can_edit_data=current_user.can_edit_data,
@@ -368,11 +368,11 @@ async def get_current_user_info(
             created_at=current_user.created_at,
             updated_at=current_user.updated_at
         )
-    else:  # Company인 경우
-        return CompanyOut(
+    else:  # Admin인 경우
+        return AdminOut(
             id=current_user.id,
             uuid=current_user.uuid,
-            company_id=current_user.company_id,
+            admin_id=current_user.admin_id,
             Installation=current_user.Installation,
             Installation_en=current_user.Installation_en,
             economic_activity=current_user.economic_activity,

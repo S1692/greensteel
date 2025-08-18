@@ -8,28 +8,26 @@ import TabGroup from '@/components/molecules/TabGroup';
 import AddressSearchModal from '@/components/AddressSearchModal';
 
 interface CompanyData {
-  username: string;
+  company_id: string;
   password: string;
-  confirm_password: string;
-  name_ko: string;
-  name_en: string;
+  confirmPassword: string;
+  company_name: string;
   biz_no: string;
   ceo_name: string;
   ceo_name_en: string;
-  country: string;
-  country_eng: string;
-  zipcode: string;
-  city: string;
-  city_eng: string;
   address: string;
-  address_eng: string;
   address1: string;
-  address1_eng: string;
-  sector: string;
-  industry_code: string;
+  zipcode: string;
+  country: string;
+  city: string;
+  industry: string;
   manager_name: string;
   manager_phone: string;
   manager_email: string;
+  country_eng: string;
+  city_eng: string;
+  address_eng: string;
+  address1_eng: string;
 }
 
 interface UserData {
@@ -54,32 +52,28 @@ interface AddressData {
 
 export default function RegisterPage() {
   const [activeTab, setActiveTab] = useState<'company' | 'user'>('company');
-  const [isLoading, setIsLoading] = useState(false);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
-
   const [companyData, setCompanyData] = useState<CompanyData>({
-    username: '',
+    company_id: '',
     password: '',
-    confirm_password: '',
-    name_ko: '',
-    name_en: '',
+    confirmPassword: '',
+    company_name: '',
     biz_no: '',
     ceo_name: '',
     ceo_name_en: '',
-    country: '',
-    country_eng: '',
-    zipcode: '',
-    city: '',
-    city_eng: '',
     address: '',
-    address_eng: '',
     address1: '',
-    address1_eng: '',
-    sector: '',
-    industry_code: '',
+    zipcode: '',
+    country: '',
+    city: '',
+    industry: '',
     manager_name: '',
-    manager_phone: '',
     manager_email: '',
+    manager_phone: '',
+    country_eng: '',
+    city_eng: '',
+    address_eng: '',
+    address1_eng: '',
   });
 
   const [userData, setUserData] = useState<UserData>({
@@ -107,44 +101,16 @@ export default function RegisterPage() {
     }));
   };
 
-  const handleCompanySubmit = async (e: React.FormEvent) => {
+  const handleCompanySubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      // 기업 등록 로직
-      console.log('기업 등록 데이터:', companyData);
-
-      // API 호출 로직
-      await new Promise(resolve => setTimeout(resolve, 2000)); // 임시 지연
-
-      alert('기업 등록이 완료되었습니다.');
-    } catch (error) {
-      console.error('기업 등록 오류:', error);
-      alert('기업 등록 중 오류가 발생했습니다.');
-    } finally {
-      setIsLoading(false);
-    }
+    // TODO: 실제 API 호출로 교체
+    alert('회사 등록이 완료되었습니다!');
   };
 
-  const handleUserSubmit = async (e: React.FormEvent) => {
+  const handleUserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      // 사용자 등록 로직
-      console.log('사용자 등록 데이터:', userData);
-
-      // API 호출 로직
-      await new Promise(resolve => setTimeout(resolve, 2000)); // 임시 지연
-
-      alert('사용자 등록이 완료되었습니다.');
-    } catch (error) {
-      console.error('사용자 등록 오류:', error);
-      alert('사용자 등록 중 오류가 발생했습니다.');
-    } finally {
-      setIsLoading(false);
-    }
+    // TODO: 실제 API 호출로 교체
+    alert('사용자 등록이 완료되었습니다!');
   };
 
   const handleAddressSelect = (addressData: AddressData) => {
@@ -197,12 +163,11 @@ export default function RegisterPage() {
                   <label className="stitch-label mb-1 block">ID *</label>
                   <Input
                     type="text"
-                    value={companyData.username}
+                    value={companyData.company_id}
                     onChange={e =>
-                      handleCompanyInputChange('username', e.target.value)
+                      handleCompanyInputChange('company_id', e.target.value)
                     }
                     placeholder="예: smartesg"
-                    disabled={isLoading}
                     required
                   />
                 </div>
@@ -215,7 +180,6 @@ export default function RegisterPage() {
                       handleCompanyInputChange('password', e.target.value)
                     }
                     placeholder="********"
-                    disabled={isLoading}
                     required
                   />
                 </div>
@@ -225,15 +189,14 @@ export default function RegisterPage() {
                   </label>
                   <Input
                     type="password"
-                    value={companyData.confirm_password}
+                    value={companyData.confirmPassword}
                     onChange={e =>
                       handleCompanyInputChange(
-                        'confirm_password',
+                        'confirmPassword',
                         e.target.value
                       )
                     }
                     placeholder="********"
-                    disabled={isLoading}
                     required
                   />
                 </div>
@@ -250,12 +213,11 @@ export default function RegisterPage() {
                   </label>
                   <Input
                     type="text"
-                    value={companyData.name_ko}
+                    value={companyData.company_name}
                     onChange={e =>
-                      handleCompanyInputChange('name_ko', e.target.value)
+                      handleCompanyInputChange('company_name', e.target.value)
                     }
                     placeholder="예: 스마트에스지"
-                    disabled={isLoading}
                     required
                   />
                 </div>
@@ -265,12 +227,11 @@ export default function RegisterPage() {
                   </label>
                   <Input
                     type="text"
-                    value={companyData.name_en}
+                    value={companyData.ceo_name_en}
                     onChange={e =>
-                      handleCompanyInputChange('name_en', e.target.value)
+                      handleCompanyInputChange('ceo_name_en', e.target.value)
                     }
                     placeholder="예: Smart ESG"
-                    disabled={isLoading}
                   />
                 </div>
                 <div>
@@ -284,7 +245,6 @@ export default function RegisterPage() {
                       handleCompanyInputChange('biz_no', e.target.value)
                     }
                     placeholder="예: 1234567890"
-                    disabled={isLoading}
                     required
                   />
                 </div>
@@ -297,7 +257,6 @@ export default function RegisterPage() {
                       handleCompanyInputChange('ceo_name', e.target.value)
                     }
                     placeholder="예: 홍길동"
-                    disabled={isLoading}
                   />
                 </div>
                 <div>
@@ -311,7 +270,6 @@ export default function RegisterPage() {
                       handleCompanyInputChange('ceo_name_en', e.target.value)
                     }
                     placeholder="예: Hong Gil-dong"
-                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -388,7 +346,6 @@ export default function RegisterPage() {
                       handleCompanyInputChange('address1', e.target.value)
                     }
                     placeholder="상세 주소를 입력하세요"
-                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -410,11 +367,10 @@ export default function RegisterPage() {
                   <label className="stitch-label mb-1 block">업태/업종</label>
                   <Input
                     type="text"
-                    value={companyData.sector}
+                    value={companyData.industry}
                     onChange={e =>
-                      handleCompanyInputChange('sector', e.target.value)
+                      handleCompanyInputChange('industry', e.target.value)
                     }
-                    disabled={isLoading}
                   />
                 </div>
                 <div>
@@ -425,7 +381,6 @@ export default function RegisterPage() {
                     onChange={e =>
                       handleCompanyInputChange('industry_code', e.target.value)
                     }
-                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -446,7 +401,6 @@ export default function RegisterPage() {
                       handleCompanyInputChange('manager_name', e.target.value)
                     }
                     placeholder="예: 김길동"
-                    disabled={isLoading}
                     required
                   />
                 </div>
@@ -461,7 +415,6 @@ export default function RegisterPage() {
                       handleCompanyInputChange('manager_phone', e.target.value)
                     }
                     placeholder="예: 010-1234-5678"
-                    disabled={isLoading}
                     required
                   />
                 </div>
@@ -476,16 +429,13 @@ export default function RegisterPage() {
                       handleCompanyInputChange('manager_email', e.target.value)
                     }
                     placeholder="예: manager@smartesg.com"
-                    disabled={isLoading}
                   />
                 </div>
               </div>
             </div>
 
             <div className="text-center pt-4">
-              <Button disabled={isLoading} className="w-full max-w-md">
-                {isLoading ? '등록 중...' : '기업 등록'}
-              </Button>
+              <Button className="w-full max-w-md">기업 등록</Button>
             </div>
           </form>
         )}
@@ -509,7 +459,6 @@ export default function RegisterPage() {
                       handleUserInputChange('username', e.target.value)
                     }
                     placeholder="예: smartuser"
-                    disabled={isLoading}
                     required
                   />
                 </div>
@@ -522,7 +471,6 @@ export default function RegisterPage() {
                       handleUserInputChange('password', e.target.value)
                     }
                     placeholder="********"
-                    disabled={isLoading}
                     required
                   />
                 </div>
@@ -537,7 +485,6 @@ export default function RegisterPage() {
                       handleUserInputChange('confirm_password', e.target.value)
                     }
                     placeholder="********"
-                    disabled={isLoading}
                     required
                   />
                 </div>
@@ -557,7 +504,6 @@ export default function RegisterPage() {
                       handleUserInputChange('full_name', e.target.value)
                     }
                     placeholder="예: 홍길동"
-                    disabled={isLoading}
                     required
                   />
                 </div>
@@ -570,7 +516,6 @@ export default function RegisterPage() {
                       handleUserInputChange('company_id', e.target.value)
                     }
                     placeholder="기업 등록 후 발급된 ID"
-                    disabled={isLoading}
                     required
                   />
                 </div>
@@ -578,9 +523,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="text-center pt-4">
-              <Button disabled={isLoading} className="w-full max-w-md">
-                {isLoading ? '등록 중...' : '사용자 등록'}
-              </Button>
+              <Button className="w-full max-w-md">사용자 등록</Button>
             </div>
           </form>
         )}

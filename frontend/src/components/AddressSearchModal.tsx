@@ -43,17 +43,64 @@ interface KakaoMapData {
   y: string;
 }
 
+interface KakaoLatLng {
+  getLat(): number;
+  getLng(): number;
+}
+
+interface KakaoMap {
+  setCenter(latlng: KakaoLatLng): void;
+  setLevel(level: number): void;
+}
+
+interface KakaoMarker {
+  setPosition(latlng: KakaoLatLng): void;
+  setMap(map: KakaoMap | null): void;
+}
+
+interface KakaoInfoWindow {
+  setContent(content: string): void;
+  open(map: KakaoMap, marker: KakaoMarker): void;
+}
+
+interface KakaoGeocoder {
+  coord2Address(
+    lng: number,
+    lat: number,
+    callback: (result: KakaoMapData[], status: string) => void
+  ): void;
+}
+
+interface KakaoPlaces {
+  keywordSearch(
+    keyword: string,
+    callback: (results: any[], status: string) => void
+  ): void;
+}
+
+interface KakaoMapsServices {
+  Status: {
+    OK: string;
+  };
+  Geocoder: new () => KakaoGeocoder;
+  Places: new () => KakaoPlaces;
+}
+
 declare global {
   interface Window {
     kakao: {
       maps: {
-        Map: new (container: HTMLElement, options: any) => any;
-        LatLng: new (lat: number, lng: number) => any;
-        Marker: new (options: any) => any;
-        InfoWindow: new (options: any) => any;
-        services: {
-          Geocoder: new () => any;
-          Places: new () => any;
+        Map: new (container: HTMLElement, options: any) => KakaoMap;
+        LatLng: new (lat: number, lng: number) => KakaoLatLng;
+        Marker: new (options?: any) => KakaoMarker;
+        InfoWindow: new (options: any) => KakaoInfoWindow;
+        services: KakaoMapsServices;
+        event: {
+          addListener(
+            map: KakaoMap,
+            event: string,
+            callback: (event: any) => void
+          ): void;
         };
       };
     };
@@ -67,17 +114,21 @@ export default function AddressSearchModal({
 }: AddressSearchModalProps) {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [selectedAddress, setSelectedAddress] = useState<AddressData | null>(null);
-  const [map, setMap] = useState<any>(null);
-  const [marker, setMarker] = useState<any>(null);
-  const [infoWindow, setInfoWindow] = useState<any>(null);
+  const [selectedAddress, setSelectedAddress] = useState<AddressData | null>(
+    null
+  );
+  const [map, setMap] = useState<KakaoMap | null>(null);
+  const [marker, setMarker] = useState<KakaoMarker | null>(null);
+  const [infoWindow, setInfoWindow] = useState<KakaoInfoWindow | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // 카카오 지도 API 스크립트 로드
     const script = document.createElement('script');
-    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY || 'YOUR_KAKAO_MAP_API_KEY'}&libraries=services`;
+    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${
+      process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY || 'YOUR_KAKAO_MAP_API_KEY'
+    }&libraries=services`;
     script.async = true;
     script.onload = initializeMap;
     document.head.appendChild(script);
@@ -117,10 +168,14 @@ export default function AddressSearchModal({
       level: 3,
     };
 
-    const kakaoMap = new window.kakao.maps.Map(mapContainerRef.current, options);
+    const kakaoMap = new window.kakao.maps.Map(
+      mapContainerRef.current,
+      options
+    );
     const kakaoMarker = new window.kakao.maps.Marker();
     const kakaoInfoWindow = new window.kakao.maps.InfoWindow({
-      content: '<div style="padding:5px;font-size:12px;">위치를 클릭하세요</div>',
+      content:
+        '<div style="padding:5px;font-size:12px;">위치를 클릭하세요</div>',
     });
 
     setMap(kakaoMap);
@@ -128,13 +183,17 @@ export default function AddressSearchModal({
     setInfoWindow(kakaoInfoWindow);
 
     // 지도 클릭 이벤트
-    window.kakao.maps.event.addListener(kakaoMap, 'click', (mouseEvent: any) => {
-      const latlng = mouseEvent.latLng;
-      handleMapClick(latlng);
-    });
+    window.kakao.maps.event.addListener(
+      kakaoMap,
+      'click',
+      (mouseEvent: any) => {
+        const latlng = mouseEvent.latLng;
+        handleMapClick(latlng);
+      }
+    );
   };
 
-  const handleMapClick = async (latlng: any) => {
+  const handleMapClick = async (latlng: KakaoLatLng) => {
     if (!map || !marker || !infoWindow) return;
 
     // 마커 위치 설정
@@ -143,40 +202,47 @@ export default function AddressSearchModal({
 
     // 좌표를 주소로 변환
     const geocoder = new window.kakao.maps.services.Gecoder();
-    geocoder.coord2Address(latlng.getLng(), latlng.getLat(), (result: any, status: any) => {
-      if (status === window.kakao.maps.services.Status.OK) {
-        const addressData = result[0];
-        const addressInfo = createAddressDataFromKakao(addressData, latlng);
-        setSelectedAddress(addressInfo);
-        
-        // 정보창 표시
-        infoWindow.setContent(`
-          <div style="padding:10px;min-width:200px;">
-            <h4 style="margin:0 0 10px 0;font-size:14px;">선택된 주소</h4>
-            <p style="margin:5px 0;font-size:12px;"><strong>주소:</strong> ${addressInfo.address}</p>
-            <p style="margin:5px 0;font-size:12px;"><strong>우편번호:</strong> ${addressInfo.zipcode}</p>
-            <p style="margin:5px 0;font-size:12px;"><strong>지역:</strong> ${addressInfo.city}</p>
-            <button onclick="window.selectAddress()" style="margin-top:10px;padding:5px 10px;background:#007bff;color:white;border:none;border-radius:3px;cursor:pointer;">
-              이 주소 선택
-            </button>
-          </div>
-        `);
-        infoWindow.open(map, marker);
+    geocoder.coord2Address(
+      latlng.getLng(),
+      latlng.getLat(),
+      (result: KakaoMapData[], status: string) => {
+        if (status === window.kakao.maps.services.Status.OK) {
+          const addressData = result[0];
+          const addressInfo = createAddressDataFromKakao(addressData, latlng);
+          setSelectedAddress(addressInfo);
 
-        // 전역 함수로 주소 선택 함수 등록
-        (window as any).selectAddress = () => {
-          onAddressSelect(addressInfo);
-          onClose();
-        };
+          // 정보창 표시
+          infoWindow.setContent(`
+            <div style="padding:10px;min-width:200px;">
+              <h4 style="margin:0 0 10px 0;font-size:14px;">선택된 주소</h4>
+              <p style="margin:5px 0;font-size:12px;"><strong>주소:</strong> ${addressInfo.address}</p>
+              <p style="margin:5px 0;font-size:12px;"><strong>우편번호:</strong> ${addressInfo.zipcode}</p>
+              <p style="margin:5px 0;font-size:12px;"><strong>지역:</strong> ${addressInfo.city}</p>
+              <button onclick="window.selectAddress()" style="margin-top:10px;padding:5px 10px;background:#007bff;color:white;border:none;border-radius:3px;cursor:pointer;">
+                이 주소 선택
+              </button>
+            </div>
+          `);
+          infoWindow.open(map, marker);
+
+          // 전역 함수로 주소 선택 함수 등록
+          (window as any).selectAddress = () => {
+            onAddressSelect(addressInfo);
+            onClose();
+          };
+        }
       }
-    });
+    );
   };
 
-  const createAddressDataFromKakao = (addressData: KakaoMapData, latlng: any): AddressData => {
+  const createAddressDataFromKakao = (
+    addressData: KakaoMapData,
+    latlng: KakaoLatLng
+  ): AddressData => {
     const city = addressData.region_1depth_name || '서울특별시';
     const district = addressData.region_2depth_name || '';
     const neighborhood = addressData.region_3depth_name || '';
-    
+
     return {
       address: `${city} ${district} ${neighborhood}`.trim(),
       address_eng: `${city} ${district} ${neighborhood}`.trim(),
@@ -185,8 +251,10 @@ export default function AddressSearchModal({
       country_eng: 'Korea',
       city: city,
       city_eng: getCityEnglish(city),
-      address1: `${addressData.bname} ${addressData.building_name || ''}`.trim(),
-      address1_eng: `${addressData.bname} ${addressData.building_name || ''}`.trim(),
+      address1:
+        `${addressData.bname} ${addressData.building_name || ''}`.trim(),
+      address1_eng:
+        `${addressData.bname} ${addressData.building_name || ''}`.trim(),
       latitude: latlng.getLat(),
       longitude: latlng.getLng(),
     };
@@ -199,17 +267,20 @@ export default function AddressSearchModal({
 
     try {
       const places = new window.kakao.maps.services.Places();
-      places.keywordSearch(searchKeyword, (results: any, status: any) => {
+      places.keywordSearch(searchKeyword, (results: any[], status: string) => {
         setIsSearching(false);
 
-        if (status === window.kakao.maps.services.Status.OK && results.length > 0) {
+        if (
+          status === window.kakao.maps.services.Status.OK &&
+          results.length > 0
+        ) {
           const place = results[0];
           const latlng = new window.kakao.maps.LatLng(place.y, place.x);
-          
+
           // 지도 중심을 검색 결과로 이동
           map.setCenter(latlng);
           map.setLevel(3);
-          
+
           // 마커 표시
           handleMapClick(latlng);
         } else {
@@ -218,7 +289,6 @@ export default function AddressSearchModal({
       });
     } catch (error) {
       setIsSearching(false);
-      console.error('주소 검색 중 오류 발생:', error);
       alert('주소 검색 중 오류가 발생했습니다.');
     }
   };
@@ -230,19 +300,18 @@ export default function AddressSearchModal({
     }
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      position => {
         const latlng = new window.kakao.maps.LatLng(
           position.coords.latitude,
           position.coords.longitude
         );
-        
+
         map.setCenter(latlng);
         map.setLevel(3);
         handleMapClick(latlng);
       },
-      (error) => {
+      error => {
         alert('현재 위치를 가져오는데 실패했습니다.');
-        console.error('Geolocation error:', error);
       }
     );
   };
@@ -339,7 +408,7 @@ export default function AddressSearchModal({
               📍 현재 위치
             </Button>
           </div>
-          
+
           <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
             <div className="flex items-center space-x-2">
               <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
@@ -364,13 +433,15 @@ export default function AddressSearchModal({
               className="w-full h-full"
               style={{ minHeight: '400px' }}
             />
-            
+
             {/* 지도 로딩 오버레이 */}
             {!map && (
               <div className="absolute inset-0 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                  <p className="text-gray-600 dark:text-gray-400">지도를 불러오는 중...</p>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    지도를 불러오는 중...
+                  </p>
                 </div>
               </div>
             )}
@@ -386,15 +457,29 @@ export default function AddressSearchModal({
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p><strong>주소:</strong> {selectedAddress.address}</p>
-                  <p><strong>상세주소:</strong> {selectedAddress.address1}</p>
-                  <p><strong>우편번호:</strong> {selectedAddress.zipcode}</p>
+                  <p>
+                    <strong>주소:</strong> {selectedAddress.address}
+                  </p>
+                  <p>
+                    <strong>상세주소:</strong> {selectedAddress.address1}
+                  </p>
+                  <p>
+                    <strong>우편번호:</strong> {selectedAddress.zipcode}
+                  </p>
                 </div>
                 <div>
-                  <p><strong>도시:</strong> {selectedAddress.city}</p>
-                  <p><strong>국가:</strong> {selectedAddress.country_eng}</p>
+                  <p>
+                    <strong>도시:</strong> {selectedAddress.city}
+                  </p>
+                  <p>
+                    <strong>국가:</strong> {selectedAddress.country_eng}
+                  </p>
                   {selectedAddress.latitude && (
-                    <p><strong>좌표:</strong> {selectedAddress.latitude.toFixed(6)}, {selectedAddress.longitude?.toFixed(6)}</p>
+                    <p>
+                      <strong>좌표:</strong>{' '}
+                      {selectedAddress.latitude.toFixed(6)},{' '}
+                      {selectedAddress.longitude?.toFixed(6)}
+                    </p>
                   )}
                 </div>
               </div>

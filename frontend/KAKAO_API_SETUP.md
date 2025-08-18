@@ -19,6 +19,7 @@ No 'Access-Control-Allow-Origin' header is present on the requested resource.
 ### **🚨 중요: 두 가지 도메인 모두 등록 필요**
 
 #### **현재 발생하는 문제**
+
 1. **Vercel 임시 도메인**: `https://greensteel-epxl12-*.vercel.app`
 2. **사용자 커스텀 도메인**: `https://greensteel.site`
 
@@ -64,11 +65,13 @@ No 'Access-Control-Allow-Origin' header is present on the requested resource.
 ### **🔍 도메인 차이점 설명**
 
 #### **Vercel 임시 도메인**
+
 - **형식**: `https://greensteel-epxl12-[random]-smh1692-hsackrs-projects.vercel.app`
 - **용도**: 개발 및 테스트 중 사용
 - **특징**: 자동 생성되며 변경될 수 있음
 
 #### **사용자 커스텀 도메인**
+
 - **형식**: `https://greensteel.site`
 - **용도**: 프로덕션 환경에서 사용
 - **특징**: 사용자가 직접 설정한 고정 도메인
@@ -88,11 +91,13 @@ No 'Access-Control-Allow-Origin' header is present on the requested resource.
 ### **🚨 CORS 오류가 지속 발생하는 경우**
 
 #### **문제 현상**
+
 카카오 개발자 콘솔에 도메인을 등록했음에도 CORS 오류가 계속 발생하는 경우
 
 #### **즉시 해결 방법**
 
 ##### **1단계: 카카오 개발자 콘솔 재확인**
+
 1. **JavaScript 키 유효성 확인**
    - 현재 사용 중인 JavaScript 키가 만료되지 않았는지 확인
    - 키가 올바르게 복사되었는지 확인
@@ -107,7 +112,9 @@ No 'Access-Control-Allow-Origin' header is present on the requested resource.
    - 앱이 일시정지되지 않았는지 확인
 
 ##### **2단계: Vercel 환경 변수 재확인**
+
 1. **환경 변수 값 확인**
+
    ```
    NEXT_PUBLIC_KAKAO_MAP_API_KEY=09570ff67d655dd1a9481f261a91e4b9
    ```
@@ -118,15 +125,18 @@ No 'Access-Control-Allow-Origin' header is present on the requested resource.
    - 배포 완료 후 5-10분 대기
 
 ##### **3단계: 브라우저 캐시 완전 삭제**
+
 1. **Ctrl+Shift+Delete** (Windows) 또는 **Cmd+Shift+Delete** (Mac)
 2. **모든 데이터 삭제** 선택
 3. **새로고침** 후 재시도
 
 ##### **4단계: 도메인 등록 후 대기**
+
 - 카카오 서버에 설정 반영까지 **5-10분** 소요
 - 즉시 반영되지 않을 수 있음
 
 ##### **5단계: 최후의 수단**
+
 1. **카카오 개발자 콘솔에서 앱 삭제**
 2. **새로운 앱 생성**
 3. **새로운 JavaScript 키 발급**

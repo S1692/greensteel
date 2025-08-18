@@ -520,76 +520,92 @@ export default function RegisterPage() {
         {activeTab === 'user' && (
           <form
             onSubmit={handleUserSubmit}
-            className="space-y-4 max-w-md mx-auto"
+            className="space-y-6 max-w-4xl mx-auto"
           >
-            <div>
-              <label className="stitch-label mb-1 block">ID *</label>
-              <Input
-                type="text"
-                value={userData.username}
-                onChange={e =>
-                  handleUserInputChange('username', e.target.value)
-                }
-                placeholder="예: smartuser"
-                disabled={isLoading}
-                required
-              />
+            {/* 계정 정보를 상단으로 이동 */}
+            <div className="bg-[rgba(255,255,255,.03)] p-6 rounded-lg border border-[rgba(255,255,255,.1)]">
+              <SectionTitle>계정 정보</SectionTitle>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="stitch-label mb-1 block">ID *</label>
+                  <Input
+                    type="text"
+                    value={userData.username}
+                    onChange={e =>
+                      handleUserInputChange('username', e.target.value)
+                    }
+                    placeholder="예: smartuser"
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="stitch-label mb-1 block">비밀번호 *</label>
+                  <Input
+                    type="password"
+                    value={userData.password}
+                    onChange={e =>
+                      handleUserInputChange('password', e.target.value)
+                    }
+                    placeholder="********"
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="stitch-label mb-1 block">비밀번호 확인 *</label>
+                  <Input
+                    type="password"
+                    value={userData.confirm_password}
+                    onChange={e =>
+                      handleUserInputChange('confirm_password', e.target.value)
+                    }
+                    placeholder="********"
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="stitch-label mb-1 block">비밀번호 *</label>
-              <Input
-                type="password"
-                value={userData.password}
-                onChange={e =>
-                  handleUserInputChange('password', e.target.value)
-                }
-                placeholder="********"
-                disabled={isLoading}
-                required
-              />
+
+            {/* 개인 정보 */}
+            <div className="bg-[rgba(255,255,255,.03)] p-6 rounded-lg border border-[rgba(255,255,255,.1)]">
+              <SectionTitle>개인 정보</SectionTitle>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="stitch-label mb-1 block">이름 *</label>
+                  <Input
+                    type="text"
+                    value={userData.full_name}
+                    onChange={e =>
+                      handleUserInputChange('full_name', e.target.value)
+                    }
+                    placeholder="예: 홍길동"
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="stitch-label mb-1 block">기업 ID *</label>
+                  <Input
+                    type="text"
+                    value={userData.company_id}
+                    onChange={e =>
+                      handleUserInputChange('company_id', e.target.value)
+                    }
+                    placeholder="기업 등록 후 발급된 ID"
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="stitch-label mb-1 block">비밀번호 확인 *</label>
-              <Input
-                type="password"
-                value={userData.confirm_password}
-                onChange={e =>
-                  handleUserInputChange('confirm_password', e.target.value)
-                }
-                placeholder="********"
-                disabled={isLoading}
-                required
-              />
+
+            <div className="text-center pt-4">
+              <Button disabled={isLoading} className="w-full max-w-md">
+                {isLoading ? '등록 중...' : '사용자 등록'}
+              </Button>
             </div>
-            <div>
-              <label className="stitch-label mb-1 block">이름 *</label>
-              <Input
-                type="text"
-                value={userData.full_name}
-                onChange={e =>
-                  handleUserInputChange('full_name', e.target.value)
-                }
-                placeholder="예: 홍길동"
-                disabled={isLoading}
-                required
-              />
-            </div>
-            <div>
-              <label className="stitch-label mb-1 block">기업 ID *</label>
-              <Input
-                type="text"
-                value={userData.company_id}
-                onChange={e =>
-                  handleUserInputChange('company_id', e.target.value)
-                }
-                placeholder="기업 등록 후 발급된 ID"
-                disabled={isLoading}
-                required
-              />
-            </div>
-            <Button disabled={isLoading}>
-              {isLoading ? '등록 중...' : '사용자 등록'}
-            </Button>
           </form>
         )}
 

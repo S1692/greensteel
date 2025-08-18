@@ -345,29 +345,61 @@ async def get_current_user_info(
     current_user: Union[User, Company] = Depends(get_current_user)
 ):
     """현재 로그인한 사용자 정보 조회 (Company/User 구분)"""
-    if hasattr(current_user, 'company_id'):  # User인 경우
+    if hasattr(current_user, 'username'):  # User인 경우
         return UserOut(
             id=current_user.id,
             uuid=current_user.uuid,
-        username=current_user.username,
-        full_name=current_user.full_name,
-        company_id=current_user.company_id,
-        company_info=None,
-        role=current_user.role,
-        permissions=current_user.permissions,
-        is_company_admin=current_user.is_company_admin,
-        can_manage_users=current_user.can_manage_users,
-        can_view_reports=current_user.can_view_reports,
-        can_edit_data=current_user.can_edit_data,
-        can_export_data=current_user.can_export_data,
-        stream_id=current_user.stream_id,
-        stream_version=current_user.stream_version,
-        stream_metadata=current_user.stream_metadata,
-        is_stream_active=current_user.is_stream_active,
-        is_active=current_user.is_active,
-        created_at=current_user.created_at,
-        updated_at=current_user.updated_at
-    )
+            username=current_user.username,
+            full_name=current_user.full_name,
+            company_id=current_user.company_id,
+            company_info=None,
+            role=current_user.role,
+            permissions=current_user.permissions,
+            is_company_admin=current_user.is_company_admin,
+            can_manage_users=current_user.can_manage_users,
+            can_view_reports=current_user.can_view_reports,
+            can_edit_data=current_user.can_edit_data,
+            can_export_data=current_user.can_export_data,
+            stream_id=current_user.stream_id,
+            stream_version=current_user.stream_version,
+            stream_metadata=current_user.stream_metadata,
+            is_stream_active=current_user.is_stream_active,
+            is_active=current_user.is_active,
+            created_at=current_user.created_at,
+            updated_at=current_user.updated_at
+        )
+    else:  # Company인 경우
+        return CompanyOut(
+            id=current_user.id,
+            uuid=current_user.uuid,
+            company_id=current_user.company_id,
+            Installation=current_user.Installation,
+            Installation_en=current_user.Installation_en,
+            economic_activity=current_user.economic_activity,
+            economic_activity_en=current_user.economic_activity_en,
+            representative=current_user.representative,
+            representative_en=current_user.representative_en,
+            email=current_user.email,
+            telephone=current_user.telephone,
+            street=current_user.street,
+            street_en=current_user.street_en,
+            number=current_user.number,
+            number_en=current_user.number_en,
+            postcode=current_user.postcode,
+            city=current_user.city,
+            city_en=current_user.city_en,
+            country=current_user.country,
+            country_en=current_user.country_en,
+            unlocode=current_user.unlocode,
+            sourcelatitude=current_user.sourcelatitude,
+            sourcelongitude=current_user.sourcelongitude,
+            stream_id=current_user.stream_id,
+            stream_version=current_user.stream_version,
+            stream_metadata=current_user.stream_metadata,
+            is_stream_active=current_user.is_stream_active,
+            created_at=current_user.created_at,
+            updated_at=current_user.updated_at
+        )
 
 @router.get("/health", response_model=HealthCheck)
 async def health_check():

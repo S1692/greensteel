@@ -414,6 +414,15 @@ export default function AddressSearchModal({
 
   if (!isOpen) return null;
 
+  // 디버깅: 모달 상태 확인
+  console.log('AddressSearchModal 렌더링:', {
+    isOpen,
+    isKakaoReady,
+    searchKeyword,
+    selectedAddress: !!selectedAddress,
+    searchResults: searchResults.length
+  });
+
   return (
     <>
       {/* 카카오 맵 SDK 로드 */}
@@ -430,27 +439,38 @@ export default function AddressSearchModal({
         }}
       />
 
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+        {/* 모달이 제대로 로드되지 않았을 때의 폴백 메시지 */}
+        {!isKakaoReady && (
+          <div className="absolute inset-0 flex items-center justify-center z-[10001]">
+            <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-700">카카오 맵을 로딩 중입니다...</p>
+            </div>
+          </div>
+        )}
+        
         <div
           ref={modalRef}
-          className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col"
+          className="bg-white rounded-lg shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col relative z-[10000]"
+          style={{ minHeight: '600px' }}
         >
           {/* 헤더 */}
-          <div className="flex justify-between items-center p-4 border-b border-gray-200">
+          <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-white sticky top-0 z-10">
             <h2 className="text-xl font-bold text-gray-800">주소 검색</h2>
             <Button
               onClick={handleClose}
               variant="outline"
-              className="px-3 py-1"
+              className="px-3 py-1 hover:bg-gray-100"
             >
               ✕
             </Button>
           </div>
 
           {/* 메인 컨텐츠 */}
-          <div className="flex-1 flex flex-col lg:flex-row min-h-0">
+          <div className="flex-1 flex flex-col lg:flex-row min-h-0 bg-white">
             {/* 왼쪽 검색 패널 */}
-            <div className="w-full lg:w-80 p-4 border-r border-gray-200 space-y-4 overflow-y-auto">
+            <div className="w-full lg:w-80 p-4 border-r border-gray-200 space-y-4 overflow-y-auto bg-gray-50">
               {/* 검색 입력 */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">
@@ -462,13 +482,13 @@ export default function AddressSearchModal({
                     value={searchKeyword}
                     onChange={e => setSearchKeyword(e.target.value)}
                     placeholder="장소명을 입력하세요"
-                    className="flex-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="flex-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                     onKeyPress={e => e.key === 'Enter' && handleSearch()}
                   />
                   <Button
                     onClick={handleSearch}
                     disabled={isLoading || !searchKeyword.trim()}
-                    className="px-4 py-2"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white"
                   >
                     {isLoading ? '검색중...' : '🔍'}
                   </Button>
@@ -480,7 +500,7 @@ export default function AddressSearchModal({
                 <Button
                   onClick={handleCurrentLocation}
                   variant="outline"
-                  className="w-full"
+                  className="w-full border-gray-300 hover:bg-gray-100"
                 >
                   📍 현재 위치
                 </Button>
@@ -495,7 +515,7 @@ export default function AddressSearchModal({
                       <div
                         key={index}
                         onClick={() => handleResultSelect(place)}
-                        className="p-2 border border-gray-200 rounded cursor-pointer hover:bg-gray-50 text-sm"
+                        className="p-2 border border-gray-200 rounded cursor-pointer hover:bg-blue-50 text-sm bg-white"
                       >
                         <div className="font-medium">{place.place_name}</div>
                         <div className="text-gray-600 text-xs">
@@ -530,24 +550,24 @@ export default function AddressSearchModal({
             </div>
 
             {/* 오른쪽 지도 */}
-            <div className="flex-1 p-4">
+            <div className="flex-1 p-4 bg-white">
               <div
                 ref={mapContainerRef}
-                className="w-full h-full border border-gray-300 rounded-lg"
+                className="w-full h-full border border-gray-300 rounded-lg bg-gray-100"
                 style={{ minHeight: '500px' }}
               />
             </div>
           </div>
 
           {/* 하단 버튼 */}
-          <div className="flex justify-end space-x-2 p-4 border-t border-gray-200">
-            <Button onClick={handleClose} variant="outline">
+          <div className="flex justify-end space-x-2 p-4 border-t border-gray-200 bg-white sticky bottom-0">
+            <Button onClick={handleClose} variant="outline" className="border-gray-300 hover:bg-gray-100">
               취소
             </Button>
             <Button
               onClick={handleConfirm}
               disabled={!selectedAddress}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400"
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white"
             >
               주소 선택
             </Button>

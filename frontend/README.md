@@ -1,200 +1,123 @@
-# EcoTrace Frontend
+# GreenSteel Frontend
 
-지속가능한 미래를 위한 탄소 관리 플랫폼의 프론트엔드 애플리케이션입니다.
+ESG 관리 플랫폼의 프론트엔드 애플리케이션입니다.
 
-## 🚀 기술 스택
+## 🚀 **빠른 시작**
 
-- **Framework**: Next.js 14+ (App Router)
-- **Language**: TypeScript (엄격 모드)
-- **Styling**: Tailwind CSS + CSS Modules
-- **State Management**: React useState (로컬), Axios (서버)
-- **Architecture**: MSA + MVC + Atomic Design
-- **Deployment**: Vercel
+### **1. 의존성 설치**
+```bash
+npm install
+# 또는
+pnpm install
+```
 
-## 📁 프로젝트 구조
+### **2. 환경 변수 설정 (중요!)**
+```bash
+# frontend/.env.local 파일 생성
+echo "NEXT_PUBLIC_KAKAO_MAP_API_KEY=your_kakao_javascript_key_here" > .env.local
+```
+
+**필수 환경 변수:**
+- `NEXT_PUBLIC_KAKAO_MAP_API_KEY`: 카카오 지도 API JavaScript 키
+
+### **3. 개발 서버 실행**
+```bash
+npm run dev
+# 또는
+pnpm dev
+```
+
+## 🗺️ **카카오 지도 API 설정**
+
+주소 검색 기능을 사용하려면 카카오 지도 API 키가 필요합니다.
+
+### **빠른 설정**
+1. [Kakao Developers](https://developers.kakao.com/) 접속
+2. 애플리케이션 생성
+3. JavaScript 키 복사
+4. `.env.local` 파일에 API 키 설정
+5. 개발 서버 재시작
+
+**자세한 설정 방법**: [KAKAO_API_SETUP.md](./KAKAO_API_SETUP.md)
+
+## 🏗️ **프로젝트 구조**
 
 ```
 src/
 ├── app/                    # Next.js App Router
-│   ├── (public)/          # 공개 라우트
-│   │   ├── landing/       # 랜딩 페이지
-│   │   └── auth/          # 인증 (로그인/회원가입)
-│   ├── (protected)/       # 보호된 라우트
-│   │   ├── dashboard/     # 대시보드
-│   │   ├── lca/           # LCA 관리
-│   │   ├── cbam/          # CBAM 관리
-│   │   └── data-upload/   # 데이터 업로드
-│   ├── settings/          # 설정
-│   ├── globals.css        # 전역 스타일
-│   └── layout.tsx         # 루트 레이아웃
-├── components/             # 컴포넌트 (Atomic Design)
-│   ├── atoms/             # 원자 컴포넌트
-│   ├── molecules/         # 분자 컴포넌트
-│   ├── organisms/         # 유기체 컴포넌트
-│   ├── templates/         # 템플릿 컴포넌트
-│   └── CommonShell.tsx    # 공통 레이아웃
-├── features/               # 기능별 모듈
-├── lib/                    # 유틸리티 및 설정
-│   ├── axiosClient.ts     # Gateway 전용 HTTP 클라이언트
-│   ├── env.ts             # 환경 변수 관리
-│   └── utils.ts           # 공통 유틸리티
-└── styles/                 # 스타일 파일
+│   ├── (protected)/       # 인증이 필요한 페이지
+│   ├── (public)/          # 공개 페이지
+│   └── api/               # API 라우트
+├── components/             # React 컴포넌트
+│   ├── atoms/             # 기본 UI 컴포넌트
+│   ├── molecules/         # 복합 UI 컴포넌트
+│   └── ui/                # 공통 UI 컴포넌트
+└── lib/                   # 유틸리티 함수
 ```
 
-## 🏗️ 아키텍처 원칙
+## 🚨 **문제 해결**
 
-### Gateway-Only 네트워킹
+### **카카오 지도 API 로딩 실패**
+```
+카카오 지도 API 스크립트 로드 실패
+```
 
-- 모든 API 요청은 Gateway를 통해서만 진행
-- 서비스 직접 연결 금지
-- `NEXT_PUBLIC_GATEWAY_URL` 환경 변수 필수
+**해결 방법:**
+1. `frontend/.env.local` 파일에 API 키 설정
+2. 카카오 개발자 콘솔에서 도메인 설정 확인
+3. 개발 서버 재시작
 
-### 폼 처리 표준
+### **Manifest 401 오류**
+```
+Manifest fetch failed, code 401
+```
 
-1. `e.preventDefault()`
-2. FormData → 객체 변환
-3. useState 로컬 상태 반영
-4. JSON.stringify(payload)
-5. axiosClient.post(...)
+**해결 방법:** `vercel.json` 헤더 설정 완료 ✅
 
-### 상태 관리
+### **CSP 오류**
+```
+Refused to load script 'https://dapi.kakao.com/v2/maps/sdk.js'
+```
 
-- 각 폼은 로컬 useState 사용
-- 전역 상태 최소화
-- 서버 상태는 Axios 기반 thin client
+**해결 방법:** `next.config.js` CSP 설정 완료 ✅
 
-## 🚀 시작하기
+## 📱 **PWA 기능**
 
-### 1. 의존성 설치
+- ✅ 오프라인 지원
+- ✅ 앱 설치
+- ✅ 푸시 알림
+- ✅ 백그라운드 동기화
+
+## 🧪 **테스트**
 
 ```bash
-npm install
+npm run test
+# 또는
+pnpm test
 ```
 
-### 2. 환경 변수 설정
-
-```bash
-cp env.example .env.local
-```
-
-`.env.local` 파일을 편집하여 Gateway URL을 설정하세요:
-
-```env
-NEXT_PUBLIC_GATEWAY_URL=https://api.greensteel.site
-NEXT_PUBLIC_ENV=development
-```
-
-### 3. 개발 서버 실행
-
-```bash
-npm run dev
-```
-
-### 4. 빌드 및 배포
+## 🚀 **배포**
 
 ```bash
 npm run build
-npm start
+# 또는
+pnpm build
 ```
 
-## 📱 모바일-웹 통일 UX
+## 📚 **문서**
 
-- 컨테이너 쿼리(`@container`) 활용
-- `dvh`/`svh`/`lvh` 단위 사용
-- `clamp()` 기반 유동 타이포그래피
-- 터치 타깃 최소 44×44px
-- 대비 4.5:1 이상 보장
+- [카카오 API 설정 가이드](./KAKAO_API_SETUP.md)
+- [PWA 구현 가이드](./PWA_README.md)
+- [배포 가이드](./DEPLOYMENT.md)
 
-## 🧪 테스트
-
-```bash
-# 테스트 실행
-npm test
-
-# 테스트 감시 모드
-npm run test:watch
-
-# 타입 체크
-npm run type-check
-
-# 린트
-npm run lint
-```
-
-## 🌐 배포
-
-### Vercel 배포
-
-1. Vercel에 프로젝트 연결
-2. 환경 변수 설정
-3. 커스텀 도메인 연결 (greensteel.site)
-
-### 환경 변수 (프로덕션)
-
-```env
-NEXT_PUBLIC_GATEWAY_URL=https://api.greensteel.site
-NEXT_PUBLIC_ENV=production
-```
-
-## 🔒 보안
-
-- CSP 헤더 설정
-- Gateway 외 요청 차단
-- CSRF 토큰 지원
-- 인증 토큰 자동 관리
-
-## 📊 기능
-
-### 인증
-
-- 개인/회사 회원가입
-- 로그인/로그아웃
-- JWT 토큰 관리
-
-### 대시보드
-
-- 프로젝트 통계
-- 최근 활동
-- 빠른 액션
-
-### LCA (Life Cycle Assessment)
-
-- 프로젝트 관리
-- 계산 실행
-- 템플릿 관리
-
-### CBAM (Carbon Border Adjustment Mechanism)
-
-- 보고서 생성
-- 탄소 집약도 계산
-- 제출 관리
-
-### 데이터 업로드
-
-- Excel/CSV 파일 지원
-- 드래그 앤 드롭
-- 진행률 표시
-- 결과 미리보기
-
-### 설정
-
-- 조직 프로필
-- RBAC 관리
-- 사용자 관리
-- 데이터 거버넌스
-
-## 🤝 기여
+## 🤝 **기여하기**
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
-## 📄 라이선스
+## 📄 **라이선스**
 
 이 프로젝트는 MIT 라이선스 하에 배포됩니다.
-
-## 📞 지원
-
-- 이슈: GitHub Issues

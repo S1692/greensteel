@@ -282,8 +282,16 @@ export default function AddressSearchModal({
     };
     script.onerror = () => {
       console.error('카카오 지도 API 스크립트 로드 실패');
-      // 에러 발생 시 사용자에게 알림
-      alert('지도 로딩에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      // 에러 발생 시 사용자에게 상세한 안내
+      alert(`지도 로딩에 실패했습니다.
+
+해결 방법:
+1. frontend/.env.local 파일에 NEXT_PUBLIC_KAKAO_MAP_API_KEY 설정
+2. 카카오 개발자 콘솔에서 JavaScript 키 확인
+3. 도메인 설정 확인 (localhost:3000, Vercel 도메인)
+4. 개발 서버 재시작
+
+자세한 내용은 KAKAO_API_SETUP.md 파일을 참조하세요.`);
     };
 
     document.head.appendChild(script);

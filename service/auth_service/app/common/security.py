@@ -6,8 +6,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from app.common.db import get_db
-from app.domain.entities.user import User
-from app.domain.entities.admin import Admin
+# 순환 import 방지를 위해 필요할 때 import
 from app.common.settings import settings
 from app.common.logger import auth_logger
 
@@ -66,8 +65,11 @@ def verify_token(token: str) -> Optional[dict]:
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
-) -> Union[User, Admin]:
-    """현재 인증된 사용자 반환 (Admin/User 구분)"""
+):
+    # 순환 import 방지를 위해 여기서 import
+    from app.domain.entities.user.user import User
+    from app.domain.entities.company.company import Company
+    """현재 인증된 사용자 반환 (Company/User 구분)"""
     try:
         # 토큰 검증
         payload = verify_token(credentials.credentials)
@@ -89,18 +91,18 @@ async def get_current_user(
                 headers={"WWW-Authenticate": "Bearer"}
             )
         
-        # Admin인 경우
-        if user_type == "admin":
-            admin = db.query(Admin).filter(Admin.id == user_id).first()
-            if admin is None:
+        # Company인 경우
+        if user_type == "company":
+            company = db.query(Company).filter(Company.id == user_id).first()
+            if company is None:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Admin not found",
+                    detail="Company not found",
                     headers={"WWW-Authenticate": "Bearer"}
                 )
             
-            auth_logger.info(f"Admin authenticated: {admin.admin_id}")
-            return admin
+            auth_logger.info(f"Company authenticated: {company.company_id}")
+            return company
         
         # User인 경우
         else:

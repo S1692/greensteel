@@ -2,33 +2,36 @@ from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, Union, Dict, Any
 from datetime import datetime
 
-# Company 회원가입 스키마
+# Company 회원가입 스키마 (이미지 데이터 구조 기반)
 class CompanyRegisterIn(BaseModel):
-    # 기업 정보
-    name_ko: str = Field(..., min_length=1, max_length=255, description="기업 국문명")
-    name_en: Optional[str] = Field(None, max_length=255, description="기업 영문명")
-    biz_no: str = Field(..., min_length=10, max_length=20, description="사업자번호")
-    ceo_name: Optional[str] = Field(None, max_length=100, description="대표자명")
-    
-    # 주소 정보
-    country: Optional[str] = Field(None, max_length=10, description="국가")
-    zipcode: Optional[str] = Field(None, max_length=20, description="우편번호")
-    city: Optional[str] = Field(None, max_length=100, description="도시")
-    address1: Optional[str] = Field(None, max_length=500, description="상세주소")
-    
-    # 업종 정보
-    sector: Optional[str] = Field(None, max_length=200, description="업태/업종")
-    industry_code: Optional[str] = Field(None, max_length=20, description="업종코드")
-    
-    # 담당자 정보
-    manager_name: str = Field(..., min_length=1, max_length=100, description="담당자명")
-    manager_phone: str = Field(..., min_length=10, max_length=20, description="담당자연락처")
-    manager_email: Optional[EmailStr] = Field(None, description="담당자이메일")
-    
-    # 로그인 정보
-    username: str = Field(..., min_length=3, max_length=100, description="로그인 ID")
+    # 계정 정보
+    company_id: str = Field(..., min_length=3, max_length=100, description="로그인 ID")
     password: str = Field(..., min_length=8, description="비밀번호")
     confirm_password: str = Field(..., description="비밀번호 확인")
+    
+    # 사용자 직접 입력 필드
+    Installation: str = Field(..., min_length=1, max_length=255, description="사업장명")
+    Installation_en: Optional[str] = Field(None, max_length=255, description="사업장영문명")
+    economic_activity: Optional[str] = Field(None, max_length=200, description="업종명")
+    economic_activity_en: Optional[str] = Field(None, max_length=200, description="업종영문명")
+    representative: Optional[str] = Field(None, max_length=100, description="대표자명")
+    representative_en: Optional[str] = Field(None, max_length=100, description="영문대표자명")
+    email: Optional[EmailStr] = Field(None, description="이메일")
+    telephone: Optional[str] = Field(None, max_length=20, description="전화번호")
+    
+    # 주소 검색 모달을 통해 자동 입력되는 필드
+    street: Optional[str] = Field(None, max_length=255, description="도로명")
+    street_en: Optional[str] = Field(None, max_length=255, description="도로영문명")
+    number: Optional[str] = Field(None, max_length=50, description="건물번호")
+    number_en: Optional[str] = Field(None, max_length=50, description="건물번호영문명")
+    postcode: Optional[str] = Field(None, max_length=20, description="우편번호")
+    city: Optional[str] = Field(None, max_length=100, description="도시명")
+    city_en: Optional[str] = Field(None, max_length=100, description="도시영문명")
+    country: Optional[str] = Field(None, max_length=100, description="국가명")
+    country_en: Optional[str] = Field(None, max_length=100, description="국가영문명")
+    unlocode: Optional[str] = Field(None, max_length=20, description="UNLOCODE")
+    sourcelatitude: Optional[float] = Field(None, description="사업장위도")
+    sourcelongitude: Optional[float] = Field(None, description="사업장경도")
     
     # 스트림 구조 정보
     stream_id: Optional[str] = Field(None, max_length=100, description="스트림 식별자")
@@ -37,10 +40,27 @@ class CompanyRegisterIn(BaseModel):
 class CompanyRegisterOut(BaseModel):
     id: int
     uuid: str
-    name_ko: str
-    name_en: Optional[str]
-    biz_no: str
-    username: str
+    company_id: str
+    Installation: str
+    Installation_en: Optional[str]
+    economic_activity: Optional[str]
+    economic_activity_en: Optional[str]
+    representative: Optional[str]
+    representative_en: Optional[str]
+    email: Optional[str]
+    telephone: Optional[str]
+    street: Optional[str]
+    street_en: Optional[str]
+    number: Optional[str]
+    number_en: Optional[str]
+    postcode: Optional[str]
+    city: Optional[str]
+    city_en: Optional[str]
+    country: Optional[str]
+    country_en: Optional[str]
+    unlocode: Optional[str]
+    sourcelatitude: Optional[float]
+    sourcelongitude: Optional[float]
     stream_id: Optional[str]
     stream_version: int
     message: str = "기업 등록이 완료되었습니다."
@@ -83,20 +103,27 @@ class TokenOut(BaseModel):
 class CompanyOut(BaseModel):
     id: int
     uuid: str
-    name_ko: str
-    name_en: Optional[str]
-    biz_no: str
-    ceo_name: Optional[str]
-    country: Optional[str]
-    zipcode: Optional[str]
+    company_id: str
+    Installation: str
+    Installation_en: Optional[str]
+    economic_activity: Optional[str]
+    economic_activity_en: Optional[str]
+    representative: Optional[str]
+    representative_en: Optional[str]
+    email: Optional[str]
+    telephone: Optional[str]
+    street: Optional[str]
+    street_en: Optional[str]
+    number: Optional[str]
+    number_en: Optional[str]
+    postcode: Optional[str]
     city: Optional[str]
-    address1: Optional[str]
-    sector: Optional[str]
-    industry_code: Optional[str]
-    manager_name: str
-    manager_phone: str
-    manager_email: Optional[str]
-    username: str
+    city_en: Optional[str]
+    country: Optional[str]
+    country_en: Optional[str]
+    unlocode: Optional[str]
+    sourcelatitude: Optional[float]
+    sourcelongitude: Optional[float]
     stream_id: Optional[str]
     stream_version: int
     stream_metadata: Optional[str]

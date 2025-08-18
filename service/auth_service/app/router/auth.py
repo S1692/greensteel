@@ -23,21 +23,13 @@ async def register_company(
     company_data: CompanyRegisterIn,
     db: Session = Depends(get_db)
 ):
-    """기업 회원가입 (스트림 구조 지원)"""
-    auth_logger.info(f"Company registration attempt for business number: {company_data.biz_no}")
+    """기업 회원가입 (이미지 데이터 구조 기반)"""
+    auth_logger.info(f"Company registration attempt for company_id: {company_data.company_id}")
     
     try:
-        # 사업자번호 중복 확인
-        existing_company = db.query(Company).filter(Company.biz_no == company_data.biz_no).first()
+        # company_id 중복 확인
+        existing_company = db.query(Company).filter(Company.company_id == company_data.company_id).first()
         if existing_company:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="이미 등록된 사업자번호입니다."
-            )
-        
-        # username 중복 확인
-        existing_username = db.query(Company).filter(Company.username == company_data.username).first()
-        if existing_username:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="이미 사용 중인 ID입니다."
@@ -70,8 +62,11 @@ async def register_company(
                 event_data={
                     "company_id": new_company.id,
                     "company_uuid": new_company.uuid,
-                    "biz_no": new_company.biz_no,
-                    "name_ko": new_company.name_ko
+                    "company_login_id": new_company.company_id,
+                    "Installation": new_company.Installation,
+                    "postcode": new_company.postcode,
+                    "city": new_company.city,
+                    "country": new_company.country
                 },
                 event_metadata={
                     "registration_source": "auth_service",
@@ -205,11 +200,54 @@ async def login(
     login_data: LoginIn,
     db: Session = Depends(get_db)
 ):
-    """사용자 로그인 (스트림 구조 지원)"""
+    """사용자 로그인 (Company/User 구분)"""
     auth_logger.info(f"Login attempt for username: {login_data.username}")
     
     try:
-        # 사용자 조회
+        # Company 로그인 시도
+        company = db.query(Company).filter(Company.company_id == login_data.username).first()
+        if company:
+            # 비밀번호 확인
+            if not verify_password(login_data.password, company.hashed_password):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="잘못된 ID 또는 비밀번호입니다."
+                )
+            
+            # 액세스 토큰 생성
+            access_token = create_access_token(data={"sub": str(company.id), "type": "company"})
+            
+            # 스트림 이벤트 생성 (Company 로그인)
+            if company.stream_id:
+                try:
+                    create_stream_event(
+                        db=db,
+                        stream_id=company.stream_id,
+                        stream_type="company",
+                        entity_id=company.id,
+                        entity_type="company",
+                        event_type="company_login",
+                        event_data={
+                            "company_id": company.id,
+                            "login_timestamp": datetime.now().isoformat(),
+                            "ip_address": "unknown"  # 실제로는 요청에서 추출
+                        },
+                        event_metadata={
+                            "event_source": "auth_service",
+                            "login_method": "password"
+                        }
+                    )
+                except Exception as stream_error:
+                    auth_logger.warning(f"Stream event creation failed for company login {company.id}: {str(stream_error)}")
+            
+            auth_logger.info(f"Company login successful: {company.id}")
+            return TokenOut(
+                access_token=access_token,
+                user_type="company",
+                user_info=company
+            )
+        
+        # User 로그인 시도
         user = db.query(User).filter(User.username == login_data.username).first()
         if not user:
             raise HTTPException(
@@ -232,9 +270,9 @@ async def login(
             )
         
         # 액세스 토큰 생성
-        access_token = create_access_token(data={"sub": str(user.id)})
+        access_token = create_access_token(data={"sub": str(user.id), "type": "user"})
         
-        # 스트림 이벤트 생성 (로그인)
+        # 스트림 이벤트 생성 (User 로그인)
         if user.stream_id:
             try:
                 create_stream_event(
@@ -301,14 +339,15 @@ async def logout():
     """사용자 로그아웃 (클라이언트 측에서 토큰 제거)"""
     return None
 
-@router.get("/me", response_model=UserOut)
+@router.get("/me")
 async def get_current_user_info(
-    current_user: User = Depends(get_current_user)
+    current_user: Union[User, Company] = Depends(get_current_user)
 ):
-    """현재 로그인한 사용자 정보 조회"""
-    return UserOut(
-        id=current_user.id,
-        uuid=current_user.uuid,
+    """현재 로그인한 사용자 정보 조회 (Company/User 구분)"""
+    if hasattr(current_user, 'company_id'):  # User인 경우
+        return UserOut(
+            id=current_user.id,
+            uuid=current_user.uuid,
         username=current_user.username,
         full_name=current_user.full_name,
         company_id=current_user.company_id,

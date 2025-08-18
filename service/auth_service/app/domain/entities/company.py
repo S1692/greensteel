@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Index, Text, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Index, Text, Boolean, Float
 from sqlalchemy.sql import func
 from datetime import datetime
 import uuid
@@ -6,37 +6,40 @@ import uuid
 from app.common.db import Base
 
 class Company(Base):
-    """기업 모델 (스트림 구조)"""
+    """기업 모델 (이미지 데이터 구조 기반)"""
     __tablename__ = "companies"
     
     # 기본 필드
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     uuid = Column(String(36), unique=True, index=True, nullable=False, default=lambda: str(uuid.uuid4()))
     
-    # 기업 정보
-    name_ko = Column(String(255), nullable=False)
-    name_en = Column(String(255), nullable=True)
-    biz_no = Column(String(20), unique=True, index=True, nullable=False)
-    ceo_name = Column(String(100), nullable=True)
+    # 계정 정보
+    company_id = Column(String(100), unique=True, index=True, nullable=False, comment="로그인 ID")
+    hashed_password = Column(String(255), nullable=False, comment="해시된 비밀번호")
     
-    # 주소 필드
-    country = Column(String(10), nullable=True)
-    zipcode = Column(String(20), nullable=True)
-    city = Column(String(100), nullable=True)
-    address1 = Column(String(500), nullable=True)
+    # 사용자 직접 입력 필드
+    Installation = Column(String(255), nullable=False, comment="사업장명")
+    Installation_en = Column(String(255), nullable=True, comment="사업장영문명")
+    economic_activity = Column(String(200), nullable=True, comment="업종명")
+    economic_activity_en = Column(String(200), nullable=True, comment="업종영문명")
+    representative = Column(String(100), nullable=True, comment="대표자명")
+    representative_en = Column(String(100), nullable=True, comment="영문대표자명")
+    email = Column(String(255), nullable=True, comment="이메일")
+    telephone = Column(String(20), nullable=True, comment="전화번호")
     
-    # 업종 필드
-    sector = Column(String(200), nullable=True)
-    industry_code = Column(String(20), nullable=True)
-    
-    # 담당자 필드
-    manager_name = Column(String(100), nullable=False)
-    manager_phone = Column(String(20), nullable=False)
-    manager_email = Column(String(255), nullable=True)
-    
-    # 로그인 필드 (Company도 로그인 가능)
-    username = Column(String(100), unique=True, index=True, nullable=False)
-    hashed_password = Column(String(255), nullable=False)
+    # 주소 검색 모달을 통해 자동 입력되는 필드
+    street = Column(String(255), nullable=True, comment="도로명")
+    street_en = Column(String(255), nullable=True, comment="도로영문명")
+    number = Column(String(50), nullable=True, comment="건물번호")
+    number_en = Column(String(50), nullable=True, comment="건물번호영문명")
+    postcode = Column(String(20), nullable=True, comment="우편번호")
+    city = Column(String(100), nullable=True, comment="도시명")
+    city_en = Column(String(100), nullable=True, comment="도시영문명")
+    country = Column(String(100), nullable=True, comment="국가명")
+    country_en = Column(String(100), nullable=True, comment="국가영문명")
+    unlocode = Column(String(20), nullable=True, comment="UNLOCODE")
+    sourcelatitude = Column(Float, nullable=True, comment="사업장위도")
+    sourcelongitude = Column(Float, nullable=True, comment="사업장경도")
     
     # 스트림 구조 필드
     stream_id = Column(String(100), nullable=True, index=True, comment="스트림 식별자")
@@ -51,34 +54,44 @@ class Company(Base):
     # 인덱스 설정
     __table_args__ = (
         Index('idx_company_uuid', 'uuid'),
-        Index('idx_company_biz_no', 'biz_no'),
-        Index('idx_company_username', 'username'),
+        Index('idx_company_id', 'company_id'),
+        Index('idx_company_installation', 'Installation'),
+        Index('idx_company_postcode', 'postcode'),
+        Index('idx_company_city', 'city'),
+        Index('idx_company_country', 'country'),
         Index('idx_company_stream_id', 'stream_id'),
         Index('idx_company_created_at', 'created_at'),
     )
     
     def __repr__(self):
-        return f"<Company(id={self.id}, uuid='{self.uuid}', name_ko='{self.name_ko}', biz_no='{self.biz_no}')>"
+        return f"<Company(id={self.id}, uuid='{self.uuid}', Installation='{self.Installation}', company_id='{self.company_id}')>"
     
     def to_dict(self):
         """기업 정보를 딕셔너리로 변환"""
         return {
             "id": self.id,
             "uuid": self.uuid,
-            "name_ko": self.name_ko,
-            "name_en": self.name_en,
-            "biz_no": self.biz_no,
-            "ceo_name": self.ceo_name,
-            "country": self.country,
-            "zipcode": self.zipcode,
+            "company_id": self.company_id,
+            "Installation": self.Installation,
+            "Installation_en": self.Installation_en,
+            "economic_activity": self.economic_activity,
+            "economic_activity_en": self.economic_activity_en,
+            "representative": self.representative,
+            "representative_en": self.representative_en,
+            "email": self.email,
+            "telephone": self.telephone,
+            "street": self.street,
+            "street_en": self.street_en,
+            "number": self.number,
+            "number_en": self.number_en,
+            "postcode": self.postcode,
             "city": self.city,
-            "address1": self.address1,
-            "sector": self.sector,
-            "industry_code": self.industry_code,
-            "manager_name": self.manager_name,
-            "manager_phone": self.manager_phone,
-            "manager_email": self.manager_email,
-            "username": self.username,
+            "city_en": self.city_en,
+            "country": self.country,
+            "country_en": self.country_en,
+            "unlocode": self.unlocode,
+            "sourcelatitude": self.sourcelatitude,
+            "sourcelongitude": self.sourcelongitude,
             "stream_id": self.stream_id,
             "stream_version": self.stream_version,
             "stream_metadata": self.stream_metadata,
@@ -92,19 +105,26 @@ class Company(Base):
         return {
             "id": self.id,
             "uuid": self.uuid,
-            "name_ko": self.name_ko,
-            "name_en": self.name_en,
-            "biz_no": self.biz_no,
-            "ceo_name": self.ceo_name,
-            "country": self.country,
-            "zipcode": self.zipcode,
+            "Installation": self.Installation,
+            "Installation_en": self.Installation_en,
+            "economic_activity": self.economic_activity,
+            "economic_activity_en": self.economic_activity_en,
+            "representative": self.representative,
+            "representative_en": self.representative_en,
+            "email": self.email,
+            "telephone": self.telephone,
+            "street": self.street,
+            "street_en": self.street_en,
+            "number": self.number,
+            "number_en": self.number_en,
+            "postcode": self.postcode,
             "city": self.city,
-            "address1": self.address1,
-            "sector": self.sector,
-            "industry_code": self.industry_code,
-            "manager_name": self.manager_name,
-            "manager_phone": self.manager_phone,
-            "manager_email": self.manager_email,
+            "city_en": self.city_en,
+            "country": self.country,
+            "country_en": self.country_en,
+            "unlocode": self.unlocode,
+            "sourcelatitude": self.sourcelatitude,
+            "sourcelongitude": self.sourcelongitude,
             "stream_id": self.stream_id,
             "stream_version": self.stream_version,
             "is_stream_active": self.is_stream_active,
@@ -131,7 +151,7 @@ class Company(Base):
             return False
         
         # Company 관리자는 모든 사용자 관리 가능
-        if self.username:  # Company가 로그인 가능한 경우
+        if self.company_id:  # Company가 로그인 가능한 경우
             return True
         
         return False

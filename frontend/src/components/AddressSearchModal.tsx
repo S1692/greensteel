@@ -307,7 +307,9 @@ export default function AddressSearchModal({
     console.log('🔄 카카오 API 스크립트 로딩 시작...');
 
     // 기존 스크립트가 있는지 확인하고 제거
-    const existingScript = document.querySelector('script[src*="dapi.kakao.com"]');
+    const existingScript = document.querySelector(
+      'script[src*="dapi.kakao.com"]'
+    );
     if (existingScript) {
       console.log('🗑️ 기존 카카오 API 스크립트 제거');
       existingScript.remove();
@@ -327,20 +329,24 @@ export default function AddressSearchModal({
 
     script.onload = () => {
       console.log('✅ 카카오 API 스크립트 로드 완료');
-      
+
       // 로딩 타임아웃 클리어
       if (loadTimeout) clearTimeout(loadTimeout);
-      
+
       // API가 완전히 초기화될 때까지 기다림
       const checkKakaoAPI = () => {
         console.log('🔍 카카오 API 상태 확인:', {
           hasKakao: !!window.kakao,
           hasMaps: !!(window.kakao && window.kakao.maps),
-          hasLatLng: !!(window.kakao && window.kakao.maps && window.kakao.maps.LatLng),
+          hasLatLng: !!(
+            window.kakao &&
+            window.kakao.maps &&
+            window.kakao.maps.LatLng
+          ),
           kakaoKeys: window.kakao ? Object.keys(window.kakao) : [],
-          mapsKeys: window.kakao?.maps ? Object.keys(window.kakao.maps) : []
+          mapsKeys: window.kakao?.maps ? Object.keys(window.kakao.maps) : [],
         });
-        
+
         if (window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
           console.log('✅ 카카오 API 초기화 완료');
           if (initTimeout) clearTimeout(initTimeout);
@@ -358,11 +364,11 @@ export default function AddressSearchModal({
 
     script.onerror = error => {
       console.error('❌ 카카오 지도 API 스크립트 로드 실패:', error);
-      
+
       // 타임아웃 클리어
       if (loadTimeout) clearTimeout(loadTimeout);
       if (initTimeout) clearTimeout(initTimeout);
-      
+
       // 에러 발생 시 사용자에게 상세한 안내
       alert(`지도 로딩에 실패했습니다.
 
@@ -384,7 +390,9 @@ export default function AddressSearchModal({
     // 로딩 타임아웃 설정 (30초)
     loadTimeout = setTimeout(() => {
       console.error('⏰ 카카오 API 스크립트 로딩 타임아웃');
-      alert('카카오 API 스크립트 로딩이 시간 초과되었습니다. 네트워크 상태를 확인하고 다시 시도해주세요.');
+      alert(
+        '카카오 API 스크립트 로딩이 시간 초과되었습니다. 네트워크 상태를 확인하고 다시 시도해주세요.'
+      );
     }, 30000);
 
     // 스크립트를 head에 추가
@@ -394,7 +402,7 @@ export default function AddressSearchModal({
       // 클린업: 타임아웃 및 스크립트 제거
       if (loadTimeout) clearTimeout(loadTimeout);
       if (initTimeout) clearTimeout(initTimeout);
-      
+
       if (script.parentNode) {
         script.parentNode.removeChild(script);
       }

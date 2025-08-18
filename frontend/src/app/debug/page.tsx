@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 
 export default function DebugPage() {
-  const [envVars, setEnvVars] = useState<Record<string, any>>({});
+  const [envVars, setEnvVars] = useState<Record<string, unknown>>({});
 
   useEffect(() => {
     const envStatus = {
@@ -30,7 +30,7 @@ export default function DebugPage() {
               >
                 <span className="font-mono text-sm">{key}</span>
                 <span className="font-mono text-sm max-w-xs truncate">
-                  {value || 'undefined'}
+                  {String(value || 'undefined')}
                 </span>
               </div>
             ))}

@@ -185,6 +185,11 @@ export class OfflineStorage {
 
 // 성능 메트릭 클래스
 export class PerformanceMetrics {
+  private static memoryData: {
+    used: number;
+    total: number;
+    limit: number;
+  } | null = null;
   // 페이지 로드 성능 측정
   static measurePageLoad(): void {
     if (typeof window !== 'undefined' && window.performance) {
@@ -229,9 +234,9 @@ export class PerformanceMetrics {
 
   // 메모리 사용량 측정
   static measureMemoryUsage(): void {
-    if (typeof window !== 'undefined' && 'memory' in window.performance) {
+    if ('memory' in performance) {
       const memory = (
-        window.performance as Performance & {
+        performance as Performance & {
           memory: {
             usedJSHeapSize: number;
             totalJSHeapSize: number;
@@ -239,18 +244,17 @@ export class PerformanceMetrics {
           };
         }
       ).memory;
-      const usedMemory = memory.usedJSHeapSize / 1024 / 1024; // MB
-      const totalMemory = memory.totalJSHeapSize / 1024 / 1024; // MB
+      // 메모리 사용량 측정 (콘솔 출력 제거)
+      const usedMemory = memory.usedJSHeapSize / 1048576;
+      const totalMemory = memory.totalJSHeapSize / 1048576;
+      const limitMemory = memory.jsHeapSizeLimit / 1048576;
 
-      // Google Analytics에 메모리 사용량 전송
-      if (typeof window.gtag !== 'undefined') {
-        window.gtag('event', 'memory_usage', {
-          event_category: 'Performance',
-          event_label: 'Memory',
-          value: Math.round(usedMemory),
-          custom_metric_1: Math.round(totalMemory),
-        });
-      }
+      // 메모리 사용량을 내부적으로만 저장 (콘솔 출력 없음)
+      PerformanceMetrics.memoryData = {
+        used: Math.round(usedMemory),
+        total: Math.round(totalMemory),
+        limit: Math.round(limitMemory),
+      };
     }
   }
 }
@@ -260,7 +264,8 @@ export function checkInstallStatus(): boolean {
   if (typeof window === 'undefined') return false;
   return (
     window.matchMedia('(display-mode: standalone)').matches ||
-    (window.navigator as any).standalone === true
+    (window.navigator as Navigator & { standalone?: boolean }).standalone ===
+      true
   );
 }
 

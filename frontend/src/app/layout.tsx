@@ -2,39 +2,43 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import Script from 'next/script';
 import './globals.css';
+import PWAInstallBanner from '@/components/PWAInstallBanner';
+import OfflineIndicator from '@/components/OfflineIndicator';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'greensteel - ESG Management Platform',
+  title: 'GreenSteel - ESG Management Platform',
   description:
-    'Comprehensive ESG management platform for LCA, CBAM, and sustainability reporting',
-  keywords: 'ESG, LCA, CBAM, sustainability, carbon footprint, green steel',
-  authors: [{ name: 'greensteel Team' }],
-  creator: 'greensteel',
-  publisher: 'greensteel',
+    'Comprehensive ESG management platform for LCA, CBAM, and sustainability reporting. Track your environmental impact and compliance.',
+  keywords: 'ESG, LCA, CBAM, sustainability, carbon footprint, green steel, PWA, progressive web app',
+  authors: [{ name: 'GreenSteel Team' }],
+  creator: 'GreenSteel',
+  publisher: 'GreenSteel',
   robots: 'index, follow',
   openGraph: {
-    title: 'greensteel - ESG Management Platform',
+    title: 'GreenSteel - ESG Management Platform',
     description:
-      'Comprehensive ESG management platform for LCA, CBAM, and sustainability reporting',
+      'Comprehensive ESG management platform for LCA, CBAM, and sustainability reporting. Track your environmental impact and compliance.',
     url: 'https://greensteel.site',
-    siteName: 'greensteel',
+    siteName: 'GreenSteel',
     locale: 'ko_KR',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'greensteel - ESG Management Platform',
+    title: 'GreenSteel - ESG Management Platform',
     description:
-      'Comprehensive ESG management platform for LCA, CBAM, and sustainability reporting',
+      'Comprehensive ESG management platform for LCA, CBAM, and sustainability reporting. Track your environmental impact and compliance.',
   },
   other: {
     'csrf-token': '{{csrf_token}}',
     'mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-status-bar-style': 'default',
-    'apple-mobile-web-app-title': 'greensteel',
+    'apple-mobile-web-app-title': 'GreenSteel',
+    'msapplication-TileColor': '#3b82f6',
+    'theme-color': '#3b82f6',
   },
 };
 
@@ -43,6 +47,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({
@@ -54,8 +59,15 @@ export default function RootLayout({
     <html lang="ko" className="dark">
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
+        <link rel="icon" href="/icon-192x192.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="GreenSteel" />
+        <meta name="msapplication-TileColor" content="#3b82f6" />
+        <meta name="theme-color" content="#3b82f6" />
+        <meta name="application-name" content="GreenSteel" />
+        <meta name="msapplication-TileImage" content="/icon-144x144.png" />
       </head>
       <body className={`${inter.className} antialiased`}>
         {/* Google tag (gtag.js) */}
@@ -71,6 +83,11 @@ export default function RootLayout({
             gtag('config', 'G-2GFHCRYLT8');
           `}
         </Script>
+        
+        {/* PWA Components */}
+        <OfflineIndicator />
+        <PWAInstallBanner />
+        
         {children}
       </body>
     </html>

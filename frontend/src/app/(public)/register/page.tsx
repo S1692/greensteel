@@ -183,6 +183,7 @@ export default function RegisterPage() {
                     }
                     placeholder="********"
                     required
+                    autoComplete="new-password"
                   />
                 </div>
                 <div className="md:col-span-2">
@@ -200,6 +201,7 @@ export default function RegisterPage() {
                     }
                     placeholder="********"
                     required
+                    autoComplete="new-password"
                   />
                 </div>
               </div>
@@ -474,12 +476,11 @@ export default function RegisterPage() {
                     }
                     placeholder="********"
                     required
+                    autoComplete="new-password"
                   />
                 </div>
-                <div className="md:col-span-2">
-                  <label className="stitch-label mb-1 block">
-                    비밀번호 확인 *
-                  </label>
+                <div>
+                  <label className="stitch-label mb-1 block">비밀번호 확인 *</label>
                   <Input
                     type="password"
                     value={userData.confirm_password}
@@ -488,6 +489,7 @@ export default function RegisterPage() {
                     }
                     placeholder="********"
                     required
+                    autoComplete="new-password"
                   />
                 </div>
               </div>

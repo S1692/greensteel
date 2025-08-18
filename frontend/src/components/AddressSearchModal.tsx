@@ -265,7 +265,7 @@ export default function AddressSearchModal({
 
   useEffect(() => {
     // 카카오 지도 API 스크립트가 이미 로드되어 있는지 확인
-    if (window.kakao && window.kakao.maps) {
+    if (window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
       initializeMap();
       return;
     }
@@ -277,8 +277,18 @@ export default function AddressSearchModal({
     }&libraries=services`;
     script.async = true;
     script.onload = () => {
-      // 스크립트 로드 완료 후 지도 초기화
-      setTimeout(initializeMap, 100); // 약간의 지연을 두어 API가 완전히 준비되도록 함
+      // API가 완전히 초기화될 때까지 기다림
+      const checkKakaoAPI = () => {
+        if (window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
+          initializeMap();
+        } else {
+          // 100ms 후 다시 확인
+          setTimeout(checkKakaoAPI, 100);
+        }
+      };
+      
+      // 초기 확인 시작
+      setTimeout(checkKakaoAPI, 100);
     };
     script.onerror = () => {
       console.error('카카오 지도 API 스크립트 로드 실패');

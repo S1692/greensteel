@@ -9,11 +9,6 @@
     "NEXT_PUBLIC_ENABLE_CBAM": "true",
     "NEXT_PUBLIC_ENABLE_DATA_UPLOAD": "true"
   },
-  "functions": {
-    "src/app/api/**/*.ts": {
-      "maxDuration": 30
-    }
-  },
   "headers": [
     {
       "source": "/(.*)",

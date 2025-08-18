@@ -306,31 +306,54 @@ export default function AddressSearchModal({
 
     console.log('🔄 카카오 API 스크립트 로딩 시작...');
 
+    // 기존 스크립트가 있는지 확인하고 제거
+    const existingScript = document.querySelector('script[src*="dapi.kakao.com"]');
+    if (existingScript) {
+      console.log('🗑️ 기존 카카오 API 스크립트 제거');
+      existingScript.remove();
+    }
+
     // 새 스크립트 생성 및 로드
     const script = document.createElement('script');
-    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY}&libraries=services`;
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY}&libraries=services`;
     script.async = true;
+    script.defer = true;
+    script.crossOrigin = 'anonymous';
+
+    // 로딩 상태 추적
+    let loadTimeout: NodeJS.Timeout;
+    let initTimeout: NodeJS.Timeout;
 
     script.onload = () => {
       console.log('✅ 카카오 API 스크립트 로드 완료');
+      
+      // 로딩 타임아웃 클리어
+      if (loadTimeout) clearTimeout(loadTimeout);
+      
       // API가 완전히 초기화될 때까지 기다림
       const checkKakaoAPI = () => {
         if (window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
           console.log('✅ 카카오 API 초기화 완료');
+          if (initTimeout) clearTimeout(initTimeout);
           initializeMap();
         } else {
           console.log('⏳ 카카오 API 초기화 대기 중...');
-          // 100ms 후 다시 확인
-          setTimeout(checkKakaoAPI, 100);
+          // 200ms 후 다시 확인
+          initTimeout = setTimeout(checkKakaoAPI, 200);
         }
       };
 
-      // 초기 확인 시작
-      setTimeout(checkKakaoAPI, 100);
+      // 초기 확인 시작 (500ms 후)
+      setTimeout(checkKakaoAPI, 500);
     };
 
     script.onerror = error => {
       console.error('❌ 카카오 지도 API 스크립트 로드 실패:', error);
+      
+      // 타임아웃 클리어
+      if (loadTimeout) clearTimeout(loadTimeout);
+      if (initTimeout) clearTimeout(initTimeout);
+      
       // 에러 발생 시 사용자에게 상세한 안내
       alert(`지도 로딩에 실패했습니다.
 
@@ -338,6 +361,7 @@ export default function AddressSearchModal({
 - API 키: ${process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY ? '설정됨' : '설정되지 않음'}
 - API 키 길이: ${process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY?.length || 0}
 - 도메인: ${window.location.origin}
+- 현재 시간: ${new Date().toLocaleString()}
 
 해결 방법:
 1. Vercel 환경 변수 확인 및 수정
@@ -348,10 +372,20 @@ export default function AddressSearchModal({
 자세한 내용은 KAKAO_API_SETUP.md 파일을 참조하세요.`);
     };
 
+    // 로딩 타임아웃 설정 (30초)
+    loadTimeout = setTimeout(() => {
+      console.error('⏰ 카카오 API 스크립트 로딩 타임아웃');
+      alert('카카오 API 스크립트 로딩이 시간 초과되었습니다. 네트워크 상태를 확인하고 다시 시도해주세요.');
+    }, 30000);
+
+    // 스크립트를 head에 추가
     document.head.appendChild(script);
 
     return () => {
-      // 클린업: 스크립트 제거
+      // 클린업: 타임아웃 및 스크립트 제거
+      if (loadTimeout) clearTimeout(loadTimeout);
+      if (initTimeout) clearTimeout(initTimeout);
+      
       if (script.parentNode) {
         script.parentNode.removeChild(script);
       }

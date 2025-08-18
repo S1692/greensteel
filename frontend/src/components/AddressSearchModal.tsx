@@ -36,6 +36,8 @@ declare global {
           Places: new () => any;
           Status: {
             OK: string;
+            ZERO_RESULT: string;
+            ERROR: string;
           };
         };
       };
@@ -49,13 +51,13 @@ export default function AddressSearchModal({
   onAddressSelect,
 }: AddressSearchModalProps) {
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [selectedAddress, setSelectedAddress] = useState<KakaoMapData | null>(
-    null
-  );
+  const [selectedAddress, setSelectedAddress] = useState<KakaoMapData | null>(null);
   const [map, setMap] = useState<any>(null);
   const [marker, setMarker] = useState<any>(null);
   const [infoWindow, setInfoWindow] = useState<any>(null);
   const [isKakaoReady, setIsKakaoReady] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -94,8 +96,8 @@ export default function AddressSearchModal({
       const city = result.address.region_1depth_name || '';
       const country_eng = 'South Korea';
       const city_eng = getCityEnglish(city);
-      const address_eng = address; // 실제로는 번역 API 필요
-      const address1_eng = address1; // 실제로는 번역 API 필요
+      const address_eng = address;
+      const address1_eng = address1;
 
       return {
         address,
@@ -133,12 +135,12 @@ export default function AddressSearchModal({
 
             // 정보창에 주소 표시
             infoWindow.setContent(`
-            <div style="padding:10px;min-width:200px;">
-              <strong>선택된 주소</strong><br/>
-              ${addressData.address}<br/>
-              ${addressData.address1}
-            </div>
-          `);
+              <div style="padding:10px;min-width:200px;">
+                <strong>선택된 주소</strong><br/>
+                ${addressData.address}<br/>
+                ${addressData.city}
+              </div>
+            `);
             infoWindow.open(map, marker);
           }
         }
@@ -176,22 +178,74 @@ export default function AddressSearchModal({
   const handleSearch = useCallback(() => {
     if (!searchKeyword.trim() || !map) return;
 
+    setIsLoading(true);
+    setSearchResults([]);
+
     const places = new window.kakao.maps.services.Places();
     places.keywordSearch(searchKeyword, (results: any, status: any) => {
-      if (
-        status === window.kakao.maps.services.Status.OK &&
-        results.length > 0
-      ) {
+      setIsLoading(false);
+      
+      if (status === window.kakao.maps.services.Status.OK && results.length > 0) {
+        setSearchResults(results);
+        
+        // 첫 번째 결과로 지도 이동
         const place = results[0];
         const latlng = new window.kakao.maps.LatLng(place.y, place.x);
-
+        
         map.setCenter(latlng);
         map.setLevel(3);
-
-        handleMapClick(latlng);
+        
+        // 마커 표시
+        if (marker) {
+          marker.setPosition(latlng);
+          marker.setMap(map);
+        }
+      } else if (status === window.kakao.maps.services.Status.ZERO_RESULT) {
+        alert('검색 결과가 없습니다.');
+      } else {
+        alert('검색 중 오류가 발생했습니다.');
       }
     });
-  }, [searchKeyword, map, handleMapClick]);
+  }, [searchKeyword, map, marker]);
+
+  // 검색 결과 선택
+  const handleResultSelect = useCallback((place: any) => {
+    if (!map) return;
+
+    const latlng = new window.kakao.maps.LatLng(place.y, place.x);
+    
+    map.setCenter(latlng);
+    map.setLevel(3);
+    
+    if (marker) {
+      marker.setPosition(latlng);
+      marker.setMap(map);
+    }
+
+    // 주소 정보 가져오기
+    const geocoder = new window.kakao.maps.services.Geocoder();
+    geocoder.coord2Address(
+      latlng.getLng(),
+      latlng.getLat(),
+      (result: any, status: any) => {
+        if (status === window.kakao.maps.services.Status.OK) {
+          const addressData = createAddressDataFromKakao(result[0]);
+          setSelectedAddress(addressData);
+          
+          if (infoWindow) {
+            infoWindow.setContent(`
+              <div style="padding:10px;min-width:200px;">
+                <strong>선택된 주소</strong><br/>
+                ${addressData.address}<br/>
+                ${addressData.city}
+              </div>
+            `);
+            infoWindow.open(map, marker);
+          }
+        }
+      }
+    );
+  }, [map, marker, infoWindow, createAddressDataFromKakao]);
 
   // 현재 위치로 이동
   const handleCurrentLocation = useCallback(() => {
@@ -207,6 +261,11 @@ export default function AddressSearchModal({
           map.setCenter(latlng);
           map.setLevel(3);
 
+          if (marker) {
+            marker.setPosition(latlng);
+            marker.setMap(map);
+          }
+
           handleMapClick(latlng);
         },
         () => {
@@ -216,7 +275,7 @@ export default function AddressSearchModal({
     } else {
       alert('이 브라우저에서는 위치 정보를 지원하지 않습니다.');
     }
-  }, [map, handleMapClick]);
+  }, [map, marker, handleMapClick]);
 
   // 주소 선택 확인
   const handleConfirm = () => {
@@ -224,6 +283,15 @@ export default function AddressSearchModal({
       onAddressSelect(selectedAddress);
       onClose();
     }
+  };
+
+  // 모달 닫기 시 상태 초기화
+  const handleClose = () => {
+    setSearchKeyword('');
+    setSelectedAddress(null);
+    setSearchResults([]);
+    setIsLoading(false);
+    onClose();
   };
 
   // 카카오 맵 SDK 로드 완료 후 초기화
@@ -242,7 +310,7 @@ export default function AddressSearchModal({
         modalRef.current &&
         !modalRef.current.contains(event.target as Node)
       ) {
-        onClose();
+        handleClose();
       }
     };
 
@@ -253,7 +321,7 @@ export default function AddressSearchModal({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -273,36 +341,49 @@ export default function AddressSearchModal({
         }}
       />
 
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div
           ref={modalRef}
-          className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-hidden"
+          className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col"
         >
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">주소 검색</h2>
-            <Button onClick={onClose} variant="outline">
-              닫기
+          {/* 헤더 */}
+          <div className="flex justify-between items-center p-4 border-b border-gray-200">
+            <h2 className="text-xl font-bold text-gray-800">주소 검색</h2>
+            <Button onClick={handleClose} variant="outline" className="px-3 py-1">
+              ✕
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[70vh]">
-            {/* 검색 패널 */}
-            <div className="space-y-4">
-              <div>
-                <input
-                  type="text"
-                  value={searchKeyword}
-                  onChange={e => setSearchKeyword(e.target.value)}
-                  placeholder="장소명을 입력하세요"
-                  className="w-full p-2 border border-gray-300 rounded"
-                  onKeyPress={e => e.key === 'Enter' && handleSearch()}
-                />
+          {/* 메인 컨텐츠 */}
+          <div className="flex-1 flex flex-col lg:flex-row min-h-0">
+            {/* 왼쪽 검색 패널 */}
+            <div className="w-full lg:w-80 p-4 border-r border-gray-200 space-y-4 overflow-y-auto">
+              {/* 검색 입력 */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  장소 검색
+                </label>
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={searchKeyword}
+                    onChange={e => setSearchKeyword(e.target.value)}
+                    placeholder="장소명을 입력하세요"
+                    className="flex-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    onKeyPress={e => e.key === 'Enter' && handleSearch()}
+                  />
+                  <Button 
+                    onClick={handleSearch} 
+                    disabled={isLoading || !searchKeyword.trim()}
+                    className="px-4 py-2"
+                  >
+                    {isLoading ? '검색중...' : '🔍'}
+                  </Button>
+                </div>
               </div>
 
+              {/* 버튼들 */}
               <div className="space-y-2">
-                <Button onClick={handleSearch} className="w-full">
-                  🔍 검색
-                </Button>
                 <Button
                   onClick={handleCurrentLocation}
                   variant="outline"
@@ -312,44 +393,57 @@ export default function AddressSearchModal({
                 </Button>
               </div>
 
+              {/* 검색 결과 */}
+              {searchResults.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-gray-700">검색 결과</h3>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {searchResults.map((place, index) => (
+                      <div
+                        key={index}
+                        onClick={() => handleResultSelect(place)}
+                        className="p-2 border border-gray-200 rounded cursor-pointer hover:bg-gray-50 text-sm"
+                      >
+                        <div className="font-medium">{place.place_name}</div>
+                        <div className="text-gray-600 text-xs">{place.address_name}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 선택된 주소 */}
               {selectedAddress && (
-                <div className="bg-gray-50 p-3 rounded">
-                  <h3 className="font-semibold mb-2">선택된 주소</h3>
-                  <p className="text-sm text-gray-700">
-                    <strong>주소:</strong> {selectedAddress.address}
-                  </p>
-                  <p className="text-sm text-gray-700">
-                    <strong>상세주소:</strong> {selectedAddress.address1}
-                  </p>
-                  <p className="text-sm text-gray-700">
-                    <strong>우편번호:</strong> {selectedAddress.zipcode}
-                  </p>
-                  <p className="text-sm text-gray-700">
-                    <strong>도시:</strong> {selectedAddress.city}
-                  </p>
+                <div className="bg-blue-50 p-3 rounded-md border border-blue-200">
+                  <h3 className="font-semibold mb-2 text-blue-800">선택된 주소</h3>
+                  <div className="space-y-1 text-sm text-blue-700">
+                    <p><strong>주소:</strong> {selectedAddress.address}</p>
+                    <p><strong>도시:</strong> {selectedAddress.city}</p>
+                    <p><strong>우편번호:</strong> {selectedAddress.zipcode || '정보 없음'}</p>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* 지도 */}
-            <div className="lg:col-span-2">
+            {/* 오른쪽 지도 */}
+            <div className="flex-1 p-4">
               <div
                 ref={mapContainerRef}
-                className="w-full h-full border border-gray-300 rounded"
-                style={{ minHeight: '400px' }}
+                className="w-full h-full border border-gray-300 rounded-lg"
+                style={{ minHeight: '500px' }}
               />
             </div>
           </div>
 
           {/* 하단 버튼 */}
-          <div className="flex justify-end space-x-2 mt-4">
-            <Button onClick={onClose} variant="outline">
+          <div className="flex justify-end space-x-2 p-4 border-t border-gray-200">
+            <Button onClick={handleClose} variant="outline">
               취소
             </Button>
             <Button
               onClick={handleConfirm}
               disabled={!selectedAddress}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400"
             >
               주소 선택
             </Button>

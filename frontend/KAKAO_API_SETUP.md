@@ -376,3 +376,53 @@ npm run dev
 ```
 
 **모든 항목을 완료하면 카카오 지도 API가 정상적으로 작동합니다!** 🎉
+
+### **🚨 CSP (Content Security Policy) 오류 해결 방법**
+
+#### **문제 현상**
+```
+The source list for the Content Security Policy directive 'script-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.
+
+Refused to load the script 'https://t1.daumcdn.net/mapjsapi/js/main/4.4.19/kakao.js' 
+because it violates the following Content Security Policy directive:
+"script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com 
+https://www.google-analytics.com https://dapi.kakao.com https://greensteel.site 'unsafe-dynamic'"
+```
+
+#### **문제 원인**
+1. **`'unsafe-dynamic'`**: 폐기된 CSP 옵션으로 브라우저에서 무시됨
+2. **`t1.daumcdn.net` 누락**: 카카오 지도 SDK가 실제로 사용하는 CDN 도메인이 CSP에 허용되지 않음
+3. **카카오 SDK 로드 경로**: `dapi.kakao.com` → 내부적으로 `t1.daumcdn.net`을 통해 로드
+
+#### **즉시 해결 방법**
+
+##### **1단계: CSP 헤더 수정**
+`next.config.js`에서 다음 CSP 설정을 사용:
+
+```javascript
+Content-Security-Policy: script-src 'self' 'unsafe-inline' 'unsafe-eval' 
+https://www.googletagmanager.com https://www.google-analytics.com 
+https://dapi.kakao.com https://t1.daumcdn.net https://greensteel.site;
+```
+
+##### **2단계: 필요한 도메인 확인**
+카카오 지도 API 사용을 위해 다음 도메인들이 CSP에 포함되어야 함:
+
+- `https://dapi.kakao.com` (API 엔드포인트)
+- `https://t1.daumcdn.net` (SDK CDN)
+- `https://greensteel.site` (사용자 도메인)
+
+##### **3단계: 보안 강화 (선택사항)**
+가능하다면 다음 옵션들을 점진적으로 제거하는 것을 권장:
+
+- `'unsafe-inline'` → `nonce` 또는 `sha256-...` 해시 기반 정책
+- `'unsafe-eval'` → 동적 코드 실행 제한
+
+#### **CSP 설정 예시**
+```javascript
+// next.config.js
+{
+  key: 'Content-Security-Policy',
+  value: `default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://dapi.kakao.com https://t1.daumcdn.net https://greensteel.site; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: https://www.google-analytics.com https://greensteel.site; connect-src 'self' ${process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://api.greensteel.site'} https://www.google-analytics.com https://analytics.google.com https://dapi.kakao.com https://greensteel.site; font-src 'self' data:; frame-src 'self' https://greensteel.site;`
+}
+```

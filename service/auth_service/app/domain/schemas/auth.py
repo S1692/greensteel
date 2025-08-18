@@ -2,7 +2,7 @@ from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, Union, Dict, Any
 from datetime import datetime
 
-# Company 회원가입 스키마 (이미지 데이터 구조 기반)
+# Admin(기업) 회원가입 스키마 (이미지 데이터 구조 기반)
 class CompanyRegisterIn(BaseModel):
     # 계정 정보
     company_id: str = Field(..., min_length=3, max_length=100, description="로그인 ID")
@@ -63,7 +63,7 @@ class CompanyRegisterOut(BaseModel):
     sourcelongitude: Optional[float]
     stream_id: Optional[str]
     stream_version: int
-    message: str = "기업 등록이 완료되었습니다."
+    message: str = "Admin(기업) 등록이 완료되었습니다."
 
 # User 회원가입 스키마
 class UserRegisterIn(BaseModel):
@@ -99,7 +99,7 @@ class TokenOut(BaseModel):
     user_type: str  # "company" 또는 "user"
     user_info: Union["CompanyOut", "UserOut"]
 
-# Company 정보 스키마 (공개용)
+# Admin(기업) 정보 스키마 (공개용)
 class CompanyOut(BaseModel):
     id: int
     uuid: str

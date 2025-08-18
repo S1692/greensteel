@@ -24,8 +24,8 @@ async def register_company(
     company_data: CompanyRegisterIn,
     db: Session = Depends(get_db)
 ):
-    """기업 회원가입 (이미지 데이터 구조 기반)"""
-    auth_logger.info(f"Company registration attempt for company_id: {company_data.company_id}")
+    """Admin(기업) 회원가입 (이미지 데이터 구조 기반)"""
+    auth_logger.info(f"Admin(Company) registration attempt for company_id: {company_data.company_id}")
     
     try:
         # company_id 중복 확인
@@ -33,10 +33,10 @@ async def register_company(
         if existing_company:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="이미 사용 중인 ID입니다."
+                detail="이미 사용 중인 Admin ID입니다."
             )
         
-        # Company 모델에 맞는 데이터 준비 (password -> hashed_password, confirm_password 제거)
+        # Admin(Company) 모델에 맞는 데이터 준비 (password -> hashed_password, confirm_password 제거)
         company_dict = company_data.model_dump()
         company_dict.pop('confirm_password', None)  # confirm_password 필드 제거
         company_dict['hashed_password'] = get_password_hash(company_dict.pop('password'))  # password를 hashed_password로 변환
@@ -45,7 +45,7 @@ async def register_company(
         stream_id = company_data.stream_id or generate_stream_id("company", 0, "auth")
         company_dict['stream_id'] = stream_id
         
-        # 새 기업 생성
+        # 새 Admin(기업) 생성
         new_company = Company(**company_dict)
         db.add(new_company)
         db.commit()
@@ -92,17 +92,17 @@ async def register_company(
             auth_logger.warning(f"Stream event/snapshot creation failed for company {new_company.id}: {str(stream_error)}")
             # 스트림 생성 실패는 회원가입을 막지 않음
         
-        auth_logger.info(f"Company registered successfully: {new_company.id} with stream_id: {stream_id}")
+        auth_logger.info(f"Admin(Company) registered successfully: {new_company.id} with stream_id: {stream_id}")
         return new_company
         
     except HTTPException:
         raise
     except Exception as e:
         db.rollback()
-        auth_logger.error(f"Unexpected error during company registration: {str(e)}")
+        auth_logger.error(f"Unexpected error during admin(company) registration: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="기업 등록 중 오류가 발생했습니다."
+            detail="Admin(기업) 등록 중 오류가 발생했습니다."
         )
 
 @router.post("/register/user", response_model=UserRegisterOut, status_code=status.HTTP_201_CREATED)
@@ -110,16 +110,16 @@ async def register_user(
     user_data: UserRegisterIn,
     db: Session = Depends(get_db)
 ):
-    """User 회원가입 (스트림 구조 지원)"""
+    """User 회원가입 (Admin/기업에 종속, 스트림 구조 지원)"""
     auth_logger.info(f"User registration attempt for username: {user_data.username}")
     
     try:
-        # 기업 존재 확인
+        # Admin(기업) 존재 확인
         company = db.query(Company).filter(Company.id == user_data.company_id).first()
         if not company:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="존재하지 않는 기업 ID입니다."
+                detail="존재하지 않는 Admin(기업) ID입니다."
             )
         
         # username 중복 확인
@@ -127,7 +127,7 @@ async def register_user(
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="이미 사용 중인 ID입니다."
+                detail="이미 사용 중인 User ID입니다."
             )
         
         # 스트림 ID 생성
@@ -201,24 +201,24 @@ async def login(
     login_data: LoginIn,
     db: Session = Depends(get_db)
 ):
-    """사용자 로그인 (Company/User 구분)"""
+    """사용자 로그인 (Admin/Company와 User 구분)"""
     auth_logger.info(f"Login attempt for username: {login_data.username}")
     
     try:
-        # Company 로그인 시도
+        # Admin(Company) 로그인 시도
         company = db.query(Company).filter(Company.company_id == login_data.username).first()
         if company:
             # 비밀번호 확인
             if not verify_password(login_data.password, company.hashed_password):
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="잘못된 ID 또는 비밀번호입니다."
+                    detail="잘못된 Admin ID 또는 비밀번호입니다."
                 )
             
             # 액세스 토큰 생성
             access_token = create_access_token(data={"sub": str(company.id), "type": "company"})
             
-            # 스트림 이벤트 생성 (Company 로그인)
+            # 스트림 이벤트 생성 (Admin/Company 로그인)
             if company.stream_id:
                 try:
                     create_stream_event(
@@ -239,9 +239,9 @@ async def login(
                         }
                     )
                 except Exception as stream_error:
-                    auth_logger.warning(f"Stream event creation failed for company login {company.id}: {str(stream_error)}")
+                    auth_logger.warning(f"Stream event creation failed for admin(company) login {company.id}: {str(stream_error)}")
             
-            auth_logger.info(f"Company login successful: {company.id}")
+            auth_logger.info(f"Admin(Company) login successful: {company.id}")
             return TokenOut(
                 access_token=access_token,
                 user_type="company",
@@ -253,14 +253,14 @@ async def login(
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="잘못된 ID 또는 비밀번호입니다."
+                detail="잘못된 User ID 또는 비밀번호입니다."
             )
         
         # 비밀번호 확인
         if not verify_password(login_data.password, user.hashed_password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="잘못된 ID 또는 비밀번호입니다."
+                detail="잘못된 User ID 또는 비밀번호입니다."
             )
         
         # 사용자 상태 확인
@@ -332,7 +332,7 @@ async def login(
         auth_logger.error(f"Unexpected error during login: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="로그인 중 오류가 발생했습니다."
+            detail="Admin/User 로그인 중 오류가 발생했습니다."
         )
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
@@ -344,7 +344,7 @@ async def logout():
 async def get_current_user_info(
     current_user: Union[User, Company] = Depends(get_current_user)
 ):
-    """현재 로그인한 사용자 정보 조회 (Company/User 구분)"""
+    """현재 로그인한 사용자 정보 조회 (Admin/Company와 User 구분)"""
     if hasattr(current_user, 'username'):  # User인 경우
         return UserOut(
             id=current_user.id,

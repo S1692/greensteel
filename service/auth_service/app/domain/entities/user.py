@@ -40,7 +40,7 @@ class User(Base):
     created_at = Column(DateTime, default=func.now(), nullable=False)
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
     
-    # 관계 설정 (Company 정보는 읽기 전용)
+    # 관계 설정 (Admin/Company 정보는 읽기 전용)
     company = relationship("Company", backref="users", lazy="joined")
     
     # 인덱스 설정
@@ -81,15 +81,21 @@ class User(Base):
         }
     
     def to_dict_with_company_info(self):
-        """Company 기본 정보와 함께 사용자 정보 반환 (읽기 전용)"""
+        """Admin(Company) 기본 정보와 함께 사용자 정보 반환 (읽기 전용)"""
         company_info = None
         if self.company:
             company_info = {
                 "id": self.company.id,
                 "uuid": self.company.uuid,
-                "name_ko": self.company.name_ko,
-                "name_en": self.company.name_en,
-                "biz_no": self.company.biz_no
+                "company_id": self.company.company_id,
+                "Installation": self.company.Installation,
+                "Installation_en": self.company.Installation_en,
+                "economic_activity": self.company.economic_activity,
+                "economic_activity_en": self.company.economic_activity_en,
+                "representative": self.company.representative,
+                "representative_en": self.company.representative_en,
+                "email": self.company.email,
+                "telephone": self.company.telephone
             }
         
         return {

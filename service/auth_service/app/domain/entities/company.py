@@ -6,7 +6,7 @@ import uuid
 from app.common.db import Base
 
 class Company(Base):
-    """기업 모델 (이미지 데이터 구조 기반)"""
+    """Admin(기업) 모델 (이미지 데이터 구조 기반) - 스트림 구조 지원"""
     __tablename__ = "companies"
     
     # 기본 필드

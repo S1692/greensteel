@@ -50,9 +50,7 @@ export default function AddressSearchModal({
   onClose,
   onAddressSelect,
 }: AddressSearchModalProps) {
-  const [selectedAddress, setSelectedAddress] = useState<KakaoAddressData | null>(
-    null
-  );
+  const [selectedAddress, setSelectedAddress] = useState<KakaoAddressData | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
 
   // 도시명 영문화

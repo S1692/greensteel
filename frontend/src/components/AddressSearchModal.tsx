@@ -264,24 +264,51 @@ export default function AddressSearchModal({
   }, [handleMapClick]);
 
   useEffect(() => {
+    // 디버깅: API 키 상태 확인
+    console.log('🔍 카카오 API 키 상태 확인:');
+    console.log('- 환경 변수:', process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY);
+    console.log('- API 키 길이:', process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY?.length || 0);
+    console.log('- API 키 유효성:', process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY && process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY !== 'YOUR_KAKAO_MAP_API_KEY' ? '유효' : '무효');
+    
+    // API 키가 유효하지 않으면 에러 표시
+    if (!process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY || 
+        process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY === 'YOUR_KAKAO_MAP_API_KEY') {
+      console.error('❌ 카카오 API 키가 설정되지 않았습니다.');
+      alert(`카카오 API 키가 설정되지 않았습니다.
+
+해결 방법:
+1. Vercel 환경 변수에 NEXT_PUBLIC_KAKAO_MAP_API_KEY 설정
+2. 실제 JavaScript 키 값 입력 (your_key_here 아님)
+3. 환경 변수 설정 후 Redeploy 실행
+4. 브라우저 캐시 삭제 후 새로고침
+
+현재 설정된 값: ${process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY || 'undefined'}`);
+      return;
+    }
+
     // 카카오 지도 API 스크립트가 이미 로드되어 있는지 확인
     if (window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
+      console.log('✅ 카카오 API가 이미 로드되어 있습니다.');
       initializeMap();
       return;
     }
 
+    console.log('🔄 카카오 API 스크립트 로딩 시작...');
+    
     // 새 스크립트 생성 및 로드
     const script = document.createElement('script');
-    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${
-      process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY || 'YOUR_KAKAO_MAP_API_KEY'
-    }&libraries=services`;
+    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY}&libraries=services`;
     script.async = true;
+    
     script.onload = () => {
+      console.log('✅ 카카오 API 스크립트 로드 완료');
       // API가 완전히 초기화될 때까지 기다림
       const checkKakaoAPI = () => {
         if (window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
+          console.log('✅ 카카오 API 초기화 완료');
           initializeMap();
         } else {
+          console.log('⏳ 카카오 API 초기화 대기 중...');
           // 100ms 후 다시 확인
           setTimeout(checkKakaoAPI, 100);
         }
@@ -290,16 +317,22 @@ export default function AddressSearchModal({
       // 초기 확인 시작
       setTimeout(checkKakaoAPI, 100);
     };
-    script.onerror = () => {
-      console.error('카카오 지도 API 스크립트 로드 실패');
+    
+    script.onerror = (error) => {
+      console.error('❌ 카카오 지도 API 스크립트 로드 실패:', error);
       // 에러 발생 시 사용자에게 상세한 안내
       alert(`지도 로딩에 실패했습니다.
 
+에러 상세:
+- API 키: ${process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY ? '설정됨' : '설정되지 않음'}
+- API 키 길이: ${process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY?.length || 0}
+- 도메인: ${window.location.origin}
+
 해결 방법:
-1. frontend/.env.local 파일에 NEXT_PUBLIC_KAKAO_MAP_API_KEY 설정
-2. 카카오 개발자 콘솔에서 JavaScript 키 확인
-3. 도메인 설정 확인 (localhost:3000, Vercel 도메인)
-4. 개발 서버 재시작
+1. Vercel 환경 변수 확인 및 수정
+2. 카카오 개발자 콘솔에서 도메인 설정 확인
+3. 환경 변수 수정 후 Redeploy 실행
+4. 브라우저 캐시 삭제 후 새로고침
 
 자세한 내용은 KAKAO_API_SETUP.md 파일을 참조하세요.`);
     };

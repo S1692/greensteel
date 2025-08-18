@@ -9,15 +9,17 @@ GreenSteel 프로젝트에서 주소 검색 기능을 위해 카카오 지도 AP
 ## **CORS 정책 오류 해결 방법**
 
 ### **문제 현상**
+
 ```
-Access to script at 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=...' 
-from origin 'https://greensteel.site' has been blocked by CORS policy: 
+Access to script at 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=...'
+from origin 'https://greensteel.site' has been blocked by CORS policy:
 No 'Access-Control-Allow-Origin' header is present on the requested resource.
 ```
 
 ### **즉시 해결 방법**
 
 #### **1단계: 카카오 개발자 콘솔 도메인 설정**
+
 1. **카카오 개발자 콘솔 접속**
    - https://developers.kakao.com/ 접속
    - 로그인 후 해당 앱 선택
@@ -34,6 +36,7 @@ No 'Access-Control-Allow-Origin' header is present on the requested resource.
    - 현재 사용 중인 JavaScript 키가 올바른지 확인
 
 #### **2단계: Vercel 환경 변수 확인**
+
 1. **Vercel 대시보드 접속**
 2. **프로젝트 선택** → **Settings** → **Environment Variables**
 3. **다음 환경 변수 확인/수정**:
@@ -43,6 +46,7 @@ No 'Access-Control-Allow-Origin' header is present on the requested resource.
    ```
 
 #### **3단계: 재배포 및 테스트**
+
 1. **Vercel 재배포 실행**
 2. **브라우저 캐시 삭제**
 3. **새로고침 후 테스트**

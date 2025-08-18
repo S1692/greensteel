@@ -70,7 +70,7 @@
       ]
     },
     {
-      "source": "/workbox-*.js",
+      "source": "/workbox-([a-zA-Z0-9-]+)\\.js",
       "headers": [
         {
           "key": "Access-Control-Allow-Origin",
@@ -83,7 +83,7 @@
       ]
     },
     {
-      "source": "/icon*.svg",
+      "source": "/icon([a-zA-Z0-9-]*)\\.svg",
       "headers": [
         {
           "key": "Access-Control-Allow-Origin",

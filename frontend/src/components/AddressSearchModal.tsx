@@ -264,18 +264,34 @@ export default function AddressSearchModal({
   }, [handleMapClick]);
 
   useEffect(() => {
-    // 카카오 지도 API 스크립트 로드
+    // 카카오 지도 API 스크립트가 이미 로드되어 있는지 확인
+    if (window.kakao && window.kakao.maps) {
+      initializeMap();
+      return;
+    }
+
+    // 새 스크립트 생성 및 로드
     const script = document.createElement('script');
     script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${
       process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY || 'YOUR_KAKAO_MAP_API_KEY'
     }&libraries=services`;
     script.async = true;
-    script.onload = initializeMap;
+    script.onload = () => {
+      // 스크립트 로드 완료 후 지도 초기화
+      setTimeout(initializeMap, 100); // 약간의 지연을 두어 API가 완전히 준비되도록 함
+    };
+    script.onerror = () => {
+      console.error('카카오 지도 API 스크립트 로드 실패');
+      // 에러 발생 시 사용자에게 알림
+      alert('지도 로딩에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    };
+
     document.head.appendChild(script);
 
     return () => {
+      // 클린업: 스크립트 제거
       if (script.parentNode) {
-        document.head.removeChild(script);
+        script.parentNode.removeChild(script);
       }
     };
   }, [initializeMap]);

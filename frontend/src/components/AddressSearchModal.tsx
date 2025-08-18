@@ -319,6 +319,7 @@ export default function AddressSearchModal({
     script.async = true;
     script.defer = true;
     script.crossOrigin = 'anonymous';
+    script.type = 'text/javascript';
 
     // 로딩 상태 추적
     let loadTimeout: NodeJS.Timeout;
@@ -332,6 +333,14 @@ export default function AddressSearchModal({
       
       // API가 완전히 초기화될 때까지 기다림
       const checkKakaoAPI = () => {
+        console.log('🔍 카카오 API 상태 확인:', {
+          hasKakao: !!window.kakao,
+          hasMaps: !!(window.kakao && window.kakao.maps),
+          hasLatLng: !!(window.kakao && window.kakao.maps && window.kakao.maps.LatLng),
+          kakaoKeys: window.kakao ? Object.keys(window.kakao) : [],
+          mapsKeys: window.kakao?.maps ? Object.keys(window.kakao.maps) : []
+        });
+        
         if (window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
           console.log('✅ 카카오 API 초기화 완료');
           if (initTimeout) clearTimeout(initTimeout);
@@ -343,8 +352,8 @@ export default function AddressSearchModal({
         }
       };
 
-      // 초기 확인 시작 (500ms 후)
-      setTimeout(checkKakaoAPI, 500);
+      // 초기 확인 시작 (1초 후)
+      setTimeout(checkKakaoAPI, 1000);
     };
 
     script.onerror = error => {

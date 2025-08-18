@@ -36,11 +36,11 @@
         },
         {
           "key": "Access-Control-Allow-Methods",
-          "value": "GET, OPTIONS, HEAD"
+          "value": "GET, OPTIONS, HEAD, POST"
         },
         {
           "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Accept, Authorization, X-Requested-With"
+          "value": "Content-Type, Accept, Authorization, X-Requested-With, Origin"
         },
         {
           "key": "Cache-Control",
@@ -49,6 +49,10 @@
         {
           "key": "Content-Type",
           "value": "application/manifest+json"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
         }
       ]
     },
@@ -61,11 +65,11 @@
         },
         {
           "key": "Access-Control-Allow-Methods",
-          "value": "GET, OPTIONS, HEAD"
+          "value": "GET, OPTIONS, HEAD, POST"
         },
         {
           "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Accept, Authorization, X-Requested-With"
+          "value": "Content-Type, Accept, Authorization, X-Requested-With, Origin"
         },
         {
           "key": "Cache-Control",

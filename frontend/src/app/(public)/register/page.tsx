@@ -171,6 +171,7 @@ export default function RegisterPage() {
                     }
                     placeholder="예: smartesg"
                     required
+                    autoComplete="username"
                   />
                 </div>
                 <div>
@@ -223,6 +224,7 @@ export default function RegisterPage() {
                     }
                     placeholder="예: 스마트에스지"
                     required
+                    autoComplete="organization"
                   />
                 </div>
                 <div>
@@ -250,6 +252,7 @@ export default function RegisterPage() {
                     }
                     placeholder="예: 1234567890"
                     required
+                    autoComplete="off"
                   />
                 </div>
                 <div>
@@ -261,6 +264,7 @@ export default function RegisterPage() {
                       handleCompanyInputChange('ceo_name', e.target.value)
                     }
                     placeholder="예: 홍길동"
+                    autoComplete="name"
                   />
                 </div>
                 <div>

@@ -45,6 +45,10 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=3600, must-revalidate"
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/manifest+json"
         }
       ]
     },
@@ -66,6 +70,10 @@
         {
           "key": "Cache-Control",
           "value": "no-cache, no-store, must-revalidate, max-age=0"
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/javascript"
         }
       ]
     },
@@ -79,6 +87,10 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=31536000, immutable"
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/javascript"
         }
       ]
     },
@@ -92,6 +104,10 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=31536000, immutable"
+        },
+        {
+          "key": "Content-Type",
+          "value": "image/svg+xml"
         }
       ]
     },

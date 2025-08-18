@@ -13,7 +13,7 @@ interface CompanyData {
   company_id: string;
   password: string;
   confirmPassword: string;
-  
+
   // 사용자 직접 입력 필드
   Installation: string; // 사업장명
   Installation_en: string; // 사업장영문명
@@ -23,7 +23,7 @@ interface CompanyData {
   representative_en: string; // 영문대표자명
   email: string; // 이메일
   telephone: string; // 전화번호
-  
+
   // 주소 검색 모달을 통해 자동 입력되는 필드 (읽기 전용)
   street: string; // 도로명
   street_en: string; // 도로영문명
@@ -70,13 +70,13 @@ interface AddressData {
 export default function RegisterPage() {
   const [activeTab, setActiveTab] = useState<'company' | 'user'>('company');
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
-  
+
   const [companyData, setCompanyData] = useState<CompanyData>({
     // 계정 정보
     company_id: '',
     password: '',
     confirmPassword: '',
-    
+
     // 사용자 직접 입력 필드
     Installation: '',
     Installation_en: '',
@@ -86,7 +86,7 @@ export default function RegisterPage() {
     representative_en: '',
     email: '',
     telephone: '',
-    
+
     // 주소 검색 모달을 통해 자동 입력되는 필드
     street: '',
     street_en: '',
@@ -130,14 +130,12 @@ export default function RegisterPage() {
   const handleCompanySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // TODO: 실제 API 호출로 교체
-    console.log('Company Data:', companyData);
     alert('기업 등록이 완료되었습니다!');
   };
 
   const handleUserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // TODO: 실제 API 호출로 교체
-    console.log('User Data:', userData);
     alert('사용자 등록이 완료되었습니다!');
   };
 
@@ -255,12 +253,17 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div>
-                  <label className="stitch-label mb-1 block">사업장영문명</label>
+                  <label className="stitch-label mb-1 block">
+                    사업장영문명
+                  </label>
                   <Input
                     type="text"
                     value={companyData.Installation_en}
                     onChange={e =>
-                      handleCompanyInputChange('Installation_en', e.target.value)
+                      handleCompanyInputChange(
+                        'Installation_en',
+                        e.target.value
+                      )
                     }
                     placeholder="예: Smart ESG"
                   />
@@ -271,7 +274,10 @@ export default function RegisterPage() {
                     type="text"
                     value={companyData.economic_activity}
                     onChange={e =>
-                      handleCompanyInputChange('economic_activity', e.target.value)
+                      handleCompanyInputChange(
+                        'economic_activity',
+                        e.target.value
+                      )
                     }
                     placeholder="예: 제조업"
                   />
@@ -282,7 +288,10 @@ export default function RegisterPage() {
                     type="text"
                     value={companyData.economic_activity_en}
                     onChange={e =>
-                      handleCompanyInputChange('economic_activity_en', e.target.value)
+                      handleCompanyInputChange(
+                        'economic_activity_en',
+                        e.target.value
+                      )
                     }
                     placeholder="예: Manufacturing"
                   />
@@ -304,7 +313,8 @@ export default function RegisterPage() {
                   🔍 주소 검색
                 </Button>
                 <p className="text-sm text-gray-400 mt-2">
-                  주소 검색을 통해 도로명, 건물번호, 우편번호, 도시, 국가 정보를 자동으로 입력할 수 있습니다.
+                  주소 검색을 통해 도로명, 건물번호, 우편번호, 도시, 국가 정보를
+                  자동으로 입력할 수 있습니다.
                 </p>
               </div>
 
@@ -416,12 +426,17 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div>
-                  <label className="stitch-label mb-1 block">영문대표자명</label>
+                  <label className="stitch-label mb-1 block">
+                    영문대표자명
+                  </label>
                   <Input
                     type="text"
                     value={companyData.representative_en}
                     onChange={e =>
-                      handleCompanyInputChange('representative_en', e.target.value)
+                      handleCompanyInputChange(
+                        'representative_en',
+                        e.target.value
+                      )
                     }
                     placeholder="예: Hong Gil-dong"
                   />

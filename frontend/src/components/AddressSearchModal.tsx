@@ -73,6 +73,7 @@ interface KakaoMarker {
 interface KakaoInfoWindow {
   setContent: (content: string) => void;
   open: (map: KakaoMap, marker: KakaoMarker) => void;
+  close: () => void;
 }
 
 interface KakaoMouseEvent {
@@ -193,32 +194,51 @@ export default function AddressSearchModal({
     (latlng: KakaoLatLng) => {
       if (!map || !marker || !infoWindow) return;
 
-      // 마커 위치 설정
-      marker.setPosition(latlng);
-      marker.setMap(map);
+      try {
+        // 마커 위치 설정
+        marker.setPosition(latlng);
+        marker.setMap(map);
 
-      // 주소 정보 가져오기
-      const geocoder = new window.kakao.maps.services.Geocoder();
-      geocoder.coord2Address(
-        latlng.getLng(),
-        latlng.getLat(),
-        (result: KakaoGeocoderResult[], status: string) => {
-          if (status === window.kakao.maps.services.Status.OK) {
-            const addressData = createAddressDataFromKakao(result[0]);
-            setSelectedAddress(addressData);
+        // 주소 정보 가져오기
+        const geocoder = new window.kakao.maps.services.Geocoder();
+        geocoder.coord2Address(
+          latlng.getLng(),
+          latlng.getLat(),
+          (result: KakaoGeocoderResult[], status: string) => {
+            if (status === window.kakao.maps.services.Status.OK && result.length > 0) {
+              const addressData = createAddressDataFromKakao(result[0]);
+              
+              // 상태 업데이트를 안전하게 처리
+              setSelectedAddress(prev => {
+                // 이전 상태와 동일한 경우 불필요한 리렌더링 방지
+                if (prev && 
+                    prev.address === addressData.address && 
+                    prev.city === addressData.city) {
+                  return prev;
+                }
+                return addressData;
+              });
 
-            // 정보창에 주소 표시
-            infoWindow.setContent(`
-              <div style="padding:10px;min-width:200px;">
-                <strong>선택된 주소</strong><br/>
-                ${addressData.address}<br/>
-                ${addressData.city}
-              </div>
-            `);
-            infoWindow.open(map, marker);
+              // 정보창에 주소 표시 (z-index 문제 방지)
+              const infoContent = `
+                <div style="padding:10px;min-width:200px;background:white;border:1px solid #ccc;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+                  <strong style="color:#333;">선택된 주소</strong><br/>
+                  <span style="color:#666;">${addressData.address}</span><br/>
+                  <span style="color:#666;">${addressData.city}</span>
+                </div>
+              `;
+              
+              infoWindow.setContent(infoContent);
+              infoWindow.open(map, marker);
+            }
           }
-        }
-      );
+        );
+      } catch (error) {
+        console.error('지도 클릭 처리 중 오류 발생:', error);
+        // 오류 발생 시 기본 마커만 표시
+        marker.setPosition(latlng);
+        marker.setMap(map);
+      }
     },
     [map, marker, infoWindow, createAddressDataFromKakao]
   );
@@ -235,7 +255,7 @@ export default function AddressSearchModal({
     const newMap = new window.kakao.maps.Map(mapContainerRef.current, options);
     setMap(newMap);
 
-    // 지도 클릭 이벤트
+    // 지도 클릭 이벤트 (이벤트 버블링 방지)
     newMap.addListener('click', (mouseEvent: KakaoMouseEvent) => {
       const latlng = mouseEvent.latLng;
       handleMapClick(latlng);
@@ -244,6 +264,7 @@ export default function AddressSearchModal({
     // 마커와 정보창 초기화
     const newMarker = new window.kakao.maps.Marker({});
     const newInfoWindow = new window.kakao.maps.InfoWindow({});
+    
     setMarker(newMarker);
     setInfoWindow(newInfoWindow);
   }, [handleMapClick]);
@@ -376,12 +397,36 @@ export default function AddressSearchModal({
 
   // 모달 닫기 시 상태 초기화
   const handleClose = useCallback(() => {
+    // 카카오 맵 요소들 정리
+    if (marker) {
+      marker.setMap(null);
+    }
+    if (infoWindow) {
+      infoWindow.close();
+    }
+    
+    // 상태 초기화
     setSearchKeyword('');
     setSelectedAddress(null);
     setSearchResults([]);
     setIsLoading(false);
     onClose();
-  }, [onClose]);
+  }, [onClose, marker, infoWindow]);
+
+  // 모달 외부 클릭 시 닫기 (지도 영역 제외)
+  const handleClickOutside = useCallback((event: MouseEvent) => {
+    if (!modalRef.current) return;
+    
+    // 지도 영역 클릭은 무시 (지도 내부 상호작용 허용)
+    if (mapContainerRef.current && mapContainerRef.current.contains(event.target as Node)) {
+      return;
+    }
+    
+    // 모달 외부 클릭 시에만 닫기
+    if (!modalRef.current.contains(event.target as Node)) {
+      handleClose();
+    }
+  }, [handleClose]);
 
   // 카카오 맵 SDK 로드 완료 후 초기화
   useEffect(() => {
@@ -392,17 +437,8 @@ export default function AddressSearchModal({
     }
   }, [isKakaoReady, initializeMap]);
 
-  // 모달 외부 클릭 시 닫기
+  // 모달 외부 클릭 이벤트 리스너
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        modalRef.current &&
-        !modalRef.current.contains(event.target as Node)
-      ) {
-        handleClose();
-      }
-    };
-
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
@@ -410,7 +446,7 @@ export default function AddressSearchModal({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen, handleClose]);
+  }, [isOpen, handleClickOutside]);
 
   if (!isOpen) return null;
 
@@ -440,11 +476,15 @@ export default function AddressSearchModal({
             </div>
           </div>
         )}
-
+        
         <div
           ref={modalRef}
           className="bg-white rounded-lg shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col relative z-[10000]"
-          style={{ minHeight: '600px' }}
+          style={{ 
+            minHeight: '600px',
+            // 카카오 맵 요소들이 모달을 덮어쓰지 않도록 CSS 강화
+            isolation: 'isolate'
+          }}
         >
           {/* 헤더 */}
           <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-white sticky top-0 z-10">
@@ -461,7 +501,7 @@ export default function AddressSearchModal({
           {/* 메인 컨텐츠 */}
           <div className="flex-1 flex flex-col lg:flex-row min-h-0 bg-white">
             {/* 왼쪽 검색 패널 */}
-            <div className="w-full lg:w-80 p-4 border-r border-gray-200 space-y-4 overflow-y-auto bg-gray-50">
+            <div className="w-full lg:w-80 p-4 border-r border-gray-200 space-y-4 overflow-y-auto bg-gray-50 relative z-20">
               {/* 검색 입력 */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">
@@ -541,22 +581,23 @@ export default function AddressSearchModal({
             </div>
 
             {/* 오른쪽 지도 */}
-            <div className="flex-1 p-4 bg-white">
+            <div className="flex-1 p-4 bg-white relative z-10">
               <div
                 ref={mapContainerRef}
                 className="w-full h-full border border-gray-300 rounded-lg bg-gray-100"
-                style={{ minHeight: '500px' }}
+                style={{ 
+                  minHeight: '500px',
+                  // 카카오 맵 요소들이 모달을 덮어쓰지 않도록 CSS 강화
+                  position: 'relative',
+                  zIndex: 1
+                }}
               />
             </div>
           </div>
 
           {/* 하단 버튼 */}
-          <div className="flex justify-end space-x-2 p-4 border-t border-gray-200 bg-white sticky bottom-0">
-            <Button
-              onClick={handleClose}
-              variant="outline"
-              className="border-gray-300 hover:bg-gray-100"
-            >
+          <div className="flex justify-end space-x-2 p-4 border-t border-gray-200 bg-white sticky bottom-0 z-20">
+            <Button onClick={handleClose} variant="outline" className="border-gray-300 hover:bg-gray-100">
               취소
             </Button>
             <Button

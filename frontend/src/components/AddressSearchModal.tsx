@@ -24,9 +24,25 @@ interface AddressSearchModalProps {
 declare global {
   interface Window {
     daum: {
-      Postcode: new (options: any) => any;
+      Postcode: new (options: DaumPostcodeOptions) => DaumPostcode;
     };
   }
+}
+
+interface DaumPostcodeOptions {
+  oncomplete: (data: DaumPostcodeData) => void;
+  onclose: () => void;
+}
+
+interface DaumPostcode {
+  open: () => void;
+}
+
+interface DaumPostcodeData {
+  address: string;
+  addressDetail?: string;
+  zonecode?: string;
+  sido?: string;
 }
 
 export default function AddressSearchModal({
@@ -34,7 +50,9 @@ export default function AddressSearchModal({
   onClose,
   onAddressSelect,
 }: AddressSearchModalProps) {
-  const [selectedAddress, setSelectedAddress] = useState<KakaoAddressData | null>(null);
+  const [selectedAddress, setSelectedAddress] = useState<KakaoAddressData | null>(
+    null
+  );
   const modalRef = useRef<HTMLDivElement>(null);
 
   // 도시명 영문화
@@ -62,21 +80,24 @@ export default function AddressSearchModal({
   }, []);
 
   // 주소 선택 처리
-  const handleAddressSelect = useCallback((data: any) => {
-    const addressData: KakaoAddressData = {
-      address: data.address,
-      address1: data.addressDetail || data.address,
-      zipcode: data.zonecode || '',
-      country: '대한민국',
-      city: data.sido || '',
-      country_eng: 'South Korea',
-      city_eng: getCityEnglish(data.sido || ''),
-      address_eng: data.address,
-      address1_eng: data.addressDetail || data.address,
-    };
+  const handleAddressSelect = useCallback(
+    (data: DaumPostcodeData) => {
+      const addressData: KakaoAddressData = {
+        address: data.address,
+        address1: data.addressDetail || data.address,
+        zipcode: data.zonecode || '',
+        country: '대한민국',
+        city: data.sido || '',
+        country_eng: 'South Korea',
+        city_eng: getCityEnglish(data.sido || ''),
+        address_eng: data.address,
+        address1_eng: data.addressDetail || data.address,
+      };
 
-    setSelectedAddress(addressData);
-  }, [getCityEnglish]);
+      setSelectedAddress(addressData);
+    },
+    [getCityEnglish]
+  );
 
   // 주소 검색 실행
   const handleSearch = useCallback(() => {
@@ -86,12 +107,12 @@ export default function AddressSearchModal({
     }
 
     new window.daum.Postcode({
-      oncomplete: function(data: any) {
+      oncomplete: function (data: DaumPostcodeData) {
         handleAddressSelect(data);
       },
-      onclose: function() {
+      onclose: function () {
         // 팝업이 닫힐 때 실행
-      }
+      },
     }).open();
   }, [handleAddressSelect]);
 
@@ -134,13 +155,14 @@ export default function AddressSearchModal({
     if (!isOpen) return;
 
     const script = document.createElement('script');
-    script.src = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+    script.src =
+      '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
     script.async = true;
-    
+
     script.onload = () => {
       // 스크립트 로드 완료
     };
-    
+
     script.onerror = () => {
       alert('주소 검색 서비스 로드에 실패했습니다.');
     };
@@ -200,19 +222,27 @@ export default function AddressSearchModal({
                 <div className="space-y-3 text-left">
                   <div className="flex justify-between">
                     <span className="font-medium text-gray-700">주소:</span>
-                    <span className="text-gray-900">{selectedAddress.address}</span>
+                    <span className="text-gray-900">
+                      {selectedAddress.address}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="font-medium text-gray-700">상세주소:</span>
-                    <span className="text-gray-900">{selectedAddress.address1}</span>
+                    <span className="text-gray-900">
+                      {selectedAddress.address1}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="font-medium text-gray-700">우편번호:</span>
-                    <span className="text-gray-900">{selectedAddress.zipcode}</span>
+                    <span className="text-gray-900">
+                      {selectedAddress.zipcode}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="font-medium text-gray-700">도시:</span>
-                    <span className="text-gray-900">{selectedAddress.city}</span>
+                    <span className="text-gray-900">
+                      {selectedAddress.city}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -222,10 +252,10 @@ export default function AddressSearchModal({
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
               <h4 className="font-semibold text-blue-800 mb-2">📋 사용 방법</h4>
               <ol className="text-sm text-blue-700 space-y-1 text-left">
-                <li>1. "주소 검색하기" 버튼을 클릭합니다</li>
+                <li>1. &quot;주소 검색하기&quot; 버튼을 클릭합니다</li>
                 <li>2. 팝업에서 주소를 검색하고 선택합니다</li>
                 <li>3. 선택한 주소가 위에 표시됩니다</li>
-                <li>4. "주소 선택" 버튼을 클릭하여 완료합니다</li>
+                <li>4. &quot;주소 선택&quot; 버튼을 클릭하여 완료합니다</li>
               </ol>
             </div>
           </div>
@@ -233,7 +263,11 @@ export default function AddressSearchModal({
 
         {/* 하단 버튼 */}
         <div className="flex justify-end space-x-2 p-4 border-t border-gray-200 bg-white">
-          <Button onClick={handleClose} variant="outline" className="border-gray-300 hover:bg-gray-100">
+          <Button
+            onClick={handleClose}
+            variant="outline"
+            className="border-gray-300 hover:bg-gray-100"
+          >
             취소
           </Button>
           <Button

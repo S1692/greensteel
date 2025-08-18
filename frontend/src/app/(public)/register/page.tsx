@@ -7,28 +7,36 @@ import { SectionTitle } from '@/components/ui/SectionTitle';
 import TabGroup from '@/components/molecules/TabGroup';
 import AddressSearchModal from '@/components/AddressSearchModal';
 
+// 이미지의 데이터 구조에 맞춘 CompanyData 인터페이스
 interface CompanyData {
+  // 계정 정보 (유지)
   company_id: string;
   password: string;
   confirmPassword: string;
-  company_name: string;
-  biz_no: string;
-  ceo_name: string;
-  ceo_name_en: string;
-  address: string;
-  address1: string;
-  zipcode: string;
-  country: string;
-  city: string;
-  industry: string;
-  industry_code: string;
-  manager_name: string;
-  manager_phone: string;
-  manager_email: string;
-  country_eng: string;
-  city_eng: string;
-  address_eng: string;
-  address1_eng: string;
+  
+  // 사용자 직접 입력 필드
+  Installation: string; // 사업장명
+  Installation_en: string; // 사업장영문명
+  economic_activity: string; // 업종명
+  economic_activity_en: string; // 업종영문명
+  representative: string; // 대표자명
+  representative_en: string; // 영문대표자명
+  email: string; // 이메일
+  telephone: string; // 전화번호
+  
+  // 주소 검색 모달을 통해 자동 입력되는 필드 (읽기 전용)
+  street: string; // 도로명
+  street_en: string; // 도로영문명
+  number: string; // 건물번호
+  number_en: string; // 건물번호영문명
+  postcode: string; // 우편번호
+  city: string; // 도시명
+  city_en: string; // 도시영문명
+  country: string; // 국가명
+  country_en: string; // 국가영문명
+  unlocode: string; // UNLOCODE (DB 참조 - 미구현)
+  sourcelatitude: string; // 사업장위도
+  sourcelongitude: string; // 사업장경도
 }
 
 interface UserData {
@@ -39,43 +47,59 @@ interface UserData {
   company_id: string;
 }
 
+// 주소 검색 모달에서 반환되는 데이터 구조 (KakaoAddressData와 동일)
 interface AddressData {
   address: string;
-  address_eng: string;
+  address1: string;
   zipcode: string;
   country: string;
-  country_eng: string;
   city: string;
+  country_eng: string;
   city_eng: string;
-  address1: string;
+  address_eng: string;
   address1_eng: string;
+  // 추가 주소 관련 필드들
+  street: string;
+  street_en: string;
+  number: string;
+  number_en: string;
+  sourcelatitude: string;
+  sourcelongitude: string;
 }
 
 export default function RegisterPage() {
   const [activeTab, setActiveTab] = useState<'company' | 'user'>('company');
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  
   const [companyData, setCompanyData] = useState<CompanyData>({
+    // 계정 정보
     company_id: '',
     password: '',
     confirmPassword: '',
-    company_name: '',
-    biz_no: '',
-    ceo_name: '',
-    ceo_name_en: '',
-    address: '',
-    address1: '',
-    zipcode: '',
-    country: '',
+    
+    // 사용자 직접 입력 필드
+    Installation: '',
+    Installation_en: '',
+    economic_activity: '',
+    economic_activity_en: '',
+    representative: '',
+    representative_en: '',
+    email: '',
+    telephone: '',
+    
+    // 주소 검색 모달을 통해 자동 입력되는 필드
+    street: '',
+    street_en: '',
+    number: '',
+    number_en: '',
+    postcode: '',
     city: '',
-    industry: '',
-    industry_code: '',
-    manager_name: '',
-    manager_email: '',
-    manager_phone: '',
-    country_eng: '',
-    city_eng: '',
-    address_eng: '',
-    address1_eng: '',
+    city_en: '',
+    country: '',
+    country_en: '',
+    unlocode: '', // DB 참조 - 미구현
+    sourcelatitude: '',
+    sourcelongitude: '',
   });
 
   const [userData, setUserData] = useState<UserData>({
@@ -106,27 +130,32 @@ export default function RegisterPage() {
   const handleCompanySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // TODO: 실제 API 호출로 교체
-    alert('회사 등록이 완료되었습니다!');
+    console.log('Company Data:', companyData);
+    alert('기업 등록이 완료되었습니다!');
   };
 
   const handleUserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // TODO: 실제 API 호출로 교체
+    console.log('User Data:', userData);
     alert('사용자 등록이 완료되었습니다!');
   };
 
   const handleAddressSelect = (addressData: AddressData) => {
     setCompanyData(prev => ({
       ...prev,
-      country: addressData.country,
-      country_eng: addressData.country_eng,
-      zipcode: addressData.zipcode,
+      // 주소 검색 모달을 통해 자동 입력되는 필드들
+      street: addressData.street,
+      street_en: addressData.street_en,
+      number: addressData.number,
+      number_en: addressData.number_en,
+      postcode: addressData.zipcode,
       city: addressData.city,
-      city_eng: addressData.city_eng,
-      address: addressData.address,
-      address_eng: addressData.address_eng,
-      address1: addressData.address1,
-      address1_eng: addressData.address1_eng,
+      city_en: addressData.city_eng,
+      country: addressData.country,
+      country_en: addressData.country_eng,
+      sourcelatitude: addressData.sourcelatitude,
+      sourcelongitude: addressData.sourcelongitude,
     }));
   };
 
@@ -157,7 +186,7 @@ export default function RegisterPage() {
         {/* Company 회원가입 폼 */}
         {activeTab === 'company' && (
           <form onSubmit={handleCompanySubmit} className="space-y-6">
-            {/* 계정 정보를 상단으로 이동 */}
+            {/* 계정 정보 */}
             <div className="bg-[rgba(255,255,255,.03)] p-6 rounded-lg border border-[rgba(255,255,255,.1)]">
               <SectionTitle>계정 정보</SectionTitle>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -208,19 +237,17 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* 기업 정보 */}
+            {/* 기업 기본 정보 */}
             <div className="bg-[rgba(255,255,255,.03)] p-6 rounded-lg border border-[rgba(255,255,255,.1)]">
-              <SectionTitle>기업 정보</SectionTitle>
+              <SectionTitle>기업 기본 정보</SectionTitle>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="stitch-label mb-1 block">
-                    사업자(상점) 국문 이름 *
-                  </label>
+                  <label className="stitch-label mb-1 block">사업장명 *</label>
                   <Input
                     type="text"
-                    value={companyData.company_name}
+                    value={companyData.Installation}
                     onChange={e =>
-                      handleCompanyInputChange('company_name', e.target.value)
+                      handleCompanyInputChange('Installation', e.target.value)
                     }
                     placeholder="예: 스마트에스지"
                     required
@@ -228,56 +255,36 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div>
-                  <label className="stitch-label mb-1 block">
-                    사업자(상점) 영문 이름
-                  </label>
+                  <label className="stitch-label mb-1 block">사업장영문명</label>
                   <Input
                     type="text"
-                    value={companyData.ceo_name_en}
+                    value={companyData.Installation_en}
                     onChange={e =>
-                      handleCompanyInputChange('ceo_name_en', e.target.value)
+                      handleCompanyInputChange('Installation_en', e.target.value)
                     }
                     placeholder="예: Smart ESG"
                   />
                 </div>
                 <div>
-                  <label className="stitch-label mb-1 block">
-                    사업자번호 *
-                  </label>
+                  <label className="stitch-label mb-1 block">업종명</label>
                   <Input
                     type="text"
-                    value={companyData.biz_no}
+                    value={companyData.economic_activity}
                     onChange={e =>
-                      handleCompanyInputChange('biz_no', e.target.value)
+                      handleCompanyInputChange('economic_activity', e.target.value)
                     }
-                    placeholder="예: 1234567890"
-                    required
-                    autoComplete="off"
+                    placeholder="예: 제조업"
                   />
                 </div>
                 <div>
-                  <label className="stitch-label mb-1 block">대표자명</label>
+                  <label className="stitch-label mb-1 block">업종영문명</label>
                   <Input
                     type="text"
-                    value={companyData.ceo_name}
+                    value={companyData.economic_activity_en}
                     onChange={e =>
-                      handleCompanyInputChange('ceo_name', e.target.value)
+                      handleCompanyInputChange('economic_activity_en', e.target.value)
                     }
-                    placeholder="예: 홍길동"
-                    autoComplete="name"
-                  />
-                </div>
-                <div>
-                  <label className="stitch-label mb-1 block">
-                    대표자명 (영문)
-                  </label>
-                  <Input
-                    type="text"
-                    value={companyData.ceo_name_en}
-                    onChange={e =>
-                      handleCompanyInputChange('ceo_name_en', e.target.value)
-                    }
-                    placeholder="예: Hong Gil-dong"
+                    placeholder="예: Manufacturing"
                   />
                 </div>
               </div>
@@ -297,18 +304,43 @@ export default function RegisterPage() {
                   🔍 주소 검색
                 </Button>
                 <p className="text-sm text-gray-400 mt-2">
-                  주소 검색을 통해 자동으로 우편번호, 국가, 도시 정보를 입력할
-                  수 있습니다.
+                  주소 검색을 통해 도로명, 건물번호, 우편번호, 도시, 국가 정보를 자동으로 입력할 수 있습니다.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 도로명 - 자동 입력, 읽기 전용 */}
+                <div>
+                  <label className="stitch-label mb-1 block">도로명 *</label>
+                  <Input
+                    type="text"
+                    value={companyData.street}
+                    readOnly
+                    className="bg-gray-100 cursor-not-allowed"
+                    placeholder="주소 검색으로 자동 입력"
+                    disabled={true}
+                  />
+                </div>
+
+                {/* 건물번호 - 자동 입력, 읽기 전용 */}
+                <div>
+                  <label className="stitch-label mb-1 block">건물번호 *</label>
+                  <Input
+                    type="text"
+                    value={companyData.number}
+                    readOnly
+                    className="bg-gray-100 cursor-not-allowed"
+                    placeholder="주소 검색으로 자동 입력"
+                    disabled={true}
+                  />
+                </div>
+
                 {/* 우편번호 - 자동 입력, 읽기 전용 */}
                 <div>
                   <label className="stitch-label mb-1 block">우편번호 *</label>
                   <Input
                     type="text"
-                    value={companyData.zipcode}
+                    value={companyData.postcode}
                     readOnly
                     className="bg-gray-100 cursor-not-allowed"
                     placeholder="주소 검색으로 자동 입력"
@@ -316,24 +348,9 @@ export default function RegisterPage() {
                   />
                 </div>
 
-                {/* 국가 - 자동 입력, 읽기 전용 */}
+                {/* 도시명 - 자동 입력, 읽기 전용 */}
                 <div>
-                  <label className="stitch-label mb-1 block">국가 *</label>
-                  <Input
-                    type="text"
-                    value={companyData.country}
-                    readOnly
-                    className="bg-gray-100 cursor-not-allowed"
-                    placeholder="주소 검색으로 자동 입력"
-                    disabled={true}
-                  />
-                </div>
-
-                {/* 광역 도시명 - 자동 입력, 읽기 전용 */}
-                <div>
-                  <label className="stitch-label mb-1 block">
-                    광역 도시명 *
-                  </label>
+                  <label className="stitch-label mb-1 block">도시명 *</label>
                   <Input
                     type="text"
                     value={companyData.city}
@@ -344,99 +361,93 @@ export default function RegisterPage() {
                   />
                 </div>
 
-                {/* 상세 주소 - 사용자 입력 */}
+                {/* 국가명 - 자동 입력, 읽기 전용 */}
                 <div>
-                  <label className="stitch-label mb-1 block">상세 주소</label>
+                  <label className="stitch-label mb-1 block">국가명 *</label>
                   <Input
                     type="text"
-                    value={companyData.address1}
-                    onChange={e =>
-                      handleCompanyInputChange('address1', e.target.value)
-                    }
-                    placeholder="상세 주소를 입력하세요"
+                    value={companyData.country}
+                    readOnly
+                    className="bg-gray-100 cursor-not-allowed"
+                    placeholder="주소 검색으로 자동 입력"
+                    disabled={true}
+                  />
+                </div>
+
+                {/* UNLOCODE - DB 참조 (미구현) */}
+                <div>
+                  <label className="stitch-label mb-1 block">UNLOCODE *</label>
+                  <Input
+                    type="text"
+                    value={companyData.unlocode}
+                    readOnly
+                    className="bg-gray-100 cursor-not-allowed"
+                    placeholder="DB 참조 (미구현)"
+                    disabled={true}
                   />
                 </div>
               </div>
 
               {/* 영문 주소 정보 (숨김 처리) */}
               <div className="hidden">
-                <input type="hidden" value={companyData.country_eng} />
-                <input type="hidden" value={companyData.city_eng} />
-                <input type="hidden" value={companyData.address_eng} />
-                <input type="hidden" value={companyData.address1_eng} />
+                <input type="hidden" value={companyData.street_en} />
+                <input type="hidden" value={companyData.number_en} />
+                <input type="hidden" value={companyData.city_en} />
+                <input type="hidden" value={companyData.country_en} />
+                <input type="hidden" value={companyData.sourcelatitude} />
+                <input type="hidden" value={companyData.sourcelongitude} />
               </div>
             </div>
 
-            {/* 업종 정보 */}
+            {/* 대표자 및 연락처 정보 */}
             <div className="bg-[rgba(255,255,255,.03)] p-6 rounded-lg border border-[rgba(255,255,255,.1)]">
-              <SectionTitle>업종 정보</SectionTitle>
+              <SectionTitle>대표자 및 연락처 정보</SectionTitle>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="stitch-label mb-1 block">업태/업종</label>
+                  <label className="stitch-label mb-1 block">대표자명</label>
                   <Input
                     type="text"
-                    value={companyData.industry}
+                    value={companyData.representative}
                     onChange={e =>
-                      handleCompanyInputChange('industry', e.target.value)
+                      handleCompanyInputChange('representative', e.target.value)
                     }
+                    placeholder="예: 홍길동"
+                    autoComplete="name"
                   />
                 </div>
                 <div>
-                  <label className="stitch-label mb-1 block">업종 코드</label>
+                  <label className="stitch-label mb-1 block">영문대표자명</label>
                   <Input
                     type="text"
-                    value={companyData.industry_code}
+                    value={companyData.representative_en}
                     onChange={e =>
-                      handleCompanyInputChange('industry_code', e.target.value)
+                      handleCompanyInputChange('representative_en', e.target.value)
                     }
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* 담당자 정보 */}
-            <div className="bg-[rgba(255,255,255,.03)] p-6 rounded-lg border border-[rgba(255,255,255,.1)]">
-              <SectionTitle>담당자 정보</SectionTitle>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="stitch-label mb-1 block">
-                    당직자 이름 *
-                  </label>
-                  <Input
-                    type="text"
-                    value={companyData.manager_name}
-                    onChange={e =>
-                      handleCompanyInputChange('manager_name', e.target.value)
-                    }
-                    placeholder="예: 김길동"
-                    required
+                    placeholder="예: Hong Gil-dong"
                   />
                 </div>
                 <div>
-                  <label className="stitch-label mb-1 block">
-                    당직자 연락처 *
-                  </label>
-                  <Input
-                    type="text"
-                    value={companyData.manager_phone}
-                    onChange={e =>
-                      handleCompanyInputChange('manager_phone', e.target.value)
-                    }
-                    placeholder="예: 010-1234-5678"
-                    required
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="stitch-label mb-1 block">
-                    당직자 이메일
-                  </label>
+                  <label className="stitch-label mb-1 block">이메일</label>
                   <Input
                     type="email"
-                    value={companyData.manager_email}
+                    value={companyData.email}
                     onChange={e =>
-                      handleCompanyInputChange('manager_email', e.target.value)
+                      handleCompanyInputChange('email', e.target.value)
                     }
-                    placeholder="예: manager@smartesg.com"
+                    placeholder="예: contact@smartesg.com"
+                    autoComplete="email"
+                  />
+                </div>
+                <div>
+                  <label className="stitch-label mb-1 block">전화번호</label>
+                  <Input
+                    type="tel"
+                    value={companyData.telephone}
+                    onChange={e =>
+                      handleCompanyInputChange('telephone', e.target.value)
+                    }
+                    placeholder="예: 02-1234-5678"
+                    autoComplete="tel"
                   />
                 </div>
               </div>
@@ -454,7 +465,7 @@ export default function RegisterPage() {
             onSubmit={handleUserSubmit}
             className="space-y-6 max-w-4xl mx-auto"
           >
-            {/* 계정 정보를 상단으로 이동 */}
+            {/* 계정 정보 */}
             <div className="bg-[rgba(255,255,255,.03)] p-6 rounded-lg border border-[rgba(255,255,255,.1)]">
               <SectionTitle>계정 정보</SectionTitle>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

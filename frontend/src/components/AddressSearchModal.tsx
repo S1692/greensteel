@@ -12,6 +12,13 @@ interface KakaoAddressData {
   city_eng: string;
   address_eng: string;
   address1_eng: string;
+  // 추가 주소 관련 필드들
+  street: string;
+  street_en: string;
+  number: string;
+  number_en: string;
+  sourcelatitude: string;
+  sourcelongitude: string;
 }
 
 interface AddressSearchModalProps {
@@ -91,6 +98,13 @@ export default function AddressSearchModal({
         city_eng: getCityEnglish(data.sido || ''),
         address_eng: data.address,
         address1_eng: data.addressDetail || data.address,
+        // 추가 주소 관련 필드들
+        street: data.address, // 도로명은 전체 주소에서 추출
+        street_en: data.address, // 영문 도로명
+        number: '', // 건물번호는 별도로 추출 필요
+        number_en: '', // 영문 건물번호
+        sourcelatitude: '', // 위도는 별도 API 필요
+        sourcelongitude: '', // 경도는 별도 API 필요
       };
 
       setSelectedAddress(addressData);

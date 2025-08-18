@@ -22,9 +22,27 @@ interface AddressSearchModalProps {
   onAddressSelect: (addressData: AddressData) => void;
 }
 
+interface DaumPostcodeData {
+  address: string;
+  addressEng?: string;
+  zonecode: string;
+  sido: string;
+  sigungu: string;
+  bname: string;
+  bnameEng?: string;
+}
+
 declare global {
   interface Window {
-    daum: any;
+    daum: {
+      Postcode: new (options: {
+        oncomplete: (data: DaumPostcodeData) => void;
+        onclose: () => void;
+        onresize: (size: { width: number; height: number }) => void;
+        width: string;
+        height: string;
+      }) => { open: () => void };
+    };
   }
 }
 
@@ -34,14 +52,14 @@ export default function AddressSearchModal({
   onAddressSelect,
 }: AddressSearchModalProps) {
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // 카카오 주소 검색 API 스크립트 로드
     const script = document.createElement('script');
-    script.src = '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+    script.src =
+      '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
     script.async = true;
     document.head.appendChild(script);
 
@@ -53,7 +71,10 @@ export default function AddressSearchModal({
   useEffect(() => {
     // 모달 외부 클릭 시 닫기
     const handleClickOutside = (event: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+      if (
+        modalRef.current &&
+        !modalRef.current.contains(event.target as Node)
+      ) {
         onClose();
       }
     };
@@ -71,11 +92,11 @@ export default function AddressSearchModal({
     if (!searchKeyword.trim()) return;
 
     setIsSearching(true);
-    
+
     // 카카오 주소 검색 API 호출
     if (window.daum && window.daum.Postcode) {
       new window.daum.Postcode({
-        oncomplete: (data: any) => {
+        oncomplete: (data: DaumPostcodeData) => {
           const addressData: AddressData = {
             address: data.address,
             address_eng: data.addressEng || data.address,
@@ -87,7 +108,7 @@ export default function AddressSearchModal({
             address1: data.address,
             address1_eng: data.addressEng || data.address,
           };
-          
+
           onAddressSelect(addressData);
           onClose();
           setIsSearching(false);
@@ -95,8 +116,9 @@ export default function AddressSearchModal({
         onclose: () => {
           setIsSearching(false);
         },
-        onresize: (size: any) => {
-          // 모달 크기 조정
+        onresize: (size: { width: number; height: number }) => {
+          // 모달 크기 조정 (필요시 사용)
+          console.log('Modal resized:', size);
         },
         width: '100%',
         height: '100%',
@@ -122,32 +144,32 @@ export default function AddressSearchModal({
       address1: `${searchKeyword} 상세주소`,
       address1_eng: `${searchKeyword} Detail Address`,
     };
-    
+
     onAddressSelect(dummyData);
     onClose();
   };
 
   const getCityEnglish = (city: string): string => {
     const cityMap: { [key: string]: string } = {
-      '서울특별시': 'Seoul',
-      '부산광역시': 'Busan',
-      '대구광역시': 'Daegu',
-      '인천광역시': 'Incheon',
-      '광주광역시': 'Gwangju',
-      '대전광역시': 'Daejeon',
-      '울산광역시': 'Ulsan',
-      '세종특별자치시': 'Sejong',
-      '경기도': 'Gyeonggi-do',
-      '강원도': 'Gangwon-do',
-      '충청북도': 'Chungcheongbuk-do',
-      '충청남도': 'Chungcheongnam-do',
-      '전라북도': 'Jeollabuk-do',
-      '전라남도': 'Jeollanam-do',
-      '경상북도': 'Gyeongsangbuk-do',
-      '경상남도': 'Gyeongsangnam-do',
-      '제주특별자치도': 'Jeju-do',
+      서울특별시: 'Seoul',
+      부산광역시: 'Busan',
+      대구광역시: 'Daegu',
+      인천광역시: 'Incheon',
+      광주광역시: 'Gwangju',
+      대전광역시: 'Daejeon',
+      울산광역시: 'Ulsan',
+      세종특별자치시: 'Sejong',
+      경기도: 'Gyeonggi-do',
+      강원도: 'Gangwon-do',
+      충청북도: 'Chungcheongbuk-do',
+      충청남도: 'Chungcheongnam-do',
+      전라북도: 'Jeollabuk-do',
+      전라남도: 'Jeollanam-do',
+      경상북도: 'Gyeongsangbuk-do',
+      경상남도: 'Gyeongsangnam-do',
+      제주특별자치도: 'Jeju-do',
     };
-    
+
     return cityMap[city] || city;
   };
 
@@ -168,8 +190,18 @@ export default function AddressSearchModal({
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -180,10 +212,10 @@ export default function AddressSearchModal({
             <Input
               type="text"
               value={searchKeyword}
-              onChange={(e) => setSearchKeyword(e.target.value)}
+              onChange={e => setSearchKeyword(e.target.value)}
               placeholder="주소를 입력하세요 (예: 강남대로, 홍대입구)"
               className="flex-1"
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              onKeyPress={e => e.key === 'Enter' && handleSearch()}
             />
             <Button
               onClick={handleSearch}
@@ -193,35 +225,11 @@ export default function AddressSearchModal({
               {isSearching ? '검색 중...' : '검색'}
             </Button>
           </div>
-          
+
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
             도로명, 건물명, 지번 등을 입력하여 주소를 검색하세요.
           </p>
         </div>
-
-        {/* 검색 결과 */}
-        {searchResults.length > 0 && (
-          <div className="px-6 pb-6">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
-              검색 결과
-            </h3>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {searchResults.map((result, index) => (
-                <div
-                  key={index}
-                  className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  <div className="font-medium text-gray-900 dark:text-white">
-                    {result.address}
-                  </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    {result.zipcode}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* 푸터 */}
         <div className="flex justify-end p-6 border-t border-gray-200 dark:border-gray-700">

@@ -90,31 +90,34 @@ export default function RegisterPage() {
     company_id: '',
   });
 
-  const handleCompanyInputChange = (field: keyof CompanyData, value: string) => {
+  const handleCompanyInputChange = (
+    field: keyof CompanyData,
+    value: string
+  ) => {
     setCompanyData(prev => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
   const handleUserInputChange = (field: keyof UserData, value: string) => {
     setUserData(prev => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
   const handleCompanySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     try {
       // 기업 등록 로직
       console.log('기업 등록 데이터:', companyData);
-      
+
       // API 호출 로직
       await new Promise(resolve => setTimeout(resolve, 2000)); // 임시 지연
-      
+
       alert('기업 등록이 완료되었습니다.');
     } catch (error) {
       console.error('기업 등록 오류:', error);
@@ -127,14 +130,14 @@ export default function RegisterPage() {
   const handleUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     try {
       // 사용자 등록 로직
       console.log('사용자 등록 데이터:', userData);
-      
+
       // API 호출 로직
       await new Promise(resolve => setTimeout(resolve, 2000)); // 임시 지연
-      
+
       alert('사용자 등록이 완료되었습니다.');
     } catch (error) {
       console.error('사용자 등록 오류:', error);
@@ -179,16 +182,13 @@ export default function RegisterPage() {
         <TabGroup
           tabs={tabs}
           activeTab={activeTab}
-          onTabChange={(tab) => setActiveTab(tab as 'company' | 'user')}
+          onTabChange={tab => setActiveTab(tab as 'company' | 'user')}
           className="mb-8"
         />
 
         {/* Company 회원가입 폼 */}
         {activeTab === 'company' && (
-          <form
-            onSubmit={handleCompanySubmit}
-            className="space-y-6"
-          >
+          <form onSubmit={handleCompanySubmit} className="space-y-6">
             {/* 계정 정보를 상단으로 이동 */}
             <div className="bg-[rgba(255,255,255,.03)] p-6 rounded-lg border border-[rgba(255,255,255,.1)]">
               <SectionTitle>계정 정보</SectionTitle>
@@ -220,12 +220,17 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="stitch-label mb-1 block">비밀번호 확인 *</label>
+                  <label className="stitch-label mb-1 block">
+                    비밀번호 확인 *
+                  </label>
                   <Input
                     type="password"
                     value={companyData.confirm_password}
                     onChange={e =>
-                      handleCompanyInputChange('confirm_password', e.target.value)
+                      handleCompanyInputChange(
+                        'confirm_password',
+                        e.target.value
+                      )
                     }
                     placeholder="********"
                     disabled={isLoading}
@@ -269,7 +274,9 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div>
-                  <label className="stitch-label mb-1 block">사업자번호 *</label>
+                  <label className="stitch-label mb-1 block">
+                    사업자번호 *
+                  </label>
                   <Input
                     type="text"
                     value={companyData.biz_no}
@@ -294,7 +301,9 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div>
-                  <label className="stitch-label mb-1 block">대표자명 (영문)</label>
+                  <label className="stitch-label mb-1 block">
+                    대표자명 (영문)
+                  </label>
                   <Input
                     type="text"
                     value={companyData.ceo_name_en}
@@ -311,7 +320,7 @@ export default function RegisterPage() {
             {/* 주소 정보 */}
             <div className="bg-[rgba(255,255,255,.03)] p-6 rounded-lg border border-[rgba(255,255,255,.1)]">
               <SectionTitle>주소 정보</SectionTitle>
-              
+
               {/* 주소 검색 버튼 */}
               <div className="mb-4">
                 <Button
@@ -322,7 +331,8 @@ export default function RegisterPage() {
                   🔍 주소 검색
                 </Button>
                 <p className="text-sm text-gray-400 mt-2">
-                  주소 검색을 통해 자동으로 우편번호, 국가, 도시 정보를 입력할 수 있습니다.
+                  주소 검색을 통해 자동으로 우편번호, 국가, 도시 정보를 입력할
+                  수 있습니다.
                 </p>
               </div>
 
@@ -339,7 +349,7 @@ export default function RegisterPage() {
                     disabled={true}
                   />
                 </div>
-                
+
                 {/* 국가 - 자동 입력, 읽기 전용 */}
                 <div>
                   <label className="stitch-label mb-1 block">국가 *</label>
@@ -352,10 +362,12 @@ export default function RegisterPage() {
                     disabled={true}
                   />
                 </div>
-                
+
                 {/* 광역 도시명 - 자동 입력, 읽기 전용 */}
                 <div>
-                  <label className="stitch-label mb-1 block">광역 도시명 *</label>
+                  <label className="stitch-label mb-1 block">
+                    광역 도시명 *
+                  </label>
                   <Input
                     type="text"
                     value={companyData.city}
@@ -365,7 +377,7 @@ export default function RegisterPage() {
                     disabled={true}
                   />
                 </div>
-                
+
                 {/* 상세 주소 - 사용자 입력 */}
                 <div>
                   <label className="stitch-label mb-1 block">상세 주소</label>
@@ -424,7 +436,9 @@ export default function RegisterPage() {
               <SectionTitle>담당자 정보</SectionTitle>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="stitch-label mb-1 block">당직자 이름 *</label>
+                  <label className="stitch-label mb-1 block">
+                    당직자 이름 *
+                  </label>
                   <Input
                     type="text"
                     value={companyData.manager_name}
@@ -437,7 +451,9 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div>
-                  <label className="stitch-label mb-1 block">당직자 연락처 *</label>
+                  <label className="stitch-label mb-1 block">
+                    당직자 연락처 *
+                  </label>
                   <Input
                     type="text"
                     value={companyData.manager_phone}
@@ -450,7 +466,9 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="stitch-label mb-1 block">당직자 이메일</label>
+                  <label className="stitch-label mb-1 block">
+                    당직자 이메일
+                  </label>
                   <Input
                     type="email"
                     value={companyData.manager_email}
@@ -509,7 +527,9 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="stitch-label mb-1 block">비밀번호 확인 *</label>
+                  <label className="stitch-label mb-1 block">
+                    비밀번호 확인 *
+                  </label>
                   <Input
                     type="password"
                     value={userData.confirm_password}

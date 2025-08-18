@@ -21,6 +21,7 @@ interface CompanyData {
   country: string;
   city: string;
   industry: string;
+  industry_code: string;
   manager_name: string;
   manager_phone: string;
   manager_email: string;
@@ -67,6 +68,7 @@ export default function RegisterPage() {
     country: '',
     city: '',
     industry: '',
+    industry_code: '',
     manager_name: '',
     manager_email: '',
     manager_phone: '',

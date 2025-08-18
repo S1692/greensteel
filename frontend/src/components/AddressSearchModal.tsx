@@ -126,51 +126,29 @@ export default function AddressSearchModal({
   const modalRef = useRef<HTMLDivElement>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
-  const handleMapClick = useCallback(
-    async (latlng: KakaoLatLng) => {
-      if (!map || !marker || !infoWindow) return;
+  const getCityEnglish = useCallback((city: string): string => {
+    const cityMap: { [key: string]: string } = {
+      서울특별시: 'Seoul',
+      부산광역시: 'Busan',
+      대구광역시: 'Daegu',
+      인천광역시: 'Incheon',
+      광주광역시: 'Gwangju',
+      대전광역시: 'Daejeon',
+      울산광역시: 'Ulsan',
+      세종특별자치시: 'Sejong',
+      경기도: 'Gyeonggi-do',
+      강원도: 'Gangwon-do',
+      충청북도: 'Chungcheongbuk-do',
+      충청남도: 'Chungcheongnam-do',
+      전라북도: 'Jeollabuk-do',
+      전라남도: 'Jeollanam-do',
+      경상북도: 'Gyeongsangbuk-do',
+      경상남도: 'Gyeongsangnam-do',
+      제주특별자치도: 'Jeju-do',
+    };
 
-      // 마커 위치 설정
-      marker.setPosition(latlng);
-      marker.setMap(map);
-
-      // 좌표를 주소로 변환
-      const geocoder = new window.kakao.maps.services.Geocoder();
-      geocoder.coord2Address(
-        latlng.getLng(),
-        latlng.getLat(),
-        (result: KakaoMapData[], status: string) => {
-          if (status === window.kakao.maps.services.Status.OK) {
-            const addressData = result[0];
-            const addressInfo = createAddressDataFromKakao(addressData, latlng);
-            setSelectedAddress(addressInfo);
-
-            // 정보창 표시
-            infoWindow.setContent(`
-            <div style="padding:10px;min-width:200px;">
-              <h4 style="margin:0 0 10px 0;font-size:14px;">선택된 주소</h4>
-              <p style="margin:5px 0;font-size:12px;"><strong>주소:</strong> ${addressInfo.address}</p>
-              <p style="margin:5px 0;font-size:12px;"><strong>우편번호:</strong> ${addressInfo.zipcode}</p>
-              <p style="margin:5px 0;font-size:12px;"><strong>지역:</strong> ${addressInfo.city}</p>
-              <button onclick="window.selectAddress()" style="margin-top:10px;padding:5px 10px;background:#007bff;color:white;border:none;border-radius:3px;cursor:pointer;">
-                이 주소 선택
-              </button>
-            </div>
-          `);
-            infoWindow.open(map, marker);
-
-            // 전역 함수로 주소 선택 함수 등록
-            (window as unknown as Record<string, unknown>).selectAddress =
-              () => {
-                onAddressSelect(addressInfo);
-                onClose();
-              };
-          }
-        }
-      );
-    },
-    [map, marker, infoWindow, onAddressSelect, onClose]
-  );
+    return cityMap[city] || city;
+  }, []);
 
   const createAddressDataFromKakao = useCallback(
     (addressData: KakaoMapData, latlng: KakaoLatLng): AddressData => {
@@ -196,32 +174,61 @@ export default function AddressSearchModal({
         longitude: latlng.getLng(),
       };
     },
-    []
+    [getCityEnglish]
   );
 
-  const getCityEnglish = useCallback((city: string): string => {
-    const cityMap: { [key: string]: string } = {
-      서울특별시: 'Seoul',
-      부산광역시: 'Busan',
-      대구광역시: 'Daegu',
-      인천광역시: 'Incheon',
-      광주광역시: 'Gwangju',
-      대전광역시: 'Daejeon',
-      울산광역시: 'Ulsan',
-      세종특별자치시: 'Sejong',
-      경기도: 'Gyeonggi-do',
-      강원도: 'Gangwon-do',
-      충청북도: 'Chungcheongbuk-do',
-      충청남도: 'Chungcheongnam-do',
-      전라북도: 'Jeollabuk-do',
-      전라남도: 'Jeollanam-do',
-      경상북도: 'Gyeongsangbuk-do',
-      경상남도: 'Gyeongsangnam-do',
-      제주특별자치도: 'Jeju-do',
-    };
+  const handleMapClick = useCallback(
+    async (latlng: KakaoLatLng) => {
+      if (!map || !marker || !infoWindow) return;
 
-    return cityMap[city] || city;
-  }, []);
+      // 마커 위치 설정
+      marker.setPosition(latlng);
+      marker.setMap(map);
+
+      // 좌표를 주소로 변환
+      const geocoder = new window.kakao.maps.services.Geocoder();
+      geocoder.coord2Address(
+        latlng.getLng(),
+        latlng.getLat(),
+        (result: KakaoMapData[], status: string) => {
+          if (status === window.kakao.maps.services.Status.OK) {
+            const addressData = result[0];
+            const addressInfo = createAddressDataFromKakao(addressData, latlng);
+            setSelectedAddress(addressInfo);
+
+            // 정보창 표시
+            infoWindow.setContent(`
+              <div style="padding:10px;min-width:200px;">
+                <h4 style="margin:0 0 10px 0;font-size:14px;">선택된 주소</h4>
+                <p style="margin:5px 0;font-size:12px;"><strong>주소:</strong> ${addressInfo.address}</p>
+                <p style="margin:5px 0;font-size:12px;"><strong>우편번호:</strong> ${addressInfo.zipcode}</p>
+                <p style="margin:5px 0;font-size:12px;"><strong>지역:</strong> ${addressInfo.city}</p>
+                <button onclick="window.selectAddress()" style="margin-top:10px;padding:5px 10px;background:#007bff;color:white;border:none;border-radius:3px;cursor:pointer;">
+                  이 주소 선택
+                </button>
+              </div>
+            `);
+            infoWindow.open(map, marker);
+
+            // 전역 함수로 주소 선택 함수 등록
+            (window as unknown as Record<string, unknown>).selectAddress =
+              () => {
+                onAddressSelect(addressInfo);
+                onClose();
+              };
+          }
+        }
+      );
+    },
+    [
+      map,
+      marker,
+      infoWindow,
+      createAddressDataFromKakao,
+      onAddressSelect,
+      onClose,
+    ]
+  );
 
   const initializeMap = useCallback(() => {
     if (!mapContainerRef.current || !window.kakao) return;

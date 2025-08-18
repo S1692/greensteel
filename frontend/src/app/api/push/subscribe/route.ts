@@ -46,15 +46,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
     }
 
-    // 여기서 실제로는 데이터베이스에서 구독 정보를 삭제합니다
-    console.log('Push notification unsubscription requested for user:', userId);
+    // TODO: 실제 데이터베이스에서 구독 정보 삭제
+    // await deleteSubscriptionFromDatabase(userId);
 
     return NextResponse.json({
       success: true,
       message: 'Push notification unsubscription successful',
     });
   } catch (error) {
-    console.error('Error processing push unsubscription:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

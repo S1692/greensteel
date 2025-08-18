@@ -205,15 +205,20 @@ export default function AddressSearchModal({
           latlng.getLng(),
           latlng.getLat(),
           (result: KakaoGeocoderResult[], status: string) => {
-            if (status === window.kakao.maps.services.Status.OK && result.length > 0) {
+            if (
+              status === window.kakao.maps.services.Status.OK &&
+              result.length > 0
+            ) {
               const addressData = createAddressDataFromKakao(result[0]);
-              
+
               // 상태 업데이트를 안전하게 처리
               setSelectedAddress(prev => {
                 // 이전 상태와 동일한 경우 불필요한 리렌더링 방지
-                if (prev && 
-                    prev.address === addressData.address && 
-                    prev.city === addressData.city) {
+                if (
+                  prev &&
+                  prev.address === addressData.address &&
+                  prev.city === addressData.city
+                ) {
                   return prev;
                 }
                 return addressData;
@@ -227,14 +232,13 @@ export default function AddressSearchModal({
                   <span style="color:#666;">${addressData.city}</span>
                 </div>
               `;
-              
+
               infoWindow.setContent(infoContent);
               infoWindow.open(map, marker);
             }
           }
         );
       } catch (error) {
-        console.error('지도 클릭 처리 중 오류 발생:', error);
         // 오류 발생 시 기본 마커만 표시
         marker.setPosition(latlng);
         marker.setMap(map);
@@ -264,7 +268,7 @@ export default function AddressSearchModal({
     // 마커와 정보창 초기화
     const newMarker = new window.kakao.maps.Marker({});
     const newInfoWindow = new window.kakao.maps.InfoWindow({});
-    
+
     setMarker(newMarker);
     setInfoWindow(newInfoWindow);
   }, [handleMapClick]);
@@ -404,7 +408,7 @@ export default function AddressSearchModal({
     if (infoWindow) {
       infoWindow.close();
     }
-    
+
     // 상태 초기화
     setSearchKeyword('');
     setSelectedAddress(null);
@@ -414,19 +418,25 @@ export default function AddressSearchModal({
   }, [onClose, marker, infoWindow]);
 
   // 모달 외부 클릭 시 닫기 (지도 영역 제외)
-  const handleClickOutside = useCallback((event: MouseEvent) => {
-    if (!modalRef.current) return;
-    
-    // 지도 영역 클릭은 무시 (지도 내부 상호작용 허용)
-    if (mapContainerRef.current && mapContainerRef.current.contains(event.target as Node)) {
-      return;
-    }
-    
-    // 모달 외부 클릭 시에만 닫기
-    if (!modalRef.current.contains(event.target as Node)) {
-      handleClose();
-    }
-  }, [handleClose]);
+  const handleClickOutside = useCallback(
+    (event: MouseEvent) => {
+      if (!modalRef.current) return;
+
+      // 지도 영역 클릭은 무시 (지도 내부 상호작용 허용)
+      if (
+        mapContainerRef.current &&
+        mapContainerRef.current.contains(event.target as Node)
+      ) {
+        return;
+      }
+
+      // 모달 외부 클릭 시에만 닫기
+      if (!modalRef.current.contains(event.target as Node)) {
+        handleClose();
+      }
+    },
+    [handleClose]
+  );
 
   // 카카오 맵 SDK 로드 완료 후 초기화
   useEffect(() => {
@@ -476,14 +486,14 @@ export default function AddressSearchModal({
             </div>
           </div>
         )}
-        
+
         <div
           ref={modalRef}
           className="bg-white rounded-lg shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col relative z-[10000]"
-          style={{ 
+          style={{
             minHeight: '600px',
             // 카카오 맵 요소들이 모달을 덮어쓰지 않도록 CSS 강화
-            isolation: 'isolate'
+            isolation: 'isolate',
           }}
         >
           {/* 헤더 */}
@@ -585,11 +595,11 @@ export default function AddressSearchModal({
               <div
                 ref={mapContainerRef}
                 className="w-full h-full border border-gray-300 rounded-lg bg-gray-100"
-                style={{ 
+                style={{
                   minHeight: '500px',
                   // 카카오 맵 요소들이 모달을 덮어쓰지 않도록 CSS 강화
                   position: 'relative',
-                  zIndex: 1
+                  zIndex: 1,
                 }}
               />
             </div>
@@ -597,7 +607,11 @@ export default function AddressSearchModal({
 
           {/* 하단 버튼 */}
           <div className="flex justify-end space-x-2 p-4 border-t border-gray-200 bg-white sticky bottom-0 z-20">
-            <Button onClick={handleClose} variant="outline" className="border-gray-300 hover:bg-gray-100">
+            <Button
+              onClick={handleClose}
+              variant="outline"
+              className="border-gray-300 hover:bg-gray-100"
+            >
               취소
             </Button>
             <Button

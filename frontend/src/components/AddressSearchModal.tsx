@@ -414,15 +414,6 @@ export default function AddressSearchModal({
 
   if (!isOpen) return null;
 
-  // 디버깅: 모달 상태 확인
-  console.log('AddressSearchModal 렌더링:', {
-    isOpen,
-    isKakaoReady,
-    searchKeyword,
-    selectedAddress: !!selectedAddress,
-    searchResults: searchResults.length
-  });
-
   return (
     <>
       {/* 카카오 맵 SDK 로드 */}
@@ -449,7 +440,7 @@ export default function AddressSearchModal({
             </div>
           </div>
         )}
-        
+
         <div
           ref={modalRef}
           className="bg-white rounded-lg shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col relative z-[10000]"
@@ -561,7 +552,11 @@ export default function AddressSearchModal({
 
           {/* 하단 버튼 */}
           <div className="flex justify-end space-x-2 p-4 border-t border-gray-200 bg-white sticky bottom-0">
-            <Button onClick={handleClose} variant="outline" className="border-gray-300 hover:bg-gray-100">
+            <Button
+              onClick={handleClose}
+              variant="outline"
+              className="border-gray-300 hover:bg-gray-100"
+            >
               취소
             </Button>
             <Button

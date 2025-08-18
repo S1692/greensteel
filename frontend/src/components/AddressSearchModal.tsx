@@ -267,12 +267,23 @@ export default function AddressSearchModal({
     // 디버깅: API 키 상태 확인
     console.log('🔍 카카오 API 키 상태 확인:');
     console.log('- 환경 변수:', process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY);
-    console.log('- API 키 길이:', process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY?.length || 0);
-    console.log('- API 키 유효성:', process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY && process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY !== 'YOUR_KAKAO_MAP_API_KEY' ? '유효' : '무효');
-    
+    console.log(
+      '- API 키 길이:',
+      process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY?.length || 0
+    );
+    console.log(
+      '- API 키 유효성:',
+      process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY &&
+        process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY !== 'YOUR_KAKAO_MAP_API_KEY'
+        ? '유효'
+        : '무효'
+    );
+
     // API 키가 유효하지 않으면 에러 표시
-    if (!process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY || 
-        process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY === 'YOUR_KAKAO_MAP_API_KEY') {
+    if (
+      !process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY ||
+      process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY === 'YOUR_KAKAO_MAP_API_KEY'
+    ) {
       console.error('❌ 카카오 API 키가 설정되지 않았습니다.');
       alert(`카카오 API 키가 설정되지 않았습니다.
 
@@ -294,12 +305,12 @@ export default function AddressSearchModal({
     }
 
     console.log('🔄 카카오 API 스크립트 로딩 시작...');
-    
+
     // 새 스크립트 생성 및 로드
     const script = document.createElement('script');
     script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY}&libraries=services`;
     script.async = true;
-    
+
     script.onload = () => {
       console.log('✅ 카카오 API 스크립트 로드 완료');
       // API가 완전히 초기화될 때까지 기다림
@@ -313,12 +324,12 @@ export default function AddressSearchModal({
           setTimeout(checkKakaoAPI, 100);
         }
       };
-      
+
       // 초기 확인 시작
       setTimeout(checkKakaoAPI, 100);
     };
-    
-    script.onerror = (error) => {
+
+    script.onerror = error => {
       console.error('❌ 카카오 지도 API 스크립트 로드 실패:', error);
       // 에러 발생 시 사용자에게 상세한 안내
       alert(`지도 로딩에 실패했습니다.

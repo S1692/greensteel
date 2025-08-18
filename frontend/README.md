@@ -5,6 +5,7 @@ ESG 관리 플랫폼의 프론트엔드 애플리케이션입니다.
 ## 🚀 **빠른 시작**
 
 ### **1. 의존성 설치**
+
 ```bash
 npm install
 # 또는
@@ -12,15 +13,18 @@ pnpm install
 ```
 
 ### **2. 환경 변수 설정 (중요!)**
+
 ```bash
 # frontend/.env.local 파일 생성
 echo "NEXT_PUBLIC_KAKAO_MAP_API_KEY=your_kakao_javascript_key_here" > .env.local
 ```
 
 **필수 환경 변수:**
+
 - `NEXT_PUBLIC_KAKAO_MAP_API_KEY`: 카카오 지도 API JavaScript 키
 
 ### **3. 개발 서버 실행**
+
 ```bash
 npm run dev
 # 또는
@@ -32,6 +36,7 @@ pnpm dev
 주소 검색 기능을 사용하려면 카카오 지도 API 키가 필요합니다.
 
 ### **빠른 설정**
+
 1. [Kakao Developers](https://developers.kakao.com/) 접속
 2. 애플리케이션 생성
 3. JavaScript 키 복사
@@ -58,16 +63,19 @@ src/
 ## 🚨 **문제 해결**
 
 ### **카카오 지도 API 로딩 실패**
+
 ```
 카카오 지도 API 스크립트 로드 실패
 ```
 
 **해결 방법:**
+
 1. `frontend/.env.local` 파일에 API 키 설정
 2. 카카오 개발자 콘솔에서 도메인 설정 확인
 3. 개발 서버 재시작
 
 ### **Manifest 401 오류**
+
 ```
 Manifest fetch failed, code 401
 ```
@@ -75,6 +83,7 @@ Manifest fetch failed, code 401
 **해결 방법:** `vercel.json` 헤더 설정 완료 ✅
 
 ### **CSP 오류**
+
 ```
 Refused to load script 'https://dapi.kakao.com/v2/maps/sdk.js'
 ```

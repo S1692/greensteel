@@ -362,29 +362,20 @@ export default function AddressSearchModal({
       setTimeout(checkKakaoAPI, 1000);
     };
 
-    script.onerror = error => {
+    script.onerror = (error: string | Event) => {
       console.error('❌ 카카오 지도 API 스크립트 로드 실패:', error);
-
-      // 타임아웃 클리어
       if (loadTimeout) clearTimeout(loadTimeout);
       if (initTimeout) clearTimeout(initTimeout);
-
-      // 에러 발생 시 사용자에게 상세한 안내
-      alert(`지도 로딩에 실패했습니다.
-
-에러 상세:
-- API 키: ${process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY ? '설정됨' : '설정되지 않음'}
-- API 키 길이: ${process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY?.length || 0}
-- 도메인: ${window.location.origin}
-- 현재 시간: ${new Date().toLocaleString()}
-
-해결 방법:
-1. Vercel 환경 변수 확인 및 수정
-2. 카카오 개발자 콘솔에서 도메인 설정 확인
-3. 환경 변수 수정 후 Redeploy 실행
-4. 브라우저 캐시 삭제 후 새로고침
-
-자세한 내용은 KAKAO_API_SETUP.md 파일을 참조하세요.`);
+      
+      // CORS 오류인지 확인
+      const isCorsError = typeof error === 'object' && error.type === 'error' && 
+        (error.target as HTMLScriptElement)?.src?.includes('dapi.kakao.com');
+      
+      if (isCorsError) {
+        alert(`🚨 CORS 정책 오류가 발생했습니다!\n\n현재 도메인: ${window.location.origin}\n\n해결 방법:\n1. 카카오 개발자 콘솔에서 "${window.location.origin}" 도메인 추가\n2. 플랫폼 → Web → 사이트 도메인 설정\n3. 환경 변수 NEXT_PUBLIC_KAKAO_MAP_API_KEY 확인\n4. Vercel 재배포 후 테스트\n\n자세한 내용은 KAKAO_API_SETUP.md 파일을 참조하세요.`);
+      } else {
+        alert(`지도 로딩에 실패했습니다.\n\n에러 상세:\n- API 키: ${process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY ? '설정됨' : '설정되지 않음'}\n- API 키 길이: ${process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY?.length || 0}\n- 도메인: ${window.location.origin}\n- 현재 시간: ${new Date().toLocaleString()}\n\n해결 방법:\n1. Vercel 환경 변수 확인 및 수정\n2. 카카오 개발자 콘솔에서 도메인 설정 확인\n3. 환경 변수 수정 후 Redeploy 실행\n4. 브라우저 캐시 삭제 후 새로고침\n\n자세한 내용은 KAKAO_API_SETUP.md 파일을 참조하세요.`);
+      }
     };
 
     // 로딩 타임아웃 설정 (30초)

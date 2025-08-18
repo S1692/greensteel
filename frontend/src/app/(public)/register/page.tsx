@@ -261,10 +261,7 @@ export default function RegisterPage() {
 
         {/* 기업 회원가입 폼 */}
         {activeTab === 'company' && (
-          <form
-            onSubmit={handleCompanySubmit}
-            className="space-y-6"
-          >
+          <form onSubmit={handleCompanySubmit} className="space-y-6">
             {/* 계정 정보를 상단으로 이동 */}
             <div className="bg-[rgba(255,255,255,.03)] p-6 rounded-lg border border-[rgba(255,255,255,.1)]">
               <SectionTitle>계정 정보</SectionTitle>
@@ -296,12 +293,17 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="stitch-label mb-1 block">비밀번호 확인 *</label>
+                  <label className="stitch-label mb-1 block">
+                    비밀번호 확인 *
+                  </label>
                   <Input
                     type="password"
                     value={companyData.confirm_password}
                     onChange={e =>
-                      handleCompanyInputChange('confirm_password', e.target.value)
+                      handleCompanyInputChange(
+                        'confirm_password',
+                        e.target.value
+                      )
                     }
                     placeholder="********"
                     disabled={isLoading}
@@ -345,7 +347,9 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div>
-                  <label className="stitch-label mb-1 block">사업자번호 *</label>
+                  <label className="stitch-label mb-1 block">
+                    사업자번호 *
+                  </label>
                   <Input
                     type="text"
                     value={companyData.biz_no}
@@ -404,7 +408,9 @@ export default function RegisterPage() {
                   <Input
                     type="text"
                     value={companyData.city}
-                    onChange={e => handleCompanyInputChange('city', e.target.value)}
+                    onChange={e =>
+                      handleCompanyInputChange('city', e.target.value)
+                    }
                     disabled={isLoading}
                   />
                 </div>
@@ -456,7 +462,9 @@ export default function RegisterPage() {
               <SectionTitle>담당자 정보</SectionTitle>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="stitch-label mb-1 block">당직자 이름 *</label>
+                  <label className="stitch-label mb-1 block">
+                    당직자 이름 *
+                  </label>
                   <Input
                     type="text"
                     value={companyData.manager_name}
@@ -469,7 +477,9 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div>
-                  <label className="stitch-label mb-1 block">당직자 연락처 *</label>
+                  <label className="stitch-label mb-1 block">
+                    당직자 연락처 *
+                  </label>
                   <Input
                     type="text"
                     value={companyData.manager_phone}
@@ -482,7 +492,9 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="stitch-label mb-1 block">당직자 이메일</label>
+                  <label className="stitch-label mb-1 block">
+                    당직자 이메일
+                  </label>
                   <Input
                     type="email"
                     value={companyData.manager_email}

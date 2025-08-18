@@ -11,7 +11,8 @@ export const metadata: Metadata = {
   title: 'GreenSteel - ESG Management Platform',
   description:
     'Comprehensive ESG management platform for LCA, CBAM, and sustainability reporting. Track your environmental impact and compliance.',
-  keywords: 'ESG, LCA, CBAM, sustainability, carbon footprint, green steel, PWA, progressive web app',
+  keywords:
+    'ESG, LCA, CBAM, sustainability, carbon footprint, green steel, PWA, progressive web app',
   authors: [{ name: 'GreenSteel Team' }],
   creator: 'GreenSteel',
   publisher: 'GreenSteel',
@@ -83,11 +84,11 @@ export default function RootLayout({
             gtag('config', 'G-2GFHCRYLT8');
           `}
         </Script>
-        
+
         {/* PWA Components */}
         <OfflineIndicator />
         <PWAInstallBanner />
-        
+
         {children}
       </body>
     </html>

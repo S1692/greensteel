@@ -12,30 +12,30 @@
   /* 다크 테마 강제 적용 */
   :root {
     color-scheme: dark;
-    --ecotrace-primary: #0D80F2;
+    --ecotrace-primary: #0d80f2;
     --ecotrace-secondary: #293038;
-    --ecotrace-accent: #E6E8EB;
-    --ecotrace-text: #FFFFFF;
-    --ecotrace-text-secondary: #9CABBA;
+    --ecotrace-accent: #e6e8eb;
+    --ecotrace-text: #ffffff;
+    --ecotrace-text-secondary: #9cabba;
     --ecotrace-background: #121417;
-    --ecotrace-surface: #1C2126;
-    --ecotrace-border: #3B4754;
-    
+    --ecotrace-surface: #1c2126;
+    --ecotrace-border: #3b4754;
+
     /* Stitch 다크 테마 디자인 토큰 */
-    --bg-start: #0b0e11;       /* page top */
-    --bg-end: #0e1217;         /* page bottom */
+    --bg-start: #0b0e11; /* page top */
+    --bg-end: #0e1217; /* page bottom */
     --card: rgba(255, 255, 255, 0.06);
     --card-border: rgba(255, 255, 255, 0.12);
-    --card-shadow: 0 10px 30px rgba(0,0,0,.45);
+    --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
 
-    --accent: #2e90fa;         /* Stitch 계열 블루 */
-    --accent-2: #4cc9f0;       /* 보조 */
-    --text-1: #e6edf3;         /* heading */
-    --text-2: #c3cbd5;         /* body */
-    --text-muted: #8b95a7;     /* placeholder */
+    --accent: #2e90fa; /* Stitch 계열 블루 */
+    --accent-2: #4cc9f0; /* 보조 */
+    --text-1: #e6edf3; /* heading */
+    --text-2: #c3cbd5; /* body */
+    --text-muted: #8b95a7; /* placeholder */
     --danger: #ef4444;
     --success: #22c55e;
-    --focus: rgba(46,144,250,.35);
+    --focus: rgba(46, 144, 250, 0.35);
   }
 
   body {
@@ -122,9 +122,18 @@
 @layer components {
   /* 페이지 공통 배경 */
   .stitch-bg {
-    background: radial-gradient(1200px 600px at 15% 10%, rgba(46,144,250,.12), transparent 60%),
-                radial-gradient(1000px 500px at 85% 15%, rgba(76,201,240,.10), transparent 60%),
-                linear-gradient(180deg, var(--bg-start), var(--bg-end));
+    background:
+      radial-gradient(
+        1200px 600px at 15% 10%,
+        rgba(46, 144, 250, 0.12),
+        transparent 60%
+      ),
+      radial-gradient(
+        1000px 500px at 85% 15%,
+        rgba(76, 201, 240, 0.1),
+        transparent 60%
+      ),
+      linear-gradient(180deg, var(--bg-start), var(--bg-end));
   }
 
   /* 유리 카드 */
@@ -137,40 +146,43 @@
   }
 
   /* 폼 타이포/라벨 */
-  .stitch-label { 
-    color: var(--text-2); 
-    font-size: .9rem; 
+  .stitch-label {
+    color: var(--text-2);
+    font-size: 0.9rem;
   }
-  
-  .stitch-h1 { 
-    color: var(--text-1); 
+
+  .stitch-h1 {
+    color: var(--text-1);
   }
 
   /* 에러 메시지 */
-  .stitch-error { 
-    color: var(--danger); 
-    font-size: .8rem; 
+  .stitch-error {
+    color: var(--danger);
+    font-size: 0.8rem;
   }
 
   /* 탭 버튼 */
   .stitch-tab {
     border-radius: 9999px;
-    padding: .55rem 1rem;
-    transition: transform .12s ease, background-color .12s ease, color .12s ease;
+    padding: 0.55rem 1rem;
+    transition:
+      transform 0.12s ease,
+      background-color 0.12s ease,
+      color 0.12s ease;
   }
-  
-  .stitch-tab[data-active="true"] {
+
+  .stitch-tab[data-active='true'] {
     background: var(--accent);
     color: white;
   }
-  
-  .stitch-tab[data-active="false"] {
-    background: rgba(255,255,255,.06);
+
+  .stitch-tab[data-active='false'] {
+    background: rgba(255, 255, 255, 0.06);
     color: var(--text-2);
   }
-  
-  .stitch-tab:active { 
-    transform: translateY(1px); 
+
+  .stitch-tab:active {
+    transform: translateY(1px);
   }
 }
 

@@ -13,7 +13,8 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export default function PWAInstallBanner() {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] =
+    useState<BeforeInstallPromptEvent | null>(null);
   const [showBanner, setShowBanner] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
 
@@ -46,7 +47,10 @@ export default function PWAInstallBanner() {
     window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener(
+        'beforeinstallprompt',
+        handleBeforeInstallPrompt
+      );
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
@@ -57,7 +61,7 @@ export default function PWAInstallBanner() {
     try {
       await deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-      
+
       if (outcome === 'accepted') {
         console.log('PWA 설치가 수락되었습니다.');
         setShowBanner(false);
@@ -80,7 +84,11 @@ export default function PWAInstallBanner() {
   };
 
   // 이미 설치되었거나 배너를 닫았거나 표시하지 않음
-  if (isInstalled || !showBanner || localStorage.getItem('pwa-banner-dismissed') === 'true') {
+  if (
+    isInstalled ||
+    !showBanner ||
+    localStorage.getItem('pwa-banner-dismissed') === 'true'
+  ) {
     return null;
   }
 
@@ -90,12 +98,22 @@ export default function PWAInstallBanner() {
         <div className="flex items-start space-x-3">
           <div className="flex-shrink-0">
             <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              <svg
+                className="w-6 h-6 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
+                />
               </svg>
             </div>
           </div>
-          
+
           <div className="flex-1 min-w-0">
             <h3 className="text-sm font-medium text-gray-900 dark:text-white">
               GreenSteel 앱 설치
@@ -104,17 +122,27 @@ export default function PWAInstallBanner() {
               홈 화면에 추가하여 더 빠르게 접근하세요
             </p>
           </div>
-          
+
           <button
             onClick={handleDismiss}
             className="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
-        
+
         <div className="mt-3 flex space-x-2">
           <Button
             onClick={handleInstallClick}
@@ -124,8 +152,7 @@ export default function PWAInstallBanner() {
           </Button>
           <Button
             onClick={handleDismiss}
-            variant="outline"
-            className="flex-1 text-xs py-2"
+            className="flex-1 text-xs py-2 border border-gray-300 text-gray-700 hover:bg-gray-50"
           >
             나중에
           </Button>

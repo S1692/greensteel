@@ -9,23 +9,19 @@ const STATIC_ASSETS = [
   '/offline.html',
   '/icon-192x192.png',
   '/icon-512x512.png',
-  '/manifest.json'
+  '/manifest.json',
 ];
 
 // 네트워크 우선 전략을 사용할 API 엔드포인트
-const API_ROUTES = [
-  '/api/auth',
-  '/api/lca',
-  '/api/cbam',
-  '/api/datagather'
-];
+const API_ROUTES = ['/api/auth', '/api/lca', '/api/cbam', '/api/datagather'];
 
 // 설치 시 정적 리소스 캐시
-self.addEventListener('install', (event) => {
+self.addEventListener('install', event => {
   console.log('Service Worker installing...');
   event.waitUntil(
-    caches.open(STATIC_CACHE)
-      .then((cache) => {
+    caches
+      .open(STATIC_CACHE)
+      .then(cache => {
         console.log('Caching static assets');
         return cache.addAll(STATIC_ASSETS);
       })
@@ -37,13 +33,14 @@ self.addEventListener('install', (event) => {
 });
 
 // 활성화 시 이전 캐시 정리
-self.addEventListener('activate', (event) => {
+self.addEventListener('activate', event => {
   console.log('Service Worker activating...');
   event.waitUntil(
-    caches.keys()
-      .then((cacheNames) => {
+    caches
+      .keys()
+      .then(cacheNames => {
         return Promise.all(
-          cacheNames.map((cacheName) => {
+          cacheNames.map(cacheName => {
             if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
               console.log('Deleting old cache:', cacheName);
               return caches.delete(cacheName);
@@ -59,15 +56,17 @@ self.addEventListener('activate', (event) => {
 });
 
 // 네트워크 요청 가로채기
-self.addEventListener('fetch', (event) => {
+self.addEventListener('fetch', event => {
   const { request } = event;
   const url = new URL(request.url);
 
   // 정적 리소스 (Cache First)
-  if (request.destination === 'image' || 
-      request.destination === 'style' || 
-      request.destination === 'script' ||
-      request.destination === 'font') {
+  if (
+    request.destination === 'image' ||
+    request.destination === 'style' ||
+    request.destination === 'script' ||
+    request.destination === 'font'
+  ) {
     event.respondWith(cacheFirst(request));
     return;
   }
@@ -135,9 +134,9 @@ async function networkFirst(request) {
 }
 
 // 푸시 알림 처리
-self.addEventListener('push', (event) => {
+self.addEventListener('push', event => {
   console.log('Push event received:', event);
-  
+
   if (event.data) {
     const data = event.data.json();
     const options = {
@@ -148,7 +147,7 @@ self.addEventListener('push', (event) => {
       data: data.data || {},
       actions: data.actions || [],
       requireInteraction: data.requireInteraction || false,
-      silent: data.silent || false
+      silent: data.silent || false,
     };
 
     event.waitUntil(
@@ -158,19 +157,17 @@ self.addEventListener('push', (event) => {
 });
 
 // 알림 클릭 처리
-self.addEventListener('notificationclick', (event) => {
+self.addEventListener('notificationclick', event => {
   console.log('Notification clicked:', event);
-  
+
   event.notification.close();
-  
+
   if (event.action) {
     // 액션 버튼 클릭 처리
     handleNotificationAction(event.action, event.notification.data);
   } else {
     // 알림 자체 클릭 처리
-    event.waitUntil(
-      clients.openWindow(event.notification.data?.url || '/')
-    );
+    event.waitUntil(clients.openWindow(event.notification.data?.url || '/'));
   }
 });
 
@@ -189,9 +186,9 @@ function handleNotificationAction(action, data) {
 }
 
 // 백그라운드 동기화
-self.addEventListener('sync', (event) => {
+self.addEventListener('sync', event => {
   console.log('Background sync event:', event);
-  
+
   if (event.tag === 'background-sync') {
     event.waitUntil(doBackgroundSync());
   }
@@ -202,7 +199,7 @@ async function doBackgroundSync() {
   try {
     // IndexedDB에서 오프라인 작업 가져오기
     const offlineTasks = await getOfflineTasks();
-    
+
     for (const task of offlineTasks) {
       try {
         await processOfflineTask(task);
@@ -235,9 +232,9 @@ async function removeOfflineTask(taskId) {
 }
 
 // 메시지 처리
-self.addEventListener('message', (event) => {
+self.addEventListener('message', event => {
   console.log('Message received:', event);
-  
+
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }

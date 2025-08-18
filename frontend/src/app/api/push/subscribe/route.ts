@@ -25,7 +25,6 @@ export async function POST(request: NextRequest) {
       message: 'Push notification subscription successful',
       subscriptionId: `sub_${Date.now()}`,
     });
-
   } catch (error) {
     console.error('Error processing push subscription:', error);
     return NextResponse.json(
@@ -40,10 +39,7 @@ export async function DELETE(request: NextRequest) {
     const { userId } = await request.json();
 
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Missing userId' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
     }
 
     // 여기서 실제로는 데이터베이스에서 구독 정보를 삭제합니다
@@ -53,7 +49,6 @@ export async function DELETE(request: NextRequest) {
       success: true,
       message: 'Push notification unsubscription successful',
     });
-
   } catch (error) {
     console.error('Error processing push unsubscription:', error);
     return NextResponse.json(

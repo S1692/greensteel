@@ -1,46 +1,44 @@
+import React from 'react';
+
 // PWA 성능 최적화 및 사용자 경험 향상을 위한 유틸리티 함수들
 
-/**
- * 이미지 지연 로딩을 위한 Intersection Observer 설정
- */
-export function setupLazyLoading() {
-  if (typeof window === 'undefined') return;
+// 이미지 지연 로딩 설정
+export function setupLazyLoading(): void {
+  if (typeof window === 'undefined' || !('IntersectionObserver' in window)) {
+    return;
+  }
 
-  const imageObserver = new IntersectionObserver((entries, observer) => {
-    entries.forEach((entry) => {
+  const imageObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
       if (entry.isIntersecting) {
         const img = entry.target as HTMLImageElement;
         if (img.dataset.src) {
           img.src = img.dataset.src;
-          img.classList.remove('lazy');
-          observer.unobserve(img);
+          img.removeAttribute('data-src');
+          imageObserver.unobserve(img);
         }
       }
     });
   });
 
-  // 지연 로딩 이미지들 관찰
-  document.querySelectorAll('img[data-src]').forEach((img) => {
+  // data-src 속성이 있는 이미지들을 찾아서 관찰
+  document.querySelectorAll('img[data-src]').forEach(img => {
     imageObserver.observe(img);
   });
-
-  return imageObserver;
 }
 
-/**
- * 코드 스플리팅을 위한 동적 임포트 헬퍼
- */
-export function lazyLoadComponent(importFunc: () => Promise<any>) {
-  return importFunc().then((module) => module.default);
+// 컴포넌트 지연 로딩
+export function lazyLoadComponent<T>(
+  importFunc: () => Promise<{ default: React.ComponentType<T> }>
+) {
+  return React.lazy(importFunc);
 }
 
-/**
- * 오프라인 상태에서 데이터 저장을 위한 IndexedDB 헬퍼
- */
+// 오프라인 저장소 클래스
 export class OfflineStorage {
-  private dbName = 'GreenSteelOfflineDB';
-  private version = 1;
   private db: IDBDatabase | null = null;
+  private readonly dbName = 'GreenSteelOffline';
+  private readonly version = 1;
 
   async init(): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -52,26 +50,35 @@ export class OfflineStorage {
         resolve();
       };
 
-      request.onupgradeneeded = (event) => {
+      request.onupgradeneeded = event => {
         const db = (event.target as IDBOpenDBRequest).result;
-        
+
         // 오프라인 작업 저장소
         if (!db.objectStoreNames.contains('offlineTasks')) {
-          const taskStore = db.createObjectStore('offlineTasks', { keyPath: 'id', autoIncrement: true });
+          const taskStore = db.createObjectStore('offlineTasks', {
+            keyPath: 'id',
+            autoIncrement: true,
+          });
           taskStore.createIndex('type', 'type', { unique: false });
           taskStore.createIndex('timestamp', 'timestamp', { unique: false });
         }
 
-        // 캐시된 데이터 저장소
+        // 캐시 데이터 저장소
         if (!db.objectStoreNames.contains('cachedData')) {
-          const dataStore = db.createObjectStore('cachedData', { keyPath: 'key' });
-          dataStore.createIndex('expiry', 'expiry', { unique: false });
+          const cacheStore = db.createObjectStore('cachedData', {
+            keyPath: 'key',
+          });
+          cacheStore.createIndex('expiry', 'expiry', { unique: false });
         }
       };
     });
   }
 
-  async saveOfflineTask(type: string, data: any): Promise<number> {
+  // 오프라인 작업 저장
+  async saveOfflineTask(
+    type: string,
+    data: Record<string, unknown>
+  ): Promise<number> {
     if (!this.db) throw new Error('Database not initialized');
 
     return new Promise((resolve, reject) => {
@@ -82,7 +89,7 @@ export class OfflineStorage {
         type,
         data,
         timestamp: Date.now(),
-        status: 'pending'
+        status: 'pending',
       };
 
       const request = store.add(task);
@@ -91,7 +98,16 @@ export class OfflineStorage {
     });
   }
 
-  async getOfflineTasks(): Promise<any[]> {
+  // 오프라인 작업 가져오기
+  async getOfflineTasks(): Promise<
+    Array<{
+      id: number;
+      type: string;
+      data: Record<string, unknown>;
+      timestamp: number;
+      status: string;
+    }>
+  > {
     if (!this.db) throw new Error('Database not initialized');
 
     return new Promise((resolve, reject) => {
@@ -104,20 +120,12 @@ export class OfflineStorage {
     });
   }
 
-  async removeOfflineTask(id: number): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['offlineTasks'], 'readwrite');
-      const store = transaction.objectStore('offlineTasks');
-      const request = store.delete(id);
-
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  async cacheData(key: string, data: any, expiryHours: number = 24): Promise<void> {
+  // 캐시 데이터 저장
+  async cacheData(
+    key: string,
+    data: Record<string, unknown>,
+    expiryHours: number = 24
+  ): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
     return new Promise((resolve, reject) => {
@@ -127,7 +135,7 @@ export class OfflineStorage {
       const cacheEntry = {
         key,
         data,
-        expiry: Date.now() + (expiryHours * 60 * 60 * 1000)
+        expiry: Date.now() + expiryHours * 60 * 60 * 1000,
       };
 
       const request = store.put(cacheEntry);
@@ -136,7 +144,8 @@ export class OfflineStorage {
     });
   }
 
-  async getCachedData(key: string): Promise<any | null> {
+  // 캐시된 데이터 가져오기
+  async getCachedData<T>(key: string): Promise<T | null> {
     if (!this.db) throw new Error('Database not initialized');
 
     return new Promise((resolve, reject) => {
@@ -145,9 +154,8 @@ export class OfflineStorage {
       const request = store.get(key);
 
       request.onsuccess = () => {
-        const result = request.result;
-        if (result && result.expiry > Date.now()) {
-          resolve(result.data);
+        if (request.result && request.result.expiry > Date.now()) {
+          resolve(request.result.data as T);
         } else {
           resolve(null);
         }
@@ -156,161 +164,173 @@ export class OfflineStorage {
     });
   }
 
-  async clearExpiredCache(): Promise<void> {
+  // 만료된 캐시 정리
+  async cleanupExpiredCache(): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['cachedData'], 'readwrite');
-      const store = transaction.objectStore('cachedData');
-      const index = store.index('expiry');
-      const request = index.openCursor(IDBKeyRange.upperBound(Date.now()));
+    const transaction = this.db.transaction(['cachedData'], 'readwrite');
+    const store = transaction.objectStore('cachedData');
+    const index = store.index('expiry');
 
-      request.onsuccess = () => {
-        const cursor = request.result;
-        if (cursor) {
-          cursor.delete();
-          cursor.continue();
-        } else {
-          resolve();
-        }
-      };
-      request.onerror = () => reject(request.error);
-    });
+    const request = index.openCursor(IDBKeyRange.upperBound(Date.now()));
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (cursor) {
+        cursor.delete();
+        cursor.continue();
+      }
+    };
   }
 }
 
-/**
- * 앱 성능 메트릭 수집
- */
+// 성능 메트릭 클래스
 export class PerformanceMetrics {
-  static measurePageLoad() {
-    if (typeof window === 'undefined') return;
+  // 페이지 로드 성능 측정
+  static measurePageLoad(): void {
+    if (typeof window === 'undefined' || !('performance' in window)) {
+      return;
+    }
 
     window.addEventListener('load', () => {
       setTimeout(() => {
-        const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+        const navigation = performance.getEntriesByType(
+          'navigation'
+        )[0] as PerformanceNavigationTiming;
         const paint = performance.getEntriesByType('paint');
-        
+
         const metrics = {
-          dns: navigation.domainLookupEnd - navigation.domainLookupStart,
-          tcp: navigation.connectEnd - navigation.connectStart,
-          ttfb: navigation.responseStart - navigation.requestStart,
-          domContentLoaded: navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart,
-          loadComplete: navigation.loadEventEnd - navigation.loadEventStart,
-          firstPaint: paint.find(p => p.name === 'first-paint')?.startTime || 0,
-          firstContentfulPaint: paint.find(p => p.name === 'first-contentful-paint')?.startTime || 0
+          dnsLookup: navigation.domainLookupEnd - navigation.domainLookupStart,
+          tcpConnection: navigation.connectEnd - navigation.connectStart,
+          serverResponse: navigation.responseEnd - navigation.requestStart,
+          domContentLoaded:
+            navigation.domContentLoadedEventEnd -
+            navigation.domContentLoadedEventStart,
+          firstContentfulPaint:
+            paint.find(p => p.name === 'first-contentful-paint')?.startTime ||
+            0,
         };
 
-        console.log('Performance Metrics:', metrics);
-        
-        // Google Analytics에 전송
-        if (window.gtag) {
-          window.gtag('event', 'performance_metrics', {
+        console.log('Page Load Performance:', metrics);
+
+        // Google Analytics에 전송 (선택사항)
+        if (typeof window !== 'undefined' && window.gtag) {
+          window.gtag('event', 'page_performance', {
             event_category: 'performance',
             event_label: 'page_load',
-            value: Math.round(metrics.loadComplete),
-            custom_parameters: metrics
+            value: Math.round(metrics.domContentLoaded),
           });
         }
       }, 0);
     });
   }
 
-  static measureInteraction(name: string, callback: () => void) {
-    if (typeof window === 'undefined') return callback();
-
+  // 상호작용 성능 측정
+  static measureInteraction(name: string, callback: () => void): void {
     const start = performance.now();
     callback();
     const duration = performance.now() - start;
 
     console.log(`Interaction "${name}" took ${duration.toFixed(2)}ms`);
-    
-    // Google Analytics에 전송
-    if (window.gtag) {
-      window.gtag('event', 'interaction_timing', {
+
+    // Google Analytics에 전송 (선택사항)
+    if (typeof window !== 'undefined' && window.gtag) {
+      window.gtag('event', 'interaction_performance', {
         event_category: 'performance',
         event_label: name,
-        value: Math.round(duration)
+        value: Math.round(duration),
+      });
+    }
+  }
+
+  // 메모리 사용량 측정
+  static measureMemoryUsage(): void {
+    if (typeof performance !== 'undefined' && 'memory' in performance) {
+      const memory = (
+        performance as Performance & {
+          memory: {
+            usedJSHeapSize: number;
+            totalJSHeapSize: number;
+            jsHeapSizeLimit: number;
+          };
+        }
+      ).memory;
+      console.log('Memory Usage:', {
+        used: `${Math.round(memory.usedJSHeapSize / 1024 / 1024)}MB`,
+        total: `${Math.round(memory.totalJSHeapSize / 1024 / 1024)}MB`,
+        limit: `${Math.round(memory.jsHeapSizeLimit / 1024 / 1024)}MB`,
       });
     }
   }
 }
 
-/**
- * 앱 설치 상태 확인
- */
+// PWA 설치 상태 확인
 export function checkInstallStatus(): boolean {
   if (typeof window === 'undefined') return false;
-  
   return (
     window.matchMedia('(display-mode: standalone)').matches ||
-    (window.navigator as any).standalone === true ||
-    document.referrer.includes('android-app://')
+    (window.navigator as any).standalone === true
   );
 }
 
-/**
- * 앱 업데이트 확인
- */
+// 앱 업데이트 확인
 export function checkForAppUpdate(): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+  return new Promise(resolve => {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
       resolve(false);
       return;
     }
 
-    navigator.serviceWorker.ready.then((registration) => {
-      registration.update();
-      
+    navigator.serviceWorker.getRegistration().then(registration => {
+      if (!registration) {
+        resolve(false);
+        return;
+      }
+
       registration.addEventListener('updatefound', () => {
         const newWorker = registration.installing;
-        if (newWorker) {
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              resolve(true);
-            }
-          });
-        }
+        if (!newWorker) return;
+
+        newWorker.addEventListener('statechange', () => {
+          if (
+            newWorker.state === 'installed' &&
+            navigator.serviceWorker.controller
+          ) {
+            resolve(true);
+          }
+        });
       });
-      
-      // 업데이트가 없으면 false 반환
-      setTimeout(() => resolve(false), 1000);
+
+      resolve(false);
     });
   });
 }
 
-/**
- * 앱 설치 프롬프트 표시
- */
+// 설치 프롬프트 표시
 export async function showInstallPrompt(): Promise<boolean> {
   if (typeof window === 'undefined') return false;
 
-  const deferredPrompt = (window as any).deferredPrompt;
-  if (!deferredPrompt) return false;
+  return new Promise(resolve => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      resolve(true);
+    };
 
-  try {
-    await deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === 'accepted') {
-      console.log('App installation accepted');
-      return true;
-    } else {
-      console.log('App installation declined');
-      return false;
-    }
-  } catch (error) {
-    console.error('Error showing install prompt:', error);
-    return false;
-  } finally {
-    (window as any).deferredPrompt = null;
-  }
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // 5초 후 자동으로 false 반환
+    setTimeout(() => {
+      window.removeEventListener(
+        'beforeinstallprompt',
+        handleBeforeInstallPrompt
+      );
+      resolve(false);
+    }, 5000);
+  });
 }
 
 // 전역 타입 확장
 declare global {
   interface Window {
-    gtag: (...args: any[]) => void;
-    deferredPrompt: any;
+    // gtag는 analytics.ts에서 정의됨
   }
 }

@@ -46,7 +46,9 @@ const withPWA = require('next-pwa')({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   assetPrefix:
-    process.env.NODE_ENV === 'production' ? process.env.NEXT_PUBLIC_ASSET_PREFIX || '' : '',
+    process.env.NODE_ENV === 'production'
+      ? process.env.NEXT_PUBLIC_ASSET_PREFIX || ''
+      : '',
   basePath: '',
   trailingSlash: false,
   poweredByHeader: false,

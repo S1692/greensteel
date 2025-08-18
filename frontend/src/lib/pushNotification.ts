@@ -63,7 +63,9 @@ export class PushNotificationService {
     }
   }
 
-  private async sendSubscriptionToServer(subscription: PushSubscription): Promise<void> {
+  private async sendSubscriptionToServer(
+    subscription: PushSubscription
+  ): Promise<void> {
     try {
       const response = await fetch('/api/push/subscribe', {
         method: 'POST',
@@ -89,7 +91,10 @@ export class PushNotificationService {
     return localStorage.getItem('userId') || sessionStorage.getItem('userId');
   }
 
-  async showNotification(title: string, options?: NotificationOptions): Promise<void> {
+  async showNotification(
+    title: string,
+    options?: NotificationOptions
+  ): Promise<void> {
     if (Notification.permission === 'granted') {
       new Notification(title, {
         icon: '/icon-192x192.png',
@@ -103,7 +108,8 @@ export class PushNotificationService {
     if (!this.swRegistration) return;
 
     try {
-      const subscription = await this.swRegistration.pushManager.getSubscription();
+      const subscription =
+        await this.swRegistration.pushManager.getSubscription();
       if (subscription) {
         await subscription.unsubscribe();
         console.log('Unsubscribed from push notifications');

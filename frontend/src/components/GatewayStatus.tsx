@@ -18,11 +18,35 @@ interface ServiceStatus {
   };
 }
 
+interface RoutingInfo {
+  gateway_name: string;
+  architecture: string;
+  domain_routing: Record<string, unknown>;
+  supported_methods: string[];
+  timeout_settings: Record<string, unknown>;
+  ddd_features: Record<string, unknown>;
+}
+
+interface ArchitectureInfo {
+  gateway: string;
+  architecture: string;
+  version: string;
+  description: string;
+  domains: Record<string, unknown>;
+  features: Record<string, unknown>;
+  layers: Record<string, unknown>;
+}
+
 const GatewayStatus: React.FC = () => {
-  const [gatewayHealth, setGatewayHealth] = useState<GatewayStatus | null>(null);
-  const [serviceStatus, setServiceStatus] = useState<ServiceStatus | null>(null);
-  const [routingInfo, setRoutingInfo] = useState<any>(null);
-  const [architectureInfo, setArchitectureInfo] = useState<any>(null);
+  const [gatewayHealth, setGatewayHealth] = useState<GatewayStatus | null>(
+    null
+  );
+  const [serviceStatus, setServiceStatus] = useState<ServiceStatus | null>(
+    null
+  );
+  const [routingInfo, setRoutingInfo] = useState<RoutingInfo | null>(null);
+  const [architectureInfo, setArchitectureInfo] =
+    useState<ArchitectureInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,15 +64,20 @@ const GatewayStatus: React.FC = () => {
       setServiceStatus(statusResponse.data);
 
       // 라우팅 정보
-      const routingResponse = await axiosClient.get(apiEndpoints.gateway.routing);
+      const routingResponse = await axiosClient.get(
+        apiEndpoints.gateway.routing
+      );
       setRoutingInfo(routingResponse.data);
 
       // 아키텍처 정보
-      const architectureResponse = await axiosClient.get(apiEndpoints.gateway.architecture);
+      const architectureResponse = await axiosClient.get(
+        apiEndpoints.gateway.architecture
+      );
       setArchitectureInfo(architectureResponse.data);
-
-    } catch (err: any) {
-      setError(err.message || 'Gateway 연결 실패');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Gateway 연결 실패';
+      setError(errorMessage);
+      // eslint-disable-next-line no-console
       console.error('Gateway 연결 오류:', err);
     } finally {
       setLoading(false);
@@ -95,21 +124,27 @@ const GatewayStatus: React.FC = () => {
       {/* Gateway 헬스 상태 */}
       {gatewayHealth && (
         <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-md">
-          <h3 className="text-lg font-semibold text-green-800 mb-2">Gateway 상태</h3>
+          <h3 className="text-lg font-semibold text-green-800 mb-2">
+            Gateway 상태
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <span className="font-medium">상태:</span>
-              <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
-                gatewayHealth.status === 'healthy' 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-red-100 text-red-800'
-              }`}>
+              <span
+                className={`ml-2 px-2 py-1 rounded-full text-xs ${
+                  gatewayHealth.status === 'healthy'
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-red-100 text-red-800'
+                }`}
+              >
                 {gatewayHealth.status}
               </span>
             </div>
             <div>
               <span className="font-medium">이름:</span>
-              <span className="ml-2 text-gray-700">{gatewayHealth.gateway}</span>
+              <span className="ml-2 text-gray-700">
+                {gatewayHealth.gateway}
+              </span>
             </div>
             <div>
               <span className="font-medium">시간:</span>
@@ -130,11 +165,13 @@ const GatewayStatus: React.FC = () => {
               <div key={serviceName} className="p-4 border rounded-md">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium capitalize">{serviceName}</span>
-                  <span className={`px-2 py-1 rounded-full text-xs ${
-                    service.status === 'healthy' 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs ${
+                      service.status === 'healthy'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                    }`}
+                  >
                     {service.status}
                   </span>
                 </div>
@@ -176,10 +213,20 @@ const GatewayStatus: React.FC = () => {
       <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-md">
         <h3 className="text-lg font-semibold text-blue-800 mb-2">사용법</h3>
         <ul className="text-sm text-blue-700 space-y-1">
-          <li>• Gateway 서비스가 실행 중인지 확인하세요 (포트 8080)</li>
-          <li>• 환경 변수 NEXT_PUBLIC_GATEWAY_URL이 올바르게 설정되었는지 확인하세요</li>
-          <li>• "연결 테스트" 버튼을 클릭하여 Gateway 연결을 확인하세요</li>
-          <li>• 오류가 발생하면 Gateway 서비스 로그를 확인하세요</li>
+          <li>
+            • Gateway 서비스가 실행 중인지 확인하세요 (포트 8080)
+          </li>
+          <li>
+            • 환경 변수 NEXT_PUBLIC_GATEWAY_URL이 올바르게 설정되었는지
+            확인하세요
+          </li>
+          <li>
+            • &ldquo;연결 테스트&rdquo; 버튼을 클릭하여 Gateway 연결을
+            확인하세요
+          </li>
+          <li>
+            • 오류가 발생하면 Gateway 서비스 로그를 확인하세요
+          </li>
         </ul>
       </div>
     </div>

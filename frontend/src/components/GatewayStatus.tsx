@@ -55,27 +55,24 @@ const GatewayStatus: React.FC = () => {
     setError(null);
 
     try {
-      // Gateway 헬스체크
       const healthResponse = await axiosClient.get(apiEndpoints.gateway.health);
       setGatewayHealth(healthResponse.data);
 
-      // 서비스 상태 확인
       const statusResponse = await axiosClient.get(apiEndpoints.gateway.status);
       setServiceStatus(statusResponse.data);
 
-      // 라우팅 정보
       const routingResponse = await axiosClient.get(
         apiEndpoints.gateway.routing
       );
       setRoutingInfo(routingResponse.data);
 
-      // 아키텍처 정보
       const architectureResponse = await axiosClient.get(
         apiEndpoints.gateway.architecture
       );
       setArchitectureInfo(architectureResponse.data);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Gateway 연결 실패';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Gateway 연결 실패';
       setError(errorMessage);
       // eslint-disable-next-line no-console
       console.error('Gateway 연결 오류:', err);
@@ -85,7 +82,6 @@ const GatewayStatus: React.FC = () => {
   };
 
   useEffect(() => {
-    // 컴포넌트 마운트 시 자동으로 연결 테스트
     testGatewayConnection();
   }, []);
 
@@ -102,7 +98,6 @@ const GatewayStatus: React.FC = () => {
         </button>
       </div>
 
-      {/* Gateway URL 정보 */}
       <div className="mb-6 p-4 bg-gray-50 rounded-md">
         <h3 className="text-lg font-semibold mb-2">연결 정보</h3>
         <p className="text-sm text-gray-600">
@@ -113,7 +108,6 @@ const GatewayStatus: React.FC = () => {
         </p>
       </div>
 
-      {/* 오류 메시지 */}
       {error && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
           <h3 className="text-lg font-semibold text-red-800 mb-2">연결 오류</h3>
@@ -121,7 +115,6 @@ const GatewayStatus: React.FC = () => {
         </div>
       )}
 
-      {/* Gateway 헬스 상태 */}
       {gatewayHealth && (
         <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-md">
           <h3 className="text-lg font-semibold text-green-800 mb-2">
@@ -156,7 +149,6 @@ const GatewayStatus: React.FC = () => {
         </div>
       )}
 
-      {/* 서비스 상태 */}
       {serviceStatus && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-4">서비스 상태</h3>
@@ -185,7 +177,6 @@ const GatewayStatus: React.FC = () => {
         </div>
       )}
 
-      {/* 라우팅 정보 */}
       {routingInfo && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-4">라우팅 정보</h3>
@@ -197,7 +188,6 @@ const GatewayStatus: React.FC = () => {
         </div>
       )}
 
-      {/* 아키텍처 정보 */}
       {architectureInfo && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold mb-4">아키텍처 정보</h3>
@@ -209,13 +199,10 @@ const GatewayStatus: React.FC = () => {
         </div>
       )}
 
-      {/* 사용법 안내 */}
       <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-md">
         <h3 className="text-lg font-semibold text-blue-800 mb-2">사용법</h3>
         <ul className="text-sm text-blue-700 space-y-1">
-          <li>
-            • Gateway 서비스가 실행 중인지 확인하세요 (포트 8080)
-          </li>
+          <li>• Gateway 서비스가 실행 중인지 확인하세요 (포트 8080)</li>
           <li>
             • 환경 변수 NEXT_PUBLIC_GATEWAY_URL이 올바르게 설정되었는지
             확인하세요
@@ -224,9 +211,7 @@ const GatewayStatus: React.FC = () => {
             • &ldquo;연결 테스트&rdquo; 버튼을 클릭하여 Gateway 연결을
             확인하세요
           </li>
-          <li>
-            • 오류가 발생하면 Gateway 서비스 로그를 확인하세요
-          </li>
+          <li>• 오류가 발생하면 Gateway 서비스 로그를 확인하세요</li>
         </ul>
       </div>
     </div>

@@ -29,6 +29,10 @@ const CommonShell: React.FC<CommonShellProps> = ({ children }) => {
     router.push(href);
   };
 
+  const handleGoHome = () => {
+    router.push('/');
+  };
+
   return (
     <div className="min-h-screen bg-ecotrace-background text-ecotrace-text">
       {/* 헤더 */}
@@ -82,7 +86,12 @@ const CommonShell: React.FC<CommonShellProps> = ({ children }) => {
 
             {/* 우측 액션 */}
             <div className="flex items-center gap-4">
-              {/* 개발 중이므로 아무것도 표시하지 않음 */}
+              <button
+                onClick={handleGoHome}
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+              >
+                홈으로
+              </button>
             </div>
           </div>
         </div>

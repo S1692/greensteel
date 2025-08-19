@@ -97,12 +97,12 @@ const nextConfig = {
       // 모든 API 요청을 Gateway로 라우팅 (우선순위 높음)
       {
         source: '/api/:path*',
-        destination: 'http://localhost:8080/api/:path*',
+        destination: 'https://gateway-production-da31.up.railway.app/api/:path*',
       },
       // Gateway 직접 접근
       {
         source: '/gateway/:path*',
-        destination: 'http://localhost:8080/:path*',
+        destination: 'https://gateway-production-da31.up.railway.app/:path*',
       },
     ];
   },

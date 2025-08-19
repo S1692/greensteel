@@ -15,6 +15,11 @@ from app.common.logger import auth_logger
 
 router = APIRouter(tags=["countries"])
 
+@router.get("/test")
+async def test_country_router():
+    """Countries 라우터 테스트 엔드포인트"""
+    return {"message": "Countries router is working", "status": "ok"}
+
 @router.get("/search", response_model=CountrySearchResponse)
 async def search_countries(
     query: str = Query(..., description="검색어 (국가 코드, 영문명, 한국어명, UNLOCODE)"),

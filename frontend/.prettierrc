@@ -7,5 +7,9 @@
   "useTabs": false,
   "endOfLine": "lf",
   "arrowParens": "avoid",
-  "bracketSpacing": true
+  "bracketSpacing": true,
+  "bracketSameLine": false,
+  "jsxSingleQuote": true,
+  "quoteProps": "as-needed",
+  "proseWrap": "preserve"
 }

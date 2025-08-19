@@ -155,10 +155,10 @@ axiosClient.interceptors.response.use(
 export const apiEndpoints = {
   // Gateway 엔드포인트
   gateway: {
-    health: '/gateway/health',
-    status: '/gateway/status',
-    routing: '/gateway/routing',
-    architecture: '/gateway/architecture',
+    health: '/health',
+    status: '/status',
+    routing: '/routing',
+    architecture: '/architecture',
   },
   // Auth Service (Gateway를 통해)
   auth: {

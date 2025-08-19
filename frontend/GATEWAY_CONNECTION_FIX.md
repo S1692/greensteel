@@ -15,6 +15,13 @@ Gateway 연결 오류: Request failed with status code 503
 - 프로덕션 환경에서 Gateway URL 설정 오류
 - CORS 설정 문제
 - 의존성 서비스 연결 실패
+- **잘못된 엔드포인트 경로 사용** ⚠️
+
+### **⚠️ 중요: 올바른 Gateway 엔드포인트**
+
+Railway에 배포된 Gateway의 올바른 엔드포인트:
+- **잘못된 경로**: `/gateway/health` → 503 오류
+- **올바른 경로**: `/health` → 200 OK
 
 ## 🛠️ **해결 방법**
 
@@ -23,8 +30,8 @@ Gateway 연결 오류: Request failed with status code 503
 `.env.local` 파일에서 다음 설정을 확인하세요:
 
 ```bash
-# Gateway URL 설정 (프로덕션)
-NEXT_PUBLIC_GATEWAY_URL=https://gateway.greensteel.site
+# Gateway URL 설정 (프로덕션 - Railway)
+NEXT_PUBLIC_GATEWAY_URL=https://gateway-production-da31.up.railway.app
 
 # 또는 개발 환경
 NEXT_PUBLIC_GATEWAY_URL=http://localhost:8080
@@ -36,11 +43,11 @@ NEXT_PUBLIC_ENV=production
 ### **2단계: Gateway 서비스 상태 확인**
 
 ```bash
-# 헬스체크
-curl https://gateway.greensteel.site/health
+# 헬스체크 (올바른 경로)
+curl https://gateway-production-da31.up.railway.app/health
 
-# 또는 로컬
-curl http://localhost:8080/health
+# 잘못된 경로 (503 오류 발생)
+curl https://gateway-production-da31.up.railway.app/gateway/health
 ```
 
 ### **3단계: CORS 설정 확인**
@@ -136,12 +143,19 @@ grep "Request" gateway.log
 2. **Console 탭**: 오류 메시지 확인
 3. **Application 탭**: 환경 변수 확인
 
-### **헬스체크 엔드포인트**
+### **헬스체크 엔드포인트 (올바른 경로)**
 
-- **GET** `/health` - Gateway 상태
-- **GET** `/status` - 서비스 상태
-- **GET** `/routing` - 라우팅 정보
-- **GET** `/architecture` - 아키텍처 정보
+- **GET** `/health` - Gateway 상태 ✅
+- **GET** `/status` - 서비스 상태 ✅
+- **GET** `/routing` - 라우팅 정보 ✅
+- **GET** `/architecture` - 아키텍처 정보 ✅
+
+### **잘못된 엔드포인트 (503 오류 발생)**
+
+- **GET** `/gateway/health` - 503 오류 ❌
+- **GET** `/gateway/status` - 503 오류 ❌
+- **GET** `/gateway/routing` - 503 오류 ❌
+- **GET** `/gateway/architecture` - 503 오류 ❌
 
 ## 🚨 **긴급 상황 대응**
 
@@ -170,3 +184,12 @@ grep "Request" gateway.log
 - [Gateway 프로덕션 배포 가이드](../gateway/PRODUCTION_DEPLOYMENT.md)
 - [프론트엔드 배포 가이드](DEPLOYMENT.md)
 - [API Gateway 설정](GATEWAY_SETUP.md)
+
+## 🎯 **해결 완료 체크리스트**
+
+- [ ] 환경 변수 `NEXT_PUBLIC_GATEWAY_URL` 설정
+- [ ] Gateway 엔드포인트 경로 수정 (`/gateway/health` → `/health`)
+- [ ] Next.js 설정에서 프로덕션 Gateway URL 적용
+- [ ] 프론트엔드 재시작
+- [ ] 헬스체크 엔드포인트 테스트 성공
+- [ ] 503 오류 해결 확인

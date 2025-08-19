@@ -151,44 +151,57 @@ axiosClient.interceptors.response.use(
   }
 );
 
-// API 엔드포인트 헬퍼 (Gateway 경로에 맞게 수정)
+// API 엔드포인트 헬퍼 (Gateway를 통한 라우팅)
 export const apiEndpoints = {
-  // Gateway 엔드포인트 추가
+  // Gateway 엔드포인트
   gateway: {
-    health: '/health',
-    status: '/status',
-    routing: '/routing',
-    architecture: '/architecture',
+    health: '/gateway/health',
+    status: '/gateway/status',
+    routing: '/gateway/routing',
+    architecture: '/gateway/architecture',
   },
+  // Auth Service (Gateway를 통해)
   auth: {
-    login: '/auth/login',
-    register: '/auth/register',
-    logout: '/auth/logout',
-    refresh: '/auth/refresh',
+    login: '/api/auth/login',
+    register: '/api/auth/register',
+    logout: '/api/auth/logout',
+    refresh: '/api/auth/refresh',
   },
+  // Countries API (Gateway를 통해)
+  countries: {
+    search: '/api/v1/countries/search',
+    all: '/api/v1/countries',
+    byCode: '/api/v1/countries/code',
+    byUnlocode: '/api/v1/countries/unlocode',
+  },
+  // LCA Service (Gateway를 통해)
   lca: {
-    projects: '/lci/projects',
-    calculations: '/lci/calculations',
-    templates: '/lci/templates',
+    projects: '/api/lci/projects',
+    calculations: '/api/lci/calculations',
+    templates: '/api/lci/templates',
   },
+  // CBAM Service (Gateway를 통해)
   cbam: {
-    reports: '/cbam/reports',
-    calculations: '/cbam/calculations',
-    templates: '/cbam/templates',
+    reports: '/api/cbam/reports',
+    calculations: '/api/cbam/calculations',
+    templates: '/api/cbam/templates',
   },
+  // Data Upload (Gateway를 통해)
   upload: {
-    data: '/datagather/upload',
-    validate: '/datagather/validate',
+    data: '/api/datagather/upload',
+    validate: '/api/datagather/validate',
   },
+  // Dashboard (Gateway를 통해)
   dashboard: {
-    overview: '/dashboard/overview',
-    stats: '/dashboard/stats',
+    overview: '/api/dashboard/overview',
+    stats: '/api/dashboard/stats',
   },
+  // Settings (Gateway를 통해)
   settings: {
-    profile: '/settings/profile',
-    organization: '/settings/organization',
-    users: '/settings/users',
-    apiKeys: '/settings/api-keys',
+    profile: '/api/settings/profile',
+    organization: '/api/settings/organization',
+    users: '/api/settings/users',
+    apiKeys: '/api/settings/api-keys',
   },
 } as const;
 

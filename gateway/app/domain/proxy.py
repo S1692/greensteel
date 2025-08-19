@@ -17,6 +17,8 @@ class ProxyController:
             # 인증 및 사용자 관리 도메인
             "/auth": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")),
             "/stream": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")),
+            "/countries": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")),
+            "/api/v1/countries": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")),
             
             # ESG 관리 도메인
             "/cbam": self._clean_service_url(os.getenv("CBAM_SERVICE_URL", "http://localhost:8082")),
@@ -239,7 +241,7 @@ class ProxyController:
     
     def _get_domain_context(self, path: str) -> str:
         """경로에서 도메인 컨텍스트 추출"""
-        if path.startswith("/auth") or path.startswith("/stream"):
+        if path.startswith("/auth") or path.startswith("/stream") or path.startswith("/countries") or path.startswith("/api/v1/countries"):
             return "identity-access"
         elif path.startswith("/cbam"):
             return "carbon-border"
@@ -392,6 +394,8 @@ class ProxyController:
         domain_mapping = {
             "/auth": "identity-access",
             "/stream": "identity-access",
+            "/countries": "identity-access",
+            "/api/v1/countries": "identity-access",
             "/cbam": "carbon-border",
             "/datagather": "data-collection",
             "/lci": "lifecycle-inventory"
@@ -423,10 +427,10 @@ class ProxyController:
             "architecture": "DDD (Domain-Driven Design)",
             "domain_routing": {
                 "identity-access": {
-                    "paths": ["/auth/*", "/stream/*", "/company/*", "/user/*"],
+                    "paths": ["/auth/*", "/stream/*", "/company/*", "/user/*", "/countries/*", "/api/v1/countries/*"],
                     "service": "Authentication Service",
                     "port": "8081",
-                    "description": "사용자 인증, 권한 관리, 이벤트 스트림"
+                    "description": "사용자 인증, 권한 관리, 이벤트 스트림, 국가 정보"
                 },
                 "carbon-border": {
                     "paths": ["/cbam/*"],

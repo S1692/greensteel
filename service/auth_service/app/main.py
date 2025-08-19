@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import uvicorn
 
-from app.common.db import create_tables
+from app.common.db import create_tables, test_database_connection
 from app.common.logger import auth_logger
 from app.router.auth import router as auth_router
 from app.router.country import router as country_router
@@ -14,13 +14,23 @@ async def lifespan(app: FastAPI):
     # 시작 시
     auth_logger.info("Auth Service 시작 중...")
     
+    # 데이터베이스 연결 테스트
+    try:
+        if test_database_connection():
+            auth_logger.info("데이터베이스 연결 확인 완료")
+        else:
+            auth_logger.warning("데이터베이스 연결 실패 - 폴백 모드로 진행")
+    except Exception as e:
+        auth_logger.error(f"데이터베이스 연결 테스트 중 오류: {str(e)}")
+    
     # 데이터베이스 테이블 생성
     try:
         create_tables()
         auth_logger.info("데이터베이스 테이블 생성 완료")
     except Exception as e:
         auth_logger.error(f"데이터베이스 테이블 생성 실패: {str(e)}")
-        raise
+        # 테이블 생성 실패해도 서비스는 계속 실행
+        auth_logger.warning("테이블 생성 실패했지만 서비스를 계속 실행합니다")
     
     auth_logger.info("Auth Service 시작 완료")
     
@@ -62,11 +72,49 @@ async def root():
 @app.get("/health")
 async def health_check():
     """헬스체크 엔드포인트"""
-    return {
-        "status": "healthy",
-        "service": "auth-service",
-        "version": "1.0.0"
-    }
+    try:
+        # 데이터베이스 연결 상태 확인
+        db_status = test_database_connection()
+        return {
+            "status": "healthy" if db_status else "degraded",
+            "service": "auth-service",
+            "version": "1.0.0",
+            "database": "connected" if db_status else "disconnected"
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "service": "auth-service",
+            "version": "1.0.0",
+            "database": "error",
+            "error": str(e)
+        }
+
+@app.get("/debug/db")
+async def debug_database():
+    """데이터베이스 디버그 정보 (개발용)"""
+    try:
+        from app.common.settings import settings
+        from app.common.db import engine
+        
+        # 데이터베이스 URL 정보 (민감한 정보 제거)
+        db_url = settings.DATABASE_URL
+        if '@' in db_url:
+            # 사용자명과 비밀번호 제거
+            parts = db_url.split('@')
+            if len(parts) == 2:
+                db_url = f"***:***@{parts[1]}"
+        
+        return {
+            "database_url": db_url,
+            "ssl_mode": settings.DATABASE_SSL_MODE,
+            "pool_size": engine.pool.size(),
+            "checked_in": engine.pool.checkedin(),
+            "checked_out": engine.pool.checkedout(),
+            "overflow": engine.pool.overflow()
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 if __name__ == "__main__":
     uvicorn.run(

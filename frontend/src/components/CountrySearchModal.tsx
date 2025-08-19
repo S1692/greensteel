@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Search, X, MapPin } from 'lucide-react';
+import Button from '@/components/atoms/Button';
+import Input from '@/components/atoms/Input';
 
 export interface Country {
   id: number;
@@ -81,29 +83,25 @@ export default function CountrySearchModal({
         {/* 헤더 */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">국가 검색</h2>
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-500 hover:text-gray-700"
           >
-            <X size={24} />
-          </button>
+            <X size={20} />
+          </Button>
         </div>
 
         {/* 검색 입력 */}
         <div className="p-6 border-b border-gray-200">
-          <div className="relative">
-            <Search
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-              size={20}
-            />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="국가명, 국가코드, UNLOCODE를 입력하세요..."
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
+          <Input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="국가명, 국가코드, UNLOCODE를 입력하세요..."
+            leftIcon={<Search size={18} />}
+          />
           <p className="text-sm text-gray-500 mt-2">
             최소 2글자 이상 입력하면 검색이 시작됩니다.
           </p>
@@ -113,7 +111,7 @@ export default function CountrySearchModal({
         <div className="flex-1 overflow-y-auto max-h-96">
           {loading && (
             <div className="p-6 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400 mx-auto"></div>
               <p className="text-gray-500 mt-2">검색 중...</p>
             </div>
           )}
@@ -144,7 +142,7 @@ export default function CountrySearchModal({
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <MapPin size={16} className="text-blue-500" />
+                        <MapPin size={16} className="text-gray-500" />
                         <span className="font-medium text-gray-900">
                           {country.korean_name}
                         </span>
@@ -160,7 +158,7 @@ export default function CountrySearchModal({
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                         선택
                       </span>
                     </div>

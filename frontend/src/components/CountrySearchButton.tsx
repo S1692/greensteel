@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { Search } from 'lucide-react';
 import CountrySearchModal from './CountrySearchModal';
 import { Country } from '../lib/hooks/useCountrySearch';
+import Button from '@/components/atoms/Button';
+import Input from '@/components/atoms/Input';
 
 interface CountrySearchButtonProps {
   onCountrySelect: (country: Country) => void;
@@ -27,14 +29,15 @@ export default function CountrySearchButton({
 
   return (
     <>
-      <button
+      <Button
         type="button"
         onClick={openModal}
-        className={`inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors ${className}`}
+        variant="secondary"
+        className={className}
       >
-        <Search size={16} />
+        <Search size={16} className="mr-2" />
         {buttonText}
-      </button>
+      </Button>
 
       <CountrySearchModal
         isOpen={isModalOpen}
@@ -81,22 +84,18 @@ export function CountryInputWithSearch({
         {label} {required && <span className="text-red-500">*</span>}
       </label>
       <div className="flex gap-2">
-        <input
+        <Input
           type="text"
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="flex-1"
           readOnly
         />
-        <button
-          type="button"
-          onClick={openModal}
-          className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-        >
-          <Search size={16} />
+        <Button type="button" onClick={openModal} variant="secondary">
+          <Search size={16} className="mr-2" />
           검색
-        </button>
+        </Button>
       </div>
 
       <CountrySearchModal

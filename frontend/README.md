@@ -1,125 +1,110 @@
-# GreenSteel Frontend
+# 🚀 GreenSteel Frontend
 
 ESG 관리 플랫폼의 프론트엔드 애플리케이션입니다.
 
-## 🚀 **빠른 시작**
+## ✨ 주요 기능
 
-### **1. 의존성 설치**
+- **LCA (Life Cycle Assessment)**: 생명주기 평가
+- **CBAM**: 탄소 국경 조정 메커니즘
+- **데이터 업로드**: ESG 데이터 관리
+- **대시보드**: 통합 모니터링
+- **PWA 지원**: Progressive Web App
+
+## 🛠️ 기술 스택
+
+- **Framework**: Next.js 14.2.5
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Package Manager**: pnpm
+- **Deployment**: Vercel
+- **PWA**: next-pwa
+
+## 🚀 빠른 시작
+
+### 개발 환경 설정
 
 ```bash
-npm install
-# 또는
+# 의존성 설치
 pnpm install
+
+# 개발 서버 실행
+pnpm run dev
+
+# 빌드
+pnpm run build
+
+# 프로덕션 서버 실행
+pnpm run start
 ```
 
-### **2. 환경 변수 설정 (중요!)**
+### 환경 변수 설정
 
 ```bash
-# frontend/.env.local 파일 생성
-echo "NEXT_PUBLIC_KAKAO_MAP_API_KEY=your_kakao_javascript_key_here" > .env.local
+# .env.local 파일 생성
+NEXT_PUBLIC_APP_NAME=GreenSteel
+NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
-**필수 환경 변수:**
+## 📱 PWA 기능
 
-- `NEXT_PUBLIC_KAKAO_MAP_API_KEY`: 카카오 지도 API JavaScript 키
+- 오프라인 지원
+- 홈 화면 설치
+- 푸시 알림
+- 백그라운드 동기화
 
-### **3. 개발 서버 실행**
+## 🔧 개발 도구
+
+- **Linting**: ESLint + Prettier
+- **Testing**: Jest + Testing Library
+- **Type Checking**: TypeScript
+- **Code Quality**: Husky + lint-staged
+
+## 📊 배포
+
+### Vercel 자동 배포
+
+GitHub main 브랜치에 푸시하면 자동으로 Vercel에 배포됩니다.
+
+### 수동 배포
 
 ```bash
-npm run dev
-# 또는
-pnpm dev
+# Vercel CLI 설치
+npm i -g vercel
+
+# 로그인 및 배포
+vercel login
+vercel --prod
 ```
 
-## 🗺️ **카카오 지도 API 설정**
+## 🐛 문제 해결
 
-주소 검색 기능을 사용하려면 카카오 지도 API 키가 필요합니다.
+### CI/CD 문제
 
-### **빠른 설정**
+CI/CD가 작동하지 않는 경우:
 
-1. [Kakao Developers](https://developers.kakao.com/) 접속
-2. 애플리케이션 생성
-3. JavaScript 키 복사
-4. `.env.local` 파일에 API 키 설정
-5. 개발 서버 재시작
+1. **Vercel 프로젝트 재연결**
+2. **GitHub Actions 워크플로우 확인**
+3. **Vercel CLI를 사용한 수동 배포**
 
-**자세한 설정 방법**: [KAKAO_API_SETUP.md](./KAKAO_API_SETUP.md)
-
-## 🏗️ **프로젝트 구조**
-
-```
-src/
-├── app/                    # Next.js App Router
-│   ├── (protected)/       # 인증이 필요한 페이지
-│   ├── (public)/          # 공개 페이지
-│   └── api/               # API 라우트
-├── components/             # React 컴포넌트
-│   ├── atoms/             # 기본 UI 컴포넌트
-│   ├── molecules/         # 복합 UI 컴포넌트
-│   └── ui/                # 공통 UI 컴포넌트
-└── lib/                   # 유틸리티 함수
-```
-
-## 🚨 **문제 해결**
-
-### **카카오 지도 API 로딩 실패**
-
-```
-카카오 지도 API 스크립트 로드 실패
-```
-
-**해결 방법:**
-
-1. `frontend/.env.local` 파일에 API 키 설정
-2. 카카오 개발자 콘솔에서 도메인 설정 확인
-3. 개발 서버 재시작
-
-### **Manifest 401 오류**
-
-```
-Manifest fetch failed, code 401
-```
-
-**해결 방법:** `vercel.json` 헤더 설정 완료 ✅
-
-### **CSP 오류**
-
-```
-Refused to load script 'https://dapi.kakao.com/v2/maps/sdk.js'
-```
-
-**해결 방법:** `next.config.js` CSP 설정 완료 ✅
-
-## 📱 **PWA 기능**
-
-- ✅ 오프라인 지원
-- ✅ 앱 설치
-- ✅ 푸시 알림
-- ✅ 백그라운드 동기화
-
-## 🧪 **테스트**
+### 빌드 오류
 
 ```bash
-npm run test
-# 또는
-pnpm test
+# 의존성 재설치
+rm -rf node_modules pnpm-lock.yaml
+pnpm install
+
+# 빌드 테스트
+pnpm run build
 ```
 
-## 🚀 **배포**
+## 📚 문서
 
-```bash
-npm run build
-# 또는
-pnpm build
-```
-
-## 📚 **문서**
-
-- [카카오 API 설정 가이드](./KAKAO_API_SETUP.md)
-- [PWA 구현 가이드](./PWA_README.md)
 - [배포 가이드](./DEPLOYMENT.md)
+- [PWA 설정](./PWA_README.md)
+- [Kakao API 설정](./KAKAO_API_SETUP.md)
+- [CI/CD 문제 해결](./CI_CD_FIX.md)
 
-## 🤝 **기여하기**
+## 🤝 기여
 
 1. Fork the repository
 2. Create your feature branch
@@ -127,6 +112,11 @@ pnpm build
 4. Push to the branch
 5. Create a Pull Request
 
-## 📄 **라이선스**
+## 📄 라이선스
 
 이 프로젝트는 MIT 라이선스 하에 배포됩니다.
+
+---
+
+**마지막 업데이트**: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+**CI/CD 상태**: 🔄 트리거 중...

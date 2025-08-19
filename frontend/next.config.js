@@ -94,9 +94,15 @@ const nextConfig = {
         source: '/sitemap.xml',
         destination: '/api/sitemap',
       },
+      // 모든 API 요청을 Gateway로 라우팅 (우선순위 높음)
       {
-        source: '/api/v1/countries/:path*',
-        destination: 'http://localhost:8000/api/v1/countries/:path*',
+        source: '/api/:path*',
+        destination: 'http://localhost:8080/api/:path*',
+      },
+      // Gateway 직접 접근
+      {
+        source: '/gateway/:path*',
+        destination: 'http://localhost:8080/:path*',
       },
     ];
   },

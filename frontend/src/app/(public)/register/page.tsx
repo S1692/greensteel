@@ -1,11 +1,29 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import Button from "@/components/atoms/Button";
-import Input from "@/components/atoms/Input";
-import AddressSearchModal from "@/components/AddressSearchModal";
-import CountrySearchModal from "@/components/CountrySearchModal";
-import { Country } from "@/components/CountrySearchModal";
+import React, { useState } from 'react';
+import Button from '@/components/atoms/Button';
+import Input from '@/components/atoms/Input';
+import AddressSearchModal from '@/components/AddressSearchModal';
+import CountrySearchModal from '@/components/CountrySearchModal';
+import { Country } from '@/components/CountrySearchModal';
+
+interface KakaoAddressData {
+  address: string;
+  address1: string;
+  zipcode: string;
+  country: string;
+  city: string;
+  country_eng: string;
+  city_eng: string;
+  address_eng: string;
+  address1_eng: string;
+  street: string;
+  street_en: string;
+  number: string;
+  number_en: string;
+  sourcelatitude: string;
+  sourcelongitude: string;
+}
 
 interface CompanyData {
   company_id: string;
@@ -36,28 +54,28 @@ interface CompanyData {
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState<CompanyData>({
-    company_id: "",
-    password: "",
-    confirm_password: "",
-    Installation: "",
-    Installation_en: "",
-    economic_activity: "",
-    economic_activity_en: "",
-    representative: "",
-    representative_en: "",
-    email: "",
-    telephone: "",
-    street: "",
-    street_en: "",
-    number: "",
-    number_en: "",
-    postcode: "",
-    city: "",
-    city_en: "",
-    country: "",
-    country_en: "",
-    country_code: "",
-    unlocode: "",
+    company_id: '',
+    password: '',
+    confirm_password: '',
+    Installation: '',
+    Installation_en: '',
+    economic_activity: '',
+    economic_activity_en: '',
+    representative: '',
+    representative_en: '',
+    email: '',
+    telephone: '',
+    street: '',
+    street_en: '',
+    number: '',
+    number_en: '',
+    postcode: '',
+    city: '',
+    city_en: '',
+    country: '',
+    country_en: '',
+    country_code: '',
+    unlocode: '',
     sourcelatitude: null,
     sourcelongitude: null,
   });
@@ -69,34 +87,38 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   const handleInputChange = (field: keyof CompanyData, value: string) => {
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       [field]: value,
     }));
   };
 
-  const handleAddressSelect = (addressData: any) => {
-    setFormData((prev) => ({
+  const handleAddressSelect = (addressData: KakaoAddressData) => {
+    setFormData(prev => ({
       ...prev,
-      street: addressData.street || "",
-      street_en: addressData.street_en || "",
-      number: addressData.number || "",
-      number_en: addressData.number_en || "",
-      postcode: addressData.postcode || "",
-      city: addressData.city || "",
-      city_en: addressData.city_en || "",
-      sourcelatitude: addressData.sourcelatitude || null,
-      sourcelongitude: addressData.sourcelongitude || null,
+      street: addressData.street || '',
+      street_en: addressData.street_en || '',
+      number: addressData.number || '',
+      number_en: addressData.number_en || '',
+      postcode: addressData.zipcode || '',
+      city: addressData.city || '',
+      city_en: addressData.city_eng || '',
+      sourcelatitude: addressData.sourcelatitude
+        ? parseFloat(addressData.sourcelatitude)
+        : null,
+      sourcelongitude: addressData.sourcelongitude
+        ? parseFloat(addressData.sourcelongitude)
+        : null,
     }));
   };
 
   const handleCountrySelect = (countryData: Country) => {
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
       country: countryData.korean_name,
       country_en: countryData.country_name,
       country_code: countryData.code,
-      unlocode: countryData.unlocode || "",
+      unlocode: countryData.unlocode || '',
     }));
   };
 
@@ -108,16 +130,16 @@ export default function RegisterPage() {
 
     // 비밀번호 확인
     if (formData.password !== formData.confirm_password) {
-      setError("비밀번호가 일치하지 않습니다.");
+      setError('비밀번호가 일치하지 않습니다.');
       setLoading(false);
       return;
     }
 
     try {
-      const response = await fetch("/api/v1/auth/register/company", {
-        method: "POST",
+      const response = await fetch('/api/v1/auth/register/company', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           company_id: formData.company_id,
@@ -148,38 +170,40 @@ export default function RegisterPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || "회원가입에 실패했습니다.");
+        throw new Error(errorData.detail || '회원가입에 실패했습니다.');
       }
 
-      setSuccess("회원가입이 완료되었습니다!");
+      setSuccess('회원가입이 완료되었습니다!');
       setFormData({
-        company_id: "",
-        password: "",
-        confirm_password: "",
-        Installation: "",
-        Installation_en: "",
-        economic_activity: "",
-        economic_activity_en: "",
-        representative: "",
-        representative_en: "",
-        email: "",
-        telephone: "",
-        street: "",
-        street_en: "",
-        number: "",
-        number_en: "",
-        postcode: "",
-        city: "",
-        city_en: "",
-        country: "",
-        country_en: "",
-        country_code: "",
-        unlocode: "",
+        company_id: '',
+        password: '',
+        confirm_password: '',
+        Installation: '',
+        Installation_en: '',
+        economic_activity: '',
+        economic_activity_en: '',
+        representative: '',
+        representative_en: '',
+        email: '',
+        telephone: '',
+        street: '',
+        street_en: '',
+        number: '',
+        number_en: '',
+        postcode: '',
+        city: '',
+        city_en: '',
+        country: '',
+        country_en: '',
+        country_code: '',
+        unlocode: '',
         sourcelatitude: null,
         sourcelongitude: null,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.");
+      setError(
+        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.'
+      );
     } finally {
       setLoading(false);
     }
@@ -211,7 +235,9 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* 계정 정보 */}
             <div className="border-b border-gray-200 pb-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">계정 정보</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                계정 정보
+              </h2>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -220,7 +246,9 @@ export default function RegisterPage() {
                   <Input
                     type="text"
                     value={formData.company_id}
-                    onChange={(e) => handleInputChange("company_id", e.target.value)}
+                    onChange={e =>
+                      handleInputChange('company_id', e.target.value)
+                    }
                     required
                     placeholder="기업 ID를 입력하세요"
                   />
@@ -232,7 +260,9 @@ export default function RegisterPage() {
                   <Input
                     type="password"
                     value={formData.password}
-                    onChange={(e) => handleInputChange("password", e.target.value)}
+                    onChange={e =>
+                      handleInputChange('password', e.target.value)
+                    }
                     required
                     placeholder="비밀번호를 입력하세요"
                   />
@@ -244,7 +274,9 @@ export default function RegisterPage() {
                   <Input
                     type="password"
                     value={formData.confirm_password}
-                    onChange={(e) => handleInputChange("confirm_password", e.target.value)}
+                    onChange={e =>
+                      handleInputChange('confirm_password', e.target.value)
+                    }
                     required
                     placeholder="비밀번호를 다시 입력하세요"
                   />
@@ -254,7 +286,9 @@ export default function RegisterPage() {
 
             {/* 기업 정보 */}
             <div className="border-b border-gray-200 pb-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">기업 정보</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                기업 정보
+              </h2>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -263,7 +297,9 @@ export default function RegisterPage() {
                   <Input
                     type="text"
                     value={formData.Installation}
-                    onChange={(e) => handleInputChange("Installation", e.target.value)}
+                    onChange={e =>
+                      handleInputChange('Installation', e.target.value)
+                    }
                     required
                     placeholder="사업장명을 입력하세요"
                   />
@@ -275,7 +311,9 @@ export default function RegisterPage() {
                   <Input
                     type="text"
                     value={formData.Installation_en}
-                    onChange={(e) => handleInputChange("Installation_en", e.target.value)}
+                    onChange={e =>
+                      handleInputChange('Installation_en', e.target.value)
+                    }
                     placeholder="사업장 영문명을 입력하세요"
                   />
                 </div>
@@ -286,7 +324,9 @@ export default function RegisterPage() {
                   <Input
                     type="text"
                     value={formData.economic_activity}
-                    onChange={(e) => handleInputChange("economic_activity", e.target.value)}
+                    onChange={e =>
+                      handleInputChange('economic_activity', e.target.value)
+                    }
                     placeholder="업종명을 입력하세요"
                   />
                 </div>
@@ -297,7 +337,9 @@ export default function RegisterPage() {
                   <Input
                     type="text"
                     value={formData.economic_activity_en}
-                    onChange={(e) => handleInputChange("economic_activity_en", e.target.value)}
+                    onChange={e =>
+                      handleInputChange('economic_activity_en', e.target.value)
+                    }
                     placeholder="업종명 영문명을 입력하세요"
                   />
                 </div>
@@ -308,7 +350,9 @@ export default function RegisterPage() {
                   <Input
                     type="text"
                     value={formData.representative}
-                    onChange={(e) => handleInputChange("representative", e.target.value)}
+                    onChange={e =>
+                      handleInputChange('representative', e.target.value)
+                    }
                     placeholder="대표자명을 입력하세요"
                   />
                 </div>
@@ -319,7 +363,9 @@ export default function RegisterPage() {
                   <Input
                     type="text"
                     value={formData.representative_en}
-                    onChange={(e) => handleInputChange("representative_en", e.target.value)}
+                    onChange={e =>
+                      handleInputChange('representative_en', e.target.value)
+                    }
                     placeholder="영문대표자명을 입력하세요"
                   />
                 </div>
@@ -330,7 +376,7 @@ export default function RegisterPage() {
                   <Input
                     type="email"
                     value={formData.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    onChange={e => handleInputChange('email', e.target.value)}
                     placeholder="이메일을 입력하세요"
                   />
                 </div>
@@ -341,7 +387,9 @@ export default function RegisterPage() {
                   <Input
                     type="tel"
                     value={formData.telephone}
-                    onChange={(e) => handleInputChange("telephone", e.target.value)}
+                    onChange={e =>
+                      handleInputChange('telephone', e.target.value)
+                    }
                     placeholder="전화번호를 입력하세요"
                   />
                 </div>
@@ -350,8 +398,10 @@ export default function RegisterPage() {
 
             {/* 주소 정보 */}
             <div className="border-b border-gray-200 pb-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">주소 정보</h2>
-              
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                주소 정보
+              </h2>
+
               {/* 주소 검색 버튼 */}
               <div className="mb-4">
                 <Button
@@ -372,7 +422,7 @@ export default function RegisterPage() {
                   <Input
                     type="text"
                     value={formData.street}
-                    onChange={(e) => handleInputChange("street", e.target.value)}
+                    onChange={e => handleInputChange('street', e.target.value)}
                     placeholder="도로명"
                     readOnly
                   />
@@ -384,7 +434,7 @@ export default function RegisterPage() {
                   <Input
                     type="text"
                     value={formData.number}
-                    onChange={(e) => handleInputChange("number", e.target.value)}
+                    onChange={e => handleInputChange('number', e.target.value)}
                     placeholder="건물 번호"
                     readOnly
                   />
@@ -396,7 +446,9 @@ export default function RegisterPage() {
                   <Input
                     type="text"
                     value={formData.postcode}
-                    onChange={(e) => handleInputChange("postcode", e.target.value)}
+                    onChange={e =>
+                      handleInputChange('postcode', e.target.value)
+                    }
                     placeholder="우편번호"
                     readOnly
                   />
@@ -408,7 +460,7 @@ export default function RegisterPage() {
                   <Input
                     type="text"
                     value={formData.city}
-                    onChange={(e) => handleInputChange("city", e.target.value)}
+                    onChange={e => handleInputChange('city', e.target.value)}
                     placeholder="도시명"
                     readOnly
                   />
@@ -424,7 +476,7 @@ export default function RegisterPage() {
                   <Input
                     type="text"
                     value={formData.country}
-                    onChange={(e) => handleInputChange("country", e.target.value)}
+                    onChange={e => handleInputChange('country', e.target.value)}
                     placeholder="국가를 선택하세요"
                     readOnly
                     className="flex-1"
@@ -442,9 +494,7 @@ export default function RegisterPage() {
                     {formData.country_code && (
                       <p>국가 코드: {formData.country_code}</p>
                     )}
-                    {formData.unlocode && (
-                      <p>UNLOCODE: {formData.unlocode}</p>
-                    )}
+                    {formData.unlocode && <p>UNLOCODE: {formData.unlocode}</p>}
                   </div>
                 )}
               </div>
@@ -457,19 +507,19 @@ export default function RegisterPage() {
                 disabled={loading}
                 className="w-full sm:w-auto"
               >
-                {loading ? "처리 중..." : "회원가입"}
+                {loading ? '처리 중...' : '회원가입'}
               </Button>
             </div>
           </form>
         </div>
       </div>
 
-             {/* 주소 검색 모달 */}
-       <AddressSearchModal
-         isOpen={isAddressModalOpen}
-         onClose={() => setIsAddressModalOpen(false)}
-         onAddressSelect={handleAddressSelect}
-       />
+      {/* 주소 검색 모달 */}
+      <AddressSearchModal
+        isOpen={isAddressModalOpen}
+        onClose={() => setIsAddressModalOpen(false)}
+        onAddressSelect={handleAddressSelect}
+      />
 
       {/* 국가 검색 모달 */}
       <CountrySearchModal

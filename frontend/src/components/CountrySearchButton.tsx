@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, MapPin } from 'lucide-react';
+import { Search } from 'lucide-react';
 import CountrySearchModal from './CountrySearchModal';
 import { Country } from '../lib/hooks/useCountrySearch';
 
@@ -11,10 +11,10 @@ interface CountrySearchButtonProps {
   buttonText?: string;
 }
 
-export default function CountrySearchButton({ 
-  onCountrySelect, 
+export default function CountrySearchButton({
+  onCountrySelect,
   className = '',
-  buttonText = '국가 검색'
+  buttonText = '국가 검색',
 }: CountrySearchButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -60,10 +60,10 @@ export function CountryInputWithSearch({
   value,
   onChange,
   onCountrySelect,
-  placeholder = "국가 검색으로 자동 입력",
-  label = "국가명",
+  placeholder = '국가 검색으로 자동 입력',
+  label = '국가명',
   required = false,
-  className = ""
+  className = '',
 }: CountryInputWithSearchProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -84,7 +84,7 @@ export function CountryInputWithSearch({
         <input
           type="text"
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
           className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           readOnly

@@ -17,7 +17,11 @@ interface CountrySearchModalProps {
   onSelect: (country: Country) => void;
 }
 
-export default function CountrySearchModal({ isOpen, onClose, onSelect }: CountrySearchModalProps) {
+export default function CountrySearchModal({
+  isOpen,
+  onClose,
+  onSelect,
+}: CountrySearchModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [countries, setCountries] = useState<Country[]>([]);
   const [loading, setLoading] = useState(false);
@@ -35,18 +39,22 @@ export default function CountrySearchModal({ isOpen, onClose, onSelect }: Countr
   const searchCountries = async (query: string) => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      const response = await fetch(`/api/v1/countries/search?query=${encodeURIComponent(query)}&limit=20`);
-      
+      const response = await fetch(
+        `/api/v1/countries/search?query=${encodeURIComponent(query)}&limit=20`
+      );
+
       if (!response.ok) {
         throw new Error('국가 검색에 실패했습니다.');
       }
-      
+
       const data = await response.json();
       setCountries(data.countries || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
+      setError(
+        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.'
+      );
       setCountries([]);
     } finally {
       setLoading(false);
@@ -84,11 +92,14 @@ export default function CountrySearchModal({ isOpen, onClose, onSelect }: Countr
         {/* 검색 입력 */}
         <div className="p-6 border-b border-gray-200">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Search
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              size={20}
+            />
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={e => setSearchQuery(e.target.value)}
               placeholder="국가명, 국가코드, UNLOCODE를 입력하세요..."
               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
@@ -113,15 +124,18 @@ export default function CountrySearchModal({ isOpen, onClose, onSelect }: Countr
             </div>
           )}
 
-          {!loading && !error && countries.length === 0 && searchQuery.trim().length >= 2 && (
-            <div className="p-6 text-center">
-              <p className="text-gray-500">검색 결과가 없습니다.</p>
-            </div>
-          )}
+          {!loading &&
+            !error &&
+            countries.length === 0 &&
+            searchQuery.trim().length >= 2 && (
+              <div className="p-6 text-center">
+                <p className="text-gray-500">검색 결과가 없습니다.</p>
+              </div>
+            )}
 
           {!loading && !error && countries.length > 0 && (
             <div className="divide-y divide-gray-200">
-              {countries.map((country) => (
+              {countries.map(country => (
                 <div
                   key={country.id}
                   onClick={() => handleCountrySelect(country)}

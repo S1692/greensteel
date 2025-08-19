@@ -2,6 +2,7 @@
 
 import React from 'react';
 import CommonShell from '@/components/CommonShell';
+import GatewayStatus from '@/components/GatewayStatus';
 
 const DashboardPage: React.FC = () => {
   return (
@@ -24,6 +25,9 @@ const DashboardPage: React.FC = () => {
             GreenSteel은 LCA, CBAM, ESG 관리의 모든 것을 제공합니다.
           </p>
         </div>
+
+        {/* Gateway 상태 컴포넌트 추가 */}
+        <GatewayStatus />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">

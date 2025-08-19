@@ -153,6 +153,13 @@ axiosClient.interceptors.response.use(
 
 // API 엔드포인트 헬퍼 (Gateway 경로에 맞게 수정)
 export const apiEndpoints = {
+  // Gateway 엔드포인트 추가
+  gateway: {
+    health: '/health',
+    status: '/status',
+    routing: '/routing',
+    architecture: '/architecture',
+  },
   auth: {
     login: '/auth/login',
     register: '/auth/register',

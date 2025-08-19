@@ -94,6 +94,17 @@ const nextConfig = {
         source: '/sitemap.xml',
         destination: '/api/sitemap',
       },
+      // Gateway 프록시 설정 추가
+      {
+        source: '/api/gateway/:path*',
+        destination: 'http://localhost:8080/:path*',
+      },
+      // Auth Service 프록시
+      {
+        source: '/api/auth/:path*',
+        destination: 'http://localhost:8081/api/v1/:path*',
+      },
+      // 기존 countries API 설정
       {
         source: '/api/v1/countries/:path*',
         destination: 'http://localhost:8000/api/v1/countries/:path*',

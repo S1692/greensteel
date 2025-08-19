@@ -58,7 +58,7 @@ app.add_middleware(
 
 # 라우터 등록
 app.include_router(auth_router, prefix="/api/v1")
-app.include_router(country_router, prefix="/api/v1")
+app.include_router(country_router, prefix="/api/v1/countries")
 
 @app.get("/")
 async def root():

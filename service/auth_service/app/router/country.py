@@ -13,7 +13,7 @@ from app.domain.schemas.country import (
 )
 from app.common.logger import auth_logger
 
-router = APIRouter(prefix="/countries", tags=["countries"])
+router = APIRouter(tags=["countries"])
 
 @router.get("/search", response_model=CountrySearchResponse)
 async def search_countries(

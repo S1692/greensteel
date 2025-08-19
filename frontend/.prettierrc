@@ -9,7 +9,5 @@
   "arrowParens": "avoid",
   "bracketSpacing": true,
   "bracketSameLine": false,
-  "jsxSingleQuote": true,
-  "quoteProps": "as-needed",
-  "proseWrap": "preserve"
+  "jsxSingleQuote": true
 }

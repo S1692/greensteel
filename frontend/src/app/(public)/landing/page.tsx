@@ -60,62 +60,62 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen stitch-bg flex items-center justify-center px-4">
-      <div className="stitch-card w-full max-w-md p-8">
-        <h1 className="stitch-h1 text-3xl font-semibold text-center">
+    <div className='min-h-screen stitch-bg flex items-center justify-center px-4'>
+      <div className='stitch-card w-full max-w-md p-8'>
+        <h1 className='stitch-h1 text-3xl font-semibold text-center'>
           GreenSteel
         </h1>
         <p
-          className="text-center text-[13px] mt-1"
+          className='text-center text-[13px] mt-1'
           style={{ color: 'var(--text-muted)' }}
         >
           로그인
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-6">
+        <form onSubmit={handleSubmit} className='space-y-4 mt-6'>
           <div>
-            <label className="stitch-label mb-1 block">ID *</label>
+            <label className='stitch-label mb-1 block'>ID *</label>
             <Input
-              type="text"
+              type='text'
               value={username}
               onChange={e => setUsername(e.target.value)}
-              placeholder="예: smartuser"
+              placeholder='예: smartuser'
               disabled={isLoading}
               required
             />
           </div>
 
           <div>
-            <label className="stitch-label mb-1 block">비밀번호 *</label>
+            <label className='stitch-label mb-1 block'>비밀번호 *</label>
             <Input
-              type="password"
+              type='password'
               value={password}
               onChange={e => setPassword(e.target.value)}
-              placeholder="********"
+              placeholder='********'
               disabled={isLoading}
               required
             />
           </div>
 
-          {error && <p className="stitch-error mt-1">{error.message}</p>}
+          {error && <p className='stitch-error mt-1'>{error.message}</p>}
 
-          <Button className="mt-2 w-full" disabled={isLoading}>
+          <Button className='mt-2 w-full' disabled={isLoading}>
             {isLoading ? '로그인 중...' : '로그인'}
           </Button>
         </form>
 
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <p className="text-center text-sm text-gray-600 mb-4">또는</p>
+        <div className='mt-6 pt-6 border-t border-gray-200'>
+          <p className='text-center text-sm text-gray-600 mb-4'>또는</p>
 
-          <div className="space-y-3">
-            <Button onClick={handleEnter} className="w-full">
+          <div className='space-y-3'>
+            <Button onClick={handleEnter} className='w-full'>
               들어가기
             </Button>
 
             <Button
               onClick={handleRegister}
-              variant="outline"
-              className="w-full"
+              variant='outline'
+              className='w-full'
             >
               회원가입
             </Button>
@@ -123,7 +123,7 @@ export default function LandingPage() {
         </div>
 
         <p
-          className="text-center mt-6 text-[13px]"
+          className='text-center mt-6 text-[13px]'
           style={{ color: 'var(--text-muted)' }}
         >
           GreenSteel은 LCA, CBAM, ESG 관리의 모든 것을 제공합니다

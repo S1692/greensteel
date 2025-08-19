@@ -44,7 +44,7 @@ const TabGroup: React.FC<TabGroupProps> = ({
   return (
     <div className={cn('w-full', className)}>
       {/* 탭 헤더 */}
-      <div className="flex border-b border-ecotrace-border">
+      <div className='flex border-b border-ecotrace-border'>
         {tabs.map(tab => (
           <button
             key={tab.id}
@@ -56,7 +56,7 @@ const TabGroup: React.FC<TabGroupProps> = ({
                 : inactiveVariants[variant],
               'focus:outline-none focus:ring-2 focus:ring-ecotrace-primary focus:ring-offset-2 focus:ring-offset-ecotrace-background'
             )}
-            role="tab"
+            role='tab'
             aria-selected={activeTab === tab.id}
             aria-controls={`panel-${tab.id}`}
           >
@@ -70,7 +70,7 @@ const TabGroup: React.FC<TabGroupProps> = ({
         <div
           key={tab.id}
           id={`panel-${tab.id}`}
-          role="tabpanel"
+          role='tabpanel'
           aria-labelledby={`tab-${tab.id}`}
           className={cn('mt-4', activeTab === tab.id ? 'block' : 'hidden')}
         >

@@ -17,25 +17,25 @@ describe('Button Component', () => {
   });
 
   it('applies secondary variant styles', () => {
-    render(<Button variant="secondary">Secondary Button</Button>);
+    render(<Button variant='secondary'>Secondary Button</Button>);
     const button = screen.getByRole('button');
     expect(button).toHaveClass('bg-ecotrace-secondary');
   });
 
   it('applies outline variant styles', () => {
-    render(<Button variant="outline">Outline Button</Button>);
+    render(<Button variant='outline'>Outline Button</Button>);
     const button = screen.getByRole('button');
     expect(button).toHaveClass('border-ecotrace-border');
   });
 
   it('applies ghost variant styles', () => {
-    render(<Button variant="ghost">Ghost Button</Button>);
+    render(<Button variant='ghost'>Ghost Button</Button>);
     const button = screen.getByRole('button');
     expect(button).toHaveClass('bg-transparent');
   });
 
   it('applies size classes correctly', () => {
-    render(<Button size="lg">Large Button</Button>);
+    render(<Button size='lg'>Large Button</Button>);
     const button = screen.getByRole('button');
     expect(button).toHaveClass('px-6', 'py-3', 'text-base');
   });
@@ -69,14 +69,14 @@ describe('Button Component', () => {
   });
 
   it('applies custom className', () => {
-    render(<Button className="custom-class">Custom Button</Button>);
+    render(<Button className='custom-class'>Custom Button</Button>);
     const button = screen.getByRole('button');
     expect(button).toHaveClass('custom-class');
   });
 
   it('forwards additional props', () => {
     render(
-      <Button data-testid="test-button" aria-label="Test">
+      <Button data-testid='test-button' aria-label='Test'>
         Test Button
       </Button>
     );

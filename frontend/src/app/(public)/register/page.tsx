@@ -210,287 +210,287 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">기업 회원가입</h1>
-            <p className="mt-2 text-gray-600">
+    <div className='min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
+      <div className='max-w-2xl mx-auto'>
+        <div className='bg-white rounded-lg shadow-lg p-8'>
+          <div className='text-center mb-8'>
+            <h1 className='text-3xl font-bold text-gray-900'>기업 회원가입</h1>
+            <p className='mt-2 text-gray-600'>
               기업 정보를 입력하여 회원가입을 완료하세요.
             </p>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+            <div className='mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded'>
               {error}
             </div>
           )}
 
           {success && (
-            <div className="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+            <div className='mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded'>
               {success}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className='space-y-6'>
             {/* 계정 정보 */}
-            <div className="border-b border-gray-200 pb-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            <div className='border-b border-gray-200 pb-6'>
+              <h2 className='text-xl font-semibold text-gray-900 mb-4'>
                 계정 정보
               </h2>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className='block text-sm font-medium text-gray-700 mb-1'>
                     기업 ID *
                   </label>
                   <Input
-                    type="text"
+                    type='text'
                     value={formData.company_id}
                     onChange={e =>
                       handleInputChange('company_id', e.target.value)
                     }
                     required
-                    placeholder="기업 ID를 입력하세요"
+                    placeholder='기업 ID를 입력하세요'
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className='block text-sm font-medium text-gray-700 mb-1'>
                     비밀번호 *
                   </label>
                   <Input
-                    type="password"
+                    type='password'
                     value={formData.password}
                     onChange={e =>
                       handleInputChange('password', e.target.value)
                     }
                     required
-                    placeholder="비밀번호를 입력하세요"
+                    placeholder='비밀번호를 입력하세요'
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className='block text-sm font-medium text-gray-700 mb-1'>
                     비밀번호 확인 *
                   </label>
                   <Input
-                    type="password"
+                    type='password'
                     value={formData.confirm_password}
                     onChange={e =>
                       handleInputChange('confirm_password', e.target.value)
                     }
                     required
-                    placeholder="비밀번호를 다시 입력하세요"
+                    placeholder='비밀번호를 다시 입력하세요'
                   />
                 </div>
               </div>
             </div>
 
             {/* 기업 정보 */}
-            <div className="border-b border-gray-200 pb-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            <div className='border-b border-gray-200 pb-6'>
+              <h2 className='text-xl font-semibold text-gray-900 mb-4'>
                 기업 정보
               </h2>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className='block text-sm font-medium text-gray-700 mb-1'>
                     사업장명 *
                   </label>
                   <Input
-                    type="text"
+                    type='text'
                     value={formData.Installation}
                     onChange={e =>
                       handleInputChange('Installation', e.target.value)
                     }
                     required
-                    placeholder="사업장명을 입력하세요"
+                    placeholder='사업장명을 입력하세요'
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className='block text-sm font-medium text-gray-700 mb-1'>
                     사업장 영문명
                   </label>
                   <Input
-                    type="text"
+                    type='text'
                     value={formData.Installation_en}
                     onChange={e =>
                       handleInputChange('Installation_en', e.target.value)
                     }
-                    placeholder="사업장 영문명을 입력하세요"
+                    placeholder='사업장 영문명을 입력하세요'
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className='block text-sm font-medium text-gray-700 mb-1'>
                     업종명
                   </label>
                   <Input
-                    type="text"
+                    type='text'
                     value={formData.economic_activity}
                     onChange={e =>
                       handleInputChange('economic_activity', e.target.value)
                     }
-                    placeholder="업종명을 입력하세요"
+                    placeholder='업종명을 입력하세요'
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className='block text-sm font-medium text-gray-700 mb-1'>
                     업종명 영문명
                   </label>
                   <Input
-                    type="text"
+                    type='text'
                     value={formData.economic_activity_en}
                     onChange={e =>
                       handleInputChange('economic_activity_en', e.target.value)
                     }
-                    placeholder="업종명 영문명을 입력하세요"
+                    placeholder='업종명 영문명을 입력하세요'
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className='block text-sm font-medium text-gray-700 mb-1'>
                     대표자명
                   </label>
                   <Input
-                    type="text"
+                    type='text'
                     value={formData.representative}
                     onChange={e =>
                       handleInputChange('representative', e.target.value)
                     }
-                    placeholder="대표자명을 입력하세요"
+                    placeholder='대표자명을 입력하세요'
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className='block text-sm font-medium text-gray-700 mb-1'>
                     영문대표자명
                   </label>
                   <Input
-                    type="text"
+                    type='text'
                     value={formData.representative_en}
                     onChange={e =>
                       handleInputChange('representative_en', e.target.value)
                     }
-                    placeholder="영문대표자명을 입력하세요"
+                    placeholder='영문대표자명을 입력하세요'
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className='block text-sm font-medium text-gray-700 mb-1'>
                     이메일
                   </label>
                   <Input
-                    type="email"
+                    type='email'
                     value={formData.email}
                     onChange={e => handleInputChange('email', e.target.value)}
-                    placeholder="이메일을 입력하세요"
+                    placeholder='이메일을 입력하세요'
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className='block text-sm font-medium text-gray-700 mb-1'>
                     전화번호
                   </label>
                   <Input
-                    type="tel"
+                    type='tel'
                     value={formData.telephone}
                     onChange={e =>
                       handleInputChange('telephone', e.target.value)
                     }
-                    placeholder="전화번호를 입력하세요"
+                    placeholder='전화번호를 입력하세요'
                   />
                 </div>
               </div>
             </div>
 
             {/* 주소 정보 */}
-            <div className="border-b border-gray-200 pb-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            <div className='border-b border-gray-200 pb-6'>
+              <h2 className='text-xl font-semibold text-gray-900 mb-4'>
                 주소 정보
               </h2>
 
               {/* 주소 검색 버튼 */}
-              <div className="mb-4">
+              <div className='mb-4'>
                 <Button
-                  type="button"
+                  type='button'
                   onClick={() => setIsAddressModalOpen(true)}
-                  variant="secondary"
-                  className="w-full"
+                  variant='secondary'
+                  className='w-full'
                 >
                   주소 검색
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className='block text-sm font-medium text-gray-700 mb-1'>
                     도로명
                   </label>
                   <Input
-                    type="text"
+                    type='text'
                     value={formData.street}
                     onChange={e => handleInputChange('street', e.target.value)}
-                    placeholder="도로명"
+                    placeholder='도로명'
                     readOnly
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className='block text-sm font-medium text-gray-700 mb-1'>
                     건물 번호
                   </label>
                   <Input
-                    type="text"
+                    type='text'
                     value={formData.number}
                     onChange={e => handleInputChange('number', e.target.value)}
-                    placeholder="건물 번호"
+                    placeholder='건물 번호'
                     readOnly
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className='block text-sm font-medium text-gray-700 mb-1'>
                     우편번호
                   </label>
                   <Input
-                    type="text"
+                    type='text'
                     value={formData.postcode}
                     onChange={e =>
                       handleInputChange('postcode', e.target.value)
                     }
-                    placeholder="우편번호"
+                    placeholder='우편번호'
                     readOnly
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className='block text-sm font-medium text-gray-700 mb-1'>
                     도시명
                   </label>
                   <Input
-                    type="text"
+                    type='text'
                     value={formData.city}
                     onChange={e => handleInputChange('city', e.target.value)}
-                    placeholder="도시명"
+                    placeholder='도시명'
                     readOnly
                   />
                 </div>
               </div>
 
               {/* 국가 검색 */}
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className='mt-4'>
+                <label className='block text-sm font-medium text-gray-700 mb-1'>
                   국가
                 </label>
-                <div className="flex gap-2">
+                <div className='flex gap-2'>
                   <Input
-                    type="text"
+                    type='text'
                     value={formData.country}
                     onChange={e => handleInputChange('country', e.target.value)}
-                    placeholder="국가를 선택하세요"
+                    placeholder='국가를 선택하세요'
                     readOnly
-                    className="flex-1"
+                    className='flex-1'
                   />
                   <Button
-                    type="button"
+                    type='button'
                     onClick={() => setIsCountryModalOpen(true)}
-                    variant="secondary"
+                    variant='secondary'
                   >
                     검색
                   </Button>
                 </div>
                 {(formData.country_code || formData.unlocode) && (
-                  <div className="mt-1 text-sm text-gray-500 space-y-1">
+                  <div className='mt-1 text-sm text-gray-500 space-y-1'>
                     {formData.country_code && (
                       <p>국가 코드: {formData.country_code}</p>
                     )}
@@ -501,11 +501,11 @@ export default function RegisterPage() {
             </div>
 
             {/* 제출 버튼 */}
-            <div className="flex justify-end">
+            <div className='flex justify-end'>
               <Button
-                type="submit"
+                type='submit'
                 disabled={loading}
-                className="w-full sm:w-auto"
+                className='w-full sm:w-auto'
               >
                 {loading ? '처리 중...' : '회원가입'}
               </Button>

@@ -192,68 +192,68 @@ export default function AddressSearchModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+    <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4'>
       <div
         ref={modalRef}
-        className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
+        className='bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col'
         style={{ minHeight: '400px' }}
       >
         {/* 헤더 */}
-        <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-white">
-          <h2 className="text-xl font-bold text-gray-800">주소 검색</h2>
+        <div className='flex justify-between items-center p-4 border-b border-gray-200 bg-white'>
+          <h2 className='text-xl font-bold text-gray-800'>주소 검색</h2>
           <Button
             onClick={handleClose}
-            variant="outline"
-            className="px-3 py-1 hover:bg-gray-100"
+            variant='outline'
+            className='px-3 py-1 hover:bg-gray-100'
           >
             ✕
           </Button>
         </div>
 
         {/* 메인 컨텐츠 */}
-        <div className="flex-1 p-6 bg-gray-50">
-          <div className="text-center space-y-6">
+        <div className='flex-1 p-6 bg-gray-50'>
+          <div className='text-center space-y-6'>
             {/* 주소 검색 버튼 */}
             <div>
               <Button
                 onClick={handleSearch}
-                className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold"
+                className='px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold'
               >
                 🔍 주소 검색하기
               </Button>
-              <p className="text-sm text-gray-600 mt-2">
+              <p className='text-sm text-gray-600 mt-2'>
                 클릭하면 카카오 주소 검색 서비스가 팝업으로 열립니다
               </p>
             </div>
 
             {/* 선택된 주소 표시 */}
             {selectedAddress && (
-              <div className="bg-white p-6 rounded-lg border border-blue-200 shadow-sm">
-                <h3 className="font-semibold text-lg text-blue-800 mb-4">
+              <div className='bg-white p-6 rounded-lg border border-blue-200 shadow-sm'>
+                <h3 className='font-semibold text-lg text-blue-800 mb-4'>
                   ✅ 선택된 주소
                 </h3>
-                <div className="space-y-3 text-left">
-                  <div className="flex justify-between">
-                    <span className="font-medium text-gray-700">주소:</span>
-                    <span className="text-gray-900">
+                <div className='space-y-3 text-left'>
+                  <div className='flex justify-between'>
+                    <span className='font-medium text-gray-700'>주소:</span>
+                    <span className='text-gray-900'>
                       {selectedAddress.address}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium text-gray-700">상세주소:</span>
-                    <span className="text-gray-900">
+                  <div className='flex justify-between'>
+                    <span className='font-medium text-gray-700'>상세주소:</span>
+                    <span className='text-gray-900'>
                       {selectedAddress.address1}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium text-gray-700">우편번호:</span>
-                    <span className="text-gray-900">
+                  <div className='flex justify-between'>
+                    <span className='font-medium text-gray-700'>우편번호:</span>
+                    <span className='text-gray-900'>
                       {selectedAddress.zipcode}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="font-medium text-gray-700">도시:</span>
-                    <span className="text-gray-900">
+                  <div className='flex justify-between'>
+                    <span className='font-medium text-gray-700'>도시:</span>
+                    <span className='text-gray-900'>
                       {selectedAddress.city}
                     </span>
                   </div>
@@ -262,9 +262,9 @@ export default function AddressSearchModal({
             )}
 
             {/* 사용 안내 */}
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <h4 className="font-semibold text-blue-800 mb-2">📋 사용 방법</h4>
-              <ol className="text-sm text-blue-700 space-y-1 text-left">
+            <div className='bg-blue-50 p-4 rounded-lg border border-blue-200'>
+              <h4 className='font-semibold text-blue-800 mb-2'>📋 사용 방법</h4>
+              <ol className='text-sm text-blue-700 space-y-1 text-left'>
                 <li>1. &quot;주소 검색하기&quot; 버튼을 클릭합니다</li>
                 <li>2. 팝업에서 주소를 검색하고 선택합니다</li>
                 <li>3. 선택한 주소가 위에 표시됩니다</li>
@@ -275,18 +275,18 @@ export default function AddressSearchModal({
         </div>
 
         {/* 하단 버튼 */}
-        <div className="flex justify-end space-x-2 p-4 border-t border-gray-200 bg-white">
+        <div className='flex justify-end space-x-2 p-4 border-t border-gray-200 bg-white'>
           <Button
             onClick={handleClose}
-            variant="outline"
-            className="border-gray-300 hover:bg-gray-100"
+            variant='outline'
+            className='border-gray-300 hover:bg-gray-100'
           >
             취소
           </Button>
           <Button
             onClick={handleConfirm}
             disabled={!selectedAddress}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white"
+            className='bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white'
           >
             주소 선택
           </Button>

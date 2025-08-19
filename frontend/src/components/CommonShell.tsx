@@ -34,40 +34,40 @@ const CommonShell: React.FC<CommonShellProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-ecotrace-background text-ecotrace-text">
+    <div className='min-h-screen bg-ecotrace-background text-ecotrace-text'>
       {/* 헤더 */}
-      <header className="border-b border-ecotrace-border bg-ecotrace-background/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="mx-auto max-w-7xl px-6 py-4">
-          <div className="flex items-center justify-between">
+      <header className='border-b border-ecotrace-border bg-ecotrace-background/95 backdrop-blur-sm sticky top-0 z-50'>
+        <div className='mx-auto max-w-7xl px-6 py-4'>
+          <div className='flex items-center justify-between'>
             {/* 로고 및 브랜드 */}
-            <div className="flex items-center gap-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-ecotrace-accent to-ecotrace-accent/70 rounded-lg flex items-center justify-center">
+            <div className='flex items-center gap-4'>
+              <div className='w-8 h-8 bg-gradient-to-br from-ecotrace-accent to-ecotrace-accent/70 rounded-lg flex items-center justify-center'>
                 <svg
-                  className="w-5 h-5 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                  className='w-5 h-5 text-white'
+                  fill='none'
+                  stroke='currentColor'
+                  viewBox='0 0 24 24'
                 >
                   <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
                     strokeWidth={2}
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                    d='M13 10V3L4 14h7v7l9-11h-7z'
                   />
                 </svg>
               </div>
-              <div className="flex flex-col">
-                <span className="text-xl font-bold text-white">
+              <div className='flex flex-col'>
+                <span className='text-xl font-bold text-white'>
                   {env.NEXT_PUBLIC_APP_NAME}
                 </span>
-                <span className="text-xs text-ecotrace-textSecondary">
+                <span className='text-xs text-ecotrace-textSecondary'>
                   ESG Platform
                 </span>
               </div>
             </div>
 
             {/* 네비게이션 - 항상 표시 */}
-            <nav className="hidden lg:flex items-center gap-6">
+            <nav className='hidden lg:flex items-center gap-6'>
               {navigation.map(item => (
                 <button
                   key={item.name}
@@ -85,10 +85,10 @@ const CommonShell: React.FC<CommonShellProps> = ({ children }) => {
             </nav>
 
             {/* 우측 액션 */}
-            <div className="flex items-center gap-4">
+            <div className='flex items-center gap-4'>
               <button
                 onClick={handleGoHome}
-                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+                className='px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors'
               >
                 홈으로
               </button>
@@ -98,7 +98,7 @@ const CommonShell: React.FC<CommonShellProps> = ({ children }) => {
       </header>
 
       {/* 메인 컨텐츠 */}
-      <main className="mx-auto max-w-7xl px-6 py-8">{children}</main>
+      <main className='mx-auto max-w-7xl px-6 py-8'>{children}</main>
     </div>
   );
 };

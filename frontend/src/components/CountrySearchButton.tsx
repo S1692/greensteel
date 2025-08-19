@@ -30,12 +30,12 @@ export default function CountrySearchButton({
   return (
     <>
       <Button
-        type="button"
+        type='button'
         onClick={openModal}
-        variant="secondary"
+        variant='secondary'
         className={className}
       >
-        <Search size={16} className="mr-2" />
+        <Search size={16} className='mr-2' />
         {buttonText}
       </Button>
 
@@ -80,20 +80,20 @@ export function CountryInputWithSearch({
 
   return (
     <div className={className}>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        {label} {required && <span className="text-red-500">*</span>}
+      <label className='block text-sm font-medium text-gray-700 mb-2'>
+        {label} {required && <span className='text-red-500'>*</span>}
       </label>
-      <div className="flex gap-2">
+      <div className='flex gap-2'>
         <Input
-          type="text"
+          type='text'
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          className="flex-1"
+          className='flex-1'
           readOnly
         />
-        <Button type="button" onClick={openModal} variant="secondary">
-          <Search size={16} className="mr-2" />
+        <Button type='button' onClick={openModal} variant='secondary'>
+          <Search size={16} className='mr-2' />
           검색
         </Button>
       </div>

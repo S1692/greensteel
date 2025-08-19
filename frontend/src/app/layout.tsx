@@ -57,26 +57,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ko" className="dark">
+    <html lang='ko' className='dark'>
       <head>
-        <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" href="/icon-192x192.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="GreenSteel" />
-        <meta name="msapplication-TileColor" content="#3b82f6" />
-        <meta name="theme-color" content="#3b82f6" />
-        <meta name="application-name" content="GreenSteel" />
-        <meta name="msapplication-TileImage" content="/icon-144x144.png" />
+        <link rel='manifest' href='/manifest.json' />
+        <link rel='icon' href='/icon-192x192.png' type='image/png' />
+        <link rel='apple-touch-icon' href='/apple-touch-icon.png' />
+        <meta name='apple-mobile-web-app-capable' content='yes' />
+        <meta name='apple-mobile-web-app-status-bar-style' content='default' />
+        <meta name='apple-mobile-web-app-title' content='GreenSteel' />
+        <meta name='msapplication-TileColor' content='#3b82f6' />
+        <meta name='theme-color' content='#3b82f6' />
+        <meta name='application-name' content='GreenSteel' />
+        <meta name='msapplication-TileImage' content='/icon-144x144.png' />
       </head>
       <body className={`${inter.className} antialiased`}>
         {/* Google tag (gtag.js) */}
         <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-2GFHCRYLT8"
-          strategy="afterInteractive"
+          src='https://www.googletagmanager.com/gtag/js?id=G-2GFHCRYLT8'
+          strategy='afterInteractive'
         />
-        <Script id="google-analytics" strategy="afterInteractive">
+        <Script id='google-analytics' strategy='afterInteractive'>
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}

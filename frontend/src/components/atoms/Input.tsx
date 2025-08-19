@@ -17,19 +17,19 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
 
     return (
-      <div className="w-full">
+      <div className='w-full'>
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-sm font-medium text-ecotrace-text mb-2"
+            className='block text-sm font-medium text-ecotrace-text mb-2'
           >
             {label}
           </label>
         )}
 
-        <div className="relative">
+        <div className='relative'>
           {leftIcon && (
-            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-ecotrace-textSecondary">
+            <div className='absolute left-3 top-1/2 transform -translate-y-1/2 text-ecotrace-textSecondary'>
               {leftIcon}
             </div>
           )}
@@ -50,16 +50,16 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           />
 
           {rightIcon && (
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-ecotrace-textSecondary">
+            <div className='absolute right-3 top-1/2 transform -translate-y-1/2 text-ecotrace-textSecondary'>
               {rightIcon}
             </div>
           )}
         </div>
 
-        {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
+        {error && <p className='mt-1 text-sm text-red-500'>{error}</p>}
 
         {helperText && !error && (
-          <p className="mt-1 text-sm text-ecotrace-textSecondary">
+          <p className='mt-1 text-sm text-ecotrace-textSecondary'>
             {helperText}
           </p>
         )}

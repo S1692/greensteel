@@ -6,6 +6,7 @@ import uvicorn
 from app.common.db import create_tables
 from app.common.logger import auth_logger
 from app.router.auth import router as auth_router
+from app.router.country import router as country_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -47,6 +48,7 @@ app.add_middleware(
 
 # 라우터 등록
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(country_router, prefix="/api/v1")
 
 @app.get("/")
 async def root():

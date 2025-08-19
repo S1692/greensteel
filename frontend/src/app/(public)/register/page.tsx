@@ -4,7 +4,8 @@ import React, { useState } from "react";
 import Button from "@/components/atoms/Button";
 import Input from "@/components/atoms/Input";
 import AddressSearchModal from "@/components/AddressSearchModal";
-import { CountrySearchModal, CountryData } from "@/components/CountrySearchModal";
+import CountrySearchModal from "@/components/CountrySearchModal";
+import { Country } from "@/components/CountrySearchModal";
 
 interface CompanyData {
   company_id: string;
@@ -27,6 +28,7 @@ interface CompanyData {
   city_en: string;
   country: string;
   country_en: string;
+  country_code: string;
   unlocode: string;
   sourcelatitude: number | null;
   sourcelongitude: number | null;
@@ -54,6 +56,7 @@ export default function RegisterPage() {
     city_en: "",
     country: "",
     country_en: "",
+    country_code: "",
     unlocode: "",
     sourcelatitude: null,
     sourcelongitude: null,
@@ -87,12 +90,13 @@ export default function RegisterPage() {
     }));
   };
 
-  const handleCountrySelect = (countryData: CountryData) => {
+  const handleCountrySelect = (countryData: Country) => {
     setFormData((prev) => ({
       ...prev,
       country: countryData.korean_name,
       country_en: countryData.country_name,
-      unlocode: countryData.code,
+      country_code: countryData.code,
+      unlocode: countryData.unlocode || "",
     }));
   };
 
@@ -135,6 +139,7 @@ export default function RegisterPage() {
           city_en: formData.city_en,
           country: formData.country,
           country_en: formData.country_en,
+          country_code: formData.country_code,
           unlocode: formData.unlocode,
           sourcelatitude: formData.sourcelatitude,
           sourcelongitude: formData.sourcelongitude,
@@ -168,6 +173,7 @@ export default function RegisterPage() {
         city_en: "",
         country: "",
         country_en: "",
+        country_code: "",
         unlocode: "",
         sourcelatitude: null,
         sourcelongitude: null,
@@ -431,10 +437,15 @@ export default function RegisterPage() {
                     검색
                   </Button>
                 </div>
-                {formData.unlocode && (
-                  <p className="mt-1 text-sm text-gray-500">
-                    UNLOCODE: {formData.unlocode}
-                  </p>
+                {(formData.country_code || formData.unlocode) && (
+                  <div className="mt-1 text-sm text-gray-500 space-y-1">
+                    {formData.country_code && (
+                      <p>국가 코드: {formData.country_code}</p>
+                    )}
+                    {formData.unlocode && (
+                      <p>UNLOCODE: {formData.unlocode}</p>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

@@ -94,6 +94,10 @@ const nextConfig = {
         source: '/sitemap.xml',
         destination: '/api/sitemap',
       },
+      {
+        source: '/api/v1/countries/:path*',
+        destination: 'http://localhost:8000/api/v1/countries/:path*',
+      },
     ];
   },
 };

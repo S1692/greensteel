@@ -1,77 +1,130 @@
-# Auth Service - Layered Architecture
+# Auth Service
 
-## Migration Notes
+인증 서비스 - 기업 및 사용자 관리
 
-### 🚀 레이어드 아키텍처 리팩터링 완료 (v3.0.0)
+## 주요 기능
 
-**변경 일자**: 2025-08-18  
-**이전 버전**: v2.0.0 (Stream Architecture)  
-**새로운 버전**: v3.0.0 (Layered Architecture)
+- 사용자 인증 및 권한 관리
+- 기업 정보 관리
+- 스트림 데이터 관리
+- **국가 정보 검색 및 관리 (신규)**
 
-#### 📁 새로운 폴더 구조
+## 국가 검색 기능
 
+### 데이터베이스 스키마
+
+`countries` 테이블에 다음 필드들이 포함됩니다:
+
+- `id`: 기본 키
+- `code`: 국가 코드 (예: KR, US, JP)
+- `country_name`: 영문 국가명
+- `korean_name`: 한국어 국가명
+- `unlocode`: UNLOCODE (선택사항)
+- `created_at`, `updated_at`: 타임스탬프
+
+### API 엔드포인트
+
+#### 국가 검색
 ```
-app/
-├── www/                    # 프레젠테이션 계층
-│   ├── deps.py            # 의존성 주입
-│   ├── errors.py          # 에러 핸들링
-│   ├── responses.py       # 표준 응답 모델
-│   └── __init__.py
-├── domain/                 # 도메인 계층
-│   ├── entities/          # ORM 모델
-│   │   ├── user.py
-│   │   ├── company.py
-│   │   └── stream.py
-│   ├── schemas/           # Pydantic 스키마
-│   ├── repositories/      # 데이터 접근 계층
-│   ├── services/          # 비즈니스 로직
-│   └── __init__.py
-├── router/                 # 라우터 계층
-│   ├── auth.py            # 인증 엔드포인트
-│   ├── stream.py          # 스트림 엔드포인트
-│   └── __init__.py
-├── common/                 # 공통 모듈
-│   ├── settings.py        # 설정 관리
-│   ├── security.py        # 보안 유틸
-│   ├── permissions.py     # 권한 관리
-│   ├── db.py              # 데이터베이스 연결
-│   ├── logger.py          # 로깅 설정
-│   └── __init__.py
-└── main.py                 # 앱 팩토리
+GET /api/v1/countries/search?query={검색어}&limit={결과수}
 ```
 
-#### 🔄 주요 변경사항
+#### 국가 코드로 조회
+```
+GET /api/v1/countries/code/{국가코드}
+```
 
-1. **레이어 분리**: www, domain, router, common 계층으로 명확한 책임 분리
-2. **앱 팩토리 패턴**: `create_app()` 함수로 애플리케이션 생성
-3. **의존성 주입**: 리포지토리와 서비스 레이어 간 의존성 주입
-4. **표준 응답**: 일관된 에러 핸들링과 응답 형식
-5. **절대 경로 import**: `app.` 접두사로 명확한 모듈 참조
+#### UNLOCODE로 조회
+```
+GET /api/v1/countries/unlocode/{unlocode}
+```
 
-#### ✅ 호환성 유지
+#### 전체 국가 목록
+```
+GET /api/v1/countries?limit={조회수}
+```
 
-- 모든 기존 엔드포인트 경로 유지
-- 응답 스키마 및 상태코드 변경 없음
-- 데이터베이스 스키마 변경 없음
-- Docker 및 배포 스크립트 동일하게 동작
+### 사용 예시
 
-#### 🚀 부트스트랩
+#### 백엔드 (Python)
+```python
+from app.domain.services.country_service import CountryService
 
+# 국가 검색
+country_service = CountryService(db)
+countries = country_service.search_countries("한국")
+
+# 코드로 국가 조회
+country = country_service.get_country_by_code("KR")
+
+# UNLOCODE로 국가 조회
+country = country_service.get_country_by_unlocode("KR")
+```
+
+#### 프론트엔드 (React)
+```tsx
+import { CountryInputWithSearch } from '../components/CountrySearchButton';
+
+function AddressForm() {
+  const [countryName, setCountryName] = useState('');
+  
+  const handleCountrySelect = (country) => {
+    setCountryName(country.korean_name);
+    // 다른 필드들도 자동으로 설정
+    setCountryCode(country.code);
+    setUnlocode(country.unlocode);
+  };
+
+  return (
+    <CountryInputWithSearch
+      value={countryName}
+      onChange={setCountryName}
+      onCountrySelect={handleCountrySelect}
+      label="국가명"
+      required
+    />
+  );
+}
+```
+
+## 설치 및 실행
+
+### 1. 의존성 설치
 ```bash
-# 의존성 설치
 pip install -r requirements.txt
-
-# 로컬 실행
-python main.py
-
-# 또는 uvicorn으로 실행
-uvicorn main:app --host 0.0.0.0 --port 8081 --reload
 ```
 
----
+### 2. 환경 변수 설정
+```bash
+cp env.example .env
+# .env 파일을 편집하여 데이터베이스 연결 정보 설정
+```
 
-# 기존 README 내용
+### 3. 데이터베이스 마이그레이션
+```bash
+python -m app.main
+```
 
-## About
+### 4. 국가 데이터 로드
+```bash
+python load_country_data_railway.py
+```
 
-greensteel.vercel.app
+### 5. 서비스 실행
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+## 개발 환경
+
+- Python 3.8+
+- FastAPI
+- SQLAlchemy
+- PostgreSQL (Railway)
+
+## API 문서
+
+서비스 실행 후 다음 URL에서 API 문서를 확인할 수 있습니다:
+
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`

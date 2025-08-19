@@ -1,56 +1,48 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from './atoms/Button';
-import { Input } from './atoms/Input';
+'use client';
 
-export interface CountryData {
+import React, { useState, useEffect } from 'react';
+import { Search, X, MapPin } from 'lucide-react';
+
+export interface Country {
   id: number;
-  uuid: string;
   code: string;
   country_name: string;
   korean_name: string;
-  created_at: string;
-  updated_at: string;
+  unlocode: string | null;
 }
 
 interface CountrySearchModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (country: CountryData) => void;
+  onSelect: (country: Country) => void;
 }
 
-export const CountrySearchModal: React.FC<CountrySearchModalProps> = ({
-  isOpen,
-  onClose,
-  onSelect,
-}) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [countries, setCountries] = useState<CountryData[]>([]);
+export default function CountrySearchModal({ isOpen, onClose, onSelect }: CountrySearchModalProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [countries, setCountries] = useState<Country[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 검색 실행
-  const searchCountries = async (term: string) => {
-    if (!term.trim()) {
+  // 검색어가 변경될 때마다 API 호출
+  useEffect(() => {
+    if (searchQuery.trim().length >= 2) {
+      searchCountries(searchQuery);
+    } else {
       setCountries([]);
-      return;
     }
+  }, [searchQuery]);
 
+  const searchCountries = async (query: string) => {
     setLoading(true);
     setError(null);
-
+    
     try {
-      const response = await fetch('/api/v1/auth/countries/search', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ search_term: term }),
-      });
-
+      const response = await fetch(`/api/v1/countries/search?query=${encodeURIComponent(query)}&limit=20`);
+      
       if (!response.ok) {
         throw new Error('국가 검색에 실패했습니다.');
       }
-
+      
       const data = await response.json();
       setCountries(data.countries || []);
     } catch (err) {
@@ -61,111 +53,118 @@ export const CountrySearchModal: React.FC<CountrySearchModalProps> = ({
     }
   };
 
-  // 검색어 변경 시 디바운스 적용
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      searchCountries(searchTerm);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
-
-  // 국가 선택
-  const handleCountrySelect = (country: CountryData) => {
+  const handleCountrySelect = (country: Country) => {
     onSelect(country);
     onClose();
-    setSearchTerm('');
+  };
+
+  const handleClose = () => {
+    setSearchQuery('');
     setCountries([]);
+    setError(null);
+    onClose();
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[80vh] overflow-hidden">
-        <div className="flex justify-between items-center mb-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] overflow-hidden">
+        {/* 헤더 */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">국가 검색</h2>
           <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-2xl"
+            onClick={handleClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
           >
-            ×
+            <X size={24} />
           </button>
         </div>
 
         {/* 검색 입력 */}
-        <div className="mb-4">
-          <Input
-            type="text"
-            placeholder="국가명을 입력하세요 (예: 한국, 미국, 일본)"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full"
-          />
+        <div className="p-6 border-b border-gray-200">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="국가명, 국가코드, UNLOCODE를 입력하세요..."
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <p className="text-sm text-gray-500 mt-2">
+            최소 2글자 이상 입력하면 검색이 시작됩니다.
+          </p>
         </div>
 
-        {/* 오류 메시지 */}
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            {error}
-          </div>
-        )}
-
         {/* 검색 결과 */}
-        <div className="max-h-96 overflow-y-auto">
-          {loading ? (
-            <div className="text-center py-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-gray-600">검색 중...</p>
+        <div className="flex-1 overflow-y-auto max-h-96">
+          {loading && (
+            <div className="p-6 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+              <p className="text-gray-500 mt-2">검색 중...</p>
             </div>
-          ) : countries.length > 0 ? (
-            <div className="space-y-2">
+          )}
+
+          {error && (
+            <div className="p-6 text-center">
+              <p className="text-red-500">{error}</p>
+            </div>
+          )}
+
+          {!loading && !error && countries.length === 0 && searchQuery.trim().length >= 2 && (
+            <div className="p-6 text-center">
+              <p className="text-gray-500">검색 결과가 없습니다.</p>
+            </div>
+          )}
+
+          {!loading && !error && countries.length > 0 && (
+            <div className="divide-y divide-gray-200">
               {countries.map((country) => (
                 <div
                   key={country.id}
                   onClick={() => handleCountrySelect(country)}
-                  className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                  className="p-4 hover:bg-gray-50 cursor-pointer transition-colors"
                 >
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium text-gray-900">
-                        {country.korean_name}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {country.country_name}
-                      </p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <MapPin size={16} className="text-blue-500" />
+                        <span className="font-medium text-gray-900">
+                          {country.korean_name}
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          ({country.country_name})
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
+                        <span>코드: {country.code}</span>
+                        {country.unlocode && (
+                          <span>UNLOCODE: {country.unlocode}</span>
+                        )}
+                      </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-mono text-gray-500">
-                        {country.code}
-                      </p>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        선택
+                      </span>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-          ) : searchTerm ? (
-            <div className="text-center py-8 text-gray-500">
-              검색 결과가 없습니다.
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              국가명을 입력하여 검색하세요.
-            </div>
           )}
         </div>
 
-        {/* 닫기 버튼 */}
-        <div className="mt-4 flex justify-end">
-          <Button
-            onClick={onClose}
-            variant="secondary"
-            className="mr-2"
-          >
-            닫기
-          </Button>
+        {/* 푸터 */}
+        <div className="p-6 border-t border-gray-200 bg-gray-50">
+          <div className="flex justify-between items-center text-sm text-gray-500">
+            <span>총 {countries.length}개 결과</span>
+            <span>Enter 키로 첫 번째 결과 선택</span>
+          </div>
         </div>
       </div>
     </div>
   );
-};
+}

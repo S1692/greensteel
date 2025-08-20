@@ -10,12 +10,12 @@ interface ProjectCardProps {
     createdAt: string;
     updatedAt: string;
   };
-  onProjectClick: (projectId: string) => void;
+  onClick: (projectId: string) => void;
 }
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({
   project,
-  onProjectClick,
+  onClick,
 }) => {
   return (
     <div className='bg-white/5 border border-white/10 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow min-w-[300px] lg:min-w-0'>
@@ -39,7 +39,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         <div>수정일: {project.updatedAt}</div>
       </div>
       <Button
-        onClick={() => onProjectClick(project.id)}
+        onClick={() => onClick(project.id)}
         variant='outline'
         className='w-full'
       >

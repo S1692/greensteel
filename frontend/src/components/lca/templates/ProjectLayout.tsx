@@ -9,12 +9,14 @@ interface ProjectLayoutProps {
   children: React.ReactNode;
   title: string;
   description?: string;
+  isMainPage?: boolean;
 }
 
 export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
   children,
   title,
   description,
+  isMainPage = false,
 }) => {
   const params = useParams();
   const projectId = params.projectId as string;
@@ -32,6 +34,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
           <div className='fixed left-0 top-0 h-full w-80 z-50'>
             <LCASidebar
               projectId={projectId}
+              isMainPage={isMainPage}
               onClose={() => setSidebarOpen(false)}
             />
           </div>
@@ -40,7 +43,7 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
 
       {/* 데스크톱 사이드바 */}
       <div className='hidden md:block w-80'>
-        <LCASidebar projectId={projectId} />
+        <LCASidebar projectId={projectId} isMainPage={isMainPage} />
       </div>
 
       {/* 메인 콘텐츠 */}
@@ -62,9 +65,11 @@ export const ProjectLayout: React.FC<ProjectLayoutProps> = ({
                 )}
               </div>
             </div>
-            <div className='text-sm text-white/40'>
-              프로젝트 ID: {projectId}
-            </div>
+            {!isMainPage && projectId && (
+              <div className='text-sm text-white/40'>
+                프로젝트 ID: {projectId}
+              </div>
+            )}
           </div>
         </header>
 

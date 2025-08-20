@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, X, MapPin } from 'lucide-react';
 import Button from '@/components/atoms/Button';
 import Input from '@/components/atoms/Input';
+import { env } from '@/lib/env';
 
 export interface Country {
   id: number;
@@ -43,32 +44,37 @@ export default function CountrySearchModal({
     setError(null);
 
     try {
-      // 새로운 sitemap API 사용
-      const response = await fetch(
-        `/api/sitemap?q=${encodeURIComponent(query)}&page=1&limit=20`
-      );
+      // 절대 URL을 사용하여 게이트웨이를 통해 auth_service 호출
+      const baseUrl = env.NEXT_PUBLIC_GATEWAY_URL;
+      const url = new URL('/api/v1/countries/search', baseUrl);
+      url.searchParams.set('query', query);
+      url.searchParams.set('limit', '20');
+      
+      console.log('API 호출 URL:', url.toString()); // 디버깅용
+      
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        cache: 'no-store'
+      });
 
       if (!response.ok) {
-        throw new Error('국가 검색에 실패했습니다.');
+        throw new Error(`국가 검색에 실패했습니다. (${response.status})`);
       }
 
       const data = await response.json();
+      console.log('API 응답:', data); // 디버깅용
       
-      // sitemap 응답 형식에 맞게 데이터 변환
-      if (data.items && Array.isArray(data.items)) {
-        // sitemap 응답을 Country 형식으로 변환
-        const transformedCountries: Country[] = data.items.map((item: any) => ({
-          id: parseInt(item.id),
-          code: item.url.split('/').pop() || item.id, // URL에서 코드 추출
-          country_name: item.title, // korean_name을 title로 받음
-          korean_name: item.title,  // korean_name을 title로 받음
-          unlocode: null // sitemap에서는 unlocode 정보가 없음
-        }));
-        setCountries(transformedCountries);
+      // CountrySearchResponse 형식에 맞게 데이터 변환
+      if (data.countries && Array.isArray(data.countries)) {
+        setCountries(data.countries);
       } else {
         setCountries([]);
       }
     } catch (err) {
+      console.error('국가 검색 오류:', err); // 디버깅용
       setError(
         err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.'
       );

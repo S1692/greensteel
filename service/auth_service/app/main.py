@@ -8,6 +8,44 @@ from app.common.logger import auth_logger
 from app.router.auth import router as auth_router
 from app.router.country import router as country_router
 
+def log_routes(app: FastAPI) -> None:
+    """등록된 라우트 테이블 로깅"""
+    auth_logger.info("=== Registered Routes ===")
+    auth_logger.info(f"Total routes: {len(app.routes)}")
+    
+    for i, route in enumerate(app.routes, 1):
+        try:
+            methods = ",".join(sorted(route.methods)) if hasattr(route, 'methods') else "-"
+            path = getattr(route, 'path', '-')
+            name = getattr(route, 'name', '-')
+            endpoint = str(getattr(route, 'endpoint', '-'))
+            
+            auth_logger.info(f"[ROUTE {i:2d}] path={path}, name={name}, methods={methods}")
+            auth_logger.info(f"         endpoint={endpoint}")
+            
+        except Exception as e:
+            auth_logger.warning(f"Route logging error: {str(e)}")
+    
+    auth_logger.info("=== End Routes ===")
+    
+    # 특정 경로 존재 여부 확인
+    search_paths = [
+        "/api/v1/countries/search",
+        "/api/v1/countries",
+        "/api/v1/auth",
+        "/health"
+    ]
+    
+    auth_logger.info("=== Critical Paths Check ===")
+    for search_path in search_paths:
+        exists = any(
+            hasattr(route, 'path') and 
+            getattr(route, 'path', '') == search_path 
+            for route in app.routes
+        )
+        auth_logger.info(f"Path {search_path}: {'✅ EXISTS' if exists else '❌ MISSING'}")
+    auth_logger.info("=== End Critical Paths Check ===")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """애플리케이션 생명주기 관리"""

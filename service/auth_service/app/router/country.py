@@ -24,6 +24,7 @@ async def test_country_router():
 async def search_countries(
     query: str = Query(..., description="검색어 (국가 코드, 영문명, 한국어명, UNLOCODE)"),
     limit: int = Query(10, description="검색 결과 제한 수", ge=1, le=100),
+    page: int = Query(1, description="페이지 번호", ge=1),
     db: Session = Depends(get_db)
 ):
     """국가 검색 API"""
@@ -32,14 +33,26 @@ async def search_countries(
         search_request = CountrySearchRequest(query=query, limit=limit)
         countries = country_service.search_countries(search_request)
         
+        # 검색 결과가 없어도 200 OK 반환 (404 금지)
+        auth_logger.info(f"국가 검색 완료: '{query}' -> {len(countries)}개 결과")
+        
         return CountrySearchResponse(
             countries=countries,
             total=len(countries),
-            query=query
+            query=query,
+            page=page,
+            limit=limit
         )
     except Exception as e:
         auth_logger.error(f"국가 검색 API 오류: {str(e)}")
-        raise HTTPException(status_code=500, detail="국가 검색 중 오류가 발생했습니다.")
+        # 오류 발생 시에도 빈 결과로 응답 (사용자 경험 보존)
+        return CountrySearchResponse(
+            countries=[],
+            total=0,
+            query=query,
+            page=page,
+            limit=limit
+        )
 
 @router.get("/", response_model=List[CountryResponse])
 async def get_all_countries(

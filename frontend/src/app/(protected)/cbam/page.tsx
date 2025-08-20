@@ -13,7 +13,7 @@ import {
   BarChart3,
   FileText,
 } from 'lucide-react';
-import { ConnectedReactFlow } from '@/components/templates/ConnectedReactFlow';
+import ConnectedReactFlow from '@/components/templates/ConnectedReactFlow';
 import ErrorBoundary from '@/components/templates/ErrorBoundary';
 
 // ============================================================================

@@ -20,6 +20,7 @@
     "analyze": "ANALYZE=true next build"
   },
   "dependencies": {
+    "@xyflow/react": "^12.8.3",
     "axios": "^1.7.9",
     "clsx": "^2.1.1",
     "lucide-react": "^0.540.0",

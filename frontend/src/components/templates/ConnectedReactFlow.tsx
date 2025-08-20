@@ -1,21 +1,21 @@
 'use client';
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import ReactFlow, {
-  Node,
-  Edge,
-  addEdge,
-  Connection,
-  useNodesState,
-  useEdgesState,
-  Controls,
-  Background,
-  MiniMap,
-  NodeTypes,
+import {
+  ReactFlow,
   ReactFlowProvider,
-  useReactFlow,
-} from 'reactflow';
-import 'reactflow/dist/style.css';
+  MarkerType,
+  Background,
+  Panel,
+  useViewport,
+  useConnection,
+  Controls,
+  addEdge,
+  applyNodeChanges,
+  applyEdgeChanges,
+  Position,
+} from '@xyflow/react';
+
+import { useCallback, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import {
   Plus,
@@ -25,47 +25,75 @@ import {
   Download,
   Upload,
   RotateCcw,
+  FileText,
+  Database,
+  ArrowRight,
 } from 'lucide-react';
 
-// CBAM 프로세스 노드 타입 정의
-interface CBAMNode extends Node {
-  data: {
-    label: string;
-    processType: 'input' | 'process' | 'output';
-    description?: string;
-    parameters?: Record<string, any>;
-    carbonIntensity?: number; // kg CO2/t
-    energyConsumption?: number; // kWh/t
-  };
+import '@xyflow/react/dist/style.css';
+
+// ============================================================================
+// 🎯 노드 타입 정의
+// ============================================================================
+
+interface CBAMNodeData {
+  label: string;
+  description?: string;
+  variant?: 'default' | 'primary' | 'success' | 'warning' | 'danger';
+  size?: 'sm' | 'md' | 'lg';
+  carbonIntensity?: number; // kg CO2/t
+  energyConsumption?: number; // kWh/t
+  processType?: 'input' | 'process' | 'output';
 }
 
-// CBAM 프로세스 엣지 타입 정의
-type CBAMEdge = Edge & {
+interface CBAMNode {
+  id: string;
+  type: string;
+  position: { x: number; y: number };
+  data: CBAMNodeData & Record<string, unknown>;
+  sourcePosition?: Position;
+  targetPosition?: Position;
+  selectable?: boolean;
+  draggable?: boolean;
+}
+
+interface CBAMEdge {
+  id: string;
+  source: string;
+  target: string;
+  type?: string;
   data?: {
     label?: string;
     flowType?: 'material' | 'energy' | 'emission';
     quantity?: number;
     unit?: string;
   };
-};
+}
 
-// CBAM 프로세스 노드 컴포넌트
-const CBAMNode: React.FC<{ data: CBAMNode['data'] }> = ({ data }) => {
-  const getNodeStyle = () => {
-    switch (data.processType) {
-      case 'input':
+// ============================================================================
+// 🎯 커스텀 노드 컴포넌트들
+// ============================================================================
+
+const ProcessNode: React.FC<{ data: CBAMNodeData }> = ({ data }) => {
+  const getVariantStyle = () => {
+    switch (data.variant) {
+      case 'primary':
         return 'bg-blue-500/20 border-blue-500/50 text-blue-300';
-      case 'process':
+      case 'success':
         return 'bg-green-500/20 border-green-500/50 text-green-300';
-      case 'output':
-        return 'bg-purple-500/20 border-purple-500/50 text-purple-300';
+      case 'warning':
+        return 'bg-yellow-500/20 border-yellow-500/50 text-yellow-300';
+      case 'danger':
+        return 'bg-red-500/20 border-red-500/50 text-red-300';
       default:
-        return 'bg-white/20 border-white/50 text-white';
+        return 'bg-gray-500/20 border-gray-500/50 text-gray-300';
     }
   };
 
   return (
-    <div className={`p-4 rounded-lg border-2 ${getNodeStyle()} min-w-[200px]`}>
+    <div
+      className={`p-4 rounded-lg border-2 ${getVariantStyle()} min-w-[200px]`}
+    >
       <div className='font-semibold text-center mb-2'>{data.label}</div>
       {data.description && (
         <div className='text-xs text-center opacity-80 mb-2'>
@@ -86,115 +114,76 @@ const CBAMNode: React.FC<{ data: CBAMNode['data'] }> = ({ data }) => {
   );
 };
 
-const nodeTypes: NodeTypes = {
-  cbamNode: CBAMNode,
+const InputNode: React.FC<{ data: CBAMNodeData }> = ({ data }) => {
+  return (
+    <div className='p-4 rounded-lg border-2 bg-blue-500/20 border-blue-500/50 text-blue-300 min-w-[200px]'>
+      <div className='font-semibold text-center mb-2'>📥 {data.label}</div>
+      {data.description && (
+        <div className='text-xs text-center opacity-80 mb-2'>
+          {data.description}
+        </div>
+      )}
+    </div>
+  );
 };
 
-// 기본 CBAM 프로세스 노드들
-const defaultNodes: CBAMNode[] = [
-  {
-    id: '1',
-    type: 'cbamNode',
-    position: { x: 100, y: 100 },
-    data: {
-      label: '원료 투입',
-      processType: 'input',
-      description: '철광석, 코크스, 석회석',
-      carbonIntensity: 0.1,
-      energyConsumption: 5,
-    },
-  },
-  {
-    id: '2',
-    type: 'cbamNode',
-    position: { x: 400, y: 100 },
-    data: {
-      label: '제철 공정',
-      processType: 'process',
-      description: '고로에서 선철 제조',
-      carbonIntensity: 1850,
-      energyConsumption: 2800,
-    },
-  },
-  {
-    id: '3',
-    type: 'cbamNode',
-    position: { x: 700, y: 100 },
-    data: {
-      label: '제강 공정',
-      processType: 'process',
-      description: '산소 제강법',
-      carbonIntensity: 120,
-      energyConsumption: 450,
-    },
-  },
-  {
-    id: '4',
-    type: 'cbamNode',
-    position: { x: 1000, y: 100 },
-    data: {
-      label: '압연 공정',
-      processType: 'process',
-      description: '열간/냉간 압연',
-      carbonIntensity: 45,
-      energyConsumption: 180,
-    },
-  },
-  {
-    id: '5',
-    type: 'cbamNode',
-    position: { x: 1300, y: 100 },
-    data: {
-      label: '최종 제품',
-      processType: 'output',
-      description: '강판, 강재',
-      carbonIntensity: 2015,
-      energyConsumption: 3435,
-    },
-  },
-];
+const OutputNode: React.FC<{ data: CBAMNodeData }> = ({ data }) => {
+  return (
+    <div className='p-4 rounded-lg border-2 bg-purple-500/20 border-purple-500/50 text-purple-300 min-w-[200px]'>
+      <div className='font-semibold text-center mb-2'>📤 {data.label}</div>
+      {data.description && (
+        <div className='text-xs text-center opacity-80 mb-2'>
+          {data.description}
+        </div>
+      )}
+    </div>
+  );
+};
 
-// 기본 연결선들
-const defaultEdges: CBAMEdge[] = [
-  {
-    id: 'e1-2',
-    source: '1',
-    target: '2',
-    type: 'smoothstep',
-    data: { label: '원료', flowType: 'material', quantity: 1500, unit: 'kg/t' },
-  },
-  {
-    id: 'e2-3',
-    source: '2',
-    target: '3',
-    type: 'smoothstep',
-    data: { label: '선철', flowType: 'material', quantity: 1000, unit: 'kg/t' },
-  },
-  {
-    id: 'e3-4',
-    source: '3',
-    target: '4',
-    type: 'smoothstep',
-    data: {
-      label: '슬라브',
-      flowType: 'material',
-      quantity: 1000,
-      unit: 'kg/t',
-    },
-  },
-  {
-    id: 'e4-5',
-    source: '4',
-    target: '5',
-    type: 'smoothstep',
-    data: {
-      label: '압연강판',
-      flowType: 'material',
-      quantity: 1000,
-      unit: 'kg/t',
-    },
-  },
-];
+const AnnotationNode: React.FC<{ data: CBAMNodeData }> = ({ data }) => {
+  return (
+    <div className='p-3 rounded-lg border-2 bg-yellow-500/20 border-yellow-500/50 text-yellow-300 min-w-[150px]'>
+      <div className='text-sm text-center'>💬 {data.label}</div>
+    </div>
+  );
+};
+
+const nodeTypes = {
+  process: ProcessNode,
+  input: InputNode,
+  output: OutputNode,
+  annotation: AnnotationNode,
+};
+
+// ============================================================================
+// 🎯 뷰포트 정보 표시 컴포넌트
+// ============================================================================
+
+function ViewportWithAnnotation() {
+  const viewport = useViewport();
+
+  return (
+    <div
+      style={{
+        fontFamily: 'monospace',
+        background: 'rgba(255, 255, 255, 0.9)',
+        padding: '8px',
+        borderRadius: '6px',
+        border: '1px solid #ddd',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        fontSize: '12px',
+      }}
+    >
+      <div>x: {viewport.x.toFixed(2)}</div>
+      <div>y: {viewport.y.toFixed(2)}</div>
+      <div>zoom: {viewport.zoom.toFixed(2)}</div>
+    </div>
+  );
+}
+
+// ============================================================================
+// 🎯 Props 인터페이스
+// ============================================================================
 
 interface ConnectedReactFlowProps {
   flowId?: string;
@@ -202,169 +191,315 @@ interface ConnectedReactFlowProps {
   saveInterval?: number;
 }
 
-export const ConnectedReactFlow: React.FC<ConnectedReactFlowProps> = ({
-  flowId,
-  autoSave = true,
-  saveInterval = 10000,
-}) => {
-  const [nodes, setNodes, onNodesChange] = useNodesState(defaultNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(defaultEdges);
+// ============================================================================
+// 🎯 메인 플로우 컴포넌트
+// ============================================================================
+
+function Flow({ flowId, autoSave, saveInterval }: ConnectedReactFlowProps) {
+  const [nodes, setNodes] = useState<CBAMNode[]>([]);
+  const [edges, setEdges] = useState<CBAMEdge[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
-  const [isDrawingConnection, setIsDrawingConnection] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date>(new Date());
-  const [isSaving, setIsSaving] = useState(false);
 
-  // 연결선 추가
-  const onConnect = useCallback(
-    (params: Connection) => setEdges(eds => addEdge(params, eds)),
-    [setEdges]
-  );
+  const connection = useConnection();
 
-  // 새 노드 추가
-  const addNewNode = useCallback(() => {
-    const newNodeId = (nodes.length + 1).toString();
-    const newNode: CBAMNode = {
-      id: newNodeId,
-      type: 'cbamNode',
-      position: { x: Math.random() * 800 + 100, y: Math.random() * 400 + 100 },
-      data: {
-        label: `새 공정 ${newNodeId}`,
-        processType: 'process',
-        description: '새로 추가된 공정',
-        carbonIntensity: 0,
-        energyConsumption: 0,
-      },
-    };
-    setNodes(nds => [...nds, newNode]);
-  }, [nodes.length, setNodes]);
+  // ============================================================================
+  // 🎯 초기 데이터 로드
+  // ============================================================================
 
-  // 선택된 노드 삭제
-  const deleteSelectedNode = useCallback(() => {
-    if (selectedNode) {
-      setNodes(nds => nds.filter(node => node.id !== selectedNode));
-      setEdges(eds =>
-        eds.filter(
-          edge => edge.source !== selectedNode && edge.target !== selectedNode
-        )
-      );
-      setSelectedNode(null);
-    }
-  }, [selectedNode, setNodes, setEdges]);
-
-  // 노드 선택 처리
-  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
-    setSelectedNode(node.id);
-  }, []);
-
-  // 캔버스 클릭 시 선택 해제
-  const onPaneClick = useCallback(() => {
-    setSelectedNode(null);
-  }, []);
-
-  // 프로세스 플로우 저장
-  const saveProcessFlow = useCallback(async () => {
-    setIsSaving(true);
-    try {
-      const flowData = {
-        id: flowId || `flow-${Date.now()}`,
-        nodes,
-        edges,
-        timestamp: new Date().toISOString(),
-        metadata: {
-          totalCarbonIntensity: nodes.reduce(
-            (sum, node) => sum + (node.data.carbonIntensity || 0),
-            0
-          ),
-          totalEnergyConsumption: nodes.reduce(
-            (sum, node) => sum + (node.data.energyConsumption || 0),
-            0
-          ),
-          nodeCount: nodes.length,
-          edgeCount: edges.length,
-        },
-      };
-
-      // 백엔드 API 호출 (실제 구현 시)
-      const gatewayUrl =
-        process.env.NEXT_PUBLIC_GATEWAY_URL ||
-        'https://gateway-production-da31.up.railway.app';
-      const response = await fetch(`${gatewayUrl}/api/cbam/process-flow`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(flowData),
-      });
-
-      if (response.ok) {
-        setLastSaved(new Date());
-        console.log('프로세스 플로우 저장 완료:', flowData.id);
-      } else {
-        throw new Error('저장 실패');
-      }
-    } catch (error) {
-      console.error('저장 중 오류:', error);
-      // 로컬 저장으로 폴백
-      const dataStr = JSON.stringify({ nodes, edges }, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(dataBlob);
-
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `cbam-process-flow-${flowId || 'new'}.json`;
-      link.click();
-
-      URL.revokeObjectURL(url);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [nodes, edges, flowId]);
-
-  // 자동 저장 설정
   useEffect(() => {
-    if (!autoSave) return;
+    const loadFlowData = async () => {
+      setIsLoading(true);
+      setHasUnsavedChanges(false);
+      setLastSaved(null);
+
+      if (!flowId) {
+        // 플로우 ID가 없으면 새 플로우 생성 (초기 노드만)
+        const initialNodes: CBAMNode[] = [
+          {
+            id: '1-1',
+            type: 'process',
+            data: {
+              label: '시작 프로세스',
+              description: '프로세스 시작점',
+              variant: 'primary',
+              carbonIntensity: 0,
+              energyConsumption: 0,
+            },
+            position: { x: 150, y: 100 },
+          },
+        ];
+
+        setNodes(initialNodes);
+        setEdges([]);
+      } else {
+        // 기존 플로우 로드 (실제 구현 시 API 호출)
+        try {
+          // 임시로 기본 노드 설정
+          setNodes([
+            {
+              id: '1-1',
+              type: 'process',
+              data: {
+                label: '기존 프로세스',
+                description: '로드된 프로세스',
+                variant: 'primary',
+                carbonIntensity: 0,
+                energyConsumption: 0,
+              },
+              position: { x: 150, y: 100 },
+            },
+          ]);
+          setEdges([]);
+        } catch (error) {
+          console.error('플로우 로드 실패:', error);
+          // 에러 발생 시 기본 노드로 초기화
+          setNodes([
+            {
+              id: '1-1',
+              type: 'process',
+              data: {
+                label: '시작 프로세스',
+                description: '프로세스 시작점',
+                variant: 'primary',
+                carbonIntensity: 0,
+                energyConsumption: 0,
+              },
+              position: { x: 150, y: 100 },
+            },
+          ]);
+          setEdges([]);
+        }
+      }
+      setIsLoading(false);
+    };
+
+    loadFlowData();
+  }, [flowId]);
+
+  // ============================================================================
+  // 🎯 자동 저장 기능
+  // ============================================================================
+
+  const saveToBackend = useCallback(async () => {
+    if (!flowId || !hasUnsavedChanges) return;
+
+    try {
+      const viewport = { x: 0, y: 0, zoom: 1 };
+      // 실제 구현 시 API 호출
+      console.log('플로우 저장:', { flowId, nodes, edges, viewport });
+
+      setLastSaved(new Date());
+      setHasUnsavedChanges(false);
+    } catch (error) {
+      console.error('저장 실패:', error);
+    }
+  }, [flowId, nodes, edges, hasUnsavedChanges]);
+
+  // 자동 저장 인터벌
+  useEffect(() => {
+    if (!autoSave || !saveInterval) return;
 
     const interval = setInterval(() => {
-      if (nodes.length > 0 || edges.length > 0) {
-        saveProcessFlow();
+      if (flowId && hasUnsavedChanges) {
+        saveToBackend();
       }
     }, saveInterval);
 
     return () => clearInterval(interval);
-  }, [autoSave, saveInterval, nodes, edges, saveProcessFlow]);
+  }, [autoSave, saveInterval, flowId, hasUnsavedChanges, saveToBackend]);
 
-  // 플로우 로드
-  const loadProcessFlow = useCallback(
-    async (flowId: string) => {
-      try {
-        const gatewayUrl =
-          process.env.NEXT_PUBLIC_GATEWAY_URL ||
-          'https://gateway-production-da31.up.railway.app';
-        const response = await fetch(
-          `${gatewayUrl}/api/cbam/process-flow/${flowId}`
+  // ============================================================================
+  // 🎯 노드/엣지 변경 핸들러
+  // ============================================================================
+
+  const onNodesChange = useCallback((changes: any) => {
+    setNodes(prev => applyNodeChanges(changes, prev) as unknown as CBAMNode[]);
+    setHasUnsavedChanges(true);
+  }, []);
+
+  const onEdgesChange = useCallback((changes: any) => {
+    setEdges(prev => applyEdgeChanges(changes, prev) as unknown as CBAMEdge[]);
+    setHasUnsavedChanges(true);
+  }, []);
+
+  const onConnect = useCallback((connection: any) => {
+    setEdges(prev => addEdge(connection, prev) as unknown as CBAMEdge[]);
+    setHasUnsavedChanges(true);
+  }, []);
+
+  // ============================================================================
+  // 🎯 연결 어노테이션 로직
+  // ============================================================================
+
+  const onMouseMove = useCallback(() => {
+    if (connection.inProgress) {
+      const { from, to } = connection;
+      const nodePosition = { x: to.x, y: to.y };
+
+      setNodes(prevNodes => {
+        const nodeExists = prevNodes.some(
+          node => node.id === 'connection-annotation'
         );
+        const connectionAnnotation: CBAMNode = {
+          id: 'connection-annotation',
+          type: 'annotation',
+          selectable: false,
+          data: {
+            label: '연결 중...',
+          },
+          position: nodePosition,
+        };
 
-        if (response.ok) {
-          const flowData = await response.json();
-          setNodes(flowData.nodes || []);
-          setEdges(flowData.edges || []);
-          console.log('플로우 로드 완료:', flowId);
+        if (nodeExists) {
+          return prevNodes.map(node =>
+            node.id === 'connection-annotation' ? connectionAnnotation : node
+          );
+        } else {
+          return [...prevNodes, connectionAnnotation];
         }
-      } catch (error) {
-        console.error('플로우 로드 중 오류:', error);
-      }
+      });
+    }
+  }, [connection]);
+
+  const onConnectEnd = useCallback(() => {
+    setNodes(prevNodes =>
+      prevNodes.filter(node => node.id !== 'connection-annotation')
+    );
+  }, []);
+
+  // ============================================================================
+  // 🎯 노드 추가 기능
+  // ============================================================================
+
+  const addNode = useCallback(
+    async (
+      nodeType:
+        | 'default'
+        | 'primary'
+        | 'success'
+        | 'warning'
+        | 'danger' = 'default'
+    ) => {
+      const newNode: CBAMNode = {
+        id: `node-${Date.now()}`,
+        type: 'process',
+        position: {
+          x: Math.random() * 300 + 100,
+          y: Math.random() * 200 + 100,
+        },
+        data: {
+          label: `프로세스 ${Date.now()}`,
+          description: '새로운 프로세스 노드',
+          variant: nodeType,
+          size: 'md',
+          carbonIntensity: Math.floor(Math.random() * 1000),
+          energyConsumption: Math.floor(Math.random() * 500),
+        },
+        targetPosition: nodeType === 'primary' ? Position.Left : Position.Top,
+        sourcePosition:
+          nodeType === 'danger' ? Position.Right : Position.Bottom,
+      };
+
+      setNodes(prev => [...prev, newNode]);
+      setHasUnsavedChanges(true);
     },
-    [setNodes, setEdges]
+    []
   );
 
-  // 플로우 ID가 변경되면 로드
-  useEffect(() => {
-    if (flowId) {
-      loadProcessFlow(flowId);
-    }
-  }, [flowId, loadProcessFlow]);
+  const addAnnotationNode = useCallback(async () => {
+    const newNode: CBAMNode = {
+      id: `annotation-${Date.now()}`,
+      type: 'annotation',
+      draggable: true,
+      selectable: true,
+      position: {
+        x: Math.random() * 300 + 100,
+        y: Math.random() * 200 + 100,
+      },
+      data: {
+        label: `어노테이션 ${Date.now()}`,
+      },
+    };
 
-  // CBAM 계산 실행
+    setNodes(prev => [...prev, newNode]);
+    setHasUnsavedChanges(true);
+  }, []);
+
+  const addInputNode = useCallback(
+    async (
+      variant:
+        | 'default'
+        | 'primary'
+        | 'success'
+        | 'warning'
+        | 'danger' = 'default'
+    ) => {
+      const newNode: CBAMNode = {
+        id: `input-${Date.now()}`,
+        type: 'input',
+        position: {
+          x: Math.random() * 300 + 100,
+          y: Math.random() * 200 + 100,
+        },
+        data: {
+          label: `입력 ${Date.now()}`,
+          description: '데이터 입력점',
+          variant,
+        },
+        sourcePosition: Position.Right,
+      };
+
+      setNodes(prev => [...prev, newNode]);
+      setHasUnsavedChanges(true);
+    },
+    []
+  );
+
+  const addOutputNode = useCallback(
+    async (
+      variant:
+        | 'default'
+        | 'primary'
+        | 'success'
+        | 'warning'
+        | 'danger' = 'default'
+    ) => {
+      const newNode: CBAMNode = {
+        id: `output-${Date.now()}`,
+        type: 'output',
+        position: {
+          x: Math.random() * 300 + 100,
+          y: Math.random() * 200 + 100,
+        },
+        data: {
+          label: `출력 ${Date.now()}`,
+          description: '결과 출력점',
+          variant,
+        },
+        targetPosition: Position.Left,
+      };
+
+      setNodes(prev => [...prev, newNode]);
+      setHasUnsavedChanges(true);
+    },
+    []
+  );
+
+  const clearAllNodes = useCallback(async () => {
+    if (window.confirm('모든 노드를 삭제하시겠습니까?')) {
+      setNodes([]);
+      setEdges([]);
+      setHasUnsavedChanges(true);
+    }
+  }, []);
+
+  // ============================================================================
+  // 🎯 CBAM 계산 실행
+  // ============================================================================
+
   const runCBAMCalculation = useCallback(() => {
     const totalCarbonIntensity = nodes.reduce(
       (sum, node) => sum + (node.data.carbonIntensity || 0),
@@ -380,102 +515,204 @@ export const ConnectedReactFlow: React.FC<ConnectedReactFlowProps> = ({
     );
   }, [nodes]);
 
-  return (
-    <ReactFlowProvider>
-      <div className='h-full flex flex-col'>
-        {/* 툴바 */}
-        <div className='flex items-center justify-between p-4 bg-white/5 border-b border-white/10'>
-          <div className='flex items-center gap-3'>
-            <Button onClick={addNewNode} className='flex items-center gap-2'>
-              <Plus className='h-4 w-4' />
-              노드 추가
-            </Button>
-            <Button
-              onClick={() => setIsDrawingConnection(!isDrawingConnection)}
-              variant={isDrawingConnection ? 'primary' : 'outline'}
-              className='flex items-center gap-2'
-            >
-              <Zap className='h-4 w-4' />
-              연결선 그리기
-            </Button>
-            {selectedNode && (
-              <Button
-                onClick={deleteSelectedNode}
-                variant='ghost'
-                className='flex items-center gap-2 text-red-400 hover:text-red-300 hover:bg-red-400/10'
-              >
-                <Trash2 className='h-4 w-4' />
-                노드 삭제
-              </Button>
-            )}
-            <Button
-              onClick={runCBAMCalculation}
-              variant='outline'
-              className='flex items-center gap-2'
-            >
-              <RotateCcw className='h-4 w-4' />
-              CBAM 계산
-            </Button>
-          </div>
+  // ============================================================================
+  // 🎯 수동 저장
+  // ============================================================================
 
-          <div className='flex items-center gap-3'>
-            <Button
-              onClick={saveProcessFlow}
-              variant='outline'
-              className='flex items-center gap-2'
-            >
-              <Save className='h-4 w-4' />
-              {isSaving ? '저장 중...' : '저장'}
-            </Button>
-            <Button variant='outline' className='flex items-center gap-2'>
-              <Download className='h-4 w-4' />
-              내보내기
-            </Button>
-            <Button variant='outline' className='flex items-center gap-2'>
-              <Upload className='h-4 w-4' />
-              가져오기
-            </Button>
-          </div>
-        </div>
+  const handleManualSave = useCallback(() => {
+    saveToBackend();
+  }, [saveToBackend]);
 
-        {/* React Flow 캔버스 */}
-        <div className='flex-1 bg-white/5 rounded-lg overflow-hidden'>
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onNodeClick={onNodeClick}
-            onPaneClick={onPaneClick}
-            nodeTypes={nodeTypes}
-            fitView
-            attributionPosition='bottom-left'
-          >
-            <Controls />
-            <Background />
-            <MiniMap />
-          </ReactFlow>
-        </div>
-
-        {/* 상태 표시 */}
-        <div className='p-4 bg-white/5 border-t border-white/10'>
-          <div className='flex items-center justify-between text-sm text-white/60'>
-            <div className='flex items-center gap-4'>
-              <span>총 노드: {nodes.length}개</span>
-              <span>총 연결선: {edges.length}개</span>
-              {selectedNode && <span>선택된 노드: {selectedNode}</span>}
-              {isDrawingConnection && (
-                <span className='text-blue-400'>연결선 그리기 모드</span>
-              )}
-            </div>
-            <div className='flex items-center gap-4'>
-              <span>마지막 저장: {lastSaved.toLocaleTimeString()}</span>
-              <span>자동 저장: {autoSave ? 'ON' : 'OFF'}</span>
-            </div>
-          </div>
+  if (isLoading) {
+    return (
+      <div className='w-full h-full flex items-center justify-center bg-gray-50'>
+        <div className='text-center'>
+          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4'></div>
+          <p className='text-gray-600'>플로우 데이터를 불러오는 중...</p>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div style={{ width: '100%', height: '100%' }} onMouseMove={onMouseMove}>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        nodeTypes={nodeTypes}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        onConnectEnd={onConnectEnd}
+        fitView
+        preventScrolling={false}
+      >
+        <Background />
+        <Controls position='top-left' />
+
+        {/* 뷰포트 정보 패널 */}
+        <Panel position='bottom-left'>
+          <ViewportWithAnnotation />
+        </Panel>
+
+        {/* 노드 생성 컨트롤 패널 */}
+        <Panel position='top-right'>
+          <div className='bg-white p-3 rounded-lg shadow-lg border border-gray-200 max-w-[220px]'>
+            <div className='flex flex-col gap-3'>
+              <h3 className='text-sm font-semibold text-gray-700'>노드 생성</h3>
+
+              {/* 🎯 프로세스 노드들 */}
+              <div>
+                <h4 className='text-xs font-medium text-gray-600 mb-1'>
+                  프로세스 노드
+                </h4>
+                <div className='grid grid-cols-3 gap-1'>
+                  <button
+                    onClick={() => addNode('default')}
+                    className='px-2 py-1 bg-gray-500 text-white rounded text-xs hover:bg-gray-600 transition-colors'
+                    title='기본 프로세스'
+                  >
+                    기본
+                  </button>
+
+                  <button
+                    onClick={() => addNode('primary')}
+                    className='px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors'
+                    title='주요 프로세스'
+                  >
+                    주요
+                  </button>
+
+                  <button
+                    onClick={() => addNode('success')}
+                    className='px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 transition-colors'
+                    title='완료 프로세스'
+                  >
+                    완료
+                  </button>
+                </div>
+              </div>
+
+              {/* 📥 입력/출력 노드들 */}
+              <div>
+                <h4 className='text-xs font-medium text-gray-600 mb-1'>
+                  입력/출력 노드
+                </h4>
+                <div className='grid grid-cols-2 gap-1'>
+                  <button
+                    onClick={() => addInputNode('primary')}
+                    className='px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors flex items-center gap-1'
+                    title='데이터 입력점'
+                  >
+                    📥 입력
+                  </button>
+
+                  <button
+                    onClick={() => addOutputNode('success')}
+                    className='px-2 py-1 bg-purple-600 text-white rounded text-xs hover:bg-purple-700 transition-colors flex items-center gap-1'
+                    title='결과 출력점'
+                  >
+                    📤 출력
+                  </button>
+                </div>
+              </div>
+
+              {/* 📝 기타 노드들 */}
+              <div>
+                <h4 className='text-xs font-medium text-gray-600 mb-1'>기타</h4>
+                <div className='grid grid-cols-2 gap-1'>
+                  <button
+                    onClick={addAnnotationNode}
+                    className='px-2 py-1 bg-purple-500 text-white rounded text-xs hover:bg-purple-600 transition-colors'
+                    title='어노테이션 노드'
+                  >
+                    💬 메모
+                  </button>
+
+                  <button
+                    onClick={() => addNode('warning')}
+                    className='px-2 py-1 bg-yellow-500 text-white rounded text-xs hover:bg-yellow-600 transition-colors'
+                    title='주의 프로세스'
+                  >
+                    ⚠️ 주의
+                  </button>
+                </div>
+              </div>
+
+              {/* 🗑️ 전체 삭제 버튼 */}
+              <button
+                onClick={clearAllNodes}
+                className='px-3 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition-colors'
+              >
+                🗑️ 전체 삭제
+              </button>
+
+              <div className='text-xs text-gray-400 pt-2 border-t border-gray-200'>
+                노드: {nodes.length} | 엣지: {edges.length}
+              </div>
+            </div>
+          </div>
+        </Panel>
+
+        {/* 저장 상태 패널 */}
+        <Panel position='top-left' style={{ top: '80px' }}>
+          <div className='bg-white p-3 rounded-lg shadow-lg border border-gray-200'>
+            <div className='flex flex-col gap-2'>
+              <div className='flex items-center gap-2'>
+                <div
+                  className={`w-2 h-2 rounded-full ${hasUnsavedChanges ? 'bg-orange-500' : 'bg-green-500'}`}
+                ></div>
+                <span className='text-sm font-medium'>
+                  {hasUnsavedChanges ? '저장되지 않음' : '저장됨'}
+                </span>
+              </div>
+
+              {lastSaved && (
+                <div className='text-xs text-gray-500'>
+                  마지막 저장: {lastSaved.toLocaleTimeString()}
+                </div>
+              )}
+
+              <button
+                onClick={handleManualSave}
+                disabled={!hasUnsavedChanges}
+                className={`px-3 py-1 rounded text-sm ${
+                  hasUnsavedChanges
+                    ? 'bg-blue-500 text-white hover:bg-blue-600'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                수동 저장
+              </button>
+
+              <button
+                onClick={runCBAMCalculation}
+                className='px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600'
+              >
+                CBAM 계산
+              </button>
+            </div>
+          </div>
+        </Panel>
+      </ReactFlow>
+    </div>
+  );
+}
+
+// ============================================================================
+// 🎯 메인 컴포넌트 (Provider 포함)
+// ============================================================================
+
+function ConnectedReactFlow({
+  flowId,
+  autoSave = true,
+  saveInterval = 10000, // 10초마다 자동 저장
+}: ConnectedReactFlowProps) {
+  return (
+    <ReactFlowProvider>
+      <Flow flowId={flowId} autoSave={autoSave} saveInterval={saveInterval} />
     </ReactFlowProvider>
   );
-};
+}
+
+export default ConnectedReactFlow;

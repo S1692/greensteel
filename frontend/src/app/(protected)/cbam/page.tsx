@@ -13,7 +13,8 @@ import {
   BarChart3,
   FileText,
 } from 'lucide-react';
-import { ProcessFlowCanvas } from '@/components/cbam/ProcessFlowCanvas';
+import { ConnectedReactFlow } from '@/components/templates/ConnectedReactFlow';
+import ErrorBoundary from '@/components/templates/ErrorBoundary';
 
 // ============================================================================
 // 🎯 CBAM 프로세스 플로우 페이지
@@ -213,7 +214,14 @@ export default function CBAMPage() {
 
       {/* 플로우 캔버스 */}
       <div className='flex-1 stitch-card p-6'>
-        <ProcessFlowCanvas />
+        <ErrorBoundary>
+          <ConnectedReactFlow
+            key={currentFlowId || 'new-flow'}
+            flowId={currentFlowId}
+            autoSave={autoSave}
+            saveInterval={10000} // 10초마다 자동 저장
+          />
+        </ErrorBoundary>
       </div>
 
       {/* 플로우 상태 바 */}

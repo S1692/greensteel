@@ -12,7 +12,11 @@ import {
   ArrowUp,
   ArrowDown,
 } from 'lucide-react';
-import { lcaRoute } from '@/lib/nav';
+// lcaRoute 함수 정의
+const lcaRoute = (
+  projectId: string,
+  leaf: 'scope' | 'lci' | 'lcia' | 'interpretation' | 'report'
+) => `/lca/projects/${projectId}/${leaf}`;
 
 interface ProcessSubProcess {
   order: number;

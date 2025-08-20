@@ -4,7 +4,11 @@ import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Play, BarChart3, Download, Clock, CheckCircle } from 'lucide-react';
-import { lcaRoute } from '@/lib/nav';
+// lcaRoute 함수 정의
+const lcaRoute = (
+  projectId: string,
+  leaf: 'scope' | 'lci' | 'lcia' | 'interpretation' | 'report'
+) => `/lca/projects/${projectId}/${leaf}`;
 
 interface LciaResult {
   category: string;

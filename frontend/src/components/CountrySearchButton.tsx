@@ -32,7 +32,7 @@ export default function CountrySearchButton({
       <Button
         type='button'
         onClick={openModal}
-        variant='secondary'
+        variant='outline'
         className={className}
       >
         <Search size={16} className='mr-2' />
@@ -80,7 +80,7 @@ export function CountryInputWithSearch({
 
   return (
     <div className={className}>
-      <label className='block text-sm font-medium text-gray-700 mb-2'>
+      <label className='stitch-label block mb-2'>
         {label} {required && <span className='text-red-500'>*</span>}
       </label>
       <div className='flex gap-2'>
@@ -92,7 +92,7 @@ export function CountryInputWithSearch({
           className='flex-1'
           readOnly
         />
-        <Button type='button' onClick={openModal} variant='secondary'>
+        <Button type='button' onClick={openModal} variant='outline'>
           <Search size={16} className='mr-2' />
           검색
         </Button>

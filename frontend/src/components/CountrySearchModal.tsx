@@ -49,15 +49,13 @@ export default function CountrySearchModal({
       const url = new URL('/api/v1/countries/search', baseUrl);
       url.searchParams.set('query', query);
       url.searchParams.set('limit', '20');
-      
-      console.log('API 호출 URL:', url.toString()); // 디버깅용
-      
+
       const response = await fetch(url.toString(), {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
-        cache: 'no-store'
+        cache: 'no-store',
       });
 
       if (!response.ok) {
@@ -65,8 +63,7 @@ export default function CountrySearchModal({
       }
 
       const data = await response.json();
-      console.log('API 응답:', data); // 디버깅용
-      
+
       // CountrySearchResponse 형식에 맞게 데이터 변환
       if (data.countries && Array.isArray(data.countries)) {
         setCountries(data.countries);
@@ -74,7 +71,6 @@ export default function CountrySearchModal({
         setCountries([]);
       }
     } catch (err) {
-      console.error('국가 검색 오류:', err); // 디버깅용
       setError(
         err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.'
       );

@@ -7,11 +7,15 @@ import {
   CheckCircle,
   AlertCircle,
   Loader2,
+  Table,
+  MapPin,
+  Database,
 } from 'lucide-react';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 import CommonShell from '@/components/CommonShell';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 interface UploadResponse {
   message: string;
@@ -24,11 +28,30 @@ interface UploadResponse {
   };
 }
 
+interface MappingRule {
+  sourceColumn: string;
+  targetColumn: string;
+  transformation?: string;
+}
+
+interface TransformedData {
+  original: any[];
+  transformed: any[];
+  mapping: MappingRule[];
+}
+
 const DataUploadPage: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<UploadResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [excelData, setExcelData] = useState<any[]>([]);
+  const [excelColumns, setExcelColumns] = useState<string[]>([]);
+  const [mappingRules, setMappingRules] = useState<MappingRule[]>([]);
+  const [transformedData, setTransformedData] =
+    useState<TransformedData | null>(null);
+  const [isTransforming, setIsTransforming] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -44,6 +67,10 @@ const DataUploadPage: React.FC = () => {
       setFile(selectedFile);
       setError(null);
       setUploadResult(null);
+      setExcelData([]);
+      setExcelColumns([]);
+      setMappingRules([]);
+      setTransformedData(null);
     }
   };
 
@@ -61,6 +88,20 @@ const DataUploadPage: React.FC = () => {
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      // Excel 데이터와 컬럼 설정
+      setExcelData(jsonData);
+      setExcelColumns(Object.keys(jsonData[0] || {}));
+
+      // 기본 맵핑 규칙 생성
+      const defaultMapping: MappingRule[] = Object.keys(jsonData[0] || {}).map(
+        col => ({
+          sourceColumn: col,
+          targetColumn: col,
+          transformation: 'none',
+        })
+      );
+      setMappingRules(defaultMapping);
 
       // JSON 데이터를 게이트웨이로 전송
       const response = await axios.post('http://localhost:8080/process-data', {
@@ -101,6 +142,10 @@ const DataUploadPage: React.FC = () => {
       setFile(droppedFile);
       setError(null);
       setUploadResult(null);
+      setExcelData([]);
+      setExcelColumns([]);
+      setMappingRules([]);
+      setTransformedData(null);
     } else {
       setError('엑셀 파일만 업로드 가능합니다 (.xlsx, .xls)');
     }
@@ -114,8 +159,105 @@ const DataUploadPage: React.FC = () => {
     setFile(null);
     setError(null);
     setUploadResult(null);
+    setExcelData([]);
+    setExcelColumns([]);
+    setMappingRules([]);
+    setTransformedData(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleMappingChange = (
+    index: number,
+    field: keyof MappingRule,
+    value: string
+  ) => {
+    const newMapping = [...mappingRules];
+    newMapping[index] = { ...newMapping[index], [field]: value };
+    setMappingRules(newMapping);
+  };
+
+  const addMappingRule = () => {
+    setMappingRules([
+      ...mappingRules,
+      { sourceColumn: '', targetColumn: '', transformation: 'none' },
+    ]);
+  };
+
+  const removeMappingRule = (index: number) => {
+    const newMapping = mappingRules.filter((_, i) => i !== index);
+    setMappingRules(newMapping);
+  };
+
+  const handleTransform = () => {
+    setIsTransforming(true);
+
+    try {
+      // 맵핑 규칙에 따라 데이터 변환
+      const transformed = excelData.map(row => {
+        const newRow: any = {};
+        mappingRules.forEach(rule => {
+          if (rule.sourceColumn && rule.targetColumn) {
+            let value = row[rule.sourceColumn];
+
+            // 변환 규칙 적용
+            if (
+              rule.transformation === 'uppercase' &&
+              typeof value === 'string'
+            ) {
+              value = value.toUpperCase();
+            } else if (
+              rule.transformation === 'lowercase' &&
+              typeof value === 'string'
+            ) {
+              value = value.toLowerCase();
+            } else if (
+              rule.transformation === 'trim' &&
+              typeof value === 'string'
+            ) {
+              value = value.trim();
+            }
+
+            newRow[rule.targetColumn] = value;
+          }
+        });
+        return newRow;
+      });
+
+      setTransformedData({
+        original: excelData,
+        transformed,
+        mapping: mappingRules,
+      });
+    } catch (err) {
+      setError('데이터 변환 중 오류가 발생했습니다');
+    } finally {
+      setIsTransforming(false);
+    }
+  };
+
+  const handleSaveToDB = async () => {
+    if (!transformedData) return;
+
+    setIsSaving(true);
+    try {
+      // 변환된 데이터를 DB에 저장하는 API 호출
+      const response = await axios.post(
+        'http://localhost:8080/save-transformed-data',
+        {
+          filename: file?.name,
+          originalData: transformedData.original,
+          transformedData: transformedData.transformed,
+          mappingRules: transformedData.mapping,
+        }
+      );
+
+      alert('데이터베이스에 성공적으로 저장되었습니다!');
+    } catch (err) {
+      setError('데이터베이스 저장 중 오류가 발생했습니다');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -200,6 +342,283 @@ const DataUploadPage: React.FC = () => {
               <AlertCircle className='h-5 w-5 text-red-400 mr-2' />
               <p className='stitch-error'>{error}</p>
             </div>
+          </div>
+        )}
+
+        {/* Excel 데이터 표시 */}
+        {excelData.length > 0 && (
+          <div className='stitch-card p-6'>
+            <div className='flex items-center gap-2 mb-4'>
+              <Table className='h-5 w-5' />
+              <h3 className='stitch-h1 text-lg font-semibold'>
+                Excel 데이터 미리보기
+              </h3>
+            </div>
+
+            <div className='overflow-x-auto'>
+              <table className='min-w-full border border-gray-200'>
+                <thead>
+                  <tr className='bg-gray-50'>
+                    {excelColumns.map((column, index) => (
+                      <th
+                        key={index}
+                        className='border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700'
+                      >
+                        {column}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {excelData.slice(0, 10).map((row, rowIndex) => (
+                    <tr key={rowIndex} className='hover:bg-gray-50'>
+                      {excelColumns.map((column, colIndex) => (
+                        <td
+                          key={colIndex}
+                          className='border border-gray-200 px-3 py-2 text-sm text-gray-900'
+                        >
+                          {String(row[column] || '')}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {excelData.length > 10 && (
+                <p className='stitch-caption mt-2 text-center'>
+                  상위 10행만 표시됩니다. 총 {excelData.length}행의 데이터가
+                  있습니다.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 맵핑 변환 섹션 */}
+        {excelData.length > 0 && (
+          <div className='stitch-card p-6'>
+            <div className='flex items-center gap-2 mb-4'>
+              <MapPin className='h-5 w-5' />
+              <h3 className='stitch-h1 text-lg font-semibold'>
+                데이터 맵핑 및 변환
+              </h3>
+            </div>
+
+            <div className='space-y-4'>
+              {mappingRules.map((rule, index) => (
+                <div
+                  key={index}
+                  className='flex items-center gap-3 p-3 border border-gray-200 rounded-lg'
+                >
+                  <div className='flex-1'>
+                    <label className='stitch-label block mb-1'>원본 컬럼</label>
+                    <select
+                      value={rule.sourceColumn}
+                      onChange={e =>
+                        handleMappingChange(
+                          index,
+                          'sourceColumn',
+                          e.target.value
+                        )
+                      }
+                      className='stitch-input'
+                    >
+                      <option value=''>컬럼 선택</option>
+                      {excelColumns.map(col => (
+                        <option key={col} value={col}>
+                          {col}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className='flex-1'>
+                    <label className='stitch-label block mb-1'>대상 컬럼</label>
+                    <Input
+                      value={rule.targetColumn}
+                      onChange={e =>
+                        handleMappingChange(
+                          index,
+                          'targetColumn',
+                          e.target.value
+                        )
+                      }
+                      placeholder='새 컬럼명'
+                    />
+                  </div>
+
+                  <div className='flex-1'>
+                    <label className='stitch-label block mb-1'>변환 규칙</label>
+                    <select
+                      value={rule.transformation}
+                      onChange={e =>
+                        handleMappingChange(
+                          index,
+                          'transformation',
+                          e.target.value
+                        )
+                      }
+                      className='stitch-input'
+                    >
+                      <option value='none'>변환 없음</option>
+                      <option value='uppercase'>대문자</option>
+                      <option value='lowercase'>소문자</option>
+                      <option value='trim'>공백 제거</option>
+                    </select>
+                  </div>
+
+                  <Button
+                    onClick={() => removeMappingRule(index)}
+                    variant='ghost'
+                    className='text-red-600 hover:text-red-700'
+                  >
+                    삭제
+                  </Button>
+                </div>
+              ))}
+
+              <Button
+                onClick={addMappingRule}
+                variant='outline'
+                className='w-full'
+              >
+                + 맵핑 규칙 추가
+              </Button>
+
+              <div className='flex gap-3'>
+                <Button
+                  onClick={handleTransform}
+                  disabled={isTransforming}
+                  className='flex-1'
+                >
+                  {isTransforming ? (
+                    <>
+                      <Loader2 className='inline h-4 w-4 mr-2 animate-spin' />
+                      변환 중...
+                    </>
+                  ) : (
+                    '변환하기'
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 변환된 데이터 표시 */}
+        {transformedData && (
+          <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+            {/* 원본 데이터 */}
+            <div className='stitch-card p-6'>
+              <h4 className='stitch-h1 text-md font-semibold mb-3'>
+                원본 데이터
+              </h4>
+              <div className='overflow-x-auto'>
+                <table className='min-w-full border border-gray-200 text-xs'>
+                  <thead>
+                    <tr className='bg-gray-50'>
+                      {excelColumns.map((column, index) => (
+                        <th
+                          key={index}
+                          className='border border-gray-200 px-2 py-1 text-left'
+                        >
+                          {column}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transformedData.original
+                      .slice(0, 5)
+                      .map((row, rowIndex) => (
+                        <tr key={rowIndex} className='hover:bg-gray-50'>
+                          {excelColumns.map((column, colIndex) => (
+                            <td
+                              key={colIndex}
+                              className='border border-gray-200 px-2 py-1'
+                            >
+                              {String(row[column] || '')}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* 변환된 데이터 */}
+            <div className='stitch-card p-6'>
+              <h4 className='stitch-h1 text-md font-semibold mb-3'>
+                변환된 데이터
+              </h4>
+              <div className='overflow-x-auto'>
+                <table className='min-w-full border border-gray-200 text-xs'>
+                  <thead>
+                    <tr className='bg-gray-50'>
+                      {mappingRules.map((rule, index) => (
+                        <th
+                          key={index}
+                          className='border border-gray-200 px-2 py-1 text-left'
+                        >
+                          {rule.targetColumn}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transformedData.transformed
+                      .slice(0, 5)
+                      .map((row, rowIndex) => (
+                        <tr key={rowIndex} className='hover:bg-gray-50'>
+                          {mappingRules.map((rule, colIndex) => (
+                            <td
+                              key={colIndex}
+                              className='border border-gray-200 px-2 py-1'
+                            >
+                              {String(row[rule.targetColumn] || '')}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* DB 저장 버튼 */}
+        {transformedData && (
+          <div className='stitch-card p-6'>
+            <div className='flex items-center gap-2 mb-4'>
+              <Database className='h-5 w-5' />
+              <h3 className='stitch-h1 text-lg font-semibold'>
+                데이터베이스 저장
+              </h3>
+            </div>
+
+            <div className='bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4'>
+              <p className='stitch-caption text-blue-800'>
+                변환된 데이터를 데이터베이스에 저장합니다. 저장 후에는 원본
+                데이터와 변환된 데이터가 모두 보관됩니다.
+              </p>
+            </div>
+
+            <Button
+              onClick={handleSaveToDB}
+              disabled={isSaving}
+              className='w-full'
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className='inline h-4 w-4 mr-2 animate-spin' />
+                  저장 중...
+                </>
+              ) : (
+                '확인하기'
+              )}
+            </Button>
           </div>
         )}
 

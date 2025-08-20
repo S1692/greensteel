@@ -82,10 +82,9 @@ export default function CountrySearchModal({
       <div className='bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] overflow-hidden'>
         {/* 헤더 */}
         <div className='flex items-center justify-between p-6 border-b border-gray-200'>
-          <h2 className='text-xl font-semibold text-gray-900'>국가 검색</h2>
+          <h2 className='stitch-h1 text-xl font-semibold'>국가 검색</h2>
           <Button
             variant='ghost'
-            size='sm'
             onClick={handleClose}
             className='text-gray-500 hover:text-gray-700'
           >
@@ -100,9 +99,8 @@ export default function CountrySearchModal({
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder='국가명, 국가코드, UNLOCODE를 입력하세요...'
-            leftIcon={<Search size={18} />}
           />
-          <p className='text-sm text-gray-500 mt-2'>
+          <p className='stitch-caption mt-2'>
             최소 2글자 이상 입력하면 검색이 시작됩니다.
           </p>
         </div>
@@ -112,13 +110,13 @@ export default function CountrySearchModal({
           {loading && (
             <div className='p-6 text-center'>
               <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400 mx-auto'></div>
-              <p className='text-gray-500 mt-2'>검색 중...</p>
+              <p className='stitch-caption mt-2'>검색 중...</p>
             </div>
           )}
 
           {error && (
             <div className='p-6 text-center'>
-              <p className='text-red-500'>{error}</p>
+              <p className='stitch-error'>{error}</p>
             </div>
           )}
 
@@ -127,7 +125,7 @@ export default function CountrySearchModal({
             countries.length === 0 &&
             searchQuery.trim().length >= 2 && (
               <div className='p-6 text-center'>
-                <p className='text-gray-500'>검색 결과가 없습니다.</p>
+                <p className='stitch-caption'>검색 결과가 없습니다.</p>
               </div>
             )}
 
@@ -146,7 +144,7 @@ export default function CountrySearchModal({
                         <span className='font-medium text-gray-900'>
                           {country.korean_name}
                         </span>
-                        <span className='text-sm text-gray-500'>
+                        <span className='stitch-caption'>
                           ({country.country_name})
                         </span>
                       </div>
@@ -171,7 +169,7 @@ export default function CountrySearchModal({
 
         {/* 푸터 */}
         <div className='p-6 border-t border-gray-200 bg-gray-50'>
-          <div className='flex justify-between items-center text-sm text-gray-500'>
+          <div className='flex justify-between items-center stitch-caption'>
             <span>총 {countries.length}개 결과</span>
             <span>Enter 키로 첫 번째 결과 선택</span>
           </div>

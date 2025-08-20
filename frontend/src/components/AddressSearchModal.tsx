@@ -200,12 +200,8 @@ export default function AddressSearchModal({
       >
         {/* 헤더 */}
         <div className='flex justify-between items-center p-4 border-b border-gray-200 bg-white'>
-          <h2 className='text-xl font-bold text-gray-800'>주소 검색</h2>
-          <Button
-            onClick={handleClose}
-            variant='outline'
-            className='px-3 py-1 hover:bg-gray-100'
-          >
+          <h2 className='stitch-h1 text-xl font-bold'>주소 검색</h2>
+          <Button onClick={handleClose} variant='ghost' className='px-3 py-1'>
             ✕
           </Button>
         </div>
@@ -217,42 +213,42 @@ export default function AddressSearchModal({
             <div>
               <Button
                 onClick={handleSearch}
-                className='px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold'
+                className='px-8 py-4 text-lg font-semibold'
               >
                 🔍 주소 검색하기
               </Button>
-              <p className='text-sm text-gray-600 mt-2'>
+              <p className='stitch-caption mt-2'>
                 클릭하면 카카오 주소 검색 서비스가 팝업으로 열립니다
               </p>
             </div>
 
             {/* 선택된 주소 표시 */}
             {selectedAddress && (
-              <div className='bg-white p-6 rounded-lg border border-blue-200 shadow-sm'>
-                <h3 className='font-semibold text-lg text-blue-800 mb-4'>
+              <div className='stitch-card p-6'>
+                <h3 className='stitch-h1 font-semibold text-lg mb-4'>
                   ✅ 선택된 주소
                 </h3>
                 <div className='space-y-3 text-left'>
                   <div className='flex justify-between'>
-                    <span className='font-medium text-gray-700'>주소:</span>
+                    <span className='stitch-label font-medium'>주소:</span>
                     <span className='text-gray-900'>
                       {selectedAddress.address}
                     </span>
                   </div>
                   <div className='flex justify-between'>
-                    <span className='font-medium text-gray-700'>상세주소:</span>
+                    <span className='stitch-label font-medium'>상세주소:</span>
                     <span className='text-gray-900'>
                       {selectedAddress.address1}
                     </span>
                   </div>
                   <div className='flex justify-between'>
-                    <span className='font-medium text-gray-700'>우편번호:</span>
+                    <span className='stitch-label font-medium'>우편번호:</span>
                     <span className='text-gray-900'>
                       {selectedAddress.zipcode}
                     </span>
                   </div>
                   <div className='flex justify-between'>
-                    <span className='font-medium text-gray-700'>도시:</span>
+                    <span className='stitch-label font-medium'>도시:</span>
                     <span className='text-gray-900'>
                       {selectedAddress.city}
                     </span>
@@ -264,7 +260,7 @@ export default function AddressSearchModal({
             {/* 사용 안내 */}
             <div className='bg-blue-50 p-4 rounded-lg border border-blue-200'>
               <h4 className='font-semibold text-blue-800 mb-2'>📋 사용 방법</h4>
-              <ol className='text-sm text-blue-700 space-y-1 text-left'>
+              <ol className='stitch-caption space-y-1 text-left'>
                 <li>1. &quot;주소 검색하기&quot; 버튼을 클릭합니다</li>
                 <li>2. 팝업에서 주소를 검색하고 선택합니다</li>
                 <li>3. 선택한 주소가 위에 표시됩니다</li>
@@ -276,17 +272,13 @@ export default function AddressSearchModal({
 
         {/* 하단 버튼 */}
         <div className='flex justify-end space-x-2 p-4 border-t border-gray-200 bg-white'>
-          <Button
-            onClick={handleClose}
-            variant='outline'
-            className='border-gray-300 hover:bg-gray-100'
-          >
+          <Button onClick={handleClose} variant='outline'>
             취소
           </Button>
           <Button
             onClick={handleConfirm}
             disabled={!selectedAddress}
-            className='bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white'
+            className='disabled:opacity-50 disabled:cursor-not-allowed'
           >
             주소 선택
           </Button>

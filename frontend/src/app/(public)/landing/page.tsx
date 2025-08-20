@@ -108,13 +108,6 @@ export default function LandingPage() {
             <Button onClick={handleRegister} variant='outline'>
               회원가입
             </Button>
-
-            <Button
-              onClick={() => router.push('/data-upload')}
-              variant='successSoft'
-            >
-              데이터 수집 바로가기
-            </Button>
           </div>
         </div>
 

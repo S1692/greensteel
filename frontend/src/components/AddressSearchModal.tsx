@@ -1,156 +1,34 @@
 'use client';
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Button } from './ui/Button';
-
-interface KakaoAddressData {
-  address: string;
-  address1: string;
-  zipcode: string;
-  country: string;
-  city: string;
-  country_eng: string;
-  city_eng: string;
-  address_eng: string;
-  address1_eng: string;
-  // 추가 주소 관련 필드들
-  street: string;
-  street_en: string;
-  number: string;
-  number_en: string;
-  sourcelatitude: string;
-  sourcelongitude: string;
-}
+import React, { useState, useRef, useEffect } from 'react';
+import { Button } from '@/components/ui/Button';
+import { MapPin, X, Search, FileText } from 'lucide-react';
 
 interface AddressSearchModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddressSelect: (data: KakaoAddressData) => void;
+  onSelect: (address: AddressData) => void;
 }
 
-// Daum Postcode 타입 정의
-declare global {
-  interface Window {
-    daum: {
-      Postcode: new (options: DaumPostcodeOptions) => DaumPostcode;
-    };
-  }
-}
-
-interface DaumPostcodeOptions {
-  oncomplete: (data: DaumPostcodeData) => void;
-  onclose: () => void;
-}
-
-interface DaumPostcode {
-  open: () => void;
-}
-
-interface DaumPostcodeData {
-  address: string;
-  addressDetail?: string;
-  zonecode?: string;
-  sido?: string;
+interface AddressData {
+  roadAddress: string;
+  jibunAddress: string;
+  buildingNumber: string;
+  postalCode: string;
+  cityName: string;
 }
 
 export default function AddressSearchModal({
   isOpen,
   onClose,
-  onAddressSelect,
+  onSelect,
 }: AddressSearchModalProps) {
-  const [selectedAddress, setSelectedAddress] =
-    useState<KakaoAddressData | null>(null);
+  const [selectedAddress, setSelectedAddress] = useState<AddressData | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // 도시명 영문화
-  const getCityEnglish = useCallback((city: string): string => {
-    const cityMap: Record<string, string> = {
-      서울특별시: 'Seoul',
-      부산광역시: 'Busan',
-      대구광역시: 'Daegu',
-      인천광역시: 'Incheon',
-      광주광역시: 'Gwangju',
-      대전광역시: 'Daejeon',
-      울산광역시: 'Ulsan',
-      세종특별자치시: 'Sejong',
-      경기도: 'Gyeonggi-do',
-      강원도: 'Gangwon-do',
-      충청북도: 'Chungcheongbuk-do',
-      충청남도: 'Chungcheongnam-do',
-      전라북도: 'Jeollabuk-do',
-      전라남도: 'Jeollanam-do',
-      경상북도: 'Gyeongsangbuk-do',
-      경상남도: 'Gyeongsangnam-do',
-      제주특별자치도: 'Jeju-do',
-    };
-    return cityMap[city] || city;
-  }, []);
-
-  // 주소 선택 처리
-  const handleAddressSelect = useCallback(
-    (data: DaumPostcodeData) => {
-      const addressData: KakaoAddressData = {
-        address: data.address,
-        address1: data.addressDetail || data.address,
-        zipcode: data.zonecode || '',
-        country: '대한민국',
-        city: data.sido || '',
-        country_eng: 'South Korea',
-        city_eng: getCityEnglish(data.sido || ''),
-        address_eng: data.address,
-        address1_eng: data.addressDetail || data.address,
-        // 추가 주소 관련 필드들
-        street: data.address, // 도로명은 전체 주소에서 추출
-        street_en: data.address, // 영문 도로명
-        number: '', // 건물번호는 별도로 추출 필요
-        number_en: '', // 영문 건물번호
-        sourcelatitude: '', // 위도는 별도 API 필요
-        sourcelongitude: '', // 경도는 별도 API 필요
-      };
-
-      setSelectedAddress(addressData);
-    },
-    [getCityEnglish]
-  );
-
-  // 주소 검색 실행
-  const handleSearch = useCallback(() => {
-    if (!window.daum) {
-      alert('주소 검색 서비스를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
-      return;
-    }
-
-    new window.daum.Postcode({
-      oncomplete: function (data: DaumPostcodeData) {
-        handleAddressSelect(data);
-      },
-      onclose: function () {
-        // 팝업이 닫힐 때 실행
-      },
-    }).open();
-  }, [handleAddressSelect]);
-
-  // 주소 선택 확인
-  const handleConfirm = () => {
-    if (selectedAddress) {
-      onAddressSelect(selectedAddress);
-      onClose();
-    }
-  };
-
-  // 모달 닫기 시 상태 초기화
-  const handleClose = useCallback(() => {
-    setSelectedAddress(null);
-    onClose();
-  }, [onClose]);
-
-  // 모달 외부 클릭 시 닫기
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        modalRef.current &&
-        !modalRef.current.contains(event.target as Node)
-      ) {
-        handleClose();
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        onClose();
       }
     };
 
@@ -161,127 +39,141 @@ export default function AddressSearchModal({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen, handleClose]);
+  }, [isOpen, onClose]);
 
-  // Daum Postcode 스크립트 로드
-  useEffect(() => {
-    if (!isOpen) return;
+  const handleAddressSearch = () => {
+    // 카카오 주소 검색 팝업 열기
+    new window.daum.Postcode({
+      oncomplete: function (data: any) {
+        const addressData: AddressData = {
+          roadAddress: data.roadAddress || '',
+          jibunAddress: data.jibunAddress || '',
+          buildingNumber: data.buildingName || '',
+          postalCode: data.zonecode || '',
+          cityName: data.sido + ' ' + data.sigungu,
+        };
+        setSelectedAddress(addressData);
+      },
+    }).open();
+  };
 
-    const script = document.createElement('script');
-    script.src =
-      '//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
-    script.async = true;
+  const handleAddressSelect = () => {
+    if (selectedAddress) {
+      onSelect(selectedAddress);
+      onClose();
+    }
+  };
 
-    script.onload = () => {
-      // 스크립트 로드 완료
-    };
-
-    script.onerror = () => {
-      alert('주소 검색 서비스 로드에 실패했습니다.');
-    };
-
-    document.head.appendChild(script);
-
-    return () => {
-      if (document.head.contains(script)) {
-        document.head.removeChild(script);
-      }
-    };
-  }, [isOpen]);
+  const handleClose = () => {
+    setSelectedAddress(null);
+    onClose();
+  };
 
   if (!isOpen) return null;
 
   return (
-    <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4'>
-      <div
-        ref={modalRef}
-        className='bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col'
-        style={{ minHeight: '400px' }}
-      >
+    <div className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4'>
+      <div className='stitch-card w-full max-w-2xl max-h-[80vh] overflow-hidden' ref={modalRef}>
         {/* 헤더 */}
-        <div className='flex justify-between items-center p-4 border-b border-gray-200 bg-white'>
+        <div className='flex justify-between items-center p-6 border-b border-white/10'>
           <h2 className='stitch-h1 text-xl font-bold'>주소 검색</h2>
-          <Button onClick={handleClose} variant='ghost' className='px-3 py-1'>
-            ✕
+          <Button
+            onClick={handleClose}
+            variant='ghost'
+            className='text-white/60 hover:text-white hover:bg-white/10'
+          >
+            <X size={20} />
           </Button>
         </div>
 
         {/* 메인 컨텐츠 */}
-        <div className='flex-1 p-6 bg-gray-50'>
+        <div className='flex-1 p-6 bg-white/5'>
           <div className='text-center space-y-6'>
             {/* 주소 검색 버튼 */}
-            <div>
+            <div className='space-y-3'>
               <Button
-                onClick={handleSearch}
-                className='px-8 py-4 text-lg font-semibold'
+                onClick={handleAddressSearch}
+                className='w-full h-14 text-lg font-semibold'
               >
-                🔍 주소 검색하기
+                <Search className='mr-2' size={20} />
+                주소 검색하기
               </Button>
-              <p className='stitch-caption mt-2'>
+              <p className='stitch-caption text-white/60'>
                 클릭하면 카카오 주소 검색 서비스가 팝업으로 열립니다
               </p>
             </div>
 
+            {/* 사용 방법 */}
+            <div className='text-left space-y-3'>
+              <div className='flex items-center gap-2 mb-3'>
+                <FileText className='h-5 w-5 text-primary' />
+                <h3 className='stitch-h1 text-lg font-semibold'>사용 방법</h3>
+              </div>
+              <ol className='space-y-2 text-sm text-white/80'>
+                <li className='flex items-start gap-2'>
+                  <span className='flex-shrink-0 w-5 h-5 bg-primary/20 text-primary rounded-full flex items-center justify-center text-xs font-medium'>
+                    1
+                  </span>
+                  <span>"주소 검색하기" 버튼을 클릭합니다</span>
+                </li>
+                <li className='flex items-start gap-2'>
+                  <span className='flex-shrink-0 w-5 h-5 bg-primary/20 text-primary rounded-full flex items-center justify-center text-xs font-medium'>
+                    2
+                  </span>
+                  <span>팝업에서 주소를 검색하고 선택합니다</span>
+                </li>
+                <li className='flex items-start gap-2'>
+                  <span className='flex-shrink-0 w-5 h-5 bg-primary/20 text-primary rounded-full flex items-center justify-center text-xs font-medium'>
+                    3
+                  </span>
+                  <span>선택한 주소가 위에 표시됩니다</span>
+                </li>
+                <li className='flex items-start gap-2'>
+                  <span className='flex-shrink-0 w-5 h-5 bg-primary/20 text-primary rounded-full flex items-center justify-center text-xs font-medium'>
+                    4
+                  </span>
+                  <span>"주소 선택" 버튼을 클릭하여 완료합니다</span>
+                </li>
+              </ol>
+            </div>
+
             {/* 선택된 주소 표시 */}
             {selectedAddress && (
-              <div className='stitch-card p-6'>
-                <h3 className='stitch-h1 font-semibold text-lg mb-4'>
-                  ✅ 선택된 주소
-                </h3>
-                <div className='space-y-3 text-left'>
-                  <div className='flex justify-between'>
-                    <span className='stitch-label font-medium'>주소:</span>
-                    <span className='text-gray-900'>
-                      {selectedAddress.address}
-                    </span>
-                  </div>
-                  <div className='flex justify-between'>
-                    <span className='stitch-label font-medium'>상세주소:</span>
-                    <span className='text-gray-900'>
-                      {selectedAddress.address1}
-                    </span>
-                  </div>
-                  <div className='flex justify-between'>
-                    <span className='stitch-label font-medium'>우편번호:</span>
-                    <span className='text-gray-900'>
-                      {selectedAddress.zipcode}
-                    </span>
-                  </div>
-                  <div className='flex justify-between'>
-                    <span className='stitch-label font-medium'>도시:</span>
-                    <span className='text-gray-900'>
-                      {selectedAddress.city}
-                    </span>
-                  </div>
+              <div className='bg-primary/10 border border-primary/20 rounded-lg p-4 space-y-2'>
+                <div className='flex items-center gap-2 mb-2'>
+                  <MapPin className='h-4 w-4 text-primary' />
+                  <span className='font-medium text-primary'>선택된 주소</span>
+                </div>
+                <div className='text-sm space-y-1 text-white/80'>
+                  <p><strong>도로명:</strong> {selectedAddress.roadAddress}</p>
+                  <p><strong>지번:</strong> {selectedAddress.jibunAddress}</p>
+                  <p><strong>건물번호:</strong> {selectedAddress.buildingNumber}</p>
+                  <p><strong>우편번호:</strong> {selectedAddress.postalCode}</p>
+                  <p><strong>도시명:</strong> {selectedAddress.cityName}</p>
                 </div>
               </div>
             )}
-
-            {/* 사용 안내 */}
-            <div className='bg-blue-50 p-4 rounded-lg border border-blue-200'>
-              <h4 className='font-semibold text-blue-800 mb-2'>📋 사용 방법</h4>
-              <ol className='stitch-caption space-y-1 text-left'>
-                <li>1. &quot;주소 검색하기&quot; 버튼을 클릭합니다</li>
-                <li>2. 팝업에서 주소를 검색하고 선택합니다</li>
-                <li>3. 선택한 주소가 위에 표시됩니다</li>
-                <li>4. &quot;주소 선택&quot; 버튼을 클릭하여 완료합니다</li>
-              </ol>
-            </div>
           </div>
         </div>
 
-        {/* 하단 버튼 */}
-        <div className='flex justify-end space-x-2 p-4 border-t border-gray-200 bg-white'>
-          <Button onClick={handleClose} variant='outline'>
-            취소
-          </Button>
-          <Button
-            onClick={handleConfirm}
-            disabled={!selectedAddress}
-            className='disabled:opacity-50 disabled:cursor-not-allowed'
-          >
-            주소 선택
-          </Button>
+        {/* 액션 버튼 */}
+        <div className='p-6 border-t border-white/10 bg-white/5'>
+          <div className='flex gap-3'>
+            <Button
+              onClick={handleClose}
+              variant='ghost'
+              className='flex-1'
+            >
+              취소
+            </Button>
+            <Button
+              onClick={handleAddressSelect}
+              disabled={!selectedAddress}
+              className='flex-1'
+            >
+              주소 선택
+            </Button>
+          </div>
         </div>
       </div>
     </div>

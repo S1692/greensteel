@@ -9,17 +9,20 @@
 ## 🔍 문제 진단
 
 ### 1. GitHub 연결 상태 확인
+
 - [ ] Vercel 대시보드에서 GitHub 연결 상태 확인
 - [ ] GitHub App 권한 확인
 - [ ] Repository 접근 권한 확인
 
 ### 2. 프로젝트 설정 확인
+
 - [ ] vercel.json 설정 검증
 - [ ] Build Command 확인 (`pnpm run build`)
 - [ ] Output Directory 확인 (`.next`)
 - [ ] Framework 설정 확인 (`nextjs`)
 
 ### 3. 환경 변수 확인
+
 - [ ] Vercel 프로젝트 환경 변수 설정
 - [ ] GitHub Secrets 설정
 - [ ] DATABASE_URL 등 백엔드 연결 정보
@@ -46,6 +49,7 @@
 ### 방법 2: 수동 배포 트리거
 
 1. **Vercel CLI 사용**
+
    ```bash
    npm i -g vercel
    vercel login
@@ -59,6 +63,7 @@
 ### 방법 3: 강제 트리거
 
 1. **빈 커밋 생성**
+
    ```bash
    git commit --allow-empty -m "CI/CD 트리거"
    git push origin main
@@ -71,6 +76,7 @@
 ## 📋 확인 체크리스트
 
 ### Vercel 설정
+
 - [ ] Framework: Next.js
 - [ ] Build Command: `pnpm run build`
 - [ ] Output Directory: `.next`
@@ -78,12 +84,14 @@
 - [ ] Node.js Version: 18+
 
 ### GitHub 연결
+
 - [ ] Repository 접근 권한
 - [ ] GitHub App 설치 상태
 - [ ] Webhook 설정
 - [ ] Branch 설정 (main)
 
 ### 환경 변수
+
 - [ ] NODE_ENV=production
 - [ ] NEXT_PUBLIC_APP_NAME
 - [ ] 기타 필요한 환경 변수
@@ -107,11 +115,13 @@
 ## 📝 로그 확인
 
 ### Vercel 배포 로그
+
 - Build Logs 확인
 - Function Logs 확인
 - Error Logs 확인
 
 ### GitHub Actions 로그
+
 - Workflow 실행 상태
 - Step별 실행 결과
 - Error 메시지 분석

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useParams } from 'next/navigation';
-import CommonShell from '@/components/CommonShell';
+import { ProjectLayout } from '@/components/lca/templates/ProjectLayout';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
@@ -11,13 +11,11 @@ const ProjectScopePage: React.FC = () => {
   const projectId = params.projectId as string;
 
   return (
-    <CommonShell>
+    <ProjectLayout
+      title='프로젝트 스코프'
+      description='LCA 분석의 목적과 범위를 정의하세요'
+    >
       <div className='space-y-6'>
-        <div className='flex flex-col gap-3'>
-          <h1 className='stitch-h1 text-3xl font-bold'>프로젝트 스코프</h1>
-          <p className='stitch-caption'>프로젝트 ID: {projectId}</p>
-        </div>
-
         <div className='stitch-card p-6'>
           <h2 className='stitch-h1 text-xl font-semibold mb-4'>
             분석 범위 설정
@@ -76,7 +74,7 @@ const ProjectScopePage: React.FC = () => {
           </div>
         </div>
       </div>
-    </CommonShell>
+    </ProjectLayout>
   );
 };
 

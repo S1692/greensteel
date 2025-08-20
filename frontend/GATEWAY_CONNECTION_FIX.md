@@ -3,6 +3,7 @@
 ## 🚨 **문제 상황**
 
 프론트엔드에서 Gateway 연결 시 503 오류가 발생하고 있습니다:
+
 ```
 Failed to load resource: the server responded with a status of 503
 Gateway 연결 오류: Request failed with status code 503
@@ -11,6 +12,7 @@ Gateway 연결 오류: Request failed with status code 503
 ## 🔍 **원인 분석**
 
 ### **503 Service Unavailable 오류**
+
 - Gateway 서비스가 실행되지 않음
 - 프로덕션 환경에서 Gateway URL 설정 오류
 - CORS 설정 문제
@@ -20,6 +22,7 @@ Gateway 연결 오류: Request failed with status code 503
 ### **⚠️ 중요: 올바른 Gateway 엔드포인트**
 
 Railway에 배포된 Gateway의 올바른 엔드포인트:
+
 - **잘못된 경로**: `/gateway/health` → 503 오류
 - **올바른 경로**: `/health` → 200 OK
 

@@ -279,7 +279,7 @@
   --text-2: #c3c8cf;
   --text-muted: #8b94a5;
 
-  --primary: #2f6bff;       /* login button blue */
+  --primary: #2f6bff; /* login button blue */
   --primary-600: #2456d1;
   --primary-700: #1e49b5;
 
@@ -290,20 +290,28 @@
   --focus: rgba(47, 107, 255, 0.35);
 
   /* Radii & spacing */
-  --radius-card: 16px;      /* ~rounded-2xl */
+  --radius-card: 16px; /* ~rounded-2xl */
   --radius-input: 12px;
   --radius-button: 12px;
 
   /* Shadows */
-  --shadow-card: 0 10px 30px rgba(0,0,0,.35);
+  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.35);
   --shadow-focus: 0 0 0 3px var(--focus);
 }
 
 /* App background: subtle radial/linear mix */
 .stitch-bg {
   background:
-    radial-gradient(1200px 600px at 20% -10%, rgba(47,107,255,.15), transparent 60%),
-    radial-gradient(800px 400px at 80% 110%, rgba(47,107,255,.12), transparent 60%),
+    radial-gradient(
+      1200px 600px at 20% -10%,
+      rgba(47, 107, 255, 0.15),
+      transparent 60%
+    ),
+    radial-gradient(
+      800px 400px at 80% 110%,
+      rgba(47, 107, 255, 0.12),
+      transparent 60%
+    ),
     linear-gradient(180deg, var(--bg-grad-1), var(--bg-grad-2));
   color: var(--text-1);
 }
@@ -336,7 +344,7 @@
   width: 100%;
   padding: 10px 12px;
   background: #151a22;
-  border: 1px solid rgba(255,255,255,.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-input);
   color: var(--text-1);
   outline: none;
@@ -360,36 +368,50 @@
   font-weight: 600;
   border: 1px solid transparent;
   outline: none;
-  transition: transform .02s ease, box-shadow .15s ease, background-color .15s ease, border-color .15s ease;
+  transition:
+    transform 0.02s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
 }
-.stitch-btn:active { transform: translateY(1px); }
-.stitch-btn:focus-visible { box-shadow: var(--shadow-focus); }
+.stitch-btn:active {
+  transform: translateY(1px);
+}
+.stitch-btn:focus-visible {
+  box-shadow: var(--shadow-focus);
+}
 
 /* Primary */
 .stitch-btn--primary {
   background: var(--primary);
   color: white;
 }
-.stitch-btn--primary:hover { background: var(--primary-600); }
-.stitch-btn--primary:active { background: var(--primary-700); }
+.stitch-btn--primary:hover {
+  background: var(--primary-600);
+}
+.stitch-btn--primary:active {
+  background: var(--primary-700);
+}
 
 /* Outline (secondary) */
 .stitch-btn--outline {
   background: transparent;
-  border-color: rgba(255,255,255,.12);
+  border-color: rgba(255, 255, 255, 0.12);
   color: var(--text-1);
 }
 .stitch-btn--outline:hover {
-  background: rgba(255,255,255,.04);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 /* Ghost (tertiary / subtle) */
 .stitch-btn--ghost {
   background: #0f141b;
   color: var(--text-1);
-  border-color: rgba(255,255,255,.06);
+  border-color: rgba(255, 255, 255, 0.06);
 }
-.stitch-btn--ghost:hover { background: #121923; }
+.stitch-btn--ghost:hover {
+  background: #121923;
+}
 
 /* Success call-out (e.g., '데이터 수집 바로가기') */
 .stitch-btn--success-soft {
@@ -405,7 +427,7 @@
 .stitch-section {
   margin-top: 24px;
   padding-top: 24px;
-  border-top: 1px solid rgba(255,255,255,.08);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 .stitch-caption {
   color: var(--text-muted);

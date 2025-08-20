@@ -1,16 +1,17 @@
 import os
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request, Response, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from contextlib import asynccontextmanager
 import time
+import httpx
 
 from .domain.proxy import ProxyController
 from .common.utility.logger import gateway_logger
 
 # 환경변수에서 설정 가져오기 (기본값 포함)
 GATEWAY_NAME = os.getenv("GATEWAY_NAME", "greensteel-gateway")
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "https://greensteel.site,https://www.greensteel.site")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "https://greensteel.site,https://www.greensteel.site,http://localhost:3000")
 ALLOWED_ORIGIN_REGEX = os.getenv("ALLOWED_ORIGIN_REGEX", "^https://.*\\.vercel\\.app$|^https://.*\\.up\\.railway\\.app$")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
@@ -71,6 +72,46 @@ async def add_process_time_header(request: Request, call_next):
 async def health_check():
     """게이트웨이 헬스체크 - DDD 도메인 서비스 상태"""
     return proxy_controller.health_check()
+
+# JSON 데이터를 datagather_service로 전송하는 엔드포인트
+@app.post("/process-data")
+async def process_data_to_datagather(data: dict):
+    """프론트엔드에서 받은 JSON 데이터를 datagather_service로 전달합니다."""
+    try:
+        gateway_logger.log_info(f"JSON 데이터 처리 요청 받음: {data.get('filename', 'unknown')}")
+        
+        # datagather_service로 JSON 데이터 전송 (포트 8083)
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                "http://localhost:8083/process-data",
+                json=data
+            )
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                gateway_logger.log_info(f"datagather_service로 데이터 전송 성공: {data.get('filename', 'unknown')}")
+                
+                return {
+                    "message": "게이트웨이를 통해 datagather_service로 전송 성공",
+                    "status": "success",
+                    "data": response_data
+                }
+            else:
+                gateway_logger.log_error(f"datagather_service 응답 오류: {response.status_code}")
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"datagather_service 오류: {response.text}"
+                )
+                
+    except httpx.TimeoutException:
+        gateway_logger.log_error("datagather_service 연결 시간 초과")
+        raise HTTPException(status_code=504, detail="서비스 연결 시간 초과")
+    except httpx.ConnectError:
+        gateway_logger.log_error("datagather_service 연결 실패")
+        raise HTTPException(status_code=503, detail="datagather_service에 연결할 수 없습니다")
+    except Exception as e:
+        gateway_logger.log_error(f"게이트웨이 처리 중 오류 발생: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"게이트웨이 오류: {str(e)}")
 
 # 서비스 상태 확인 엔드포인트
 @app.get("/status")
@@ -189,7 +230,7 @@ async def internal_error_handler(request: Request, exc):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
-        "main:app",
+        "app.main:app",
         host="0.0.0.0",
         port=8080,
         reload=False,

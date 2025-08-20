@@ -4,7 +4,6 @@ import Script from 'next/script';
 import './globals.css';
 import PWAInstallBanner from '@/components/PWAInstallBanner';
 import OfflineIndicator from '@/components/OfflineIndicator';
-import Navigation from '@/components/Navigation';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -89,9 +88,6 @@ export default function RootLayout({
         {/* PWA Components */}
         <OfflineIndicator />
         <PWAInstallBanner />
-
-        {/* Navigation */}
-        <Navigation />
 
         {children}
       </body>

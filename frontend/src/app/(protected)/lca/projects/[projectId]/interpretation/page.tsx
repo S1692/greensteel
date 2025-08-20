@@ -10,6 +10,11 @@ import {
   BarChart3,
 } from 'lucide-react';
 
+// lcaRoute 함수 정의
+const lcaRoute = (
+  projectId: string,
+  leaf: 'scope' | 'lci' | 'lcia' | 'interpretation' | 'report'
+) => `/lca/projects/${projectId}/${leaf}`;
 
 // Placeholder Chart Component
 const PlaceholderChart = ({

@@ -226,10 +226,21 @@ export default function ProcessManager() {
           selectFlow(parsedFlows[0]);
         }
       } catch (error) {
-        console.error('저장된 플로우 로드 실패:', error);
+        // 개발 환경에서만 에러 로그 출력
+        if (process.env.NODE_ENV === 'development') {
+          console.error('저장된 플로우 로드 실패:', error);
+        }
       }
     }
   }, []);
+
+  // selectedFlow가 변경될 때 자동으로 선택
+  useEffect(() => {
+    if (selectedFlow) {
+      setNodes(selectedFlow.nodes);
+      setEdges(selectedFlow.edges);
+    }
+  }, [selectedFlow, setNodes, setEdges]);
 
   // ============================================================================
   // 🎯 플로우 저장

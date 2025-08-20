@@ -65,12 +65,7 @@ export default function LandingPage() {
         <h1 className='stitch-h1 text-3xl font-semibold text-center'>
           GreenSteel
         </h1>
-        <p
-          className='text-center text-[13px] mt-1'
-          style={{ color: 'var(--text-muted)' }}
-        >
-          로그인
-        </p>
+        <p className='stitch-caption text-center mt-1'>로그인</p>
 
         <form onSubmit={handleSubmit} className='space-y-4 mt-6'>
           <div>
@@ -99,41 +94,31 @@ export default function LandingPage() {
 
           {error && <p className='stitch-error mt-1'>{error.message}</p>}
 
-          <Button className='mt-2 w-full' disabled={isLoading}>
+          <Button className='mt-2' disabled={isLoading}>
             {isLoading ? '로그인 중...' : '로그인'}
           </Button>
         </form>
 
-        <div className='mt-6 pt-6 border-t border-gray-200'>
-          <p className='text-center text-sm text-gray-600 mb-4'>또는</p>
+        <div className='stitch-section'>
+          <p className='stitch-caption text-center mb-4'>또는</p>
 
           <div className='space-y-3'>
-            <Button onClick={handleEnter} className='w-full'>
-              들어가기
-            </Button>
+            <Button onClick={handleEnter}>들어가기</Button>
 
-            <Button
-              onClick={handleRegister}
-              variant='outline'
-              className='w-full'
-            >
+            <Button onClick={handleRegister} variant='outline'>
               회원가입
             </Button>
 
             <Button
-              onClick={() => router.push('/data-collection')}
-              variant='outline'
-              className='w-full bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+              onClick={() => router.push('/data-upload')}
+              variant='successSoft'
             >
               데이터 수집 바로가기
             </Button>
           </div>
         </div>
 
-        <p
-          className='text-center mt-6 text-[13px]'
-          style={{ color: 'var(--text-muted)' }}
-        >
+        <p className='stitch-caption text-center mt-6'>
           GreenSteel은 LCA, CBAM, ESG 관리의 모든 것을 제공합니다
         </p>
       </div>

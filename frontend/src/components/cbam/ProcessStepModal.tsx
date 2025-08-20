@@ -3,68 +3,47 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { X, Save, Trash2 } from 'lucide-react';
+import { Node } from '@xyflow/react';
 
-// ============================================================================
-// 🎯 프로세스 단계 타입 정의
-// ============================================================================
-
-interface ProcessStep {
-  id: string;
+interface ProcessStepData extends Record<string, unknown> {
   name: string;
   type: 'input' | 'process' | 'output';
   description: string;
   parameters: Record<string, any>;
-  position: { x: number; y: number };
-  connections: string[];
   status: 'active' | 'inactive' | 'error';
 }
 
 interface ProcessStepModalProps {
   isOpen: boolean;
   onClose: () => void;
-  step: ProcessStep | null;
-  onSave: (step: ProcessStep) => void;
+  node: Node<ProcessStepData> | null;
+  onSave: (data: ProcessStepData) => void;
 }
-
-// ============================================================================
-// 🎯 프로세스 단계 편집 모달
-// ============================================================================
 
 export default function ProcessStepModal({
   isOpen,
   onClose,
-  step,
+  node,
   onSave,
 }: ProcessStepModalProps) {
-  const [formData, setFormData] = useState<ProcessStep>({
-    id: '',
+  const [formData, setFormData] = useState<ProcessStepData>({
     name: '',
     type: 'process',
     description: '',
     parameters: {},
-    position: { x: 0, y: 0 },
-    connections: [],
     status: 'active',
   });
 
   const [newParameterKey, setNewParameterKey] = useState('');
   const [newParameterValue, setNewParameterValue] = useState('');
 
-  // ============================================================================
-  // 🎯 폼 데이터 초기화
-  // ============================================================================
-
   useEffect(() => {
-    if (step) {
-      setFormData(step);
+    if (node) {
+      setFormData(node.data);
     }
-  }, [step]);
+  }, [node]);
 
-  // ============================================================================
-  // 🎯 폼 필드 변경 처리
-  // ============================================================================
-
-  const handleInputChange = (field: keyof ProcessStep, value: any) => {
+  const handleInputChange = (field: keyof ProcessStepData, value: any) => {
     setFormData(prev => ({
       ...prev,
       [field]: value,
@@ -92,10 +71,6 @@ export default function ProcessStepModal({
     });
   };
 
-  // ============================================================================
-  // 🎯 새 파라미터 추가
-  // ============================================================================
-
   const addParameter = () => {
     if (newParameterKey.trim() && newParameterValue.trim()) {
       handleParameterChange(newParameterKey.trim(), newParameterValue.trim());
@@ -104,28 +79,17 @@ export default function ProcessStepModal({
     }
   };
 
-  // ============================================================================
-  // 🎯 폼 제출 처리
-  // ============================================================================
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave(formData);
   };
 
-  // ============================================================================
-  // 🎯 모달 닫기
-  // ============================================================================
-
   const handleClose = () => {
     setFormData({
-      id: '',
       name: '',
       type: 'process',
       description: '',
       parameters: {},
-      position: { x: 0, y: 0 },
-      connections: [],
       status: 'active',
     });
     setNewParameterKey('');
@@ -141,7 +105,7 @@ export default function ProcessStepModal({
         {/* 모달 헤더 */}
         <div className='flex items-center justify-between p-6 border-b border-gray-200'>
           <h2 className='text-xl font-semibold text-gray-900'>
-            {step ? '프로세스 단계 편집' : '새 프로세스 단계'}
+            {node ? '프로세스 단계 편집' : '새 프로세스 단계'}
           </h2>
           <button
             onClick={handleClose}
@@ -196,43 +160,6 @@ export default function ProcessStepModal({
               className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent'
               placeholder='단계에 대한 설명을 입력하세요'
             />
-          </div>
-
-          {/* 위치 정보 */}
-          <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
-                X 좌표
-              </label>
-              <input
-                type='number'
-                value={formData.position.x}
-                onChange={e =>
-                  handleInputChange('position', {
-                    ...formData.position,
-                    x: parseInt(e.target.value) || 0,
-                  })
-                }
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent'
-              />
-            </div>
-
-            <div>
-              <label className='block text-sm font-medium text-gray-700 mb-2'>
-                Y 좌표
-              </label>
-              <input
-                type='number'
-                value={formData.position.y}
-                onChange={e =>
-                  handleInputChange('position', {
-                    ...formData.position,
-                    y: parseInt(e.target.value) || 0,
-                  })
-                }
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent'
-              />
-            </div>
           </div>
 
           {/* 상태 */}

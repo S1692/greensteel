@@ -13,6 +13,7 @@ import {
   BarChart3,
   FileText,
 } from 'lucide-react';
+import { ProcessFlowCanvas } from '@/components/cbam/ProcessFlowCanvas';
 
 // ============================================================================
 // 🎯 CBAM 프로세스 플로우 페이지
@@ -212,29 +213,7 @@ export default function CBAMPage() {
 
       {/* 플로우 캔버스 */}
       <div className='flex-1 stitch-card p-6'>
-        <div className='h-full bg-gradient-to-br from-blue-50/10 to-green-50/10 rounded-lg border border-white/10 flex items-center justify-center'>
-          <div className='text-center space-y-4'>
-            <GitBranch className='h-16 w-16 text-white/40 mx-auto' />
-            <div>
-              <h3 className='stitch-h1 text-lg font-medium text-white/60'>
-                프로세스 플로우 캔버스
-              </h3>
-              <p className='stitch-caption text-white/40'>
-                CBAM 프로세스를 시각적으로 설계하고 관리하세요
-              </p>
-            </div>
-            <div className='flex gap-3 justify-center'>
-              <Button variant='outline' className='px-3 py-2 text-sm'>
-                <Plus className='h-4 w-4 mr-2' />
-                노드 추가
-              </Button>
-              <Button variant='outline' className='px-3 py-2 text-sm'>
-                <Zap className='h-4 w-4 mr-2' />
-                연결선 그리기
-              </Button>
-            </div>
-          </div>
-        </div>
+        <ProcessFlowCanvas />
       </div>
 
       {/* 플로우 상태 바 */}

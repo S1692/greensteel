@@ -97,7 +97,8 @@ const nextConfig = {
       // 모든 API 요청을 Gateway로 라우팅 (우선순위 높음)
       {
         source: '/api/:path*',
-        destination: 'https://gateway-production-da31.up.railway.app/api/:path*',
+        destination:
+          'https://gateway-production-da31.up.railway.app/api/:path*',
       },
       // Gateway 직접 접근
       {

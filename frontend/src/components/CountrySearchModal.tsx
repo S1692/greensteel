@@ -43,8 +43,9 @@ export default function CountrySearchModal({
     setError(null);
 
     try {
+      // 새로운 sitemap API 사용
       const response = await fetch(
-        `/api/v1/countries/search?query=${encodeURIComponent(query)}&limit=20`
+        `/api/sitemap?q=${encodeURIComponent(query)}&page=1&limit=20`
       );
 
       if (!response.ok) {
@@ -52,7 +53,21 @@ export default function CountrySearchModal({
       }
 
       const data = await response.json();
-      setCountries(data.countries || []);
+      
+      // sitemap 응답 형식에 맞게 데이터 변환
+      if (data.items && Array.isArray(data.items)) {
+        // sitemap 응답을 Country 형식으로 변환
+        const transformedCountries: Country[] = data.items.map((item: any) => ({
+          id: parseInt(item.id),
+          code: item.url.split('/').pop() || item.id, // URL에서 코드 추출
+          country_name: item.title, // korean_name을 title로 받음
+          korean_name: item.title,  // korean_name을 title로 받음
+          unlocode: null // sitemap에서는 unlocode 정보가 없음
+        }));
+        setCountries(transformedCountries);
+      } else {
+        setCountries([]);
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.'

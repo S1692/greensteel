@@ -318,6 +318,8 @@ class ProxyController:
         
         # 디버깅을 위한 URL 로깅
         gateway_logger.log_info(f"Proxying {method} {path} to: {target_url}")
+        gateway_logger.log_info(f"Request headers: {dict(request.headers)}")
+        gateway_logger.log_info(f"Query parameters: {request.url.query}")
         
         # 헤더 준비
         headers = self.prepare_headers(request)
@@ -339,6 +341,8 @@ class ProxyController:
                 # 응답 로깅
                 response_time = time.time() - start_time
                 gateway_logger.log_response(method, path, response.status_code, response_time)
+                gateway_logger.log_info(f"Response status: {response.status_code}")
+                gateway_logger.log_info(f"Response headers: {dict(response.headers)}")
                 
                 # 응답 반환
                 return Response(

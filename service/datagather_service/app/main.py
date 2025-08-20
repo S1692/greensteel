@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from typing import Dict, Any
 
 from app.common.settings import settings
 
@@ -45,6 +46,31 @@ def create_app() -> FastAPI:
             "name": settings.SERVICE_NAME,
             "timestamp": "2024-01-01T00:00:00Z"
         }
+    
+    # JSON 데이터 처리 엔드포인트
+    @app.post("/process-data")
+    async def process_data(data: dict):
+        """JSON 형태의 데이터를 받아서 처리합니다."""
+        try:
+            print(f"JSON 데이터 처리 요청 받음: {data.get('filename', 'unknown')}, 행 수: {len(data.get('data', []))}")
+            
+            # 여기에 향후 AI 모델 처리 로직이 들어갈 예정
+            processed_data = {
+                "original_count": len(data.get('data', [])),
+                "processed_count": len(data.get('data', [])),
+                "status": "processed",
+                "message": "데이터가 성공적으로 처리되었습니다",
+                "filename": data.get('filename'),
+                "rows_count": data.get('rows_count'),
+                "columns": data.get('columns'),
+                "shape": data.get('shape')
+            }
+            
+            return processed_data
+            
+        except Exception as e:
+            print(f"데이터 처리 중 오류 발생: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"데이터 처리 중 오류가 발생했습니다: {str(e)}")
     
     return app
 

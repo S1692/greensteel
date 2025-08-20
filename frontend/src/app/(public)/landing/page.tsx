@@ -119,6 +119,14 @@ export default function LandingPage() {
             >
               회원가입
             </Button>
+            
+            <Button
+              onClick={() => router.push('/data-collection')}
+              variant='outline'
+              className='w-full bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+            >
+              데이터 수집 바로가기
+            </Button>
           </div>
         </div>
 

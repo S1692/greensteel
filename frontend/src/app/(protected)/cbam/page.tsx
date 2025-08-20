@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import ConnectedReactFlow from '@/components/templates/ConnectedReactFlow';
 import ErrorBoundary from '@/components/templates/ErrorBoundary';
+import '@/styles/reactflow-theme.css';
 
 // ============================================================================
 // 🎯 CBAM 프로세스 플로우 페이지

@@ -16,170 +16,22 @@ import {
 } from '@xyflow/react';
 
 import { useCallback, useState, useEffect } from 'react';
-import { Button } from '@/components/ui/Button';
-import {
-  Plus,
-  Zap,
-  Trash2,
-  Save,
-  Download,
-  Upload,
-  RotateCcw,
-  FileText,
-  Database,
-  ArrowRight,
-} from 'lucide-react';
+import { AnnotationNode } from '@/components/atoms/AnnotationNode';
+import NodeWrapper from '@/components/atoms/NodeWrapper';
+import { ProcessNode } from '@/components/atoms/ProcessNode';
+import { InputNode } from '@/components/atoms/InputNode';
+import { OutputNode } from '@/components/atoms/OutputNode';
+import { useReactFlowAPI } from '@/hooks/useReactFlowAPI';
+import type { Node, Edge } from '@xyflow/react';
 
 import '@xyflow/react/dist/style.css';
 
-// ============================================================================
-// 🎯 노드 타입 정의
-// ============================================================================
-
-interface CBAMNodeData {
-  label: string;
-  description?: string;
-  variant?: 'default' | 'primary' | 'success' | 'warning' | 'danger';
-  size?: 'sm' | 'md' | 'lg';
-  carbonIntensity?: number; // kg CO2/t
-  energyConsumption?: number; // kWh/t
-  processType?: 'input' | 'process' | 'output';
-}
-
-interface CBAMNode {
-  id: string;
-  type: string;
-  position: { x: number; y: number };
-  data: CBAMNodeData & Record<string, unknown>;
-  sourcePosition?: Position;
-  targetPosition?: Position;
-  selectable?: boolean;
-  draggable?: boolean;
-}
-
-interface CBAMEdge {
-  id: string;
-  source: string;
-  target: string;
-  type?: string;
-  data?: {
-    label?: string;
-    flowType?: 'material' | 'energy' | 'emission';
-    quantity?: number;
-    unit?: string;
-  };
-}
-
-// ============================================================================
-// 🎯 커스텀 노드 컴포넌트들
-// ============================================================================
-
-const ProcessNode: React.FC<{ data: CBAMNodeData }> = ({ data }) => {
-  const getVariantStyle = () => {
-    switch (data.variant) {
-      case 'primary':
-        return 'bg-blue-500/20 border-blue-500/50 text-blue-300';
-      case 'success':
-        return 'bg-green-500/20 border-green-500/50 text-green-300';
-      case 'warning':
-        return 'bg-yellow-500/20 border-yellow-500/50 text-yellow-300';
-      case 'danger':
-        return 'bg-red-500/20 border-red-500/50 text-red-300';
-      default:
-        return 'bg-gray-500/20 border-gray-500/50 text-gray-300';
-    }
-  };
-
-  return (
-    <div
-      className={`p-4 rounded-lg border-2 ${getVariantStyle()} min-w-[200px]`}
-    >
-      <div className='font-semibold text-center mb-2'>{data.label}</div>
-      {data.description && (
-        <div className='text-xs text-center opacity-80 mb-2'>
-          {data.description}
-        </div>
-      )}
-      {data.carbonIntensity && (
-        <div className='text-xs text-center opacity-70'>
-          탄소집약도: {data.carbonIntensity} kg CO₂/t
-        </div>
-      )}
-      {data.energyConsumption && (
-        <div className='text-xs text-center opacity-70'>
-          에너지: {data.energyConsumption} kWh/t
-        </div>
-      )}
-    </div>
-  );
-};
-
-const InputNode: React.FC<{ data: CBAMNodeData }> = ({ data }) => {
-  return (
-    <div className='p-4 rounded-lg border-2 bg-blue-500/20 border-blue-500/50 text-blue-300 min-w-[200px]'>
-      <div className='font-semibold text-center mb-2'>📥 {data.label}</div>
-      {data.description && (
-        <div className='text-xs text-center opacity-80 mb-2'>
-          {data.description}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const OutputNode: React.FC<{ data: CBAMNodeData }> = ({ data }) => {
-  return (
-    <div className='p-4 rounded-lg border-2 bg-purple-500/20 border-purple-500/50 text-purple-300 min-w-[200px]'>
-      <div className='font-semibold text-center mb-2'>📤 {data.label}</div>
-      {data.description && (
-        <div className='text-xs text-center opacity-80 mb-2'>
-          {data.description}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const AnnotationNode: React.FC<{ data: CBAMNodeData }> = ({ data }) => {
-  return (
-    <div className='p-3 rounded-lg border-2 bg-yellow-500/20 border-yellow-500/50 text-yellow-300 min-w-[150px]'>
-      <div className='text-sm text-center'>💬 {data.label}</div>
-    </div>
-  );
-};
-
 const nodeTypes = {
+  annotation: AnnotationNode,
   process: ProcessNode,
   input: InputNode,
   output: OutputNode,
-  annotation: AnnotationNode,
 };
-
-// ============================================================================
-// 🎯 뷰포트 정보 표시 컴포넌트
-// ============================================================================
-
-function ViewportWithAnnotation() {
-  const viewport = useViewport();
-
-  return (
-    <div
-      style={{
-        fontFamily: 'monospace',
-        background: 'rgba(255, 255, 255, 0.9)',
-        padding: '8px',
-        borderRadius: '6px',
-        border: '1px solid #ddd',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        fontSize: '12px',
-      }}
-    >
-      <div>x: {viewport.x.toFixed(2)}</div>
-      <div>y: {viewport.y.toFixed(2)}</div>
-      <div>zoom: {viewport.zoom.toFixed(2)}</div>
-    </div>
-  );
-}
 
 // ============================================================================
 // 🎯 Props 인터페이스
@@ -192,18 +44,55 @@ interface ConnectedReactFlowProps {
 }
 
 // ============================================================================
+// 🎯 뷰포트 정보 표시 컴포넌트
+// ============================================================================
+
+function ViewportWithAnnotation() {
+  const viewport = useViewport();
+
+  return (
+    <>
+      <NodeWrapper bottom={0} left={90} width={420}>
+        <AnnotationNode
+          data={{
+            label:
+              'The viewport is defined by x, y and zoom, which is the transform & scale applied to the flow.',
+          }}
+        />
+      </NodeWrapper>
+      <div
+        style={{
+          fontFamily: 'monospace',
+          background: 'white',
+          padding: '8px',
+          borderRadius: '6px',
+          border: '1px solid #ddd',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        }}
+      >
+        <div style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+          <div>x: {viewport.x.toFixed(2)}</div>
+          <div>y: {viewport.y.toFixed(2)}</div>
+          <div>zoom: {viewport.zoom.toFixed(2)}</div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ============================================================================
 // 🎯 메인 플로우 컴포넌트
 // ============================================================================
 
 function Flow({ flowId, autoSave, saveInterval }: ConnectedReactFlowProps) {
-  const [nodes, setNodes] = useState<CBAMNode[]>([]);
-  const [edges, setEdges] = useState<CBAMEdge[]>([]);
+  const [nodes, setNodes] = useState<Node[]>([]);
+  const [edges, setEdges] = useState<Edge[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
   const connection = useConnection();
+  const flowAPI = useReactFlowAPI();
 
   // ============================================================================
   // 🎯 초기 데이터 로드
@@ -217,7 +106,7 @@ function Flow({ flowId, autoSave, saveInterval }: ConnectedReactFlowProps) {
 
       if (!flowId) {
         // 플로우 ID가 없으면 새 플로우 생성 (초기 노드만)
-        const initialNodes: CBAMNode[] = [
+        const initialNodes = [
           {
             id: '1-1',
             type: 'process',
@@ -225,8 +114,6 @@ function Flow({ flowId, autoSave, saveInterval }: ConnectedReactFlowProps) {
               label: '시작 프로세스',
               description: '프로세스 시작점',
               variant: 'primary',
-              carbonIntensity: 0,
-              energyConsumption: 0,
             },
             position: { x: 150, y: 100 },
           },
@@ -235,24 +122,14 @@ function Flow({ flowId, autoSave, saveInterval }: ConnectedReactFlowProps) {
         setNodes(initialNodes);
         setEdges([]);
       } else {
-        // 기존 플로우 로드 (실제 구현 시 API 호출)
+        // 기존 플로우 로드
         try {
-          // 임시로 기본 노드 설정
-          setNodes([
-            {
-              id: '1-1',
-              type: 'process',
-              data: {
-                label: '기존 프로세스',
-                description: '로드된 프로세스',
-                variant: 'primary',
-                carbonIntensity: 0,
-                energyConsumption: 0,
-              },
-              position: { x: 150, y: 100 },
-            },
-          ]);
-          setEdges([]);
+          const flowState = await flowAPI.getFlowState(flowId);
+          if (flowState) {
+            const converted = flowAPI.convertBackendToFrontend(flowState);
+            setNodes(converted.nodes);
+            setEdges(converted.edges);
+          }
         } catch (error) {
           console.error('플로우 로드 실패:', error);
           // 에러 발생 시 기본 노드로 초기화
@@ -264,8 +141,6 @@ function Flow({ flowId, autoSave, saveInterval }: ConnectedReactFlowProps) {
                 label: '시작 프로세스',
                 description: '프로세스 시작점',
                 variant: 'primary',
-                carbonIntensity: 0,
-                energyConsumption: 0,
               },
               position: { x: 150, y: 100 },
             },
@@ -277,7 +152,7 @@ function Flow({ flowId, autoSave, saveInterval }: ConnectedReactFlowProps) {
     };
 
     loadFlowData();
-  }, [flowId]);
+  }, [flowId]); // flowAPI 제거 - 무한 루프 방지
 
   // ============================================================================
   // 🎯 자동 저장 기능
@@ -287,46 +162,59 @@ function Flow({ flowId, autoSave, saveInterval }: ConnectedReactFlowProps) {
     if (!flowId || !hasUnsavedChanges) return;
 
     try {
-      const viewport = { x: 0, y: 0, zoom: 1 };
-      // 실제 구현 시 API 호출
-      console.log('플로우 저장:', { flowId, nodes, edges, viewport });
+      const viewport = { x: 0, y: 0, zoom: 1 }; // 실제로는 현재 뷰포트 값 사용
+      const success = await flowAPI.saveFlowState(
+        flowId,
+        nodes,
+        edges,
+        viewport
+      );
 
-      setLastSaved(new Date());
-      setHasUnsavedChanges(false);
+      if (success) {
+        setLastSaved(new Date());
+        setHasUnsavedChanges(false);
+      }
     } catch (error) {
       console.error('저장 실패:', error);
     }
-  }, [flowId, nodes, edges, hasUnsavedChanges]);
+  }, [flowId, nodes, edges, hasUnsavedChanges]); // flowAPI 제거
 
   // 자동 저장 인터벌
   useEffect(() => {
     if (!autoSave || !saveInterval) return;
 
     const interval = setInterval(() => {
+      // 직접 호출하여 의존성 문제 방지
       if (flowId && hasUnsavedChanges) {
-        saveToBackend();
+        const viewport = { x: 0, y: 0, zoom: 1 };
+        flowAPI.saveFlowState(flowId, nodes, edges, viewport).then(success => {
+          if (success) {
+            setLastSaved(new Date());
+            setHasUnsavedChanges(false);
+          }
+        });
       }
     }, saveInterval);
 
     return () => clearInterval(interval);
-  }, [autoSave, saveInterval, flowId, hasUnsavedChanges, saveToBackend]);
+  }, [autoSave, saveInterval, flowId, hasUnsavedChanges]); // 구체적인 값들만 의존성으로
 
   // ============================================================================
   // 🎯 노드/엣지 변경 핸들러
   // ============================================================================
 
   const onNodesChange = useCallback((changes: any) => {
-    setNodes(prev => applyNodeChanges(changes, prev) as unknown as CBAMNode[]);
+    setNodes(prev => applyNodeChanges(changes, prev));
     setHasUnsavedChanges(true);
   }, []);
 
   const onEdgesChange = useCallback((changes: any) => {
-    setEdges(prev => applyEdgeChanges(changes, prev) as unknown as CBAMEdge[]);
+    setEdges(prev => applyEdgeChanges(changes, prev));
     setHasUnsavedChanges(true);
   }, []);
 
   const onConnect = useCallback((connection: any) => {
-    setEdges(prev => addEdge(connection, prev) as unknown as CBAMEdge[]);
+    setEdges(prev => addEdge(connection, prev));
     setHasUnsavedChanges(true);
   }, []);
 
@@ -343,14 +231,16 @@ function Flow({ flowId, autoSave, saveInterval }: ConnectedReactFlowProps) {
         const nodeExists = prevNodes.some(
           node => node.id === 'connection-annotation'
         );
-        const connectionAnnotation: CBAMNode = {
+        const connectionAnnotation = {
           id: 'connection-annotation',
           type: 'annotation',
           selectable: false,
           data: {
-            label: '연결 중...',
+            label: 'this is a "connection"',
+            arrowStyle: 'arrow-top-left',
           },
           position: nodePosition,
+          hidden: Math.abs(to.y - from.y) < 25 && Math.abs(to.x - from.x) < 25,
         };
 
         if (nodeExists) {
@@ -383,7 +273,7 @@ function Flow({ flowId, autoSave, saveInterval }: ConnectedReactFlowProps) {
         | 'warning'
         | 'danger' = 'default'
     ) => {
-      const newNode: CBAMNode = {
+      const newNode = {
         id: `node-${Date.now()}`,
         type: 'process',
         position: {
@@ -391,26 +281,30 @@ function Flow({ flowId, autoSave, saveInterval }: ConnectedReactFlowProps) {
           y: Math.random() * 200 + 100,
         },
         data: {
-          label: `프로세스 ${Date.now()}`,
+          label: `프로세스 ${Date.now()}`, // nodes 의존성 제거
           description: '새로운 프로세스 노드',
           variant: nodeType,
           size: 'md',
-          carbonIntensity: Math.floor(Math.random() * 1000),
-          energyConsumption: Math.floor(Math.random() * 500),
+          // 🎯 다양한 핸들 설정 예시
+          targetPosition:
+            nodeType === 'primary'
+              ? [Position.Left, Position.Top]
+              : Position.Top,
+          sourcePosition:
+            nodeType === 'danger'
+              ? [Position.Right, Position.Bottom]
+              : Position.Bottom,
         },
-        targetPosition: nodeType === 'primary' ? Position.Left : Position.Top,
-        sourcePosition:
-          nodeType === 'danger' ? Position.Right : Position.Bottom,
       };
 
       setNodes(prev => [...prev, newNode]);
       setHasUnsavedChanges(true);
     },
     []
-  );
+  ); // 의존성 배열 비우기
 
   const addAnnotationNode = useCallback(async () => {
-    const newNode: CBAMNode = {
+    const newNode = {
       id: `annotation-${Date.now()}`,
       type: 'annotation',
       draggable: true,
@@ -420,7 +314,8 @@ function Flow({ flowId, autoSave, saveInterval }: ConnectedReactFlowProps) {
         y: Math.random() * 200 + 100,
       },
       data: {
-        label: `어노테이션 ${Date.now()}`,
+        label: `어노테이션 ${Date.now()}`, // nodes 의존성 제거
+        arrowStyle: 'arrow-bottom-right',
       },
     };
 
@@ -437,7 +332,7 @@ function Flow({ flowId, autoSave, saveInterval }: ConnectedReactFlowProps) {
         | 'warning'
         | 'danger' = 'default'
     ) => {
-      const newNode: CBAMNode = {
+      const newNode = {
         id: `input-${Date.now()}`,
         type: 'input',
         position: {
@@ -445,11 +340,11 @@ function Flow({ flowId, autoSave, saveInterval }: ConnectedReactFlowProps) {
           y: Math.random() * 200 + 100,
         },
         data: {
-          label: `입력 ${Date.now()}`,
+          label: `입력 ${Date.now()}`, // nodes 의존성 제거
           description: '데이터 입력점',
           variant,
+          sourcePosition: Position.Right, // 입력 노드는 오른쪽으로 출력
         },
-        sourcePosition: Position.Right,
       };
 
       setNodes(prev => [...prev, newNode]);
@@ -467,7 +362,7 @@ function Flow({ flowId, autoSave, saveInterval }: ConnectedReactFlowProps) {
         | 'warning'
         | 'danger' = 'default'
     ) => {
-      const newNode: CBAMNode = {
+      const newNode = {
         id: `output-${Date.now()}`,
         type: 'output',
         position: {
@@ -475,11 +370,11 @@ function Flow({ flowId, autoSave, saveInterval }: ConnectedReactFlowProps) {
           y: Math.random() * 200 + 100,
         },
         data: {
-          label: `출력 ${Date.now()}`,
+          label: `출력 ${Date.now()}`, // nodes 의존성 제거
           description: '결과 출력점',
           variant,
+          targetPosition: Position.Left, // 출력 노드는 왼쪽에서 입력
         },
-        targetPosition: Position.Left,
       };
 
       setNodes(prev => [...prev, newNode]);
@@ -495,25 +390,6 @@ function Flow({ flowId, autoSave, saveInterval }: ConnectedReactFlowProps) {
       setHasUnsavedChanges(true);
     }
   }, []);
-
-  // ============================================================================
-  // 🎯 CBAM 계산 실행
-  // ============================================================================
-
-  const runCBAMCalculation = useCallback(() => {
-    const totalCarbonIntensity = nodes.reduce(
-      (sum, node) => sum + (node.data.carbonIntensity || 0),
-      0
-    );
-    const totalEnergyConsumption = nodes.reduce(
-      (sum, node) => sum + (node.data.energyConsumption || 0),
-      0
-    );
-
-    alert(
-      `CBAM 계산 결과:\n총 탄소집약도: ${totalCarbonIntensity} kg CO₂/t\n총 에너지 소비: ${totalEnergyConsumption} kWh/t`
-    );
-  }, [nodes]);
 
   // ============================================================================
   // 🎯 수동 저장
@@ -683,13 +559,6 @@ function Flow({ flowId, autoSave, saveInterval }: ConnectedReactFlowProps) {
                 }`}
               >
                 수동 저장
-              </button>
-
-              <button
-                onClick={runCBAMCalculation}
-                className='px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600'
-              >
-                CBAM 계산
               </button>
             </div>
           </div>

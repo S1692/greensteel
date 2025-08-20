@@ -1,25 +1,34 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from typing import Dict, Any
+import logging
+from datetime import datetime
 
 from app.common.settings import settings
 
+# 로깅 설정
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """애플리케이션 생명주기 관리"""
+    """애플리케이션 생명주기 관리 - DDD Architecture"""
     # 시작 시
-    print(f"Starting {settings.SERVICE_NAME}")
+    logger.info(f"DataGather Service starting up...")
+    logger.info("Domain: Data Collection & Processing")
+    logger.info("Architecture: DDD (Domain-Driven Design)")
     yield
     # 종료 시
-    print(f"Shutting down {settings.SERVICE_NAME}")
+    logger.info(f"DataGather Service shutting down...")
 
 def create_app() -> FastAPI:
-    """FastAPI 애플리케이션 팩토리"""
+    """FastAPI 애플리케이션 팩토리 - DDD Architecture"""
     
     # FastAPI 애플리케이션 생성
     app = FastAPI(
-        title="DataGather Service (Layered Architecture)",
-        description="레이어드 아키텍처를 적용한 데이터 수집 서비스",
+        title="DataGather Service - DDD Architecture",
+        description="ESG 데이터 수집 및 처리 도메인 서비스 - DDD 패턴 적용",
         version="1.0.0",
         lifespan=lifespan
     )
@@ -39,12 +48,55 @@ def create_app() -> FastAPI:
     # 헬스 체크 엔드포인트
     @app.get("/health")
     async def health_check():
-        """헬스 체크 엔드포인트"""
+        """헬스 체크 엔드포인트 - DDD 도메인 상태"""
         return {
             "status": "ok",
-            "name": settings.SERVICE_NAME,
-            "timestamp": "2024-01-01T00:00:00Z"
+            "service": "datagather",
+            "domain": "data-collection",
+            "architecture": "DDD (Domain-Driven Design)",
+            "timestamp": datetime.now().isoformat(),
+            "version": "1.0.0"
         }
+    
+    # 루트 경로
+    @app.get("/")
+    async def root():
+        """루트 경로 - DDD 도메인 정보"""
+        return {
+            "service": "DataGather Service",
+            "version": "1.0.0",
+            "domain": "Data Collection & Processing",
+            "architecture": "DDD (Domain-Driven Design)",
+            "endpoints": {
+                "health": "/health",
+                "process-data": "/process-data"
+            }
+        }
+    
+    # JSON 데이터 처리 엔드포인트
+    @app.post("/process-data")
+    async def process_data(data: dict):
+        """JSON 형태의 데이터를 받아서 처리합니다."""
+        try:
+            logger.info(f"JSON 데이터 처리 요청 받음: {data.get('filename', 'unknown')}, 행 수: {len(data.get('data', []))}")
+            
+            # 여기에 향후 AI 모델 처리 로직이 들어갈 예정
+            processed_data = {
+                "original_count": len(data.get('data', [])),
+                "processed_count": len(data.get('data', [])),
+                "status": "processed",
+                "message": "데이터가 성공적으로 처리되었습니다",
+                "filename": data.get('filename'),
+                "rows_count": data.get('rows_count'),
+                "columns": data.get('columns'),
+                "shape": data.get('shape')
+            }
+            
+            return processed_data
+            
+        except Exception as e:
+            logger.error(f"데이터 처리 중 오류 발생: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"데이터 처리 중 오류가 발생했습니다: {str(e)}")
     
     return app
 

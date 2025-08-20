@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { Search, X, MapPin } from 'lucide-react';
 import Button from '@/components/atoms/Button';
 import Input from '@/components/atoms/Input';
-import { env } from '@/lib/env';
 
 export interface Country {
   id: number;
@@ -44,32 +43,16 @@ export default function CountrySearchModal({
     setError(null);
 
     try {
-      // 절대 URL을 사용하여 게이트웨이를 통해 auth_service 호출
-      const baseUrl = env.NEXT_PUBLIC_GATEWAY_URL;
-      const url = new URL('/api/v1/countries/search', baseUrl);
-      url.searchParams.set('query', query);
-      url.searchParams.set('limit', '20');
-
-      const response = await fetch(url.toString(), {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        cache: 'no-store',
-      });
+      const response = await fetch(
+        `/api/v1/countries/search?query=${encodeURIComponent(query)}&limit=20`
+      );
 
       if (!response.ok) {
-        throw new Error(`국가 검색에 실패했습니다. (${response.status})`);
+        throw new Error('국가 검색에 실패했습니다.');
       }
 
       const data = await response.json();
-
-      // CountrySearchResponse 형식에 맞게 데이터 변환
-      if (data.countries && Array.isArray(data.countries)) {
-        setCountries(data.countries);
-      } else {
-        setCountries([]);
-      }
+      setCountries(data.countries || []);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.'

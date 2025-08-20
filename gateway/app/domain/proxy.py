@@ -18,9 +18,7 @@ class ProxyController:
             "/auth": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")),
             "/stream": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")),
             "/countries": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")),
-            "/api/v1/countries/search": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")),
             "/api/v1/countries": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")),
-            "/api/v1/auth": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")),
             "/api": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")),
             
             # ESG 관리 도메인
@@ -319,13 +317,7 @@ class ProxyController:
             target_url += f"?{request.url.query}"
         
         # 디버깅을 위한 URL 로깅
-        gateway_logger.log_info(f"=== PROXY REQUEST ===")
-        gateway_logger.log_info(f"Method: {method}")
-        gateway_logger.log_info(f"Path: {path}")
-        gateway_logger.log_info(f"Target Service: {target_service}")
-        gateway_logger.log_info(f"Final URL: {target_url}")
-        gateway_logger.log_info(f"Request headers: {dict(request.headers)}")
-        gateway_logger.log_info(f"Query parameters: {request.url.query}")
+        gateway_logger.log_info(f"Proxying {method} {path} to: {target_url}")
         
         # 헤더 준비
         headers = self.prepare_headers(request)
@@ -347,10 +339,6 @@ class ProxyController:
                 # 응답 로깅
                 response_time = time.time() - start_time
                 gateway_logger.log_response(method, path, response.status_code, response_time)
-                gateway_logger.log_info(f"=== PROXY RESPONSE ===")
-                gateway_logger.log_info(f"Status: {response.status_code}")
-                gateway_logger.log_info(f"Response headers: {dict(response.headers)}")
-                gateway_logger.log_info(f"Response time: {response_time:.3f}s")
                 
                 # 응답 반환
                 return Response(

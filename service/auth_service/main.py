@@ -7,12 +7,25 @@ from pydantic import ValidationError
 from app.common.settings import settings
 from app.common.logger import LoggingMiddleware, auth_logger
 from app.common.db import create_tables
-from app.router import auth_router, stream_router
+from app.router import auth_router, stream_router, sitemap_router
 from app.www.errors import (
     validation_exception_handler,
     http_exception_handler,
     general_exception_handler
 )
+
+def log_routes(app: FastAPI) -> None:
+    """등록된 라우트 테이블 로깅"""
+    auth_logger.info("=== Registered Routes ===")
+    for route in app.routes:
+        try:
+            methods = ",".join(sorted(route.methods)) if hasattr(route, 'methods') else "-"
+            path = getattr(route, 'path', '-')
+            name = getattr(route, 'name', '-')
+            auth_logger.info(f"[ROUTE] path={path}, name={name}, methods={methods}")
+        except Exception as e:
+            auth_logger.warning(f"Route logging error: {str(e)}")
+    auth_logger.info("=== End Routes ===")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -34,6 +47,9 @@ async def lifespan(app: FastAPI):
         
         if settings.STREAM_ENABLED:
             auth_logger.info(f"Event sourcing enabled (snapshot interval: {settings.STREAM_SNAPSHOT_INTERVAL})")
+        
+        # 등록된 라우트 테이블 로깅
+        log_routes(app)
         
         auth_logger.info("Service initialization completed successfully")
         
@@ -81,6 +97,7 @@ def create_app() -> FastAPI:
     # 라우터 등록 - DDD 도메인별 라우팅
     app.include_router(auth_router, prefix="/auth", tags=["identity-access"])
     app.include_router(stream_router, prefix="/stream", tags=["event-sourcing"])
+    app.include_router(sitemap_router, tags=["sitemap"])
     
     # 헬스 체크 엔드포인트
     @app.get("/health")
@@ -107,7 +124,7 @@ def create_app() -> FastAPI:
             "architecture": {
                 "pattern": "DDD (Domain-Driven Design)",
                 "layers": ["www", "domain", "router", "common"],
-                "domains": ["identity-access", "event-sourcing"],
+                "domains": ["identity-access", "event-sourcing", "sitemap"],
                 "aggregates": ["Company", "User", "Stream"],
                 "value_objects": ["Address", "BusinessNumber", "ContactInfo"]
             },
@@ -116,7 +133,8 @@ def create_app() -> FastAPI:
                 "authorization": True,
                 "event_sourcing": settings.STREAM_ENABLED,
                 "domain_events": settings.DOMAIN_EVENTS_ENABLED,
-                "metrics": settings.ENABLE_METRICS
+                "metrics": settings.ENABLE_METRICS,
+                "sitemap": True
             }
         }
     

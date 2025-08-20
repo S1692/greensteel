@@ -11,6 +11,7 @@ import {
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 import CommonShell from '@/components/CommonShell';
+import { Button } from '@/components/ui/Button';
 
 interface UploadResponse {
   message: string;
@@ -122,16 +123,14 @@ const DataUploadPage: React.FC = () => {
     <CommonShell>
       <div className='space-y-6'>
         <div className='flex flex-col gap-3'>
-          <h1 className='text-3xl font-bold text-ecotrace-text'>
-            데이터 업로드
-          </h1>
-          <p className='text-ecotrace-textSecondary'>
+          <h1 className='stitch-h1 text-3xl font-bold'>데이터 업로드</h1>
+          <p className='stitch-caption'>
             엑셀 파일을 업로드하여 데이터를 수집하고 처리합니다
           </p>
         </div>
 
         {/* 파일 업로드 영역 */}
-        <div className='bg-ecotrace-surface border border-ecotrace-border rounded-lg p-6'>
+        <div className='stitch-card p-6'>
           <div
             className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
               file
@@ -155,28 +154,26 @@ const DataUploadPage: React.FC = () => {
                 <p className='text-lg text-gray-600 mb-2'>
                   파일을 여기에 드래그하거나 클릭하여 선택하세요
                 </p>
-                <p className='text-sm text-gray-500 mb-4'>
-                  지원 형식: .xlsx, .xls
-                </p>
-                <button
+                <p className='stitch-caption mb-4'>지원 형식: .xlsx, .xls</p>
+                <Button
                   onClick={() => fileInputRef.current?.click()}
-                  className='bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors'
+                  variant='outline'
                 >
                   파일 선택
-                </button>
+                </Button>
               </div>
             ) : (
               <div>
                 <FileSpreadsheet className='mx-auto h-12 w-12 text-green-500 mb-4' />
                 <p className='text-lg text-gray-900 mb-2'>{file.name}</p>
-                <p className='text-sm text-gray-500 mb-4'>
+                <p className='stitch-caption mb-4'>
                   파일 크기: {(file.size / 1024 / 1024).toFixed(2)} MB
                 </p>
                 <div className='space-x-3'>
-                  <button
+                  <Button
                     onClick={handleUpload}
                     disabled={isUploading}
-                    className='bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                    className='disabled:opacity-50 disabled:cursor-not-allowed'
                   >
                     {isUploading ? (
                       <>
@@ -186,13 +183,10 @@ const DataUploadPage: React.FC = () => {
                     ) : (
                       '업로드'
                     )}
-                  </button>
-                  <button
-                    onClick={resetForm}
-                    className='bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600 transition-colors'
-                  >
+                  </Button>
+                  <Button onClick={resetForm} variant='ghost'>
                     취소
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -204,28 +198,26 @@ const DataUploadPage: React.FC = () => {
           <div className='bg-red-50 border border-red-200 rounded-lg p-4'>
             <div className='flex items-center'>
               <AlertCircle className='h-5 w-5 text-red-400 mr-2' />
-              <p className='text-red-800'>{error}</p>
+              <p className='stitch-error'>{error}</p>
             </div>
           </div>
         )}
 
         {/* 업로드 결과 */}
         {uploadResult && (
-          <div className='bg-ecotrace-surface border border-ecotrace-border rounded-lg p-6'>
+          <div className='stitch-card p-6'>
             <div className='flex items-center mb-4'>
               <CheckCircle className='h-6 w-6 text-green-500 mr-2' />
-              <h3 className='text-lg font-semibold text-ecotrace-text'>
-                업로드 성공
-              </h3>
+              <h3 className='stitch-h1 text-lg font-semibold'>업로드 성공</h3>
             </div>
 
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <div className='bg-gray-50 rounded-lg p-4'>
                 <h4 className='font-medium text-gray-700 mb-2'>파일 정보</h4>
-                <p className='text-sm text-gray-600'>
+                <p className='stitch-caption'>
                   파일명: {uploadResult.data.filename}
                 </p>
-                <p className='text-sm text-gray-600'>
+                <p className='stitch-caption'>
                   크기: {uploadResult.data.shape[0]}행 ×{' '}
                   {uploadResult.data.shape[1]}열
                 </p>
@@ -233,10 +225,10 @@ const DataUploadPage: React.FC = () => {
 
               <div className='bg-gray-50 rounded-lg p-4'>
                 <h4 className='font-medium text-gray-700 mb-2'>데이터 요약</h4>
-                <p className='text-sm text-gray-600'>
+                <p className='stitch-caption'>
                   총 행 수: {uploadResult.data.rows_count}
                 </p>
-                <p className='text-sm text-gray-600'>
+                <p className='stitch-caption'>
                   총 열 수: {uploadResult.data.columns.length}
                 </p>
               </div>
@@ -268,24 +260,22 @@ const DataUploadPage: React.FC = () => {
         )}
 
         {/* 시스템 상태 정보 */}
-        <div className='bg-ecotrace-surface border border-ecotrace-border rounded-lg p-6'>
-          <h3 className='text-lg font-semibold text-ecotrace-text mb-4'>
-            시스템 상태
-          </h3>
+        <div className='stitch-card p-6'>
+          <h3 className='stitch-h1 text-lg font-semibold mb-4'>시스템 상태</h3>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
             <div className='text-center p-4 bg-blue-50 rounded-lg'>
               <h4 className='font-medium text-blue-900'>프론트엔드</h4>
-              <p className='text-sm text-blue-700'>정상 작동</p>
+              <p className='stitch-caption'>정상 작동</p>
             </div>
             <div className='text-center p-4 bg-green-50 rounded-lg'>
               <h4 className='font-medium text-green-900'>게이트웨이</h4>
-              <p className='text-sm text-green-700'>포트 8080</p>
+              <p className='stitch-caption'>포트 8080</p>
             </div>
             <div className='text-center p-4 bg-purple-50 rounded-lg'>
               <h4 className='font-medium text-purple-900'>
                 DataGather Service
               </h4>
-              <p className='text-sm text-purple-700'>포트 8083</p>
+              <p className='stitch-caption'>포트 8083</p>
             </div>
           </div>
         </div>

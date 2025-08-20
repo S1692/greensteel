@@ -210,12 +210,12 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className='min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
+    <div className='min-h-screen stitch-bg py-12 px-4 sm:px-6 lg:px-8'>
       <div className='max-w-2xl mx-auto'>
-        <div className='bg-white rounded-lg shadow-lg p-8'>
+        <div className='stitch-card p-8'>
           <div className='text-center mb-8'>
-            <h1 className='text-3xl font-bold text-gray-900'>기업 회원가입</h1>
-            <p className='mt-2 text-gray-600'>
+            <h1 className='stitch-h1 text-3xl font-bold'>기업 회원가입</h1>
+            <p className='stitch-caption mt-2'>
               기업 정보를 입력하여 회원가입을 완료하세요.
             </p>
           </div>
@@ -234,15 +234,13 @@ export default function RegisterPage() {
 
           <form onSubmit={handleSubmit} className='space-y-6'>
             {/* 계정 정보 */}
-            <div className='border-b border-gray-200 pb-6'>
-              <h2 className='text-xl font-semibold text-gray-900 mb-4'>
+            <div className='stitch-section'>
+              <h2 className='stitch-h1 text-xl font-semibold mb-4'>
                 계정 정보
               </h2>
               <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-1'>
-                    기업 ID *
-                  </label>
+                  <label className='stitch-label mb-1 block'>기업 ID *</label>
                   <Input
                     type='text'
                     value={formData.company_id}
@@ -254,9 +252,7 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-1'>
-                    비밀번호 *
-                  </label>
+                  <label className='stitch-label mb-1 block'>비밀번호 *</label>
                   <Input
                     type='password'
                     value={formData.password}
@@ -268,7 +264,7 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-1'>
+                  <label className='stitch-label mb-1 block'>
                     비밀번호 확인 *
                   </label>
                   <Input
@@ -285,15 +281,13 @@ export default function RegisterPage() {
             </div>
 
             {/* 기업 정보 */}
-            <div className='border-b border-gray-200 pb-6'>
-              <h2 className='text-xl font-semibold text-gray-900 mb-4'>
+            <div className='stitch-section'>
+              <h2 className='stitch-h1 text-xl font-semibold mb-4'>
                 기업 정보
               </h2>
               <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-1'>
-                    사업장명 *
-                  </label>
+                  <label className='stitch-label mb-1 block'>사업장명 *</label>
                   <Input
                     type='text'
                     value={formData.Installation}
@@ -305,7 +299,7 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-1'>
+                  <label className='stitch-label mb-1 block'>
                     사업장 영문명
                   </label>
                   <Input
@@ -318,9 +312,7 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-1'>
-                    업종명
-                  </label>
+                  <label className='stitch-label mb-1 block'>업종명</label>
                   <Input
                     type='text'
                     value={formData.economic_activity}
@@ -331,7 +323,7 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-1'>
+                  <label className='stitch-label mb-1 block'>
                     업종명 영문명
                   </label>
                   <Input
@@ -344,9 +336,7 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-1'>
-                    대표자명
-                  </label>
+                  <label className='stitch-label mb-1 block'>대표자명</label>
                   <Input
                     type='text'
                     value={formData.representative}
@@ -357,7 +347,7 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-1'>
+                  <label className='stitch-label mb-1 block'>
                     영문대표자명
                   </label>
                   <Input
@@ -370,9 +360,7 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-1'>
-                    이메일
-                  </label>
+                  <label className='stitch-label mb-1 block'>이메일</label>
                   <Input
                     type='email'
                     value={formData.email}
@@ -381,9 +369,7 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-1'>
-                    전화번호
-                  </label>
+                  <label className='stitch-label mb-1 block'>전화번호</label>
                   <Input
                     type='tel'
                     value={formData.telephone}
@@ -397,8 +383,8 @@ export default function RegisterPage() {
             </div>
 
             {/* 주소 정보 */}
-            <div className='border-b border-gray-200 pb-6'>
-              <h2 className='text-xl font-semibold text-gray-900 mb-4'>
+            <div className='stitch-section'>
+              <h2 className='stitch-h1 text-xl font-semibold mb-4'>
                 주소 정보
               </h2>
 
@@ -407,8 +393,7 @@ export default function RegisterPage() {
                 <Button
                   type='button'
                   onClick={() => setIsAddressModalOpen(true)}
-                  variant='secondary'
-                  className='w-full'
+                  variant='outline'
                 >
                   주소 검색
                 </Button>
@@ -416,9 +401,7 @@ export default function RegisterPage() {
 
               <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-1'>
-                    도로명
-                  </label>
+                  <label className='stitch-label mb-1 block'>도로명</label>
                   <Input
                     type='text'
                     value={formData.street}
@@ -428,9 +411,7 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-1'>
-                    건물 번호
-                  </label>
+                  <label className='stitch-label mb-1 block'>건물 번호</label>
                   <Input
                     type='text'
                     value={formData.number}
@@ -440,9 +421,7 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-1'>
-                    우편번호
-                  </label>
+                  <label className='stitch-label mb-1 block'>우편번호</label>
                   <Input
                     type='text'
                     value={formData.postcode}
@@ -454,9 +433,7 @@ export default function RegisterPage() {
                   />
                 </div>
                 <div>
-                  <label className='block text-sm font-medium text-gray-700 mb-1'>
-                    도시명
-                  </label>
+                  <label className='stitch-label mb-1 block'>도시명</label>
                   <Input
                     type='text'
                     value={formData.city}
@@ -469,9 +446,7 @@ export default function RegisterPage() {
 
               {/* 국가 검색 */}
               <div className='mt-4'>
-                <label className='block text-sm font-medium text-gray-700 mb-1'>
-                  국가
-                </label>
+                <label className='stitch-label mb-1 block'>국가</label>
                 <div className='flex gap-2'>
                   <Input
                     type='text'
@@ -484,13 +459,13 @@ export default function RegisterPage() {
                   <Button
                     type='button'
                     onClick={() => setIsCountryModalOpen(true)}
-                    variant='secondary'
+                    variant='outline'
                   >
                     검색
                   </Button>
                 </div>
                 {(formData.country_code || formData.unlocode) && (
-                  <div className='mt-1 text-sm text-gray-500 space-y-1'>
+                  <div className='mt-1 stitch-caption space-y-1'>
                     {formData.country_code && (
                       <p>국가 코드: {formData.country_code}</p>
                     )}

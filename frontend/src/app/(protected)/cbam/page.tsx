@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import CommonShell from '@/components/CommonShell';
 import ProcessManager from '@/components/cbam/ProcessManager';
+import { ReactFlowProvider } from '@xyflow/react';
 
 // ============================================================================
 // 🎯 CBAM 관리 페이지
@@ -25,13 +26,7 @@ export default function CBAMPage() {
           <div className='p-4 bg-white/5 rounded-lg'>
             <h4 className='font-semibold text-white mb-2'>적용 대상</h4>
             <p className='text-white/60 text-sm'>
-              철강, 시멘트, 알루미늄, 비료, 전력, 수소 등
-            </p>
-          </div>
-          <div className='p-4 bg-white/5 rounded-lg'>
-            <h4 className='font-semibold text-white mb-2'>시행 일정</h4>
-            <p className='text-white/60 text-sm'>
-              2023년 10월 1일부터 과도기 적용, 2026년부터 본격 시행
+              철강, 시멘트, 알루미늄, 비료, 전기, 수소 등
             </p>
           </div>
           <div className='p-4 bg-white/5 rounded-lg'>
@@ -39,6 +34,10 @@ export default function CBAMPage() {
             <p className='text-white/60 text-sm'>
               EU ETS 평균 가격 기준으로 계산
             </p>
+          </div>
+          <div className='p-4 bg-white/5 rounded-lg'>
+            <h4 className='font-semibold text-white mb-2'>시행 일정</h4>
+            <p className='text-white/60 text-sm'>2023년 10월부터 단계적 시행</p>
           </div>
         </div>
       </div>
@@ -55,7 +54,9 @@ export default function CBAMPage() {
           CBAM 관련 프로세스 플로우를 생성하고 관리합니다.
         </p>
         <div className='mt-6'>
-          <ProcessManager />
+          <ReactFlowProvider>
+            <ProcessManager />
+          </ReactFlowProvider>
         </div>
       </div>
     </div>

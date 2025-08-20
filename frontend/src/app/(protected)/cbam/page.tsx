@@ -216,12 +216,7 @@ export default function CBAMPage() {
       {/* 플로우 캔버스 */}
       <div className='flex-1 stitch-card p-6'>
         <ErrorBoundary>
-          <ConnectedReactFlow
-            key={currentFlowId || 'new-flow'}
-            flowId={currentFlowId}
-            autoSave={autoSave}
-            saveInterval={10000} // 10초마다 자동 저장
-          />
+          <ConnectedReactFlow />
         </ErrorBoundary>
       </div>
 

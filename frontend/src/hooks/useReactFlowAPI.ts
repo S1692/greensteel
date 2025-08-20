@@ -13,7 +13,6 @@ export const useReactFlowAPI = () => {
   // ============================================================================
 
   const createFlow = useCallback(async (data: any): Promise<any | null> => {
-    console.log('Mock: 플로우 생성', data);
     return {
       id: `flow-${Date.now()}`,
       name: data.name,
@@ -26,7 +25,6 @@ export const useReactFlowAPI = () => {
 
   const getFlowState = useCallback(
     async (flowId: string): Promise<any | null> => {
-      console.log('Mock: 플로우 상태 조회', flowId);
       return {
         flow: {
           id: flowId,
@@ -45,7 +43,6 @@ export const useReactFlowAPI = () => {
 
   const updateFlow = useCallback(
     async (flowId: string, data: any): Promise<any | null> => {
-      console.log('Mock: 플로우 업데이트', flowId, data);
       return {
         id: flowId,
         ...data,
@@ -56,7 +53,6 @@ export const useReactFlowAPI = () => {
   );
 
   const deleteFlow = useCallback(async (flowId: string): Promise<boolean> => {
-    console.log('Mock: 플로우 삭제', flowId);
     return true;
   }, []);
 
@@ -65,7 +61,6 @@ export const useReactFlowAPI = () => {
   // ============================================================================
 
   const createNode = useCallback(async (data: any): Promise<any | null> => {
-    console.log('Mock: 노드 생성', data);
     return {
       id: data.node_id,
       flow_id: data.flow_id,
@@ -83,7 +78,6 @@ export const useReactFlowAPI = () => {
 
   const updateNode = useCallback(
     async (nodeId: string, data: any): Promise<any | null> => {
-      console.log('Mock: 노드 업데이트', nodeId, data);
       return {
         id: nodeId,
         ...data,
@@ -94,7 +88,6 @@ export const useReactFlowAPI = () => {
   );
 
   const deleteNode = useCallback(async (nodeId: string): Promise<boolean> => {
-    console.log('Mock: 노드 삭제', nodeId);
     return true;
   }, []);
 
@@ -103,7 +96,6 @@ export const useReactFlowAPI = () => {
   // ============================================================================
 
   const createEdge = useCallback(async (data: any): Promise<any | null> => {
-    console.log('Mock: 엣지 생성', data);
     return {
       id: data.edge_id,
       flow_id: data.flow_id,
@@ -122,7 +114,6 @@ export const useReactFlowAPI = () => {
 
   const updateEdge = useCallback(
     async (edgeId: string, data: any): Promise<any | null> => {
-      console.log('Mock: 엣지 업데이트', edgeId, data);
       return {
         id: edgeId,
         ...data,
@@ -133,7 +124,6 @@ export const useReactFlowAPI = () => {
   );
 
   const deleteEdge = useCallback(async (edgeId: string): Promise<boolean> => {
-    console.log('Mock: 엣지 삭제', edgeId);
     return true;
   }, []);
 
@@ -142,7 +132,6 @@ export const useReactFlowAPI = () => {
   // ============================================================================
 
   const updateViewport = useCallback(async (data: any): Promise<boolean> => {
-    console.log('Mock: 뷰포트 업데이트', data);
     return true;
   }, []);
 
@@ -158,52 +147,59 @@ export const useReactFlowAPI = () => {
       viewport: { x: number; y: number; zoom: number }
     ): Promise<boolean> => {
       try {
-        console.log('Mock: 플로우 상태 저장', {
-          flowId,
-          nodes,
-          edges,
-          viewport,
-        });
+        // 플로우가 없으면 생성
+        if (!flowId) {
+          const flowData = await createFlow({
+            name: '새 플로우',
+            description: '새로 생성된 플로우',
+          });
+          if (!flowData) return false;
+          flowId = flowData.id;
+        }
 
-        // 뷰포트 업데이트
-        await updateViewport({ flow_id: flowId, viewport });
-
-        // 노드/엣지 저장 (실제로는 더 복잡한 로직 필요)
-        const nodePromises = nodes.map(node =>
-          createNode({
+        // 노드들 저장
+        for (const node of nodes) {
+          await createNode({
             flow_id: flowId,
             node_id: node.id,
-            type: node.type || 'default',
+            type: node.type,
             position: node.position,
             data: node.data,
             width: node.width,
             height: node.height,
             style: node.style,
-          })
-        );
+          });
+        }
 
-        const edgePromises = edges.map(edge =>
-          createEdge({
+        // 엣지들 저장
+        for (const edge of edges) {
+          await createEdge({
             flow_id: flowId,
             edge_id: edge.id,
             source: edge.source,
             target: edge.target,
-            source_handle: edge.sourceHandle || undefined,
-            target_handle: edge.targetHandle || undefined,
+            source_handle: edge.sourceHandle,
+            target_handle: edge.targetHandle,
             type: edge.type,
             data: edge.data,
             style: edge.style,
-          })
-        );
+          });
+        }
 
-        await Promise.all([...nodePromises, ...edgePromises]);
+        // 뷰포트 저장
+        await updateViewport({
+          flow_id: flowId,
+          x: viewport.x,
+          y: viewport.y,
+          zoom: viewport.zoom,
+        });
+
         return true;
       } catch (error) {
-        console.error('Mock: 플로우 상태 저장 실패:', error);
         return false;
       }
     },
-    [updateViewport, createNode, createEdge]
+    [createFlow, createNode, createEdge, updateViewport]
   );
 
   // ============================================================================

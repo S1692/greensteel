@@ -104,7 +104,10 @@ const DataUploadPage: React.FC = () => {
       setMappingRules(defaultMapping);
 
       // JSON 데이터를 게이트웨이로 전송
-      const response = await axios.post('http://localhost:8080/process-data', {
+      const gatewayUrl =
+        process.env.NEXT_PUBLIC_GATEWAY_URL ||
+        'https://gateway-production-da31.up.railway.app';
+      const response = await axios.post(`${gatewayUrl}/process-data`, {
         filename: file.name,
         data: jsonData,
         rows_count: jsonData.length,
@@ -243,15 +246,15 @@ const DataUploadPage: React.FC = () => {
     setIsSaving(true);
     try {
       // 변환된 데이터를 DB에 저장하는 API 호출
-      const response = await axios.post(
-        'http://localhost:8080/save-transformed-data',
-        {
-          filename: file?.name,
-          originalData: transformedData.original,
-          transformedData: transformedData.transformed,
-          mappingRules: transformedData.mapping,
-        }
-      );
+      const gatewayUrl =
+        process.env.NEXT_PUBLIC_GATEWAY_URL ||
+        'https://gateway-production-da31.up.railway.app';
+      const response = await axios.post(`${gatewayUrl}/save-transformed-data`, {
+        filename: file?.name,
+        originalData: transformedData.original,
+        transformedData: transformedData.transformed,
+        mappingRules: transformedData.mapping,
+      });
 
       alert('데이터베이스에 성공적으로 저장되었습니다!');
     } catch (err) {

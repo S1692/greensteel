@@ -1,108 +1,95 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search } from 'lucide-react';
+import { MapPin, Search } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 import CountrySearchModal from './CountrySearchModal';
-import { Country } from '../lib/hooks/useCountrySearch';
-import Button from '@/components/atoms/Button';
-import Input from '@/components/atoms/Input';
+
+interface Country {
+  id: string;
+  korean_name: string;
+  country_name: string;
+  code: string;
+  unlocode?: string;
+}
 
 interface CountrySearchButtonProps {
   onCountrySelect: (country: Country) => void;
+  selectedCountry?: Country | null;
   className?: string;
-  buttonText?: string;
 }
 
 export default function CountrySearchButton({
   onCountrySelect,
+  selectedCountry,
   className = '',
-  buttonText = '국가 검색',
 }: CountrySearchButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleCountrySelect = (country: Country) => {
-    onCountrySelect(country);
+  const handleOpenModal = () => {
+    setIsModalOpen(true);
   };
 
-  const openModal = () => setIsModalOpen(true);
-  const closeModal = () => setIsModalOpen(false);
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleCountrySelect = (country: Country) => {
+    onCountrySelect(country);
+    setIsModalOpen(false);
+  };
 
   return (
     <>
-      <Button
-        type='button'
-        onClick={openModal}
-        variant='outline'
-        className={className}
-      >
-        <Search size={16} className='mr-2' />
-        {buttonText}
-      </Button>
-
-      <CountrySearchModal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        onSelect={handleCountrySelect}
-      />
-    </>
-  );
-}
-
-// 국가명 입력 필드와 검색 버튼을 함께 사용하는 컴포넌트
-interface CountryInputWithSearchProps {
-  value: string;
-  onChange: (value: string) => void;
-  onCountrySelect: (country: Country) => void;
-  placeholder?: string;
-  label?: string;
-  required?: boolean;
-  className?: string;
-}
-
-export function CountryInputWithSearch({
-  value,
-  onChange,
-  onCountrySelect,
-  placeholder = '국가 검색으로 자동 입력',
-  label = '국가명',
-  required = false,
-  className = '',
-}: CountryInputWithSearchProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const handleCountrySelect = (country: Country) => {
-    onCountrySelect(country);
-    onChange(country.korean_name);
-  };
-
-  const openModal = () => setIsModalOpen(true);
-  const closeModal = () => setIsModalOpen(false);
-
-  return (
-    <div className={className}>
-      <label className='stitch-label block mb-2'>
-        {label} {required && <span className='text-red-500'>*</span>}
-      </label>
-      <div className='flex gap-2'>
-        <Input
-          type='text'
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          placeholder={placeholder}
-          className='flex-1'
-          readOnly
-        />
-        <Button type='button' onClick={openModal} variant='outline'>
-          <Search size={16} className='mr-2' />
-          검색
-        </Button>
+      <div className={`space-y-3 ${className}`}>
+        {selectedCountry ? (
+          <div className='bg-primary/10 border border-primary/20 rounded-lg p-4'>
+            <div className='flex items-center gap-2 mb-2'>
+              <MapPin className='h-4 w-4 text-primary' />
+              <span className='font-medium text-primary'>선택된 국가</span>
+            </div>
+            <div className='space-y-1 text-sm text-white/80'>
+              <p>
+                <strong>한국어명:</strong> {selectedCountry.korean_name}
+              </p>
+              <p>
+                <strong>영문명:</strong> {selectedCountry.country_name}
+              </p>
+              <p>
+                <strong>국가코드:</strong> {selectedCountry.code}
+              </p>
+              {selectedCountry.unlocode && (
+                <p>
+                  <strong>UNLOCODE:</strong> {selectedCountry.unlocode}
+                </p>
+              )}
+            </div>
+            <Button
+              onClick={handleOpenModal}
+              variant='outline'
+              className='mt-3 w-full'
+            >
+              <Search className='mr-2' size={16} />
+              국가 변경
+            </Button>
+          </div>
+        ) : (
+          <Button
+            onClick={handleOpenModal}
+            variant='outline'
+            className='w-full'
+          >
+            <MapPin className='mr-2' size={16} />
+            국가 검색
+          </Button>
+        )}
       </div>
 
       <CountrySearchModal
         isOpen={isModalOpen}
-        onClose={closeModal}
+        onClose={handleCloseModal}
         onSelect={handleCountrySelect}
       />
-    </div>
+    </>
   );
 }

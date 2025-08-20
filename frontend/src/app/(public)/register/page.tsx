@@ -5,7 +5,21 @@ import Button from '@/components/atoms/Button';
 import Input from '@/components/atoms/Input';
 import AddressSearchModal from '@/components/AddressSearchModal';
 import CountrySearchModal from '@/components/CountrySearchModal';
-import { Country } from '@/components/CountrySearchModal';
+interface Country {
+  id: string;
+  korean_name: string;
+  country_name: string;
+  code: string;
+  unlocode?: string;
+}
+
+interface AddressData {
+  roadAddress: string;
+  jibunAddress: string;
+  buildingNumber: string;
+  postalCode: string;
+  cityName: string;
+}
 
 interface KakaoAddressData {
   address: string;
@@ -93,22 +107,18 @@ export default function RegisterPage() {
     }));
   };
 
-  const handleAddressSelect = (addressData: KakaoAddressData) => {
+  const handleAddressSelect = (addressData: AddressData) => {
     setFormData(prev => ({
       ...prev,
-      street: addressData.street || '',
-      street_en: addressData.street_en || '',
-      number: addressData.number || '',
-      number_en: addressData.number_en || '',
-      postcode: addressData.zipcode || '',
-      city: addressData.city || '',
-      city_en: addressData.city_eng || '',
-      sourcelatitude: addressData.sourcelatitude
-        ? parseFloat(addressData.sourcelatitude)
-        : null,
-      sourcelongitude: addressData.sourcelongitude
-        ? parseFloat(addressData.sourcelongitude)
-        : null,
+      street: addressData.roadAddress || '',
+      street_en: addressData.roadAddress || '',
+      number: addressData.buildingNumber || '',
+      number_en: addressData.buildingNumber || '',
+      postcode: addressData.postalCode || '',
+      city: addressData.cityName || '',
+      city_en: addressData.cityName || '',
+      sourcelatitude: null,
+      sourcelongitude: null,
     }));
   };
 
@@ -493,7 +503,7 @@ export default function RegisterPage() {
       <AddressSearchModal
         isOpen={isAddressModalOpen}
         onClose={() => setIsAddressModalOpen(false)}
-        onAddressSelect={handleAddressSelect}
+        onSelect={handleAddressSelect}
       />
 
       {/* 국가 검색 모달 */}

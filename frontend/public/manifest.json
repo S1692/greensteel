@@ -56,7 +56,7 @@
       "url": "/dashboard",
       "icons": [
         {
-          "src": "/icon-192x192.png",
+          "src": "/icon-192x192.svg",
           "sizes": "192x192"
         }
       ]
@@ -68,7 +68,7 @@
       "url": "/lca",
       "icons": [
         {
-          "src": "/icon-192x192.png",
+          "src": "/icon-192x192.svg",
           "sizes": "192x192"
         }
       ]
@@ -80,7 +80,7 @@
       "url": "/cbam",
       "icons": [
         {
-          "src": "/icon-192x192.png",
+          "src": "/icon-192x192.svg",
           "sizes": "192x192"
         }
       ]
@@ -92,7 +92,7 @@
       "url": "/data-upload",
       "icons": [
         {
-          "src": "/icon-192x192.png",
+          "src": "/icon-192x192.svg",
           "sizes": "192x192"
         }
       ]
@@ -104,26 +104,13 @@
       "url": "/settings",
       "icons": [
         {
-          "src": "/icon-192x192.png",
+          "src": "/icon-192x192.svg",
           "sizes": "192x192"
         }
       ]
     }
   ],
-  "screenshots": [
-    {
-      "src": "/screenshots/dashboard-mobile.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow"
-    },
-    {
-      "src": "/screenshots/dashboard-desktop.png",
-      "sizes": "1920x1080",
-      "type": "image/png",
-      "form_factor": "wide"
-    }
-  ],
+  "screenshots": [],
   "related_applications": [],
   "protocol_handlers": [
     {

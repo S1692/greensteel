@@ -3,6 +3,7 @@ import json
 from typing import Any, Dict, Optional
 from fastapi import Request, Response
 import time
+import urllib.parse
 
 # 민감정보 마스킹을 위한 키 목록
 SENSITIVE_KEYS = {
@@ -47,8 +48,16 @@ class GatewayLogger:
     
     def log_request(self, request: Request, body: Optional[bytes] = None):
         """요청 로깅"""
-        # 쿼리 파라미터 로깅
+        # 쿼리 파라미터 로깅 (URL 디코딩 포함)
         query_params = dict(request.query_params)
+        decoded_query_params = {}
+        for key, value in query_params.items():
+            try:
+                decoded_key = urllib.parse.unquote(key)
+                decoded_value = urllib.parse.unquote(value)
+                decoded_query_params[decoded_key] = decoded_value
+            except:
+                decoded_query_params[key] = value
         
         # 요청 바디 로깅 (민감정보 마스킹)
         body_data = None
@@ -63,6 +72,7 @@ class GatewayLogger:
             "method": request.method,
             "path": str(request.url.path),
             "query_params": query_params,
+            "decoded_query_params": decoded_query_params,
             "body": body_data,
             "client_ip": request.client.host if request.client else None,
             "user_agent": request.headers.get("user-agent")

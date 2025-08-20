@@ -55,7 +55,7 @@ export default function CountrySearchModal({
       setCountries(data.countries || []);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.',
+        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.'
       );
       setCountries([]);
     } finally {
@@ -95,7 +95,10 @@ export default function CountrySearchModal({
         {/* 검색 입력 */}
         <div className='p-6 border-b border-white/10'>
           <div className='relative'>
-            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-white/40' size={18} />
+            <Search
+              className='absolute left-3 top-1/2 transform -translate-y-1/2 text-white/40'
+              size={18}
+            />
             <Input
               type='text'
               value={searchQuery}
@@ -130,7 +133,9 @@ export default function CountrySearchModal({
             searchQuery.trim().length >= 2 && (
               <div className='p-8 text-center'>
                 <MapPin className='h-12 w-12 text-white/20 mx-auto mb-3' />
-                <p className='stitch-caption text-white/60'>검색 결과가 없습니다.</p>
+                <p className='stitch-caption text-white/60'>
+                  검색 결과가 없습니다.
+                </p>
               </div>
             )}
 

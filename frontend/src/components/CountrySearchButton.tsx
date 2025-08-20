@@ -49,11 +49,19 @@ export default function CountrySearchButton({
               <span className='font-medium text-primary'>선택된 국가</span>
             </div>
             <div className='space-y-1 text-sm text-white/80'>
-              <p><strong>한국어명:</strong> {selectedCountry.korean_name}</p>
-              <p><strong>영문명:</strong> {selectedCountry.country_name}</p>
-              <p><strong>국가코드:</strong> {selectedCountry.code}</p>
+              <p>
+                <strong>한국어명:</strong> {selectedCountry.korean_name}
+              </p>
+              <p>
+                <strong>영문명:</strong> {selectedCountry.country_name}
+              </p>
+              <p>
+                <strong>국가코드:</strong> {selectedCountry.code}
+              </p>
               {selectedCountry.unlocode && (
-                <p><strong>UNLOCODE:</strong> {selectedCountry.unlocode}</p>
+                <p>
+                  <strong>UNLOCODE:</strong> {selectedCountry.unlocode}
+                </p>
               )}
             </div>
             <Button
@@ -83,64 +91,5 @@ export default function CountrySearchButton({
         onSelect={handleCountrySelect}
       />
     </>
-  );
-}
-
-// 국가명 입력 필드와 검색 버튼을 함께 사용하는 컴포넌트
-interface CountryInputWithSearchProps {
-  value: string;
-  onChange: (value: string) => void;
-  onCountrySelect: (country: Country) => void;
-  placeholder?: string;
-  label?: string;
-  required?: boolean;
-  className?: string;
-}
-
-export function CountryInputWithSearch({
-  value,
-  onChange,
-  onCountrySelect,
-  placeholder = '국가 검색으로 자동 입력',
-  label = '국가명',
-  required = false,
-  className = '',
-}: CountryInputWithSearchProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const handleCountrySelect = (country: Country) => {
-    onCountrySelect(country);
-    onChange(country.korean_name);
-  };
-
-  const openModal = () => setIsModalOpen(true);
-  const closeModal = () => setIsModalOpen(false);
-
-  return (
-    <div className={className}>
-      <label className='stitch-label block mb-2'>
-        {label} {required && <span className='text-red-500'>*</span>}
-      </label>
-      <div className='flex gap-2'>
-        <Input
-          type='text'
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          placeholder={placeholder}
-          className='flex-1'
-          readOnly
-        />
-        <Button type='button' onClick={openModal} variant='outline'>
-          <Search size={16} className='mr-2' />
-          검색
-        </Button>
-      </div>
-
-      <CountrySearchModal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        onSelect={handleCountrySelect}
-      />
-    </div>
   );
 }

@@ -94,15 +94,15 @@ const nextConfig = {
         source: '/sitemap.xml',
         destination: '/api/sitemap',
       },
-      // 모든 API 요청을 Gateway로 라우팅 (우선순위 높음)
+      // 모든 API 요청을 Gateway로 라우팅 (환경변수 기반)
       {
         source: '/api/:path*',
-        destination: 'https://gateway-production-da31.up.railway.app/api/:path*',
+        destination: `${process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway-production-da31.up.railway.app'}/api/:path*`,
       },
       // Gateway 직접 접근
       {
         source: '/gateway/:path*',
-        destination: 'https://gateway-production-da31.up.railway.app/:path*',
+        destination: `${process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway-production-da31.up.railway.app'}/:path*`,
       },
     ];
   },

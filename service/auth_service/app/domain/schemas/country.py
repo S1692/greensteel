@@ -37,3 +37,5 @@ class CountrySearchResponse(BaseModel):
     countries: List[CountryResponse]
     total: int
     query: str
+    page: int = 1
+    limit: int = 10

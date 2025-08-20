@@ -9,7 +9,7 @@ import {
   CheckCircle,
   BarChart3,
 } from 'lucide-react';
-import { lcaRoute } from '@/lib/nav';
+
 
 // Placeholder Chart Component
 const PlaceholderChart = ({

@@ -5,7 +5,12 @@ import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Plus, Trash2, Upload, FileSpreadsheet } from 'lucide-react';
-import { lcaRoute } from '@/lib/nav';
+
+// lcaRoute 함수 정의
+const lcaRoute = (
+  projectId: string,
+  leaf: 'scope' | 'lci' | 'lcia' | 'interpretation' | 'report'
+) => `/lca/projects/${projectId}/${leaf}`;
 
 interface LciItem {
   id: string;

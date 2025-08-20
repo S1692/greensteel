@@ -1,29 +1,31 @@
 'use client';
 
 import React, { useCallback, useState, useEffect, useRef } from 'react';
-import {
-  ReactFlow,
-  ReactFlowProvider,
-  addEdge,
-  applyNodeChanges,
-  applyEdgeChanges,
-  Background,
-  Controls,
-  Panel,
-  useReactFlow,
-  useNodesState,
-  useEdgesState,
-  Connection,
-  Edge,
-  Node,
-  NodeChange,
-  EdgeChange,
-  Viewport,
-  useViewport,
-} from '@xyflow/react';
+import dynamic from 'next/dynamic';
+import { ReactFlowProvider } from '@xyflow/react';
 import { Button } from '@/components/ui/Button';
 import { Plus, Save, Trash2, Download, Upload } from 'lucide-react';
 import '@xyflow/react/dist/style.css';
+
+// Dynamically import ReactFlow components with SSR disabled
+const ReactFlow = dynamic(
+  () => import('@xyflow/react').then(mod => mod.ReactFlow),
+  { ssr: false }
+);
+
+const Background = dynamic(
+  () => import('@xyflow/react').then(mod => mod.Background),
+  { ssr: false }
+);
+
+const Controls = dynamic(
+  () => import('@xyflow/react').then(mod => mod.Controls),
+  { ssr: false }
+);
+
+const Panel = dynamic(() => import('@xyflow/react').then(mod => mod.Panel), {
+  ssr: false,
+});
 
 // ============================================================================
 // 🎯 커스텀 노드 타입들
@@ -106,7 +108,7 @@ const nodeTypes = {
 // 🎯 초기 노드 데이터
 // ============================================================================
 
-const initialNodes: Node[] = [
+const initialNodes = [
   {
     id: '1',
     type: 'input',
@@ -133,7 +135,7 @@ const initialNodes: Node[] = [
   },
 ];
 
-const initialEdges: Edge[] = [
+const initialEdges = [
   { id: 'e1-2', source: '1', target: '2', type: 'smoothstep' },
   { id: 'e2-3', source: '2', target: '3', type: 'smoothstep' },
   { id: 'e3-4', source: '3', target: '4', type: 'smoothstep' },
@@ -145,8 +147,8 @@ const initialEdges: Edge[] = [
 
 function FlowCanvas() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [nodes, setNodes] = useState(initialNodes);
+  const [edges, setEdges] = useState(initialEdges);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [selectedNode, setSelectedNode] = useState<any>(null);
   const [selectedEdge, setSelectedEdge] = useState<any>(null);
@@ -155,23 +157,50 @@ function FlowCanvas() {
   // 🎯 연결 처리
   // ============================================================================
 
-  const onConnect = useCallback(
-    (params: Connection) => {
-      setEdges(eds => addEdge(params, eds));
-    },
-    [setEdges]
-  );
+  const onConnect = useCallback((params: any) => {
+    setEdges(eds => [...eds, { id: `e${Date.now()}`, ...params }]);
+  }, []);
+
+  const onNodesChange = useCallback((changes: any) => {
+    setNodes(nds => {
+      const newNodes = [...nds];
+      changes.forEach((change: any) => {
+        if (change.type === 'position' && change.position) {
+          const node = newNodes.find(n => n.id === change.id);
+          if (node) {
+            node.position = change.position;
+          }
+        }
+      });
+      return newNodes;
+    });
+  }, []);
+
+  const onEdgesChange = useCallback((changes: any) => {
+    setEdges(eds => {
+      const newEdges = [...eds];
+      changes.forEach((change: any) => {
+        if (change.type === 'remove') {
+          const index = newEdges.findIndex(e => e.id === change.id);
+          if (index > -1) {
+            newEdges.splice(index, 1);
+          }
+        }
+      });
+      return newEdges;
+    });
+  }, []);
 
   // ============================================================================
   // 🎯 노드 선택 처리
   // ============================================================================
 
-  const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+  const onNodeClick = useCallback((event: React.MouseEvent, node: any) => {
     setSelectedNode(node);
     setSelectedEdge(null);
   }, []);
 
-  const onEdgeClick = useCallback((event: React.MouseEvent, edge: Edge) => {
+  const onEdgeClick = useCallback((event: React.MouseEvent, edge: any) => {
     setSelectedEdge(edge);
     setSelectedNode(null);
   }, []);
@@ -186,7 +215,7 @@ function FlowCanvas() {
   // ============================================================================
 
   const addProcessNode = useCallback(() => {
-    const newNode: Node = {
+    const newNode = {
       id: `process-${Date.now()}`,
       type: 'process',
       position: { x: Math.random() * 400 + 100, y: Math.random() * 300 + 100 },
@@ -196,27 +225,27 @@ function FlowCanvas() {
       },
     };
     setNodes(nds => [...nds, newNode]);
-  }, [setNodes, nodes.length]);
+  }, [nodes.length]);
 
   const addInputNode = useCallback(() => {
-    const newNode: Node = {
+    const newNode = {
       id: `input-${Date.now()}`,
       type: 'input',
       position: { x: Math.random() * 400 + 100, y: Math.random() * 300 + 100 },
       data: { label: `입력 ${nodes.length + 1}`, description: '새로운 입력' },
     };
     setNodes(nds => [...nds, newNode]);
-  }, [setNodes, nodes.length]);
+  }, [nodes.length]);
 
   const addOutputNode = useCallback(() => {
-    const newNode: Node = {
+    const newNode = {
       id: `output-${Date.now()}`,
       type: 'output',
       position: { x: Math.random() * 400 + 100, y: Math.random() * 300 + 100 },
       data: { label: `출력 ${nodes.length + 1}`, description: '새로운 출력' },
     };
     setNodes(nds => [...nds, newNode]);
-  }, [setNodes, nodes.length]);
+  }, [nodes.length]);
 
   // ============================================================================
   // 🎯 선택된 요소 삭제
@@ -236,7 +265,7 @@ function FlowCanvas() {
       setEdges(eds => eds.filter(edge => edge.id !== selectedEdge.id));
       setSelectedEdge(null);
     }
-  }, [selectedNode, selectedEdge, setNodes, setEdges]);
+  }, [selectedNode, selectedEdge]);
 
   // ============================================================================
   // 🎯 전체 초기화
@@ -249,19 +278,17 @@ function FlowCanvas() {
       setSelectedNode(null);
       setSelectedEdge(null);
     }
-  }, [setNodes, setEdges]);
+  }, []);
 
   // ============================================================================
   // 🎯 플로우 저장/로드 (로컬 스토리지)
   // ============================================================================
 
   const saveFlow = useCallback(() => {
-    if (reactFlowInstance) {
-      const flow = reactFlowInstance.toObject();
-      localStorage.setItem('cbam-flow', JSON.stringify(flow));
-      alert('플로우가 저장되었습니다!');
-    }
-  }, [reactFlowInstance]);
+    const flow = { nodes, edges };
+    localStorage.setItem('cbam-flow', JSON.stringify(flow));
+    alert('플로우가 저장되었습니다!');
+  }, [nodes, edges]);
 
   const loadFlow = useCallback(() => {
     const savedFlow = localStorage.getItem('cbam-flow');
@@ -273,7 +300,7 @@ function FlowCanvas() {
     } else {
       alert('저장된 플로우가 없습니다.');
     }
-  }, [setNodes, setEdges]);
+  }, []);
 
   // ============================================================================
   // 🎯 컴포넌트 마운트 시 저장된 플로우 로드
@@ -286,7 +313,7 @@ function FlowCanvas() {
       setNodes(flow.nodes || initialNodes);
       setEdges(flow.edges || initialEdges);
     }
-  }, [setNodes, setEdges]);
+  }, []);
 
   return (
     <div className='w-full h-full' ref={reactFlowWrapper}>

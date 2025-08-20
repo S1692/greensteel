@@ -3,9 +3,8 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { ReactFlowProvider } from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
 
-// Dynamically import ReactFlow components with SSR disabled
+// Dynamically import ReactFlow with SSR disabled
 const ReactFlow = dynamic(
   () => import('@xyflow/react').then(mod => mod.ReactFlow),
   { ssr: false }
@@ -27,41 +26,37 @@ const MiniMap = dynamic(
 );
 
 // ============================================================================
-// 🎯 CBAM 프로세스 플로우 캔버스
+// 🎯 간단한 플로우 테스트 페이지
 // ============================================================================
 
-const initialNodes = [
-  {
-    id: '1',
-    type: 'input',
-    position: { x: 100, y: 100 },
-    data: { label: '원료 입력' },
-  },
-  {
-    id: '2',
-    position: { x: 300, y: 100 },
-    data: { label: '고로 공정' },
-  },
-  {
-    id: '3',
-    position: { x: 500, y: 100 },
-    data: { label: '제강 공정' },
-  },
-  {
-    id: '4',
-    type: 'output',
-    position: { x: 700, y: 100 },
-    data: { label: '철강 제품' },
-  },
-];
-
-const initialEdges = [
-  { id: 'e1-2', source: '1', target: '2' },
-  { id: 'e2-3', source: '2', target: '3' },
-  { id: 'e3-4', source: '3', target: '4' },
-];
-
 function FlowCanvas() {
+  const initialNodes = React.useMemo(
+    () => [
+      {
+        id: '1',
+        position: { x: 100, y: 100 },
+        data: { label: 'Start' },
+        type: 'input',
+      },
+      { id: '2', position: { x: 400, y: 100 }, data: { label: 'Process' } },
+      {
+        id: '3',
+        position: { x: 700, y: 100 },
+        data: { label: 'End' },
+        type: 'output',
+      },
+    ],
+    []
+  );
+
+  const initialEdges = React.useMemo(
+    () => [
+      { id: 'e1-2', source: '1', target: '2' },
+      { id: 'e2-3', source: '2', target: '3' },
+    ],
+    []
+  );
+
   const [nodes, setNodes] = React.useState(initialNodes);
   const [edges, setEdges] = React.useState(initialEdges);
 
@@ -103,7 +98,7 @@ function FlowCanvas() {
   }, []);
 
   return (
-    <div style={{ width: '100%', height: '100%' }}>
+    <div style={{ width: '100%', height: '70vh' }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -120,10 +115,19 @@ function FlowCanvas() {
   );
 }
 
-export default function ProcessFlowCanvas() {
+export default function FlowPage() {
   return (
-    <ReactFlowProvider>
-      <FlowCanvas />
-    </ReactFlowProvider>
+    <div className='min-h-screen bg-gray-50 p-8'>
+      <div className='max-w-6xl mx-auto'>
+        <h1 className='text-3xl font-bold text-gray-900 mb-8'>
+          React Flow Test Page
+        </h1>
+        <div className='bg-white rounded-lg shadow-lg p-6'>
+          <ReactFlowProvider>
+            <FlowCanvas />
+          </ReactFlowProvider>
+        </div>
+      </div>
+    </div>
   );
 }

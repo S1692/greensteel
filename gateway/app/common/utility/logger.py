@@ -1,5 +1,5 @@
 import logging
-import orjson
+import json
 from typing import Any, Dict, Optional
 from fastapi import Request, Response
 import time
@@ -54,7 +54,7 @@ class GatewayLogger:
         body_data = None
         if body:
             try:
-                body_data = orjson.loads(body)
+                body_data = json.loads(body)
                 body_data = SensitiveDataFilter.mask_sensitive_data(body_data)
             except:
                 body_data = "***BINARY_OR_INVALID_JSON***"
@@ -68,7 +68,7 @@ class GatewayLogger:
             "user_agent": request.headers.get("user-agent")
         }
         
-        self.logger.info(f"REQUEST: {orjson.dumps(log_data).decode()}")
+        self.logger.info(f"REQUEST: {json.dumps(log_data, ensure_ascii=False)}")
     
     def log_response(self, method: str, path: str, status_code: int, response_time: float):
         """응답 로깅"""
@@ -79,7 +79,7 @@ class GatewayLogger:
             "response_time_ms": round(response_time * 1000, 2)
         }
         
-        self.logger.info(f"RESPONSE: {orjson.dumps(log_data).decode()}")
+        self.logger.info(f"RESPONSE: {json.dumps(log_data, ensure_ascii=False)}")
     
     def log_error(self, message: str, error: Optional[Exception] = None):
         """에러 로깅"""

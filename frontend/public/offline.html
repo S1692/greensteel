@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>오프라인 - GreenSteel</title>
+    <title>GreenSteel - 오프라인</title>
     <style>
       * {
         margin: 0;
@@ -15,7 +15,7 @@
         font-family:
           -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-        color: #f8fafc;
+        color: #ffffff;
         min-height: 100vh;
         display: flex;
         align-items: center;
@@ -26,187 +26,140 @@
       .offline-container {
         text-align: center;
         max-width: 500px;
-        width: 100%;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 40px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
       }
 
-      .offline-icon {
-        width: 120px;
-        height: 120px;
-        margin: 0 auto 30px;
-        background: rgba(59, 130, 246, 0.1);
+      .icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 20px;
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        border: 2px solid rgba(59, 130, 246, 0.3);
       }
 
-      .offline-icon svg {
-        width: 60px;
-        height: 60px;
-        color: #3b82f6;
+      .icon svg {
+        width: 40px;
+        height: 40px;
+        color: white;
       }
 
       h1 {
         font-size: 2rem;
-        font-weight: 700;
-        margin-bottom: 16px;
-        color: #f1f5f9;
+        margin-bottom: 10px;
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
 
-      .subtitle {
+      p {
         font-size: 1.1rem;
-        color: #94a3b8;
-        margin-bottom: 30px;
+        margin-bottom: 20px;
+        color: #cbd5e1;
         line-height: 1.6;
       }
 
-      .features {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 16px;
-        padding: 24px;
-        margin: 30px 0;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+      .status {
+        background: rgba(59, 130, 246, 0.2);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        border-radius: 10px;
+        padding: 15px;
+        margin: 20px 0;
       }
 
-      .features h3 {
-        font-size: 1.2rem;
-        margin-bottom: 16px;
-        color: #e2e8f0;
+      .status-text {
+        color: #60a5fa;
+        font-weight: 500;
       }
 
-      .feature-list {
-        list-style: none;
-        text-align: left;
-      }
-
-      .feature-list li {
-        padding: 8px 0;
-        color: #cbd5e1;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-
-      .feature-list li::before {
-        content: '✓';
-        color: #10b981;
-        font-weight: bold;
-        font-size: 1.1rem;
-      }
-
-      .retry-button {
-        background: #3b82f6;
+      .retry-btn {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
         color: white;
         border: none;
         padding: 12px 24px;
-        border-radius: 8px;
+        border-radius: 10px;
         font-size: 1rem;
-        font-weight: 600;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all 0.3s ease;
         margin-top: 20px;
       }
 
-      .retry-button:hover {
-        background: #2563eb;
-        transform: translateY(-1px);
+      .retry-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
       }
 
-      .retry-button:active {
-        transform: translateY(0);
+      .features {
+        margin-top: 30px;
+        text-align: left;
       }
 
-      .status-indicator {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 16px;
-        background: rgba(239, 68, 68, 0.1);
-        border: 1px solid rgba(239, 68, 68, 0.3);
-        border-radius: 20px;
-        color: #fca5a5;
-        font-size: 0.9rem;
-        margin-bottom: 20px;
+      .features h3 {
+        color: #3b82f6;
+        margin-bottom: 15px;
       }
 
-      .status-indicator::before {
-        content: '';
-        width: 8px;
-        height: 8px;
-        background: #ef4444;
-        border-radius: 50%;
-        animation: pulse 2s infinite;
+      .features ul {
+        list-style: none;
+        color: #cbd5e1;
       }
 
-      @keyframes pulse {
-        0%,
-        100% {
-          opacity: 1;
-        }
-        50% {
-          opacity: 0.5;
-        }
+      .features li {
+        margin-bottom: 8px;
+        padding-left: 20px;
+        position: relative;
       }
 
-      .footer {
-        margin-top: 40px;
-        color: #64748b;
-        font-size: 0.9rem;
-      }
-
-      @media (max-width: 640px) {
-        h1 {
-          font-size: 1.5rem;
-        }
-
-        .subtitle {
-          font-size: 1rem;
-        }
-
-        .features {
-          padding: 20px;
-        }
+      .features li:before {
+        content: '✓';
+        position: absolute;
+        left: 0;
+        color: #10b981;
+        font-weight: bold;
       }
     </style>
   </head>
   <body>
     <div class="offline-container">
-      <div class="status-indicator">오프라인 모드</div>
-
-      <div class="offline-icon">
+      <div class="icon">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
-            d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192L5.636 18.364M12 2.25a9.75 9.75 0 100 19.5 9.75 9.75 0 000-19.5z"
-          />
+            d="M13 10V3L4 14h7v7l9-11h-7z"
+          ></path>
         </svg>
       </div>
 
-      <h1>인터넷 연결이 없습니다</h1>
-      <p class="subtitle">
-        현재 오프라인 상태입니다. 네트워크 연결을 확인하고 다시 시도해주세요.
-      </p>
+      <h1>GreenSteel</h1>
+      <p>현재 오프라인 상태입니다.</p>
 
-      <div class="features">
-        <h3>오프라인에서도 사용 가능한 기능</h3>
-        <ul class="feature-list">
-          <li>캐시된 데이터 보기</li>
-          <li>기본 앱 기능 사용</li>
-          <li>설정 및 프로필 확인</li>
-          <li>오프라인 작업 저장</li>
-        </ul>
+      <div class="status">
+        <div class="status-text">인터넷 연결을 확인해주세요</div>
       </div>
 
-      <button class="retry-button" onclick="window.location.reload()">
+      <p>일부 기능은 오프라인에서도 사용할 수 있습니다.</p>
+
+      <button class="retry-btn" onclick="window.location.reload()">
         다시 시도
       </button>
 
-      <div class="footer">
-        <p>GreenSteel ESG Management Platform</p>
-        <p>지속 가능한 미래를 위한 솔루션</p>
+      <div class="features">
+        <h3>오프라인에서 사용 가능한 기능:</h3>
+        <ul>
+          <li>캐시된 데이터 조회</li>
+          <li>이전에 업로드한 보고서</li>
+          <li>설정 및 프로필 정보</li>
+          <li>기본 네비게이션</li>
+        </ul>
       </div>
     </div>
 
@@ -214,30 +167,18 @@
       // 네트워크 상태 모니터링
       function updateOnlineStatus() {
         if (navigator.onLine) {
-          // 온라인 상태가 되면 자동으로 새로고침
           window.location.reload();
         }
       }
 
-      // 네트워크 상태 변경 이벤트 리스너
       window.addEventListener('online', updateOnlineStatus);
-      window.addEventListener('offline', () => {
-        console.log('네트워크 연결이 끊어졌습니다.');
-      });
 
       // 주기적으로 네트워크 상태 확인
       setInterval(() => {
         if (navigator.onLine) {
-          updateOnlineStatus();
+          window.location.reload();
         }
       }, 5000);
-
-      // Service Worker 업데이트 확인
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.ready.then(registration => {
-          registration.update();
-        });
-      }
     </script>
   </body>
 </html>

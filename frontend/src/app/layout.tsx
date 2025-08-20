@@ -4,6 +4,7 @@ import Script from 'next/script';
 import './globals.css';
 import PWAInstallBanner from '@/components/PWAInstallBanner';
 import OfflineIndicator from '@/components/OfflineIndicator';
+import PWAServiceWorker from '@/components/PWAServiceWorker';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -40,6 +41,8 @@ export const metadata: Metadata = {
     'apple-mobile-web-app-title': 'GreenSteel',
     'msapplication-TileColor': '#3b82f6',
     'theme-color': '#3b82f6',
+    'application-name': 'GreenSteel',
+    'msapplication-TileImage': '/icon-144x144.png',
   },
 };
 
@@ -69,6 +72,28 @@ export default function RootLayout({
         <meta name='theme-color' content='#3b82f6' />
         <meta name='application-name' content='GreenSteel' />
         <meta name='msapplication-TileImage' content='/icon-144x144.png' />
+
+        {/* PWA 관련 메타데이터 */}
+        <meta name='mobile-web-app-capable' content='yes' />
+        <meta name='apple-mobile-web-app-capable' content='yes' />
+        <meta
+          name='apple-mobile-web-app-status-bar-style'
+          content='black-translucent'
+        />
+        <meta name='apple-mobile-web-app-title' content='GreenSteel' />
+        <meta name='msapplication-TileColor' content='#3b82f6' />
+        <meta name='msapplication-TileImage' content='/icon-144x144.png' />
+        <meta name='theme-color' content='#3b82f6' />
+        <meta name='msapplication-config' content='/browserconfig.xml' />
+
+        {/* iOS PWA 메타데이터 */}
+        <meta name='apple-touch-fullscreen' content='yes' />
+        <meta name='apple-mobile-web-app-orientations' content='portrait' />
+
+        {/* Android PWA 메타데이터 */}
+        <meta name='mobile-web-app-capable' content='yes' />
+        <meta name='theme-color' content='#3b82f6' />
+        <meta name='background-color' content='#0f172a' />
       </head>
       <body className={`${inter.className} antialiased`}>
         {/* Google tag (gtag.js) */}
@@ -86,6 +111,7 @@ export default function RootLayout({
         </Script>
 
         {/* PWA Components */}
+        <PWAServiceWorker />
         <OfflineIndicator />
         <PWAInstallBanner />
 

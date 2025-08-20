@@ -2,7 +2,7 @@
   "name": "GreenSteel - ESG Management Platform",
   "short_name": "GreenSteel",
   "description": "Comprehensive ESG management platform for LCA, CBAM, and sustainability reporting. Track your environmental impact and compliance.",
-  "start_url": "/",
+  "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#3b82f6",
@@ -23,6 +23,7 @@
   "launch_handler": {
     "client_mode": "navigate-existing"
   },
+  "display_override": ["standalone", "minimal-ui", "window-controls-overlay"],
   "icons": [
     {
       "src": "/icon.svg",
@@ -110,12 +111,48 @@
       ]
     }
   ],
-  "screenshots": [],
+  "screenshots": [
+    {
+      "src": "/screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/screenshot-narrow.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
   "related_applications": [],
   "protocol_handlers": [
     {
       "protocol": "web+greensteel",
       "url": "/?action=%s"
     }
-  ]
+  ],
+  "file_handlers": [
+    {
+      "action": "/data-upload",
+      "accept": {
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
+          ".xlsx"
+        ],
+        "application/vnd.ms-excel": [".xls"],
+        "text/csv": [".csv"],
+        "application/json": [".json"]
+      }
+    }
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
 }

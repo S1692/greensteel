@@ -1,404 +1,200 @@
 'use client';
 
-import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { LCALayout } from '@/components/lca/templates/LCALayout';
-import { ProjectCard } from '@/components/lca/atoms/ProjectCard';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import CommonShell from '@/components/CommonShell';
-import {
-  Plus,
-  Search,
-  Filter,
-  Grid3X3,
-  List,
-  Download,
-  Upload,
-  BarChart3,
-  TrendingUp,
-  Database,
-  FileText,
-  CheckCircle,
-} from 'lucide-react';
+import { mockProjects, MockProject } from '@/lib/mocks';
 
-interface Project {
-  id: string;
-  name: string;
-  description: string;
-  status: 'draft' | 'in-progress' | 'completed' | 'archived';
-  lastModified: string;
-  progress: number;
-  owner: string;
-  department: string;
-}
-
-const LCAMainPage: React.FC = () => {
+export default function DashboardPage() {
   const router = useRouter();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
-
-  const projects: Project[] = [
-    {
-      id: '1',
-      name: '철강 제품 LCA 분석',
-      description: '고강도 철강 제품의 생명주기 환경영향 평가',
-      status: 'completed',
-      lastModified: '2024-01-15',
-      progress: 100,
-      owner: '김철수',
-      department: '환경기술팀',
-    },
-    {
-      id: '2',
-      name: '알루미늄 합금 LCA',
-      description: '경량화를 위한 알루미늄 합금 소재 평가',
-      status: 'in-progress',
-      lastModified: '2024-01-20',
-      progress: 75,
-      owner: '이영희',
-      department: '소재개발팀',
-    },
-    {
-      id: '3',
-      name: '플라스틱 복합재 LCA',
-      description: '자동차용 플라스틱 복합재 환경영향 분석',
-      status: 'draft',
-      lastModified: '2024-01-18',
-      progress: 25,
-      owner: '박민수',
-      department: '자동차팀',
-    },
-  ];
 
   const handleProjectClick = (projectId: string) => {
-    router.push('/lca/scope');
+    router.push(`/lca/projects/${projectId}/scope`);
   };
 
-  const handleCreateNewProject = () => {
-    router.push('/lca/new-scope');
+  const handleNewProject = () => {
+    const newProjectId = `proj-${Date.now()}`;
+    router.push(`/lca/projects/${newProjectId}/scope`);
   };
 
-  const handleQuickStart = (template: string) => {
-    router.push('/lca/scope');
-  };
-
-  const filteredProjects = projects.filter(project => {
-    const matchesSearch =
-      project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      selectedStatus === 'all' || project.status === selectedStatus;
-    return matchesSearch && matchesStatus;
-  });
-
-  const statusColors = {
-    draft: 'bg-gray-500',
-    'in-progress': 'bg-blue-500',
-    completed: 'bg-green-500',
-    archived: 'bg-yellow-500',
-  };
-
-  const statusLabels = {
-    draft: '초안',
-    'in-progress': '진행중',
-    completed: '완료',
-    archived: '보관',
-  };
+  // 최신 프로젝트 가져오기 (updatedAt 기준)
+  const latestProject = [...mockProjects].sort(
+    (a: MockProject, b: MockProject) =>
+      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  )[0];
 
   return (
-    <LCALayout isMainPage={true}>
-      <div className='p-6'>
-        {/* 헤더 */}
+    <div className='min-h-screen'>
+      <div className='px-4 sm:px-6 lg:px-8 py-8'>
+        {/* Header */}
         <div className='mb-8'>
-          <div className='flex items-center justify-between mb-4'>
-            <div>
-              <h1 className='text-3xl font-bold text-white mb-2'>
-                LCA 프로젝트 관리
-              </h1>
-              <p className='text-ecotrace-textSecondary'>
-                생명주기 평가 프로젝트를 생성하고 관리하세요
-              </p>
-            </div>
-            <Button
-              onClick={handleCreateNewProject}
-              size='lg'
-              className='bg-ecotrace-accent hover:bg-ecotrace-accent/90 text-white'
-            >
-              <Plus className='w-5 h-5 mr-2' />새 프로젝트
-            </Button>
-          </div>
+          <h1 className='text-3xl font-bold text-foreground mb-2'>대시보드</h1>
+          <p className='text-muted-foreground'>
+            진행 중인 LCA 프로젝트를 관리하세요
+          </p>
+        </div>
 
-          {/* 통계 카드 */}
-          <div className='grid grid-cols-1 md:grid-cols-4 gap-4 mb-6'>
-            <div className='bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg p-4'>
-              <div className='flex items-center gap-3'>
-                <div className='p-2 bg-blue-500/20 rounded-lg'>
-                  <BarChart3 className='w-5 h-5 text-blue-400' />
-                </div>
-                <div>
-                  <p className='text-sm text-ecotrace-textSecondary'>
-                    전체 프로젝트
-                  </p>
-                  <p className='text-2xl font-bold text-white'>
-                    {projects.length}
-                  </p>
-                </div>
+        {/* 프로젝트 통계 섹션 - 최상단 */}
+        <div className='mb-8'>
+          <h2 className='text-xl font-semibold text-foreground mb-4 flex items-center'>
+            <span className='w-2 h-2 bg-primary rounded-full mr-3'></span>
+            프로젝트 통계
+          </h2>
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+            <div className='flex justify-between items-center p-4 rounded-lg bg-card border border-border/30 shadow-sm'>
+              <div>
+                <span className='text-muted-foreground font-medium'>
+                  전체 프로젝트
+                </span>
+                <p className='text-xs text-muted-foreground'>활성 프로젝트</p>
               </div>
+              <span className='text-foreground font-bold text-2xl'>
+                {mockProjects.length}개
+              </span>
             </div>
-            <div className='bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg p-4'>
-              <div className='flex items-center gap-3'>
-                <div className='p-2 bg-green-500/20 rounded-lg'>
-                  <CheckCircle className='w-5 h-5 text-green-400' />
-                </div>
-                <div>
-                  <p className='text-sm text-ecotrace-textSecondary'>
-                    완료된 프로젝트
-                  </p>
-                  <p className='text-2xl font-bold text-white'>
-                    {projects.filter(p => p.status === 'completed').length}
-                  </p>
-                </div>
+            <div className='flex justify-between items-center p-4 rounded-lg bg-card border border-border/30 shadow-sm'>
+              <div>
+                <span className='text-muted-foreground font-medium'>
+                  진행 중
+                </span>
+                <p className='text-xs text-muted-foreground'>작업 진행 중</p>
               </div>
+              <span className='text-green-500 font-bold text-2xl'>
+                {
+                  mockProjects.filter(
+                    (p: MockProject) => p.status === '진행 중'
+                  ).length
+                }
+                개
+              </span>
             </div>
-            <div className='bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg p-4'>
-              <div className='flex items-center gap-3'>
-                <div className='p-2 bg-blue-500/20 rounded-lg'>
-                  <TrendingUp className='w-5 h-5 text-blue-400' />
-                </div>
-                <div>
-                  <p className='text-sm text-ecotrace-textSecondary'>
-                    진행중인 프로젝트
-                  </p>
-                  <p className='text-2xl font-bold text-white'>
-                    {projects.filter(p => p.status === 'in-progress').length}
-                  </p>
-                </div>
+            <div className='flex justify-between items-center p-4 rounded-lg bg-card border border-border/30 shadow-sm'>
+              <div>
+                <span className='text-muted-foreground font-medium'>완료</span>
+                <p className='text-xs text-muted-foreground'>분석 완료</p>
               </div>
-            </div>
-            <div className='bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg p-4'>
-              <div className='flex items-center gap-3'>
-                <div className='p-2 bg-yellow-500/20 rounded-lg'>
-                  <Database className='w-5 h-5 text-yellow-400' />
-                </div>
-                <div>
-                  <p className='text-sm text-ecotrace-textSecondary'>
-                    초안 프로젝트
-                  </p>
-                  <p className='text-2xl font-bold text-white'>
-                    {projects.filter(p => p.status === 'draft').length}
-                  </p>
-                </div>
-              </div>
+              <span className='text-blue-500 font-bold text-2xl'>
+                {
+                  mockProjects.filter((p: MockProject) => p.status === '완료')
+                    .length
+                }
+                개
+              </span>
             </div>
           </div>
         </div>
 
-        {/* 검색 및 필터 */}
-        <div className='flex flex-col sm:flex-row gap-4 mb-6'>
-          <div className='flex-1 relative'>
-            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-ecotrace-textSecondary' />
-            <Input
-              type='text'
-              placeholder='프로젝트 검색...'
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className='pl-10 bg-ecotrace-secondary/20 border-ecotrace-border text-white placeholder-ecotrace-textSecondary'
-            />
-          </div>
-          <div className='flex gap-2'>
-            <select
-              value={selectedStatus}
-              onChange={e => setSelectedStatus(e.target.value)}
-              className='px-3 py-2 bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg text-white'
-            >
-              <option value='all'>모든 상태</option>
-              <option value='draft'>초안</option>
-              <option value='in-progress'>진행중</option>
-              <option value='completed'>완료</option>
-              <option value='archived'>보관</option>
-            </select>
-            <Button
-              variant='outline'
-              size='md'
-              onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-              className='border-ecotrace-border text-ecotrace-textSecondary hover:bg-ecotrace-secondary/20 min-w-[44px]'
-            >
-              {viewMode === 'grid' ? (
-                <List className='w-5 h-5' />
-              ) : (
-                <Grid3X3 className='w-5 h-5' />
-              )}
-            </Button>
-          </div>
-        </div>
-
-        {/* 프로젝트 목록 */}
-        {viewMode === 'grid' ? (
-          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-            {filteredProjects.map(project => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                onClick={() => handleProjectClick(project.id)}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className='bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg overflow-hidden'>
-            <table className='w-full'>
-              <thead className='bg-ecotrace-secondary/40'>
-                <tr>
-                  <th className='px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider'>
-                    프로젝트명
-                  </th>
-                  <th className='px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider'>
-                    상태
-                  </th>
-                  <th className='px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider'>
-                    진행률
-                  </th>
-                  <th className='px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider'>
-                    담당자
-                  </th>
-                  <th className='px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider'>
-                    최종 수정일
-                  </th>
-                </tr>
-              </thead>
-              <tbody className='divide-y divide-ecotrace-border'>
-                {filteredProjects.map(project => (
-                  <tr
-                    key={project.id}
-                    onClick={() => handleProjectClick(project.id)}
-                    className='hover:bg-ecotrace-secondary/10 cursor-pointer transition-colors'
-                  >
-                    <td className='px-6 py-4 whitespace-nowrap'>
-                      <div>
-                        <div className='text-sm font-medium text-white'>
-                          {project.name}
-                        </div>
-                        <div className='text-sm text-ecotrace-textSecondary'>
-                          {project.description}
-                        </div>
-                      </div>
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap'>
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusColors[project.status]}`}
-                      >
-                        {statusLabels[project.status]}
-                      </span>
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap'>
-                      <div className='flex items-center gap-2'>
-                        <div className='w-16 bg-ecotrace-secondary rounded-full h-2'>
-                          <div
-                            className='bg-ecotrace-accent h-2 rounded-full'
-                            style={{ width: `${project.progress}%` }}
-                          />
-                        </div>
-                        <span className='text-sm text-ecotrace-textSecondary'>
-                          {project.progress}%
-                        </span>
-                      </div>
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap'>
-                      <div className='text-sm text-white'>{project.owner}</div>
-                      <div className='text-sm text-ecotrace-textSecondary'>
-                        {project.department}
-                      </div>
-                    </td>
-                    <td className='px-6 py-4 whitespace-nowrap text-sm text-ecotrace-textSecondary'>
-                      {project.lastModified}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* 최신 프로젝트 하이라이트 섹션 */}
+        {latestProject && (
+          <div className='mb-8'>
+            <h2 className='text-xl font-semibold text-foreground mb-4 flex items-center'>
+              <span className='w-2 h-2 bg-green-500 rounded-full mr-3'></span>
+              최신 프로젝트
+            </h2>
+            <div className='bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-xl p-6'>
+              <div className='flex items-start justify-between'>
+                <div className='flex-1'>
+                  <h3 className='text-lg font-semibold text-foreground mb-2'>
+                    {latestProject.name}
+                  </h3>
+                  <p className='text-muted-foreground mb-3'>
+                    {latestProject.description}
+                  </p>
+                  <div className='flex items-center gap-4 text-sm'>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        latestProject.status === '진행 중'
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                          : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                      }`}
+                    >
+                      {latestProject.status}
+                    </span>
+                    <span className='text-muted-foreground'>
+                      최종 업데이트:{' '}
+                      {new Date(latestProject.updatedAt).toLocaleDateString(
+                        'ko-KR'
+                      )}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleProjectClick(latestProject.id)}
+                  className='bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium ml-4'
+                >
+                  프로젝트 보기
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* 빠른 시작 템플릿 */}
-        <div className='mt-12'>
-          <h2 className='text-2xl font-bold text-white mb-6'>
-            빠른 시작 템플릿
+        {/* 프로젝트 목록 섹션 */}
+        <div className='mb-8'>
+          <h2 className='text-xl font-semibold text-foreground mb-4'>
+            모든 프로젝트
           </h2>
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
-            <div
-              className='bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg p-6 hover:bg-ecotrace-secondary/30 transition-colors cursor-pointer'
-              onClick={() => handleQuickStart('steel')}
-            >
-              <div className='flex items-center gap-3 mb-4'>
-                <div className='p-3 bg-blue-500/20 rounded-lg'>
-                  <BarChart3 className='w-6 h-6 text-blue-400' />
-                </div>
-                <div>
-                  <h3 className='text-lg font-semibold text-white'>
-                    철강 제품 LCA
-                  </h3>
-                  <p className='text-sm text-ecotrace-textSecondary'>
-                    철강 제품의 생명주기 평가
+          <div className='overflow-x-auto'>
+            <div className='flex flex-nowrap gap-4 pb-4 min-w-max lg:min-w-0 lg:grid lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 lg:gap-6'>
+              {mockProjects.map((project: MockProject) => (
+                <div
+                  key={project.id}
+                  className='bg-card border border-border/30 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow min-w-[300px] lg:min-w-0'
+                >
+                  <div className='flex items-start justify-between mb-3'>
+                    <h3 className='text-lg font-semibold text-foreground'>
+                      {project.name}
+                    </h3>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        project.status === '진행 중'
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                          : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                      }`}
+                    >
+                      {project.status}
+                    </span>
+                  </div>
+                  <p className='text-muted-foreground text-sm mb-4 line-clamp-2'>
+                    {project.description}
                   </p>
+                  <div className='text-xs text-muted-foreground mb-4'>
+                    <div>생성일: {project.createdAt}</div>
+                    <div>수정일: {project.updatedAt}</div>
+                  </div>
+                  <button
+                    onClick={() => handleProjectClick(project.id)}
+                    className='w-full border border-border/50 bg-transparent text-foreground px-4 py-2 rounded-lg hover:bg-muted/50 transition-colors text-sm font-medium'
+                  >
+                    열기
+                  </button>
                 </div>
-              </div>
-              <p className='text-ecotrace-textSecondary text-sm'>
-                철강 제품의 원료 추출부터 제조, 사용, 폐기까지의 전체 환경영향을
-                평가하는 템플릿입니다.
-              </p>
-            </div>
-
-            <div
-              className='bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg p-6 hover:bg-ecotrace-secondary/30 transition-colors cursor-pointer'
-              onClick={() => handleQuickStart('automotive')}
-            >
-              <div className='flex items-center gap-3 mb-4'>
-                <div className='p-3 bg-green-500/20 rounded-lg'>
-                  <TrendingUp className='w-6 h-6 text-green-400' />
-                </div>
-                <div>
-                  <h3 className='text-lg font-semibold text-white'>
-                    자동차 부품 LCA
-                  </h3>
-                  <p className='text-sm text-ecotrace-textSecondary'>
-                    자동차 부품의 환경영향 평가
-                  </p>
-                </div>
-              </div>
-              <p className='text-ecotrace-textSecondary text-sm'>
-                자동차 부품의 생산부터 사용, 폐기까지의 환경영향을 체계적으로
-                분석하는 템플릿입니다.
-              </p>
-            </div>
-
-            <div
-              className='bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg p-6 hover:bg-ecotrace-secondary/30 transition-colors cursor-pointer'
-              onClick={() => handleQuickStart('electronics')}
-            >
-              <div className='flex items-center gap-3 mb-4'>
-                <div className='p-3 bg-purple-500/20 rounded-lg'>
-                  <Database className='w-6 h-6 text-purple-400' />
-                </div>
-                <div>
-                  <h3 className='text-lg font-semibold text-white'>
-                    전자제품 LCA
-                  </h3>
-                  <p className='text-sm text-ecotrace-textSecondary'>
-                    전자제품의 환경영향 평가
-                  </p>
-                </div>
-              </div>
-              <p className='text-ecotrace-textSecondary text-sm'>
-                전자제품의 설계부터 생산, 사용, 폐기까지의 환경영향을 종합적으로
-                평가하는 템플릿입니다.
-              </p>
+              ))}
             </div>
           </div>
         </div>
-      </div>
-    </LCALayout>
-  );
-};
 
-export default LCAMainPage;
+        {/* 플로팅 액션 버튼 - 우측 하단 고정 */}
+        <div className='fixed right-8 bottom-8 z-50'>
+          <button
+            onClick={handleNewProject}
+            aria-label='새 프로젝트 시작하기'
+            className='bg-primary text-primary-foreground w-16 h-16 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 flex items-center justify-center'
+          >
+            <svg
+              className='w-6 h-6'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M12 4v16m8-8H4'
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -17,6 +17,13 @@ class ProxyController:
             # 인증 및 사용자 관리 도메인
             "/auth": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")),
             "/stream": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")),
+            "/company": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")),
+            "/user": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")),
+            
+            # 지리 정보 도메인 - 국가/지역 데이터
+            "/geo": self._clean_service_url(os.getenv("GEO_SERVICE_URL", os.getenv("AUTH_SERVICE_URL", "http://localhost:8081"))),
+            
+            # 기존 API 호환성 (새 클라이언트는 /geo 사용 권장)
             "/countries": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")),
             "/api/v1/countries": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")),
             "/api": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")),
@@ -25,10 +32,6 @@ class ProxyController:
             "/cbam": self._clean_service_url(os.getenv("CBAM_SERVICE_URL", "http://localhost:8082")),
             "/datagather": self._clean_service_url(os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")),
             "/lci": self._clean_service_url(os.getenv("LCI_SERVICE_URL", "http://localhost:8084")),
-            
-            # 새로운 도메인 서비스들
-            "/company": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")),
-            "/user": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")),
         }
         
         # HTTP 클라이언트 설정 - DDD 패턴에 맞는 타임아웃 설정
@@ -242,8 +245,12 @@ class ProxyController:
     
     def _get_domain_context(self, path: str) -> str:
         """경로에서 도메인 컨텍스트 추출"""
-        if path.startswith("/auth") or path.startswith("/stream") or path.startswith("/countries") or path.startswith("/api/v1/countries") or path.startswith("/api"):
+        if path.startswith("/auth") or path.startswith("/stream") or path.startswith("/company") or path.startswith("/user"):
             return "identity-access"
+        elif path.startswith("/geo"):
+            return "geo-information"
+        elif path.startswith("/countries") or path.startswith("/api/v1/countries") or path.startswith("/api"):
+            return "identity-access"  # 기존 호환성
         elif path.startswith("/cbam"):
             return "carbon-border"
         elif path.startswith("/datagather"):
@@ -316,7 +323,15 @@ class ProxyController:
         if request.url.query:
             target_url += f"?{request.url.query}"
         
-        # 디버깅을 위한 URL 로깅
+        # 프리픽스 매칭 로깅
+        matched_prefix = None
+        for prefix in sorted(self.service_map.keys(), key=len, reverse=True):
+            if path.startswith(prefix):
+                matched_prefix = prefix
+                break
+        
+        # 상세 로깅
+        gateway_logger.log_info(f"Matched prefix: {matched_prefix} → upstream: {target_service}")
         gateway_logger.log_info(f"Proxying {method} {path} to: {target_url}")
         
         # 헤더 준비
@@ -338,6 +353,7 @@ class ProxyController:
                 
                 # 응답 로깅
                 response_time = time.time() - start_time
+                gateway_logger.log_info(f"RESPONSE: {method} {path} → status: {response.status_code}, time: {response_time:.3f}s")
                 gateway_logger.log_response(method, path, response.status_code, response_time)
                 
                 # 응답 반환

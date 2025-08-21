@@ -73,6 +73,23 @@ async def health_check():
     """게이트웨이 헬스체크 - DDD 도메인 서비스 상태"""
     return proxy_controller.health_check()
 
+# favicon.ico 핸들러 (404 방지)
+@app.get("/favicon.ico")
+async def favicon():
+    """Favicon 요청 처리 - 404 방지"""
+    gateway_logger.log_info("Favicon request handled")
+    return Response(status_code=204)
+
+# robots.txt 핸들러 (선택적)
+@app.get("/robots.txt")
+async def robots():
+    """Robots.txt 요청 처리"""
+    gateway_logger.log_info("Robots.txt request handled")
+    return Response(
+        content="User-agent: *\nDisallow: /api/\nDisallow: /auth/\nDisallow: /geo/", 
+        media_type="text/plain"
+    )
+
 # JSON 데이터를 datagather_service로 전송하는 엔드포인트
 @app.post("/process-data")
 async def process_data_to_datagather(data: dict):

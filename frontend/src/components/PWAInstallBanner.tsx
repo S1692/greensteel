@@ -91,10 +91,7 @@ export default function PWAInstallBanner() {
         localStorage.setItem('pwa-installed', 'true');
       }
     } catch (error) {
-      // 개발 환경에서만 에러 로그 출력
-      if (process.env.NODE_ENV === 'development') {
-        console.error('PWA 설치 중 오류:', error);
-      }
+      // 에러 발생 시 배너 숨김
       setShowBanner(false);
     }
 

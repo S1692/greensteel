@@ -44,7 +44,7 @@ export default function CountrySearchModal({
 
     try {
       const response = await fetch(
-        `/api/v1/countries/search?query=${encodeURIComponent(query)}&limit=20`
+        `/geo/v1/countries/search?query=${encodeURIComponent(query)}&limit=20`
       );
 
       if (!response.ok) {

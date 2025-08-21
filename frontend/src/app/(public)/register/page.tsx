@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import AddressSearchModal from '@/components/common/AddressSearchModal';
+import { enhanceAddressWithEnglish } from '@/lib/addressConverter';
 
 
 
@@ -48,6 +49,8 @@ interface AddressData {
   buildingNumber: string;
   postalCode: string;
   cityName: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 interface Country {
@@ -138,19 +141,46 @@ export default function RegisterPage() {
     }
   };
 
-  const handleAddressSelect = (addressData: AddressData) => {
-    setFormData(prev => ({
-      ...prev,
-      street: addressData.roadAddress || '',
-      street_en: addressData.roadAddress || '',
-      number: addressData.buildingNumber || '',
-      number_en: addressData.buildingNumber || '',
-      postcode: addressData.postalCode || '',
-      city: addressData.cityName || '',
-      city_en: addressData.cityName || '',
-      sourcelatitude: null,
-      sourcelongitude: null,
-    }));
+  const handleAddressSelect = async (addressData: AddressData) => {
+    try {
+      // 행정안전부 API를 통해 영문 주소 변환
+      const enhancedAddress = await enhanceAddressWithEnglish({
+        roadAddress: addressData.roadAddress,
+        buildingNumber: addressData.buildingNumber,
+        cityName: addressData.cityName,
+        postalCode: addressData.postalCode,
+      });
+
+      setFormData(prev => ({
+        ...prev,
+        street: enhancedAddress.roadAddress,
+        street_en: enhancedAddress.englishRoad, // 영문 도로명
+        number: enhancedAddress.buildingNumber,
+        number_en: enhancedAddress.buildingNumber, // 건물번호는 그대로
+        postcode: enhancedAddress.postalCode,
+        city: enhancedAddress.cityName,
+        city_en: enhancedAddress.englishCity, // 영문 도시명
+        sourcelatitude: addressData.latitude, // 카카오 API에서 받은 위도
+        sourcelongitude: addressData.longitude, // 카카오 API에서 받은 경도
+      }));
+
+      console.log('영문 주소 변환 완료:', enhancedAddress);
+    } catch (error) {
+      console.error('영문 주소 변환 실패:', error);
+      // 변환 실패 시 기존 방식으로 처리
+      setFormData(prev => ({
+        ...prev,
+        street: addressData.roadAddress || '',
+        street_en: addressData.roadAddress || '',
+        number: addressData.buildingNumber || '',
+        number_en: addressData.buildingNumber || '',
+        postcode: addressData.postalCode || '',
+        city: addressData.cityName || '',
+        city_en: addressData.cityName || '',
+        sourcelatitude: addressData.latitude, // 카카오 API에서 받은 위도
+        sourcelongitude: addressData.longitude, // 카카오 API에서 받은 경도
+      }));
+    }
   };
 
   const checkUsernameAvailability = async (username: string) => {
@@ -701,6 +731,9 @@ export default function RegisterPage() {
                   >
                     주소 검색
                   </Button>
+                  <div className='mt-2 text-sm text-blue-400'>
+                    📍 주소 검색 시 행정안전부 API를 통해 영문 주소가 자동으로 변환되고, 카카오 지도 API를 통해 위도/경도가 자동으로 설정됩니다.
+                  </div>
                 </div>
 
                 <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
@@ -761,6 +794,78 @@ export default function RegisterPage() {
                       onChange={e => handleInputChange('city', e.target.value)}
                       className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
                       placeholder='도시명'
+                      readOnly
+                    />
+                  </div>
+
+                  {/* 영문 주소 정보 */}
+                  <div>
+                    <label className='block text-sm font-medium text-white mb-2'>
+                      도로명 (영문)
+                    </label>
+                    <Input
+                      type='text'
+                      value={formData.street_en}
+                      onChange={e => handleInputChange('street_en', e.target.value)}
+                      className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                      placeholder='영문 도로명 (자동 입력)'
+                      readOnly
+                    />
+                  </div>
+
+                  <div>
+                    <label className='block text-sm font-medium text-white mb-2'>
+                      건물 번호 (영문)
+                    </label>
+                    <Input
+                      type='text'
+                      value={formData.number_en}
+                      onChange={e => handleInputChange('number_en', e.target.value)}
+                      className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                      placeholder='영문 건물 번호 (자동 입력)'
+                      readOnly
+                    />
+                  </div>
+
+                  <div>
+                    <label className='block text-sm font-medium text-white mb-2'>
+                      도시명 (영문)
+                    </label>
+                    <Input
+                      type='text'
+                      value={formData.city_en}
+                      onChange={e => handleInputChange('city_en', e.target.value)}
+                      className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                      placeholder='영문 도시명 (자동 입력)'
+                      readOnly
+                    />
+                  </div>
+
+                  {/* 위도/경도 정보 */}
+                  <div>
+                    <label className='block text-sm font-medium text-white mb-2'>
+                      위도 (Latitude)
+                    </label>
+                    <Input
+                      type='text'
+                      value={formData.sourcelatitude || ''}
+                      onChange={e => handleInputChange('sourcelatitude', e.target.value)}
+                      className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                      placeholder='위도 (자동 입력)'
+                      readOnly
+                    />
+                  </div>
+
+                  <div>
+                    <label className='block text-sm font-medium text-white mb-2'>
+                      경도 (Longitude)
+                    </label>
+                    <Input
+                      type='text'
+                      value={formData.sourcelongitude || ''}
+                      onChange={e => handleInputChange('sourcelongitude', e.target.value)}
+                      className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                      placeholder='경도 (자동 입력)'
                       readOnly
                     />
                   </div>

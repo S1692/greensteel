@@ -33,7 +33,7 @@ interface DaumPostcodeData {
 interface AddressSearchModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (address: AddressData) => void;
+  onSelect: (address: AddressData) => Promise<void>;
 }
 
 interface AddressData {
@@ -42,6 +42,8 @@ interface AddressData {
   buildingNumber: string;
   postalCode: string;
   cityName: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export default function AddressSearchModal({
@@ -73,19 +75,74 @@ export default function AddressSearchModal({
     };
   }, [isOpen, onClose]);
 
+  const getCoordinatesFromAddress = async (address: string): Promise<{ lat: number; lng: number } | null> => {
+    try {
+      // 카카오 지도 API를 사용하여 주소를 좌표로 변환
+      const response = await fetch(
+        `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(address)}`,
+        {
+          headers: {
+            'Authorization': `KakaoAK ${process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`카카오 지도 API 호출 실패: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.documents && data.documents.length > 0) {
+        const firstResult = data.documents[0];
+        return {
+          lat: parseFloat(firstResult.y), // 위도
+          lng: parseFloat(firstResult.x), // 경도
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('주소 좌표 변환 실패:', error);
+      return null;
+    }
+  };
+
   const handleAddressSearch = () => {
     // 카카오 주소 검색 팝업 열기
     if (typeof window !== 'undefined' && window.daum) {
       new window.daum.Postcode({
-        oncomplete: function (data: DaumPostcodeData) {
-          const addressData: AddressData = {
-            roadAddress: data.roadAddress || '',
-            jibunAddress: data.jibunAddress || '',
-            buildingNumber: data.buildingName || '',
-            postalCode: data.zonecode || '',
-            cityName: (data.sido || '') + ' ' + (data.sigungu || ''),
-          };
-          setSelectedAddress(addressData);
+        oncomplete: async function (data: DaumPostcodeData) {
+          try {
+            // 주소를 좌표로 변환
+            const coordinates = await getCoordinatesFromAddress(data.roadAddress || '');
+            
+            const addressData: AddressData = {
+              roadAddress: data.roadAddress || '',
+              jibunAddress: data.jibunAddress || '',
+              buildingNumber: data.buildingName || '',
+              postalCode: data.zonecode || '',
+              cityName: (data.sido || '') + ' ' + (data.sigungu || ''),
+              latitude: coordinates?.lat || null,
+              longitude: coordinates?.lng || null,
+            };
+            
+            setSelectedAddress(addressData);
+            console.log('주소 및 좌표 정보:', addressData);
+          } catch (error) {
+            console.error('주소 처리 중 오류 발생:', error);
+            // 좌표 변환 실패 시에도 기본 주소 정보는 설정
+            const addressData: AddressData = {
+              roadAddress: data.roadAddress || '',
+              jibunAddress: data.jibunAddress || '',
+              buildingNumber: data.buildingName || '',
+              postalCode: data.zonecode || '',
+              cityName: (data.sido || '') + ' ' + (data.sigungu || ''),
+              latitude: null,
+              longitude: null,
+            };
+            setSelectedAddress(addressData);
+          }
         },
       }).open();
     } else {
@@ -93,10 +150,16 @@ export default function AddressSearchModal({
     }
   };
 
-  const handleAddressSelect = () => {
+  const handleAddressSelect = async () => {
     if (selectedAddress) {
-      onSelect(selectedAddress);
-      onClose();
+      try {
+        await onSelect(selectedAddress);
+        onClose();
+      } catch (error) {
+        console.error('주소 선택 처리 중 오류 발생:', error);
+        // 오류가 발생해도 모달은 닫기
+        onClose();
+      }
     }
   };
 

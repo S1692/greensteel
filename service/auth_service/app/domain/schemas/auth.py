@@ -14,6 +14,10 @@ class CheckCompanyIdRequest(BaseModel):
     """기업 ID 존재 확인 요청"""
     company_id: str
 
+class CheckCompanyIdAvailabilityRequest(BaseModel):
+    """기업 ID 중복 확인 요청"""
+    company_id: str
+
 class UserRegisterRequest(BaseModel):
     """사용자 등록 요청"""
     username: str

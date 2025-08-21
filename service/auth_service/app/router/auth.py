@@ -6,7 +6,8 @@ from app.domain.schemas.auth import (
     LoginRequest,
     StandardResponse,
     CheckUsernameRequest,
-    CheckCompanyIdRequest
+    CheckCompanyIdRequest,
+    CheckCompanyIdAvailabilityRequest
 )
 from app.domain.services.address_service import AddressService
 from app.domain.services.auth_service import AuthService
@@ -33,6 +34,12 @@ async def check_username(request: CheckUsernameRequest):
 async def check_company_id(request: CheckCompanyIdRequest):
     """기업 ID 존재 확인"""
     result = await auth_service.check_company_id(request.company_id)
+    return StandardResponse(**result)
+
+@router.post("/check-company-id-availability", response_model=StandardResponse)
+async def check_company_id_availability(request: CheckCompanyIdAvailabilityRequest):
+    """기업 ID 중복 확인"""
+    result = await auth_service.check_company_id_availability(request.company_id)
     return StandardResponse(**result)
 
 @router.post("/register/user", response_model=StandardResponse)

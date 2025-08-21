@@ -138,6 +138,30 @@ class AuthService:
                 "data": {},
             }
 
+    async def check_company_id_availability(self, company_id: str) -> Dict[str, Any]:
+        """기업 ID 중복 확인 (더미 구현)"""
+        try:
+            # 더미 로직: 실제로는 DB에서 확인
+            # 여기서는 간단히 사용 가능하다고 가정 (중복되지 않음)
+            available = True  # 실제로는 DB 조회 결과
+            
+            auth_logger.info(f"Company ID availability checked: {company_id} - Available: {available}")
+            return {
+                "success": True,
+                "message": "Company ID availability checked",
+                "data": {
+                    "available": available,
+                    "company_id": company_id
+                }
+            }
+        except Exception as e:
+            auth_logger.error(f"Company ID availability check failed: {str(e)}")
+            return {
+                "success": False,
+                "message": f"Company ID availability check failed: {str(e)}",
+                "data": {}
+            }
+
     async def login(self, username: str, password: str) -> Dict[str, Any]:
         """로그인 (더미 구현)"""
         try:

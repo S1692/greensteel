@@ -66,8 +66,10 @@ export default function RegisterPage() {
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [checkingCompanyId, setCheckingCompanyId] = useState(false);
+  const [checkingCompanyIdAvailability, setCheckingCompanyIdAvailability] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [companyIdAvailable, setCompanyIdAvailable] = useState<boolean | null>(null);
+  const [companyIdAvailability, setCompanyIdAvailability] = useState<boolean | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -173,6 +175,26 @@ export default function RegisterPage() {
       setCompanyIdAvailable(null);
     } finally {
       setCheckingCompanyId(false);
+    }
+  };
+
+  const checkCompanyIdDuplicate = async (companyId: string) => {
+    if (!companyId) return;
+    
+    setCheckingCompanyIdAvailability(true);
+    try {
+      const response = await fetch('/api/v1/auth/check-company-id-availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ company_id: companyId }),
+      });
+      
+      const result = await response.json();
+      setCompanyIdAvailability(result.available);
+    } catch (error) {
+      setCompanyIdAvailability(null);
+    } finally {
+      setCheckingCompanyIdAvailability(false);
     }
   };
 
@@ -373,16 +395,31 @@ export default function RegisterPage() {
                     <label className='block text-sm font-medium text-white mb-2'>
                       기업 ID *
                     </label>
-                    <Input
-                      type='text'
-                      value={formData.company_id}
-                      onChange={e =>
-                        handleInputChange('company_id', e.target.value)
-                      }
-                      className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
-                      placeholder='기업 ID를 입력하세요'
-                      required
-                    />
+                    <div className='flex gap-2'>
+                      <Input
+                        type='text'
+                        value={formData.company_id}
+                        onChange={e =>
+                          handleInputChange('company_id', e.target.value)
+                        }
+                        className='flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                        placeholder='기업 ID를 입력하세요'
+                        required
+                      />
+                      <Button
+                        type='button'
+                        onClick={() => checkCompanyIdDuplicate(formData.company_id)}
+                        disabled={checkingCompanyIdAvailability || !formData.company_id}
+                        className='px-4 py-2 bg-primary text-white rounded hover:bg-primary/80 disabled:opacity-50'
+                      >
+                        {checkingCompanyIdAvailability ? '확인 중...' : '중복확인'}
+                      </Button>
+                    </div>
+                    {companyIdAvailability !== null && (
+                      <div className={`mt-2 text-sm ${companyIdAvailability ? 'text-green-400' : 'text-red-400'}`}>
+                        {companyIdAvailability ? '사용 가능한 기업 ID입니다.' : '이미 사용 중인 기업 ID입니다.'}
+                      </div>
+                    )}
                   </div>
 
                   <div>

@@ -21,9 +21,22 @@ async def close_database_connection(connection):
         auth_logger.error(f"Database connection close failed: {str(e)}")
 
 async def create_tables():
-    """필요한 테이블들을 생성합니다"""
+    """필요한 테이블들을 생성합니다 (테이블이 없을 때만)"""
     connection = await get_database_connection()
     try:
+        # 테이블 존재 여부 확인
+        tables_exist = await connection.fetchval("""
+            SELECT COUNT(*) FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name IN ('companies', 'users')
+        """)
+        
+        if tables_exist == 2:
+            auth_logger.info("Required tables already exist, skipping creation")
+            return
+        
+        auth_logger.info("Some required tables are missing, creating them...")
+        
         # companies 테이블 생성
         await connection.execute("""
             CREATE TABLE IF NOT EXISTS companies (
@@ -73,6 +86,7 @@ async def create_tables():
         auth_logger.info("Database tables created successfully")
     except Exception as e:
         auth_logger.error(f"Table creation failed: {str(e)}")
-        raise e
+        # 테이블 생성 실패해도 서비스는 계속 실행
+        auth_logger.warning("Service will continue without table creation")
     finally:
         await close_database_connection(connection)

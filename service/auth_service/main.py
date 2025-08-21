@@ -35,13 +35,13 @@ async def lifespan(app: FastAPI):
     auth_logger.info(f"Environment: {settings.ENVIRONMENT}")
     auth_logger.info(f"Port: {settings.PORT}")
     
-    # DB 테이블 생성
+    # DB 테이블 생성 (테이블이 없을 때만)
     try:
         await create_tables()
-        auth_logger.info("Database tables created/verified successfully")
+        auth_logger.info("Database tables verified/created successfully")
     except Exception as e:
         auth_logger.error(f"Database table creation failed: {str(e)}")
-        raise e
+        auth_logger.warning("Service will continue without table creation")
     
     # 라우트 로깅
     log_routes(app)

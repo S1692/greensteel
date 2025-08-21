@@ -114,6 +114,11 @@ export default function RegisterPage() {
       ...prev,
       [field]: value,
     }));
+    
+    // 기업 ID가 변경되면 중복 체크 상태 초기화
+    if (field === 'company_id') {
+      setCompanyIdAvailability(null);
+    }
   };
 
   const handleUserInputChange = (field: keyof UserData, value: string) => {
@@ -121,6 +126,16 @@ export default function RegisterPage() {
       ...prev,
       [field]: value,
     }));
+    
+    // 사용자명이 변경되면 중복 체크 상태 초기화
+    if (field === 'username') {
+      setUsernameAvailable(null);
+    }
+    
+    // 기업 ID가 변경되면 존재 확인 상태 초기화
+    if (field === 'companyId') {
+      setCompanyIdAvailable(null);
+    }
   };
 
   const handleAddressSelect = (addressData: AddressData) => {
@@ -212,6 +227,19 @@ export default function RegisterPage() {
       setError(null);
       setSuccess(null);
 
+      // 기업 ID 중복 체크 확인
+      if (companyIdAvailability === null) {
+        setError('기업 ID 중복 확인을 먼저 해주세요.');
+        setLoading(false);
+        return;
+      }
+
+      if (companyIdAvailability === false) {
+        setError('이미 사용 중인 기업 ID입니다. 다른 기업 ID를 사용해주세요.');
+        setLoading(false);
+        return;
+      }
+
       // 비밀번호 확인
       if (formData.password !== formData.confirm_password) {
         setError('비밀번호가 일치하지 않습니다.');
@@ -259,9 +287,9 @@ export default function RegisterPage() {
 
         setSuccess('기업 회원가입이 완료되었습니다! 3초 후 로그인 페이지로 이동합니다.');
         
-        // 3초 후 로그인 페이지로 이동
+        // 3초 후 프로덕션 로그인 페이지로 이동
         setTimeout(() => {
-          router.push('/login');
+          window.location.href = 'https://greensteel-pwdneh4wh-123s-projects-eed55fc0.vercel.app/login';
         }, 3000);
         
         setFormData({
@@ -303,6 +331,32 @@ export default function RegisterPage() {
       setError(null);
       setSuccess(null);
 
+      // 사용자명 중복 체크 확인
+      if (usernameAvailable === null) {
+        setError('사용자명 중복 확인을 먼저 해주세요.');
+        setLoading(false);
+        return;
+      }
+
+      if (usernameAvailable === false) {
+        setError('이미 사용 중인 사용자명입니다. 다른 사용자명을 사용해주세요.');
+        setLoading(false);
+        return;
+      }
+
+      // 기업 ID 존재 확인
+      if (companyIdAvailable === null) {
+        setError('기업 ID 확인을 먼저 해주세요.');
+        setLoading(false);
+        return;
+      }
+
+      if (companyIdAvailable === false) {
+        setError('존재하지 않는 기업 ID입니다. 올바른 기업 ID를 입력해주세요.');
+        setLoading(false);
+        return;
+      }
+
 
 
       try {
@@ -326,9 +380,9 @@ export default function RegisterPage() {
 
         setSuccess('개인 사용자 회원가입이 완료되었습니다! 3초 후 로그인 페이지로 이동합니다.');
         
-        // 3초 후 로그인 페이지로 이동
+        // 3초 후 프로덕션 로그인 페이지로 이동
         setTimeout(() => {
-          router.push('/login');
+          window.location.href = 'https://greensteel-pwdneh4wh-123s-projects-eed55fc0.vercel.app/login';
         }, 3000);
         
         setUserFormData({

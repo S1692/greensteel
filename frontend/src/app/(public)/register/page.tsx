@@ -254,7 +254,13 @@ export default function RegisterPage() {
           throw new Error(errorData.detail || '회원가입에 실패했습니다.');
         }
 
-        setSuccess('기업 회원가입이 완료되었습니다!');
+        setSuccess('기업 회원가입이 완료되었습니다! 3초 후 로그인 페이지로 이동합니다.');
+        
+        // 3초 후 로그인 페이지로 이동
+        setTimeout(() => {
+          router.push('/login');
+        }, 3000);
+        
         setFormData({
           company_id: '',
           password: '',
@@ -315,7 +321,13 @@ export default function RegisterPage() {
           throw new Error(errorData.detail || '회원가입에 실패했습니다.');
         }
 
-        setSuccess('개인 사용자 회원가입이 완료되었습니다!');
+        setSuccess('개인 사용자 회원가입이 완료되었습니다! 3초 후 로그인 페이지로 이동합니다.');
+        
+        // 3초 후 로그인 페이지로 이동
+        setTimeout(() => {
+          router.push('/login');
+        }, 3000);
+        
         setUserFormData({
           username: '',
           password: '',

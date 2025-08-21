@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     # API Keys
     KAKAO_API_KEY: str = os.getenv("KAKAO_API_KEY", "")
     
+    # Database
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://postgres:lUAkUKpUxubYDvmqzGKxJLKgZCWMjaQy@switchyard.proxy.rlwy.net:51947/railway")
+    
     # CORS
     CORS_ORIGINS: list = ["*"]
     

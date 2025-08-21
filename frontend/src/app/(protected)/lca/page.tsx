@@ -25,47 +25,47 @@ export default function DashboardPage() {
       <div className="space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">
+          <h1 className="text-3xl font-bold text-ecotrace-text mb-2">
             LCA 대시보드
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-ecotrace-textSecondary">
             진행 중인 LCA 프로젝트를 관리하세요
           </p>
         </div>
 
         {/* 프로젝트 통계 섹션 - 최상단 */}
         <div>
-          <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center">
-            <span className="w-2 h-2 bg-primary rounded-full mr-3"></span>
+          <h2 className="text-xl font-semibold text-ecotrace-text mb-4 flex items-center">
+            <span className="w-2 h-2 bg-ecotrace-accent rounded-full mr-3"></span>
             프로젝트 통계
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex justify-between items-center p-4 rounded-lg bg-card border border-border/30 shadow-sm">
+            <div className="flex justify-between items-center p-4 rounded-lg bg-ecotrace-surface border border-ecotrace-border shadow-sm">
               <div>
-                <span className="text-muted-foreground font-medium">
+                <span className="text-ecotrace-textSecondary font-medium">
                   전체 프로젝트
                 </span>
-                <p className="text-xs text-muted-foreground">활성 프로젝트</p>
+                <p className="text-xs text-ecotrace-textSecondary">활성 프로젝트</p>
               </div>
-              <span className="text-foreground font-bold text-2xl">
+              <span className="text-ecotrace-text font-bold text-2xl">
                 {mockProjects.length}개
               </span>
             </div>
-            <div className="flex justify-between items-center p-4 rounded-lg bg-card border border-border/30 shadow-sm">
+            <div className="flex justify-between items-center p-4 rounded-lg bg-ecotrace-surface border border-ecotrace-border shadow-sm">
               <div>
-                <span className="text-muted-foreground font-medium">
+                <span className="text-ecotrace-textSecondary font-medium">
                   진행 중
                 </span>
-                <p className="text-xs text-muted-foreground">작업 진행 중</p>
+                <p className="text-xs text-ecotrace-textSecondary">작업 진행 중</p>
               </div>
               <span className="text-green-500 font-bold text-2xl">
                 {mockProjects.filter((p) => p.status === '진행 중').length}개
               </span>
             </div>
-            <div className="flex justify-between items-center p-4 rounded-lg bg-card border border-border/30 shadow-sm">
+            <div className="flex justify-between items-center p-4 rounded-lg bg-ecotrace-surface border border-ecotrace-border shadow-sm">
               <div>
-                <span className="text-muted-foreground font-medium">완료</span>
-                <p className="text-xs text-muted-foreground">분석 완료</p>
+                <span className="text-ecotrace-textSecondary font-medium">완료</span>
+                <p className="text-xs text-ecotrace-textSecondary">분석 완료</p>
               </div>
               <span className="text-blue-500 font-bold text-2xl">
                 {mockProjects.filter((p) => p.status === '완료').length}개
@@ -77,17 +77,17 @@ export default function DashboardPage() {
         {/* 최신 프로젝트 하이라이트 섹션 */}
         {latestProject && (
           <div>
-            <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center">
+            <h2 className="text-xl font-semibold text-ecotrace-text mb-4 flex items-center">
               <span className="w-2 h-2 bg-green-500 rounded-full mr-3"></span>
               최신 프로젝트
             </h2>
-            <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-xl p-6">
+            <div className="bg-gradient-to-r from-ecotrace-accent/10 to-ecotrace-accent/5 border border-ecotrace-accent/20 rounded-xl p-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                  <h3 className="text-lg font-semibold text-ecotrace-text mb-2">
                     {latestProject.name}
                   </h3>
-                  <p className="text-muted-foreground mb-3">
+                  <p className="text-ecotrace-textSecondary mb-3">
                     {latestProject.description}
                   </p>
                   <div className="flex items-center gap-4 text-sm">
@@ -100,7 +100,7 @@ export default function DashboardPage() {
                     >
                       {latestProject.status}
                     </span>
-                    <span className="text-muted-foreground">
+                    <span className="text-ecotrace-textSecondary">
                       최종 업데이트:{' '}
                       {new Date(latestProject.updatedAt).toLocaleDateString(
                         'ko-KR'
@@ -110,7 +110,7 @@ export default function DashboardPage() {
                 </div>
                 <button
                   onClick={() => handleProjectClick(latestProject.id)}
-                  className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium ml-4"
+                  className="bg-ecotrace-accent text-white px-4 py-2 rounded-lg hover:bg-ecotrace-accent/90 transition-colors text-sm font-medium ml-4"
                 >
                   프로젝트 보기
                 </button>
@@ -121,17 +121,17 @@ export default function DashboardPage() {
 
         {/* 프로젝트 목록 섹션 */}
         <div>
-          <h2 className="text-xl font-semibold text-foreground mb-4">
+          <h2 className="text-xl font-semibold text-ecotrace-text mb-4">
             모든 프로젝트
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {mockProjects.map((project) => (
               <div
                 key={project.id}
-                className="bg-card border border-border/30 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow"
+                className="bg-ecotrace-surface border border-ecotrace-border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start justify-between mb-3">
-                  <h3 className="text-lg font-semibold text-foreground">
+                  <h3 className="text-lg font-semibold text-ecotrace-text">
                     {project.name}
                   </h3>
                   <span
@@ -144,16 +144,16 @@ export default function DashboardPage() {
                     {project.status}
                   </span>
                 </div>
-                <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
+                <p className="text-ecotrace-textSecondary text-sm mb-4 line-clamp-2">
                   {project.description}
                 </p>
-                <div className="text-xs text-muted-foreground mb-4">
+                <div className="text-xs text-ecotrace-textSecondary mb-4">
                   <div>생성일: {project.createdAt}</div>
                   <div>수정일: {project.updatedAt}</div>
                 </div>
                 <button
                   onClick={() => handleProjectClick(project.id)}
-                  className="w-full border border-border/50 bg-transparent text-foreground px-4 py-2 rounded-lg hover:bg-muted/50 transition-colors text-sm font-medium"
+                  className="w-full border border-ecotrace-border bg-transparent text-ecotrace-text px-4 py-2 rounded-lg hover:bg-ecotrace-secondary/10 transition-colors text-sm font-medium"
                 >
                   열기
                 </button>
@@ -167,7 +167,7 @@ export default function DashboardPage() {
           <button
             onClick={handleNewProject}
             aria-label="새 프로젝트 시작하기"
-            className="bg-primary text-primary-foreground w-16 h-16 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 flex items-center justify-center"
+            className="bg-ecotrace-accent text-white w-16 h-16 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 flex items-center justify-center"
           >
             <svg
               className="w-6 h-6"

@@ -1,6 +1,23 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
+import { env } from '@/lib/env';
+import {
+  Menu,
+  X,
+  Home,
+  BarChart3,
+  FileText,
+  Upload,
+  Settings,
+  ChevronDown,
+  User,
+  LogOut,
+  Bell,
+  Search,
+} from 'lucide-react';
 import LcaSidebar from './LcaSidebar';
 
 interface LcaLayoutProps {
@@ -8,6 +25,76 @@ interface LcaLayoutProps {
 }
 
 export default function LcaLayout({ children }: LcaLayoutProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+
+  const navigation = [
+    {
+      name: '홈',
+      href: '/dashboard',
+      icon: Home,
+      current: pathname === '/dashboard',
+      description: 'ESG 요약 및 최근 활동',
+    },
+    {
+      name: 'LCA',
+      href: '/lca',
+      icon: BarChart3,
+      current: pathname.startsWith('/lca'),
+      description: '생명주기 평가 프로젝트 관리',
+    },
+    {
+      name: 'CBAM',
+      href: '/cbam',
+      icon: FileText,
+      current: pathname.startsWith('/cbam'),
+      description: 'CBAM 보고서 및 계산',
+    },
+    {
+      name: '데이터 업로드',
+      href: '/data-upload',
+      icon: Upload,
+      current: pathname === '/data-upload',
+      description: 'ESG 데이터 업로드 및 관리',
+    },
+    {
+      name: '설정',
+      href: '/settings',
+      icon: Settings,
+      current: pathname === '/settings',
+      description: '계정 및 환경설정',
+    },
+  ];
+
+  const handleNavigation = (href: string) => {
+    router.push(href);
+    setIsSidebarOpen(false);
+  };
+
+  const handleGoHome = () => {
+    router.push('/');
+  };
+
+  // 모바일에서 사이드바 외부 클릭 시 닫기
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (isSidebarOpen && !target.closest('.sidebar')) {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isSidebarOpen]);
+
+  // 경로 변경 시 모바일 메뉴 닫기
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [pathname]);
+
   return (
     <div className="min-h-screen bg-ecotrace-background text-ecotrace-text">
       {/* 상단 네비게이션 바 - CommonShell과 동일한 스타일 */}
@@ -16,6 +103,13 @@ export default function LcaLayout({ children }: LcaLayoutProps) {
           <div className="flex items-center justify-between">
             {/* 로고 및 브랜드 */}
             <div className="flex items-center gap-4">
+              <button
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className="lg:hidden p-2 rounded-lg hover:bg-ecotrace-secondary/10"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+
               <div className="w-8 h-8 bg-gradient-to-br from-ecotrace-accent to-ecotrace-accent/70 rounded-lg flex items-center justify-center">
                 <svg
                   className="w-5 h-5 text-white"
@@ -32,58 +126,76 @@ export default function LcaLayout({ children }: LcaLayoutProps) {
                 </svg>
               </div>
               <div className="flex flex-col">
-                <span className="text-xl font-bold text-white">GreenSteel</span>
+                <span className="text-xl font-bold text-white">
+                  {env.NEXT_PUBLIC_APP_NAME}
+                </span>
                 <span className="text-xs text-ecotrace-textSecondary">ESG Platform</span>
               </div>
             </div>
 
             {/* 데스크톱 네비게이션 */}
             <nav className="hidden lg:flex items-center gap-6">
-              <a 
-                href="/dashboard" 
-                className="text-sm font-medium transition-all duration-200 px-3 py-2 rounded-lg cursor-pointer flex items-center gap-2 text-ecotrace-textSecondary hover:text-ecotrace-text hover:bg-ecotrace-secondary/10"
-              >
-                홈
-              </a>
-              <a 
-                href="/cbam" 
-                className="text-sm font-medium transition-all duration-200 px-3 py-2 rounded-lg cursor-pointer flex items-center gap-2 text-ecotrace-textSecondary hover:text-ecotrace-text hover:bg-ecotrace-secondary/10"
-              >
-                CBAM
-              </a>
-              <a 
-                href="/data-upload" 
-                className="text-sm font-medium transition-all duration-200 px-3 py-2 rounded-lg cursor-pointer flex items-center gap-2 text-ecotrace-textSecondary hover:text-ecotrace-text hover:bg-ecotrace-secondary/10"
-              >
-                데이터 업로드
-              </a>
-              <a 
-                href="/settings" 
-                className="text-sm font-medium transition-all duration-200 px-3 py-2 rounded-lg cursor-pointer flex items-center gap-2 text-ecotrace-textSecondary hover:text-ecotrace-text hover:bg-ecotrace-secondary/10"
-              >
-                설정
-              </a>
+              {navigation.map(item => (
+                <button
+                  key={item.name}
+                  onClick={() => handleNavigation(item.href)}
+                  className={cn(
+                    'text-sm font-medium transition-all duration-200 px-3 py-2 rounded-lg cursor-pointer flex items-center gap-2',
+                    item.current
+                      ? 'text-ecotrace-text bg-ecotrace-secondary/20 border border-ecotrace-accent/30'
+                      : 'text-ecotrace-textSecondary hover:text-ecotrace-text hover:bg-ecotrace-secondary/10'
+                  )}
+                >
+                  <item.icon className="w-4 h-4" />
+                  {item.name}
+                </button>
+              ))}
             </nav>
 
             {/* 우측 액션 */}
             <div className="flex items-center gap-4">
+              {/* 검색 */}
+              <button className="p-2 rounded-lg hover:bg-ecotrace-secondary/10">
+                <Search className="w-5 h-5" />
+              </button>
+
               {/* 알림 */}
               <button className="p-2 rounded-lg hover:bg-ecotrace-secondary/10 relative">
-                <svg className="w-5 h-5 text-ecotrace-textSecondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M9 11h.01M9 8h.01M15 11h.01M15 8h.01M15 5h.01M9 5h.01" />
-                </svg>
+                <Bell className="w-5 h-5" />
                 <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
               </button>
 
-              {/* 프로필 */}
-              <button className="flex items-center gap-2 p-2 rounded-lg hover:bg-ecotrace-secondary/10">
-                <div className="w-8 h-8 bg-ecotrace-accent rounded-full flex items-center justify-center">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-              </button>
+              {/* 프로필 드롭다운 */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                  className="flex items-center gap-2 p-2 rounded-lg hover:bg-ecotrace-secondary/10"
+                >
+                  <div className="w-8 h-8 bg-ecotrace-accent rounded-full flex items-center justify-center">
+                    <User className="w-4 h-4 text-white" />
+                  </div>
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+
+                {isProfileDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-ecotrace-secondary border border-ecotrace-border rounded-lg shadow-lg py-2">
+                    <button
+                      onClick={() => handleNavigation('/settings')}
+                      className="w-full px-4 py-2 text-left hover:bg-ecotrace-secondary/50 flex items-center gap-2"
+                    >
+                      <Settings className="w-4 h-4" />
+                      설정
+                    </button>
+                    <button
+                      onClick={handleGoHome}
+                      className="w-full px-4 py-2 text-left hover:bg-ecotrace-secondary/50 flex items-center gap-2"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      홈으로
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -92,8 +204,15 @@ export default function LcaLayout({ children }: LcaLayoutProps) {
       {/* 메인 콘텐츠 영역 */}
       <div className="flex">
         {/* 좌측 사이드바 */}
-        <LcaSidebar />
-        
+        <div
+          className={cn(
+            'fixed inset-y-0 left-0 z-40 w-64 bg-ecotrace-secondary border-r border-ecotrace-border transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 sidebar',
+            isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          )}
+        >
+          <LcaSidebar />
+        </div>
+
         {/* 메인 콘텐츠 */}
         <main className="flex-1 lg:ml-0">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
@@ -101,6 +220,11 @@ export default function LcaLayout({ children }: LcaLayoutProps) {
           </div>
         </main>
       </div>
+
+      {/* 모바일 메뉴 오버레이 */}
+      {isSidebarOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden" />
+      )}
     </div>
   );
 }

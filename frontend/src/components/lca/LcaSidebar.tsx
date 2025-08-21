@@ -7,8 +7,7 @@ import {
   ClipboardDocumentListIcon, 
   ChartBarIcon, 
   CalculatorIcon, 
-  DocumentTextIcon, 
-  Cog6ToothIcon 
+  DocumentTextIcon
 } from '@heroicons/react/24/outline';
 
 const menuItems = [
@@ -47,12 +46,6 @@ const menuItems = [
     href: '/lca/report',
     icon: DocumentTextIcon,
     description: 'LCA 보고서 생성',
-  },
-  {
-    name: '설정',
-    href: '/lca/settings',
-    icon: Cog6ToothIcon,
-    description: 'LCA 모듈 설정',
   },
 ];
 

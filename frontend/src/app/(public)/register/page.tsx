@@ -150,7 +150,8 @@ export default function RegisterPage() {
       });
       
       const result = await response.json();
-      setUsernameAvailable(result.available);
+      console.log('Username check response:', result); // 디버깅용
+      setUsernameAvailable(result.data?.available);
     } catch (error) {
       setUsernameAvailable(null);
     } finally {
@@ -170,7 +171,8 @@ export default function RegisterPage() {
       });
       
       const result = await response.json();
-      setCompanyIdAvailable(result.available);
+      console.log('Company ID existence check response:', result); // 디버깅용
+      setCompanyIdAvailable(result.data?.available);
     } catch (error) {
       setCompanyIdAvailable(null);
     } finally {
@@ -190,7 +192,8 @@ export default function RegisterPage() {
       });
       
       const result = await response.json();
-      setCompanyIdAvailability(result.available);
+      console.log('API Response:', result); // 디버깅용
+      setCompanyIdAvailability(result.data?.available);
     } catch (error) {
       setCompanyIdAvailability(null);
     } finally {

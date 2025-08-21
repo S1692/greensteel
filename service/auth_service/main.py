@@ -5,6 +5,7 @@ from pydantic import ValidationError
 
 from app.common.settings import settings
 from app.common.logger import LoggingMiddleware, auth_logger
+from app.common.database import create_tables
 from app.router.auth import router as auth_router
 from app.www.errors import (
     validation_exception_handler,
@@ -33,6 +34,14 @@ async def lifespan(app: FastAPI):
     auth_logger.info(f"Architecture: DDD (Domain-Driven Design)")
     auth_logger.info(f"Environment: {settings.ENVIRONMENT}")
     auth_logger.info(f"Port: {settings.PORT}")
+    
+    # DB 테이블 생성
+    try:
+        await create_tables()
+        auth_logger.info("Database tables created/verified successfully")
+    except Exception as e:
+        auth_logger.error(f"Database table creation failed: {str(e)}")
+        raise e
     
     # 라우트 로깅
     log_routes(app)

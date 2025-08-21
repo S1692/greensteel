@@ -66,8 +66,10 @@ export default function RegisterPage() {
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [checkingCompanyId, setCheckingCompanyId] = useState(false);
+  const [checkingCompanyIdAvailability, setCheckingCompanyIdAvailability] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [companyIdAvailable, setCompanyIdAvailable] = useState<boolean | null>(null);
+  const [companyIdAvailability, setCompanyIdAvailability] = useState<boolean | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -176,6 +178,26 @@ export default function RegisterPage() {
     }
   };
 
+  const checkCompanyIdDuplicate = async (companyId: string) => {
+    if (!companyId) return;
+    
+    setCheckingCompanyIdAvailability(true);
+    try {
+      const response = await fetch('/api/v1/auth/check-company-id-availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ company_id: companyId }),
+      });
+      
+      const result = await response.json();
+      setCompanyIdAvailability(result.available);
+    } catch (error) {
+      setCompanyIdAvailability(null);
+    } finally {
+      setCheckingCompanyIdAvailability(false);
+    }
+  };
+
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -232,7 +254,13 @@ export default function RegisterPage() {
           throw new Error(errorData.detail || '회원가입에 실패했습니다.');
         }
 
-        setSuccess('기업 회원가입이 완료되었습니다!');
+        setSuccess('기업 회원가입이 완료되었습니다! 3초 후 로그인 페이지로 이동합니다.');
+        
+        // 3초 후 로그인 페이지로 이동
+        setTimeout(() => {
+          router.push('/login');
+        }, 3000);
+        
         setFormData({
           company_id: '',
           password: '',
@@ -293,7 +321,13 @@ export default function RegisterPage() {
           throw new Error(errorData.detail || '회원가입에 실패했습니다.');
         }
 
-        setSuccess('개인 사용자 회원가입이 완료되었습니다!');
+        setSuccess('개인 사용자 회원가입이 완료되었습니다! 3초 후 로그인 페이지로 이동합니다.');
+        
+        // 3초 후 로그인 페이지로 이동
+        setTimeout(() => {
+          router.push('/login');
+        }, 3000);
+        
         setUserFormData({
           username: '',
           password: '',
@@ -373,16 +407,31 @@ export default function RegisterPage() {
                     <label className='block text-sm font-medium text-white mb-2'>
                       기업 ID *
                     </label>
-                    <Input
-                      type='text'
-                      value={formData.company_id}
-                      onChange={e =>
-                        handleInputChange('company_id', e.target.value)
-                      }
-                      className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
-                      placeholder='기업 ID를 입력하세요'
-                      required
-                    />
+                    <div className='flex gap-2'>
+                      <Input
+                        type='text'
+                        value={formData.company_id}
+                        onChange={e =>
+                          handleInputChange('company_id', e.target.value)
+                        }
+                        className='flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                        placeholder='기업 ID를 입력하세요'
+                        required
+                      />
+                      <Button
+                        type='button'
+                        onClick={() => checkCompanyIdDuplicate(formData.company_id)}
+                        disabled={checkingCompanyIdAvailability || !formData.company_id}
+                        className='px-4 py-2 bg-primary text-white rounded hover:bg-primary/80 disabled:opacity-50'
+                      >
+                        {checkingCompanyIdAvailability ? '확인 중...' : '중복확인'}
+                      </Button>
+                    </div>
+                    {companyIdAvailability !== null && (
+                      <div className={`mt-2 text-sm ${companyIdAvailability ? 'text-green-400' : 'text-red-400'}`}>
+                        {companyIdAvailability ? '사용 가능한 기업 ID입니다.' : '이미 사용 중인 기업 ID입니다.'}
+                      </div>
+                    )}
                   </div>
 
                   <div>

@@ -32,8 +32,8 @@ export default function NewProjectScopePage() {
     // 실제로는 API 호출로 저장
     // console.log('프로젝트 저장:', projectData);
 
-    // LCI 페이지로 이동
-    router.push(`/lca/projects/${projectId}/lci`);
+    // LCI 페이지로 이동 (새로운 라우팅 구조)
+    router.push(`/lca/lci`);
   };
 
   const handleBack = () => {

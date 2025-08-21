@@ -15,13 +15,7 @@ export default function PWAServiceWorker() {
             }
           );
 
-          // 개발 환경에서만 로그 출력
-          if (process.env.NODE_ENV === 'development') {
-            console.log(
-              'Service Worker registered successfully:',
-              registration
-            );
-          }
+          // 서비스 워커 등록 성공
 
           // 서비스 워커 업데이트 확인
           registration.addEventListener('updatefound', () => {
@@ -46,16 +40,8 @@ export default function PWAServiceWorker() {
           });
 
           // 서비스 워커가 제어권을 가졌을 때
-          if (navigator.serviceWorker.controller) {
-            if (process.env.NODE_ENV === 'development') {
-              console.log('Service Worker is controlling the page');
-            }
-          }
         } catch (error) {
-          // 개발 환경에서만 에러 로그 출력
-          if (process.env.NODE_ENV === 'development') {
-            console.error('Service Worker registration failed:', error);
-          }
+          // 서비스 워커 등록 실패 시 무시
         }
       };
 

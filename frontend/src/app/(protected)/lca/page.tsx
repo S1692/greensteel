@@ -1,46 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { LCALayout } from '@/components/lca/templates/LCALayout';
+import { mockProjects } from '@/lib/mocks';
 
-// Mock data directly in component to avoid import issues
-interface MockProject {
-  id: string;
-  name: string;
-  description: string;
-  status: '진행 중' | '완료' | '초안';
-  createdAt: string;
-  updatedAt: string;
-}
-
-const mockProjects: MockProject[] = [
-  {
-    id: 'proj-1',
-    name: '철강 제품 LCA 분석',
-    description: '고강도 철강 제품의 생명주기 환경영향 평가',
-    status: '완료',
-    createdAt: '2024-01-01',
-    updatedAt: '2024-01-15',
-  },
-  {
-    id: 'proj-2',
-    name: '알루미늄 합금 LCA',
-    description: '경량화를 위한 알루미늄 합금 소재 평가',
-    status: '진행 중',
-    createdAt: '2024-01-05',
-    updatedAt: '2024-01-20',
-  },
-  {
-    id: 'proj-3',
-    name: '플라스틱 복합재 LCA',
-    description: '자동차용 플라스틱 복합재 환경영향 분석',
-    status: '초안',
-    createdAt: '2024-01-10',
-    updatedAt: '2024-01-18',
-  },
-];
-
-function DashboardPage() {
+export default function DashboardPage() {
   const router = useRouter();
 
   const handleProjectClick = (projectId: string) => {
@@ -54,8 +17,7 @@ function DashboardPage() {
 
   // 최신 프로젝트 가져오기 (updatedAt 기준)
   const latestProject = [...mockProjects].sort(
-    (a: MockProject, b: MockProject) =>
-      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
   )[0];
 
   return (
@@ -95,12 +57,7 @@ function DashboardPage() {
                 <p className='text-xs text-muted-foreground'>작업 진행 중</p>
               </div>
               <span className='text-green-500 font-bold text-2xl'>
-                {
-                  mockProjects.filter(
-                    (p: MockProject) => p.status === '진행 중'
-                  ).length
-                }
-                개
+                {mockProjects.filter(p => p.status === '진행 중').length}개
               </span>
             </div>
             <div className='flex justify-between items-center p-4 rounded-lg bg-card border border-border/30 shadow-sm'>
@@ -109,11 +66,7 @@ function DashboardPage() {
                 <p className='text-xs text-muted-foreground'>분석 완료</p>
               </div>
               <span className='text-blue-500 font-bold text-2xl'>
-                {
-                  mockProjects.filter((p: MockProject) => p.status === '완료')
-                    .length
-                }
-                개
+                {mockProjects.filter(p => p.status === '완료').length}개
               </span>
             </div>
           </div>
@@ -171,7 +124,7 @@ function DashboardPage() {
           </h2>
           <div className='overflow-x-auto'>
             <div className='flex flex-nowrap gap-4 pb-4 min-w-max lg:min-w-0 lg:grid lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 lg:gap-6'>
-              {mockProjects.map((project: MockProject) => (
+              {mockProjects.map(project => (
                 <div
                   key={project.id}
                   className='bg-card border border-border/30 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow min-w-[300px] lg:min-w-0'
@@ -233,13 +186,5 @@ function DashboardPage() {
         </div>
       </div>
     </div>
-  );
-}
-
-export default function LCAPage() {
-  return (
-    <LCALayout>
-      <DashboardPage />
-    </LCALayout>
   );
 }

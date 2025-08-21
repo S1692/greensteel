@@ -1,5 +1,5 @@
 import React from 'react';
-import StatusBadge from '@/components/atoms/StatusBadge';
+import StatusBadge from '@/components/atomic/atoms/StatusBadge';
 
 interface ReportStatusItem {
   label: string;

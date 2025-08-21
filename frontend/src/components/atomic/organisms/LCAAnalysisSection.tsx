@@ -1,7 +1,7 @@
 import React from 'react';
-import InfoCard from '@/components/molecules/InfoCard';
-import ProgressBar from '@/components/atoms/ProgressBar';
-import DataTable from '@/components/atoms/DataTable';
+import InfoCard from '@/components/atomic/molecules/InfoCard';
+import ProgressBar from '@/components/atomic/atoms/ProgressBar';
+import DataTable from '@/components/atomic/atoms/DataTable';
 import { BarChart3 } from 'lucide-react';
 
 interface LCAAnalysisSectionProps {

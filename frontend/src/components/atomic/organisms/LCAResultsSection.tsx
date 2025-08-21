@@ -1,6 +1,6 @@
 import React from 'react';
-import InfoCard from '@/components/molecules/InfoCard';
-import DataTable from '@/components/atoms/DataTable';
+import InfoCard from '@/components/atomic/molecules/InfoCard';
+import DataTable from '@/components/atomic/atoms/DataTable';
 import { TrendingUp } from 'lucide-react';
 
 interface LCAResult {

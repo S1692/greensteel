@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import CommonShell from '@/components/CommonShell';
+import CommonShell from '@/components/common/CommonShell';
 import ProcessManager from '@/components/cbam/ProcessManager';
 import { ReactFlowProvider } from '@xyflow/react';
 

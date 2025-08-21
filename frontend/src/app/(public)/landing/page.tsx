@@ -94,7 +94,7 @@ export default function LandingPage() {
 
           {error && <p className='stitch-error mt-1'>{error.message}</p>}
 
-          <Button className='mt-2' disabled={isLoading}>
+          <Button className='mt-2' size='lg' disabled={isLoading}>
             {isLoading ? '로그인 중...' : '로그인'}
           </Button>
         </form>
@@ -103,9 +103,11 @@ export default function LandingPage() {
           <p className='stitch-caption text-center mb-4'>또는</p>
 
           <div className='space-y-3'>
-            <Button onClick={handleEnter}>들어가기</Button>
+            <Button onClick={handleEnter} size='lg'>
+              들어가기
+            </Button>
 
-            <Button onClick={handleRegister} variant='outline'>
+            <Button onClick={handleRegister} variant='outline' size='lg'>
               회원가입
             </Button>
           </div>

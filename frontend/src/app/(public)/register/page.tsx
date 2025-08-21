@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Button from '@/components/atoms/Button';
 import Input from '@/components/atoms/Input';
 import AddressSearchModal from '@/components/AddressSearchModal';
@@ -67,6 +68,10 @@ interface CompanyData {
 }
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const [registerType, setRegisterType] = useState<'company' | 'user'>(
+    'company'
+  );
   const [formData, setFormData] = useState<CompanyData>({
     company_id: '',
     password: '',
@@ -223,10 +228,42 @@ export default function RegisterPage() {
     <div className='min-h-screen stitch-bg py-12 px-4 sm:px-6 lg:px-8'>
       <div className='max-w-2xl mx-auto'>
         <div className='stitch-card p-8'>
+          {/* 회원가입 타입 선택 탭 */}
+          <div className='flex mb-8 border-b border-gray-200'>
+            <button
+              type='button'
+              onClick={() => setRegisterType('company')}
+              className={`px-6 py-3 text-lg font-medium transition-colors ${
+                registerType === 'company'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              기업 회원가입
+            </button>
+            <button
+              type='button'
+              onClick={() => setRegisterType('user')}
+              className={`px-6 py-3 text-lg font-medium transition-colors ${
+                registerType === 'user'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              개인 사용자 회원가입
+            </button>
+          </div>
+
           <div className='text-center mb-8'>
-            <h1 className='stitch-h1 text-3xl font-bold'>기업 회원가입</h1>
+            <h1 className='stitch-h1 text-3xl font-bold'>
+              {registerType === 'company'
+                ? '기업 회원가입'
+                : '개인 사용자 회원가입'}
+            </h1>
             <p className='stitch-caption mt-2'>
-              기업 정보를 입력하여 회원가입을 완료하세요.
+              {registerType === 'company'
+                ? '기업 정보를 입력하여 회원가입을 완료하세요.'
+                : '개인 정보를 입력하여 회원가입을 완료하세요.'}
             </p>
           </div>
 
@@ -242,260 +279,294 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className='space-y-6'>
-            {/* 계정 정보 */}
-            <div className='stitch-section'>
-              <h2 className='stitch-h1 text-xl font-semibold mb-4'>
-                계정 정보
-              </h2>
-              <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
-                <div>
-                  <label className='stitch-label mb-1 block'>기업 ID *</label>
-                  <Input
-                    type='text'
-                    value={formData.company_id}
-                    onChange={e =>
-                      handleInputChange('company_id', e.target.value)
-                    }
-                    required
-                    placeholder='기업 ID를 입력하세요'
-                  />
-                </div>
-                <div>
-                  <label className='stitch-label mb-1 block'>비밀번호 *</label>
-                  <Input
-                    type='password'
-                    value={formData.password}
-                    onChange={e =>
-                      handleInputChange('password', e.target.value)
-                    }
-                    required
-                    placeholder='비밀번호를 입력하세요'
-                  />
-                </div>
-                <div>
-                  <label className='stitch-label mb-1 block'>
-                    비밀번호 확인 *
-                  </label>
-                  <Input
-                    type='password'
-                    value={formData.confirm_password}
-                    onChange={e =>
-                      handleInputChange('confirm_password', e.target.value)
-                    }
-                    required
-                    placeholder='비밀번호를 다시 입력하세요'
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* 기업 정보 */}
-            <div className='stitch-section'>
-              <h2 className='stitch-h1 text-xl font-semibold mb-4'>
-                기업 정보
-              </h2>
-              <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
-                <div>
-                  <label className='stitch-label mb-1 block'>사업장명 *</label>
-                  <Input
-                    type='text'
-                    value={formData.Installation}
-                    onChange={e =>
-                      handleInputChange('Installation', e.target.value)
-                    }
-                    required
-                    placeholder='사업장명을 입력하세요'
-                  />
-                </div>
-                <div>
-                  <label className='stitch-label mb-1 block'>
-                    사업장 영문명
-                  </label>
-                  <Input
-                    type='text'
-                    value={formData.Installation_en}
-                    onChange={e =>
-                      handleInputChange('Installation_en', e.target.value)
-                    }
-                    placeholder='사업장 영문명을 입력하세요'
-                  />
-                </div>
-                <div>
-                  <label className='stitch-label mb-1 block'>업종명</label>
-                  <Input
-                    type='text'
-                    value={formData.economic_activity}
-                    onChange={e =>
-                      handleInputChange('economic_activity', e.target.value)
-                    }
-                    placeholder='업종명을 입력하세요'
-                  />
-                </div>
-                <div>
-                  <label className='stitch-label mb-1 block'>
-                    업종명 영문명
-                  </label>
-                  <Input
-                    type='text'
-                    value={formData.economic_activity_en}
-                    onChange={e =>
-                      handleInputChange('economic_activity_en', e.target.value)
-                    }
-                    placeholder='업종명 영문명을 입력하세요'
-                  />
-                </div>
-                <div>
-                  <label className='stitch-label mb-1 block'>대표자명</label>
-                  <Input
-                    type='text'
-                    value={formData.representative}
-                    onChange={e =>
-                      handleInputChange('representative', e.target.value)
-                    }
-                    placeholder='대표자명을 입력하세요'
-                  />
-                </div>
-                <div>
-                  <label className='stitch-label mb-1 block'>
-                    영문대표자명
-                  </label>
-                  <Input
-                    type='text'
-                    value={formData.representative_en}
-                    onChange={e =>
-                      handleInputChange('representative_en', e.target.value)
-                    }
-                    placeholder='영문대표자명을 입력하세요'
-                  />
-                </div>
-                <div>
-                  <label className='stitch-label mb-1 block'>이메일</label>
-                  <Input
-                    type='email'
-                    value={formData.email}
-                    onChange={e => handleInputChange('email', e.target.value)}
-                    placeholder='이메일을 입력하세요'
-                  />
-                </div>
-                <div>
-                  <label className='stitch-label mb-1 block'>전화번호</label>
-                  <Input
-                    type='tel'
-                    value={formData.telephone}
-                    onChange={e =>
-                      handleInputChange('telephone', e.target.value)
-                    }
-                    placeholder='전화번호를 입력하세요'
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* 주소 정보 */}
-            <div className='stitch-section'>
-              <h2 className='stitch-h1 text-xl font-semibold mb-4'>
-                주소 정보
-              </h2>
-
-              {/* 주소 검색 버튼 */}
-              <div className='mb-4'>
-                <Button
-                  type='button'
-                  onClick={() => setIsAddressModalOpen(true)}
-                  variant='outline'
-                >
-                  주소 검색
-                </Button>
-              </div>
-
-              <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
-                <div>
-                  <label className='stitch-label mb-1 block'>도로명</label>
-                  <Input
-                    type='text'
-                    value={formData.street}
-                    onChange={e => handleInputChange('street', e.target.value)}
-                    placeholder='도로명'
-                    readOnly
-                  />
-                </div>
-                <div>
-                  <label className='stitch-label mb-1 block'>건물 번호</label>
-                  <Input
-                    type='text'
-                    value={formData.number}
-                    onChange={e => handleInputChange('number', e.target.value)}
-                    placeholder='건물 번호'
-                    readOnly
-                  />
-                </div>
-                <div>
-                  <label className='stitch-label mb-1 block'>우편번호</label>
-                  <Input
-                    type='text'
-                    value={formData.postcode}
-                    onChange={e =>
-                      handleInputChange('postcode', e.target.value)
-                    }
-                    placeholder='우편번호'
-                    readOnly
-                  />
-                </div>
-                <div>
-                  <label className='stitch-label mb-1 block'>도시명</label>
-                  <Input
-                    type='text'
-                    value={formData.city}
-                    onChange={e => handleInputChange('city', e.target.value)}
-                    placeholder='도시명'
-                    readOnly
-                  />
+          {registerType === 'company' ? (
+            <form onSubmit={handleSubmit} className='space-y-6'>
+              {/* 계정 정보 */}
+              <div className='stitch-section'>
+                <h2 className='stitch-h1 text-xl font-semibold mb-4'>
+                  계정 정보
+                </h2>
+                <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+                  <div>
+                    <label className='stitch-label mb-1 block'>기업 ID *</label>
+                    <Input
+                      type='text'
+                      value={formData.company_id}
+                      onChange={e =>
+                        handleInputChange('company_id', e.target.value)
+                      }
+                      required
+                      placeholder='기업 ID를 입력하세요'
+                    />
+                  </div>
+                  <div>
+                    <label className='stitch-label mb-1 block'>
+                      비밀번호 *
+                    </label>
+                    <Input
+                      type='password'
+                      value={formData.password}
+                      onChange={e =>
+                        handleInputChange('password', e.target.value)
+                      }
+                      required
+                      placeholder='비밀번호를 입력하세요'
+                    />
+                  </div>
+                  <div>
+                    <label className='stitch-label mb-1 block'>
+                      비밀번호 확인 *
+                    </label>
+                    <Input
+                      type='password'
+                      value={formData.confirm_password}
+                      onChange={e =>
+                        handleInputChange('confirm_password', e.target.value)
+                      }
+                      required
+                      placeholder='비밀번호를 다시 입력하세요'
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* 국가 검색 */}
-              <div className='mt-4'>
-                <label className='stitch-label mb-1 block'>국가</label>
-                <div className='flex gap-2'>
-                  <Input
-                    type='text'
-                    value={formData.country}
-                    onChange={e => handleInputChange('country', e.target.value)}
-                    placeholder='국가를 선택하세요'
-                    readOnly
-                    className='flex-1'
-                  />
+              {/* 기업 정보 */}
+              <div className='stitch-section'>
+                <h2 className='stitch-h1 text-xl font-semibold mb-4'>
+                  기업 정보
+                </h2>
+                <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+                  <div>
+                    <label className='stitch-label mb-1 block'>
+                      사업장명 *
+                    </label>
+                    <Input
+                      type='text'
+                      value={formData.Installation}
+                      onChange={e =>
+                        handleInputChange('Installation', e.target.value)
+                      }
+                      required
+                      placeholder='사업장명을 입력하세요'
+                    />
+                  </div>
+                  <div>
+                    <label className='stitch-label mb-1 block'>
+                      사업장 영문명
+                    </label>
+                    <Input
+                      type='text'
+                      value={formData.Installation_en}
+                      onChange={e =>
+                        handleInputChange('Installation_en', e.target.value)
+                      }
+                      placeholder='사업장 영문명을 입력하세요'
+                    />
+                  </div>
+                  <div>
+                    <label className='stitch-label mb-1 block'>업종명</label>
+                    <Input
+                      type='text'
+                      value={formData.economic_activity}
+                      onChange={e =>
+                        handleInputChange('economic_activity', e.target.value)
+                      }
+                      placeholder='업종명을 입력하세요'
+                    />
+                  </div>
+                  <div>
+                    <label className='stitch-label mb-1 block'>
+                      업종명 영문명
+                    </label>
+                    <Input
+                      type='text'
+                      value={formData.economic_activity_en}
+                      onChange={e =>
+                        handleInputChange(
+                          'economic_activity_en',
+                          e.target.value
+                        )
+                      }
+                      placeholder='업종명 영문명을 입력하세요'
+                    />
+                  </div>
+                  <div>
+                    <label className='stitch-label mb-1 block'>대표자명</label>
+                    <Input
+                      type='text'
+                      value={formData.representative}
+                      onChange={e =>
+                        handleInputChange('representative', e.target.value)
+                      }
+                      placeholder='대표자명을 입력하세요'
+                    />
+                  </div>
+                  <div>
+                    <label className='stitch-label mb-1 block'>
+                      영문대표자명
+                    </label>
+                    <Input
+                      type='text'
+                      value={formData.representative_en}
+                      onChange={e =>
+                        handleInputChange('representative_en', e.target.value)
+                      }
+                      placeholder='영문대표자명을 입력하세요'
+                    />
+                  </div>
+                  <div>
+                    <label className='stitch-label mb-1 block'>이메일</label>
+                    <Input
+                      type='email'
+                      value={formData.email}
+                      onChange={e => handleInputChange('email', e.target.value)}
+                      placeholder='이메일을 입력하세요'
+                    />
+                  </div>
+                  <div>
+                    <label className='stitch-label mb-1 block'>전화번호</label>
+                    <Input
+                      type='tel'
+                      value={formData.telephone}
+                      onChange={e =>
+                        handleInputChange('telephone', e.target.value)
+                      }
+                      placeholder='전화번호를 입력하세요'
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 주소 정보 */}
+              <div className='stitch-section'>
+                <h2 className='stitch-h1 text-xl font-semibold mb-4'>
+                  주소 정보
+                </h2>
+
+                {/* 주소 검색 버튼 */}
+                <div className='mb-4'>
                   <Button
                     type='button'
-                    onClick={() => setIsCountryModalOpen(true)}
+                    onClick={() => setIsAddressModalOpen(true)}
                     variant='outline'
                   >
-                    검색
+                    주소 검색
                   </Button>
                 </div>
-                {(formData.country_code || formData.unlocode) && (
-                  <div className='mt-1 stitch-caption space-y-1'>
-                    {formData.country_code && (
-                      <p>국가 코드: {formData.country_code}</p>
-                    )}
-                    {formData.unlocode && <p>UNLOCODE: {formData.unlocode}</p>}
+
+                <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+                  <div>
+                    <label className='stitch-label mb-1 block'>도로명</label>
+                    <Input
+                      type='text'
+                      value={formData.street}
+                      onChange={e =>
+                        handleInputChange('street', e.target.value)
+                      }
+                      placeholder='도로명'
+                      readOnly
+                    />
                   </div>
-                )}
+                  <div>
+                    <label className='stitch-label mb-1 block'>건물 번호</label>
+                    <Input
+                      type='text'
+                      value={formData.number}
+                      onChange={e =>
+                        handleInputChange('number', e.target.value)
+                      }
+                      placeholder='건물 번호'
+                      readOnly
+                    />
+                  </div>
+                  <div>
+                    <label className='stitch-label mb-1 block'>우편번호</label>
+                    <Input
+                      type='text'
+                      value={formData.postcode}
+                      onChange={e =>
+                        handleInputChange('postcode', e.target.value)
+                      }
+                      placeholder='우편번호'
+                      readOnly
+                    />
+                  </div>
+                  <div>
+                    <label className='stitch-label mb-1 block'>도시명</label>
+                    <Input
+                      type='text'
+                      value={formData.city}
+                      onChange={e => handleInputChange('city', e.target.value)}
+                      placeholder='도시명'
+                      readOnly
+                    />
+                  </div>
+                </div>
+
+                {/* 국가 검색 */}
+                <div className='mt-4'>
+                  <label className='stitch-label mb-1 block'>국가</label>
+                  <div className='flex gap-2'>
+                    <Input
+                      type='text'
+                      value={formData.country}
+                      onChange={e =>
+                        handleInputChange('country', e.target.value)
+                      }
+                      placeholder='국가를 선택하세요'
+                      readOnly
+                      className='flex-1'
+                    />
+                    <Button
+                      type='button'
+                      onClick={() => setIsCountryModalOpen(true)}
+                      variant='outline'
+                    >
+                      검색
+                    </Button>
+                  </div>
+                  {(formData.country_code || formData.unlocode) && (
+                    <div className='mt-1 stitch-caption space-y-1'>
+                      {formData.country_code && (
+                        <p>국가 코드: {formData.country_code}</p>
+                      )}
+                      {formData.unlocode && (
+                        <p>UNLOCODE: {formData.unlocode}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 제출 버튼 */}
+              <div className='flex justify-end'>
+                <Button
+                  type='submit'
+                  disabled={loading}
+                  className='w-full sm:w-auto'
+                  size='lg'
+                >
+                  {loading ? '처리 중...' : '회원가입'}
+                </Button>
+              </div>
+            </form>
+          ) : (
+            // 개인 사용자 회원가입 폼
+            <div className='space-y-6'>
+              <p className='text-center text-gray-600 mb-6'>
+                개인 사용자 회원가입을 원하시면 아래 버튼을 클릭하세요.
+              </p>
+              <div className='text-center'>
+                <Button
+                  onClick={() => router.push('/register/user')}
+                  size='lg'
+                  className='bg-blue-600 hover:bg-blue-700 text-white'
+                >
+                  개인 사용자 회원가입으로 이동
+                </Button>
               </div>
             </div>
-
-            {/* 제출 버튼 */}
-            <div className='flex justify-end'>
-              <Button
-                type='submit'
-                disabled={loading}
-                className='w-full sm:w-auto'
-              >
-                {loading ? '처리 중...' : '회원가입'}
-              </Button>
-            </div>
-          </form>
+          )}
         </div>
       </div>
 

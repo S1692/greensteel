@@ -1,1 +1,1 @@
-# domain - 도메인 계층
+# Domain Layer - Business Logic

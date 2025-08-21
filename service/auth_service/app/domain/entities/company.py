@@ -1,29 +1,9 @@
 from pydantic import BaseModel
-from typing import Dict, Any, Optional
-from ..entities.user import UserRole
+from typing import Optional
 
-class AddressSearchRequest(BaseModel):
-    """주소 검색 요청"""
-    query: str
-
-class CheckUsernameRequest(BaseModel):
-    """사용자명 중복 확인 요청"""
-    username: str
-
-class CheckCompanyIdRequest(BaseModel):
-    """기업 ID 존재 확인 요청"""
-    company_id: str
-
-class UserRegisterRequest(BaseModel):
-    """사용자 등록 요청"""
-    username: str
-    full_name: str
-    company_id: str
-    password: str
-    role: UserRole = UserRole.PENDING
-
-class CompanyRegisterRequest(BaseModel):
-    """회사 등록 요청"""
+class Company(BaseModel):
+    """회사 도메인 엔티티"""
+    id: Optional[str] = None
     company_id: str
     password: str
     Installation: str  # 사업장명
@@ -46,14 +26,6 @@ class CompanyRegisterRequest(BaseModel):
     unlocode: str  # UNLOCODE
     sourcelatitude: Optional[float] = None  # 사업장위도
     sourcelongitude: Optional[float] = None  # 사업장경도
-
-class LoginRequest(BaseModel):
-    """로그인 요청"""
-    username: str
-    password: str
-
-class StandardResponse(BaseModel):
-    """표준 응답"""
-    success: bool
-    message: str
-    data: Dict[str, Any] = {}
+    
+    class Config:
+        from_attributes = True

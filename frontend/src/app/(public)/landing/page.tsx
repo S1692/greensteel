@@ -1,11 +1,21 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
 export default function LandingPage() {
+  const router = useRouter();
+
+  const handleEnter = () => {
+    router.push('/dashboard');
+  };
+
+  const handleRegister = () => {
+    router.push('/register');
+  };
+
   return (
     <div className='min-h-screen bg-ecotrace-background flex items-center justify-center p-4'>
       <div className='w-full max-w-md'>
@@ -72,18 +82,20 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* 추가 버튼들 - 정중앙 위치, 입력칸과 너비 맞춤 */}
-            <div className='flex gap-3'>
+            {/* 추가 버튼들 - 위아래로 세로 배치 */}
+            <div className='space-y-3'>
               <Button
                 type='button'
-                className='flex-1 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors'
+                onClick={handleEnter}
+                className='w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors'
               >
                 들어가기
               </Button>
               <Button
                 type='button'
+                onClick={handleRegister}
                 variant='outline'
-                className='flex-1 border-white/30 text-white hover:bg-white/10 transition-colors'
+                className='w-full border-white/30 text-white hover:bg-white/10 transition-colors'
               >
                 회원가입
               </Button>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { LCALayout } from '@/components/lca/templates/LCALayout';
 
 // Mock data directly in component to avoid import issues
 interface MockProject {
@@ -39,7 +40,7 @@ const mockProjects: MockProject[] = [
   },
 ];
 
-export default function DashboardPage() {
+function DashboardPage() {
   const router = useRouter();
 
   const handleProjectClick = (projectId: string) => {
@@ -232,5 +233,13 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LCAPage() {
+  return (
+    <LCALayout>
+      <DashboardPage />
+    </LCALayout>
   );
 }

@@ -11,7 +11,7 @@ from app.domain.schemas.auth import (
 from app.domain.services.address_service import AddressService
 from app.domain.services.auth_service import AuthService
 
-router = APIRouter(prefix="/api/auth", tags=["auth"])
+router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 # 서비스 인스턴스
 address_service = AddressService()

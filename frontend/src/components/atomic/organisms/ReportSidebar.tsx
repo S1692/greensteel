@@ -1,6 +1,6 @@
 import React from 'react';
-import ReportGenerationForm from '@/components/molecules/ReportGenerationForm';
-import ReportStatusList from '@/components/molecules/ReportStatusList';
+import ReportGenerationForm from '@/components/atomic/molecules/ReportGenerationForm';
+import ReportStatusList from '@/components/atomic/molecules/ReportStatusList';
 
 interface ReportSidebarProps {
   onGenerateReport: (format: 'pdf' | 'excel' | 'word') => void;

@@ -1,9 +1,9 @@
 import React from 'react';
-import ReportHeader from '@/components/organisms/ReportHeader';
-import ReportSidebar from '@/components/organisms/ReportSidebar';
-import ProductInfoSection from '@/components/organisms/ProductInfoSection';
-import LCAAnalysisSection from '@/components/organisms/LCAAnalysisSection';
-import LCAResultsSection from '@/components/organisms/LCAResultsSection';
+import ReportHeader from '@/components/atomic/organisms/ReportHeader';
+import ReportSidebar from '@/components/atomic/organisms/ReportSidebar';
+import ProductInfoSection from '@/components/atomic/organisms/ProductInfoSection';
+import LCAAnalysisSection from '@/components/atomic/organisms/LCAAnalysisSection';
+import LCAResultsSection from '@/components/atomic/organisms/LCAResultsSection';
 
 interface ReportPageTemplateProps {
   projectId: string;

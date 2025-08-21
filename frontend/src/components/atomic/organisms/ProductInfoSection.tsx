@@ -1,6 +1,6 @@
 import React from 'react';
-import InfoCard from '@/components/molecules/InfoCard';
-import ProductInfoGrid from '@/components/molecules/ProductInfoGrid';
+import InfoCard from '@/components/atomic/molecules/InfoCard';
+import ProductInfoGrid from '@/components/atomic/molecules/ProductInfoGrid';
 import { FileText } from 'lucide-react';
 
 interface ProductInfoSectionProps {

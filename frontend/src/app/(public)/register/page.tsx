@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import AddressSearchModal from '@/components/AddressSearchModal';
+import AddressSearchModal from '@/components/common/AddressSearchModal';
 
 
 

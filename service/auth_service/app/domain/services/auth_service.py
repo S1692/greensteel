@@ -1,74 +1,166 @@
-from sqlalchemy.orm import Session
-from app.domain.repositories.user_repo import UserRepository
-from app.domain.repositories.company_repo import CompanyRepository
-from app.domain.schemas.auth import UserCreate, CompanyCreate, UserLogin
-from app.common.security import get_password_hash, verify_password, create_access_token
+from typing import Dict, Any
+import uuid
 from app.common.logger import auth_logger
+from app.domain.entities.user import User
+from app.domain.entities.company import Company
 
 class AuthService:
-    """인증 서비스"""
+    """인증 도메인 서비스"""
     
-    def __init__(self, db: Session):
-        self.db = db
-        self.user_repo = UserRepository(db)
-        self.company_repo = CompanyRepository(db)
+    async def register_user(self, username: str, full_name: str, company_id: str, password: str, role: str = "승인 전") -> Dict[str, Any]:
+        """사용자 등록 (더미 구현)"""
+        try:
+            # 더미 사용자 생성
+            user = User(
+                id=f"user_{uuid.uuid4().hex[:8]}",
+                username=username,
+                full_name=full_name,
+                company_id=company_id,
+                role=role
+            )
+            
+            auth_logger.info(f"User registered: {username} with role: {role}")
+            return {
+                "success": True,
+                "message": "User registration completed (dummy response)",
+                "data": {
+                    "userId": user.id,
+                    "username": user.username,
+                    "fullName": user.full_name,
+                    "role": user.role
+                }
+            }
+        except Exception as e:
+            auth_logger.error(f"User registration failed: {str(e)}")
+            return {
+                "success": False,
+                "message": f"User registration failed: {str(e)}",
+                "data": {}
+            }
     
-    def register_company(self, company_data: CompanyCreate):
-        """기업 회원가입"""
-        # 사업자번호 중복 확인
-        existing_company = self.company_repo.get_by_biz_no(company_data.biz_no)
-        if existing_company:
-            raise ValueError("이미 등록된 사업자번호입니다.")
-        
-        # 기업 생성
-        company = self.company_repo.create(company_data)
-        auth_logger.info(f"Company registered: {company.name_ko} (ID: {company.id})")
-        return company
+    async def register_company(self, company_id: str, password: str, Installation: str, Installation_en: str,
+                             economic_activity: str, economic_activity_en: str, representative: str, representative_en: str,
+                             email: str, telephone: str, street: str, street_en: str, number: str, number_en: str,
+                             postcode: str, city: str, city_en: str, country: str, country_en: str, unlocode: str,
+                             sourcelatitude: float = None, sourcelongitude: float = None) -> Dict[str, Any]:
+        """회사 등록 (더미 구현)"""
+        try:
+            # 더미 회사 생성
+            company = Company(
+                id=f"company_{uuid.uuid4().hex[:8]}",
+                company_id=company_id,
+                password=password,
+                Installation=Installation,
+                Installation_en=Installation_en,
+                economic_activity=economic_activity,
+                economic_activity_en=economic_activity_en,
+                representative=representative,
+                representative_en=representative_en,
+                email=email,
+                telephone=telephone,
+                street=street,
+                street_en=street_en,
+                number=number,
+                number_en=number_en,
+                postcode=postcode,
+                city=city,
+                city_en=city_en,
+                country=country,
+                country_en=country_en,
+                unlocode=unlocode,
+                sourcelatitude=sourcelatitude,
+                sourcelongitude=sourcelongitude
+            )
+            
+            auth_logger.info(f"Company registered: {Installation}")
+            return {
+                "success": True,
+                "message": "Company registration completed (dummy response)",
+                "data": {
+                    "companyId": company.id,
+                    "companyName": company.Installation,
+                    "businessNumber": company.company_id
+                }
+            }
+        except Exception as e:
+            auth_logger.error(f"Company registration failed: {str(e)}")
+            return {
+                "success": False,
+                "message": f"Company registration failed: {str(e)}",
+                "data": {}
+            }
     
-    def register_user(self, user_data: UserCreate):
-        """사용자 회원가입"""
-        # 사용자명 중복 확인
-        existing_user = self.user_repo.get_by_username(user_data.username)
-        if existing_user:
-            raise ValueError("이미 사용 중인 사용자명입니다.")
-        
-        # 비밀번호 해시화
-        user_data_dict = user_data.dict()
-        user_data_dict["hashed_password"] = get_password_hash(user_data.password)
-        del user_data_dict["password"]
-        
-        # 사용자 생성
-        user = self.user_repo.create(UserCreate(**user_data_dict))
-        auth_logger.info(f"User registered: {user.username} (ID: {user.id})")
-        return user
-    
-    def authenticate_user(self, username: str, password: str):
-        """사용자 인증"""
-        user = self.user_repo.get_by_username(username)
-        if not user:
-            return None
-        
-        if not verify_password(password, user.hashed_password):
-            return None
-        
-        return user
-    
-    def login_user(self, user_credentials: UserLogin):
-        """사용자 로그인"""
-        user = self.authenticate_user(user_credentials.username, user_credentials.password)
-        if not user:
-            raise ValueError("잘못된 사용자명 또는 비밀번호입니다.")
-        
-        # JWT 토큰 생성
-        access_token = create_access_token(data={"sub": user.username})
-        
-        auth_logger.info(f"User logged in: {user.username}")
-        return {
-            "access_token": access_token,
-            "token_type": "bearer",
-            "user": user
-        }
-    
-    def get_current_user(self, username: str):
-        """현재 사용자 정보 조회"""
-        return self.user_repo.get_by_username(username)
+    async def check_username(self, username: str) -> Dict[str, Any]:
+        """사용자명 중복 확인 (더미 구현)"""
+        try:
+            # 더미 로직: 실제로는 DB에서 확인
+            # 여기서는 간단히 사용 가능하다고 가정
+            available = True  # 실제로는 DB 조회 결과
+            
+            auth_logger.info(f"Username availability checked: {username} - Available: {available}")
+            return {
+                "success": True,
+                "message": "Username availability checked",
+                "data": {
+                    "available": available,
+                    "username": username
+                }
+            }
+        except Exception as e:
+            auth_logger.error(f"Username check failed: {str(e)}")
+            return {
+                "success": False,
+                "message": f"Username check failed: {str(e)}",
+                "data": {}
+            }
+
+    async def check_company_id(self, company_id: str) -> Dict[str, Any]:
+        """기업 ID 존재 확인 (더미 구현)"""
+        try:
+            # 더미 로직: 실제로는 DB에서 확인
+            # 여기서는 간단히 존재한다고 가정
+            exists = True  # 실제로는 DB 조회 결과
+            
+            auth_logger.info(f"Company ID existence checked: {company_id} - Exists: {exists}")
+            return {
+                "success": True,
+                "message": "Company ID existence checked",
+                "data": {
+                    "available": exists,
+                    "company_id": company_id
+                }
+            }
+        except Exception as e:
+            auth_logger.error(f"Company ID check failed: {str(e)}")
+            return {
+                "success": False,
+                "message": f"Company ID check failed: {str(e)}",
+                "data": {},
+            }
+
+    async def login(self, username: str, password: str) -> Dict[str, Any]:
+        """로그인 (더미 구현)"""
+        try:
+            # 더미 토큰 생성
+            token = f"dummy_token_{uuid.uuid4().hex[:16]}"
+            
+            auth_logger.info(f"Login successful for user: {username}")
+            return {
+                "success": True,
+                "message": "Login successful (dummy response)",
+                "data": {
+                    "token": token,
+                    "user": {
+                        "id": f"user_{uuid.uuid4().hex[:8]}",
+                        "username": username,
+                        "role": "user"
+                    }
+                }
+            }
+        except Exception as e:
+            auth_logger.error(f"Login failed: {str(e)}")
+            return {
+                "success": False,
+                "message": f"Login failed: {str(e)}",
+                "data": {}
+            }

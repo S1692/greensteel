@@ -62,44 +62,73 @@ interface ConvertedAddress {
  */
 export async function convertAddressToEnglish(keyword: string): Promise<ConvertedAddress | null> {
   try {
-    // 행정안전부 주소 검색 API 호출
-    const response = await fetch(
-      `https://www.juso.go.kr/addrlink/addrLinkApi.do?currentPage=1&countPerPage=10&keyword=${encodeURIComponent(keyword)}&confmKey=${process.env.NEXT_PUBLIC_ADMINISTRATIVE_API_KEY}&resultType=json`
-    );
+    // 행정안전부 주소 검색 API 호출 (JSONP 방식으로 우회)
+    const script = document.createElement('script');
+    const callbackName = 'jusoCallback_' + Date.now();
+    
+    return new Promise((resolve, reject) => {
+      // 전역 콜백 함수 설정
+      (window as any)[callbackName] = (data: AdministrativeAddressResponse) => {
+        try {
+          // 에러 체크
+          if (data.results.common.errorCode !== '0') {
+            reject(new Error(`주소 검색 API 에러: ${data.results.common.errorMessage}`));
+            return;
+          }
 
-    if (!response.ok) {
-      throw new Error(`주소 검색 API 호출 실패: ${response.status}`);
-    }
+          // 검색 결과가 있는지 확인
+          if (!data.results.juso || data.results.juso.length === 0) {
+            console.warn('검색된 주소가 없습니다:', keyword);
+            resolve(null);
+            return;
+          }
 
-    const data: AdministrativeAddressResponse = await response.json();
+          // 첫 번째 결과 사용 (가장 정확한 매칭)
+          const firstResult = data.results.juso[0];
 
-    // 에러 체크
-    if (data.results.common.errorCode !== '0') {
-      throw new Error(`주소 검색 API 에러: ${data.results.common.errorMessage}`);
-    }
+          const result = {
+            roadAddr: firstResult.roadAddr || '',
+            roadAddrPart1: firstResult.roadAddrPart1 || '',
+            roadAddrPart2: firstResult.roadAddrPart2 || '',
+            engAddr: firstResult.engAddr || '',
+            zipNo: firstResult.zipNo || '',
+            siNm: firstResult.siNm || '',
+            sggNm: firstResult.sggNm || '',
+            emdNm: firstResult.emdNm || '',
+            rn: firstResult.rn || '',
+            buldMnnm: firstResult.buldMnnm || '',
+            buldSlno: firstResult.buldSlno || '',
+          };
 
-    // 검색 결과가 있는지 확인
-    if (!data.results.juso || data.results.juso.length === 0) {
-      console.warn('검색된 주소가 없습니다:', keyword);
-      return null;
-    }
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        } finally {
+          // 전역 콜백 함수 정리
+          delete (window as any)[callbackName];
+          document.head.removeChild(script);
+        }
+      };
 
-    // 첫 번째 결과 사용 (가장 정확한 매칭)
-    const firstResult = data.results.juso[0];
+      // JSONP 스크립트 생성
+      script.src = `https://www.juso.go.kr/addrlink/addrLinkApi.do?currentPage=1&countPerPage=10&keyword=${encodeURIComponent(keyword)}&confmKey=${process.env.NEXT_PUBLIC_ADMINISTRATIVE_API_KEY}&resultType=json&callback=${callbackName}`;
+      script.onerror = () => {
+        reject(new Error('주소 검색 API 스크립트 로드 실패'));
+        delete (window as any)[callbackName];
+      };
 
-    return {
-      roadAddr: firstResult.roadAddr || '',
-      roadAddrPart1: firstResult.roadAddrPart1 || '',
-      roadAddrPart2: firstResult.roadAddrPart2 || '',
-      engAddr: firstResult.engAddr || '',
-      zipNo: firstResult.zipNo || '',
-      siNm: firstResult.siNm || '',
-      sggNm: firstResult.sggNm || '',
-      emdNm: firstResult.emdNm || '',
-      rn: firstResult.rn || '',
-      buldMnnm: firstResult.buldMnnm || '',
-      buldSlno: firstResult.buldSlno || '',
-    };
+      // 스크립트를 head에 추가하여 실행
+      document.head.appendChild(script);
+
+      // 타임아웃 설정 (10초)
+      setTimeout(() => {
+        reject(new Error('주소 검색 API 타임아웃'));
+        delete (window as any)[callbackName];
+        if (document.head.contains(script)) {
+          document.head.removeChild(script);
+        }
+      }, 10000);
+    });
   } catch (error) {
     console.error('주소 변환 중 오류 발생:', error);
     return null;

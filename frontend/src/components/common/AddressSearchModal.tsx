@@ -88,7 +88,13 @@ export default function AddressSearchModal({
       );
 
       if (!response.ok) {
-        throw new Error(`카카오 지도 API 호출 실패: ${response.status}`);
+        if (response.status === 401) {
+          throw new Error('카카오 API 키가 유효하지 않습니다. 관리자에게 문의해주세요.');
+        } else if (response.status === 429) {
+          throw new Error('카카오 API 호출 한도를 초과했습니다. 잠시 후 다시 시도해주세요.');
+        } else {
+          throw new Error(`카카오 지도 API 호출 실패: ${response.status}`);
+        }
       }
 
       const data = await response.json();
@@ -131,6 +137,11 @@ export default function AddressSearchModal({
             console.log('주소 및 좌표 정보:', addressData);
           } catch (error) {
             console.error('주소 처리 중 오류 발생:', error);
+            
+            // 사용자에게 에러 메시지 표시
+            const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+            alert(`주소 처리 중 오류가 발생했습니다: ${errorMessage}\n\n기본 주소 정보만 설정됩니다.`);
+            
             // 좌표 변환 실패 시에도 기본 주소 정보는 설정
             const addressData: AddressData = {
               roadAddress: data.roadAddress || '',

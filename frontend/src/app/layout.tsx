@@ -42,7 +42,7 @@ export const metadata: Metadata = {
     'msapplication-TileColor': '#3b82f6',
     'theme-color': '#3b82f6',
     'application-name': 'GreenSteel',
-    'msapplication-TileImage': '/icon-144x144.png',
+    'msapplication-TileImage': '/icon-192x192.svg',
   },
 };
 
@@ -63,15 +63,15 @@ export default function RootLayout({
     <html lang='ko' className='dark'>
       <head>
         <link rel='manifest' href='/manifest.json' />
-        <link rel='icon' href='/icon-192x192.png' type='image/png' />
-        <link rel='apple-touch-icon' href='/apple-touch-icon.png' />
+        <link rel='icon' href='/icon-192x192.svg' type='image/svg+xml' />
+        <link rel='apple-touch-icon' href='/apple-touch-icon.svg' />
         <meta name='apple-mobile-web-app-capable' content='yes' />
         <meta name='apple-mobile-web-app-status-bar-style' content='default' />
         <meta name='apple-mobile-web-app-title' content='GreenSteel' />
         <meta name='msapplication-TileColor' content='#3b82f6' />
         <meta name='theme-color' content='#3b82f6' />
         <meta name='application-name' content='GreenSteel' />
-        <meta name='msapplication-TileImage' content='/icon-144x144.png' />
+        <meta name='msapplication-TileImage' content='/icon-192x192.svg' />
 
         {/* PWA 관련 메타데이터 */}
         <meta name='mobile-web-app-capable' content='yes' />
@@ -82,7 +82,7 @@ export default function RootLayout({
         />
         <meta name='apple-mobile-web-app-title' content='GreenSteel' />
         <meta name='msapplication-TileColor' content='#3b82f6' />
-        <meta name='msapplication-TileImage' content='/icon-144x144.png' />
+        <meta name='msapplication-TileImage' content='/icon-192x192.svg' />
         <meta name='theme-color' content='#3b82f6' />
         <meta name='msapplication-config' content='/browserconfig.xml' />
 
@@ -109,6 +109,12 @@ export default function RootLayout({
             gtag('config', 'G-2GFHCRYLT8');
           `}
         </Script>
+
+        {/* Daum Postcode Service */}
+        <Script
+          src='//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js'
+          strategy='afterInteractive'
+        />
 
         {/* PWA Components */}
         <PWAServiceWorker />

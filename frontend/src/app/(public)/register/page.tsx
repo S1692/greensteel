@@ -630,25 +630,52 @@ export default function RegisterPage() {
                   </div>
                 </div>
 
-                {/* 국가 검색 */}
-                <div className='mt-4'>
-                  <label className='block text-sm font-medium text-white mb-2'>
-                    국가
-                  </label>
-                  <div className='flex gap-2'>
+                {/* 국가 정보 */}
+                <div className='mt-4 space-y-4'>
+                  <div>
+                    <label className='block text-sm font-medium text-white mb-2'>
+                      국가명
+                    </label>
                     <Input
                       type='text'
                       value={formData.country}
                       onChange={e =>
                         handleInputChange('country', e.target.value)
                       }
-                      placeholder='국가를 선택하세요'
-                      readOnly
-                      className='flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                      placeholder='국가명을 입력하세요'
+                      className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
                     />
-
                   </div>
 
+                  <div>
+                    <label className='block text-sm font-medium text-white mb-2'>
+                      국가영문명
+                    </label>
+                    <Input
+                      type='text'
+                      value={formData.country_en}
+                      onChange={e =>
+                        handleInputChange('country_en', e.target.value)
+                      }
+                      placeholder='영문 국가명을 입력하세요'
+                      className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                    />
+                  </div>
+
+                  <div>
+                    <label className='block text-sm font-medium text-white mb-2'>
+                      UNLOCODE
+                    </label>
+                    <Input
+                      type='text'
+                      value={formData.unlocode}
+                      onChange={e =>
+                        handleInputChange('unlocode', e.target.value)
+                      }
+                      placeholder='UNLOCODE를 입력하세요 (예: KR, US, JP)'
+                      className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                    />
+                  </div>
                 </div>
               </div>
 

@@ -166,9 +166,21 @@ export default function RegisterPage() {
       
       const result = await response.json();
       console.log('Username check response:', result); // 디버깅용
-      setUsernameAvailable(result.data?.available);
+      
+      if (result.success) {
+        setUsernameAvailable(result.data?.available);
+        
+        // 사용자명이 기업 ID로 사용되고 있는 경우 추가 안내
+        if (result.data?.available === false && result.message?.includes('기업 ID로 사용')) {
+          setError('사용자명이 이미 기업 ID로 사용되고 있습니다. 다른 사용자명을 사용해주세요.');
+        }
+      } else {
+        setUsernameAvailable(false);
+        setError(result.message || '사용자명 중복 확인에 실패했습니다.');
+      }
     } catch (error) {
       setUsernameAvailable(null);
+      setError('사용자명 중복 확인 중 오류가 발생했습니다.');
     } finally {
       setCheckingUsername(false);
     }
@@ -208,9 +220,21 @@ export default function RegisterPage() {
       
       const result = await response.json();
       console.log('API Response:', result); // 디버깅용
-      setCompanyIdAvailability(result.data?.available);
+      
+      if (result.success) {
+        setCompanyIdAvailability(result.data?.available);
+        
+        // 기업 ID가 사용자명으로 사용되고 있는 경우 추가 안내
+        if (result.data?.available === false && result.message?.includes('사용자명으로 사용')) {
+          setError('기업 ID가 이미 사용자명으로 사용되고 있습니다. 다른 기업 ID를 사용해주세요.');
+        }
+      } else {
+        setCompanyIdAvailability(false);
+        setError(result.message || '기업 ID 중복 확인에 실패했습니다.');
+      }
     } catch (error) {
       setCompanyIdAvailability(null);
+      setError('기업 ID 중복 확인 중 오류가 발생했습니다.');
     } finally {
       setCheckingCompanyIdAvailability(false);
     }
@@ -441,6 +465,12 @@ export default function RegisterPage() {
               <p className='text-white/60 text-center mb-8'>
                 기업 정보를 입력하여 회원가입을 완료하세요.
               </p>
+              <div className='bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-lg p-4 mb-6'>
+                <p className='text-sm'>
+                  <strong>중요:</strong> 기업 ID는 사용자명과 겹칠 수 없습니다. 
+                  기업 ID를 입력하기 전에 반드시 중복 확인을 해주세요.
+                </p>
+              </div>
 
               {error && (
                 <div className='p-4 bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg'>
@@ -805,6 +835,12 @@ export default function RegisterPage() {
               <p className='text-white/60 text-center mb-8'>
                 개인 정보를 입력하여 회원가입을 완료하세요.
               </p>
+              <div className='bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-lg p-4 mb-6'>
+                <p className='text-sm'>
+                  <strong>중요:</strong> 사용자명은 기업 ID와 겹칠 수 없습니다. 
+                  사용자명을 입력하기 전에 반드시 중복 확인을 해주세요.
+                </p>
+              </div>
 
               {error && (
                 <div className='p-4 bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg'>

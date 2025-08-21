@@ -32,7 +32,7 @@ class AuthService:
                     "data": {}
                 }
             
-            # 사용자명 중복 확인
+            # 사용자명 중복 확인 (users 테이블)
             username_exists = await connection.fetchval(
                 "SELECT 1 FROM users WHERE username = $1",
                 username
@@ -42,6 +42,19 @@ class AuthService:
                 return {
                     "success": False,
                     "message": "이미 사용 중인 사용자명입니다.",
+                    "data": {}
+                }
+            
+            # 사용자명이 기업 ID로 사용되고 있는지 확인 (companies 테이블)
+            company_id_exists = await connection.fetchval(
+                "SELECT 1 FROM companies WHERE company_id = $1",
+                username
+            )
+            
+            if company_id_exists:
+                return {
+                    "success": False,
+                    "message": "사용자명이 이미 기업 ID로 사용되고 있습니다. 다른 사용자명을 사용해주세요.",
                     "data": {}
                 }
             
@@ -87,7 +100,7 @@ class AuthService:
         try:
             connection = await get_database_connection()
             
-            # 기업 ID 중복 확인
+            # 기업 ID 중복 확인 (companies 테이블)
             company_exists = await connection.fetchval(
                 "SELECT 1 FROM companies WHERE company_id = $1",
                 company_id
@@ -97,6 +110,19 @@ class AuthService:
                 return {
                     "success": False,
                     "message": "이미 사용 중인 기업 ID입니다.",
+                    "data": {}
+                }
+            
+            # 기업 ID가 사용자명으로 사용되고 있는지 확인 (users 테이블)
+            username_exists = await connection.fetchval(
+                "SELECT 1 FROM users WHERE username = $1",
+                company_id
+            )
+            
+            if username_exists:
+                return {
+                    "success": False,
+                    "message": "기업 ID가 이미 사용자명으로 사용되고 있습니다. 다른 기업 ID를 사용해주세요.",
                     "data": {}
                 }
             
@@ -143,13 +169,20 @@ class AuthService:
         try:
             connection = await get_database_connection()
             
-            # 사용자명 중복 확인
+            # 사용자명 중복 확인 (users 테이블)
             username_exists = await connection.fetchval(
                 "SELECT 1 FROM users WHERE username = $1",
                 username
             )
             
-            available = not username_exists
+            # 사용자명이 기업 ID로 사용되고 있는지 확인 (companies 테이블)
+            company_id_exists = await connection.fetchval(
+                "SELECT 1 FROM companies WHERE company_id = $1",
+                username
+            )
+            
+            # 사용자명이 사용 가능한지 확인 (둘 다 존재하지 않아야 함)
+            available = not username_exists and not company_id_exists
             
             auth_logger.info(f"Username availability checked: {username} - Available: {available}")
             return {
@@ -211,13 +244,20 @@ class AuthService:
         try:
             connection = await get_database_connection()
             
-            # 기업 ID 중복 확인
+            # 기업 ID 중복 확인 (companies 테이블)
             company_exists = await connection.fetchval(
                 "SELECT 1 FROM companies WHERE company_id = $1",
                 company_id
             )
             
-            available = not company_exists
+            # 기업 ID가 사용자명으로 사용되고 있는지 확인 (users 테이블)
+            username_exists = await connection.fetchval(
+                "SELECT 1 FROM users WHERE username = $1",
+                company_id
+            )
+            
+            # 기업 ID가 사용 가능한지 확인 (둘 다 존재하지 않아야 함)
+            available = not company_exists and not username_exists
             
             auth_logger.info(f"Company ID availability checked: {company_id} - Available: {available}")
             return {

@@ -34,6 +34,20 @@ interface CompanyData {
   sourcelongitude: number | null;
 }
 
+interface UserData {
+  username: string;
+  password: string;
+  confirmPassword: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  companyId: string;
+  country: string;
+  city: string;
+  zipcode: string;
+  address: string;
+}
+
 interface AddressData {
   roadAddress: string;
   jibunAddress: string;
@@ -86,8 +100,29 @@ export default function RegisterPage() {
     sourcelongitude: null,
   });
 
+  const [userFormData, setUserFormData] = useState<UserData>({
+    username: '',
+    password: '',
+    confirmPassword: '',
+    fullName: '',
+    email: '',
+    phone: '',
+    companyId: '',
+    country: '',
+    city: '',
+    zipcode: '',
+    address: '',
+  });
+
   const handleInputChange = (field: keyof CompanyData, value: string) => {
     setFormData(prev => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleUserInputChange = (field: keyof UserData, value: string) => {
+    setUserFormData(prev => ({
       ...prev,
       [field]: value,
     }));
@@ -120,89 +155,168 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
 
-    // 비밀번호 확인
-    if (formData.password !== formData.confirm_password) {
-      setError('비밀번호가 일치하지 않습니다.');
-      setLoading(false);
-      return;
-    }
+    if (activeTab === 'company') {
+      // 기업 회원가입 로직
+      setLoading(true);
+      setError(null);
+      setSuccess(null);
 
-    try {
-      const response = await fetch('/api/v1/auth/register/company', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          company_id: formData.company_id,
-          password: formData.password,
-          Installation: formData.Installation,
-          Installation_en: formData.Installation_en,
-          economic_activity: formData.economic_activity,
-          economic_activity_en: formData.economic_activity_en,
-          representative: formData.representative,
-          representative_en: formData.representative_en,
-          email: formData.email,
-          telephone: formData.telephone,
-          street: formData.street,
-          street_en: formData.street_en,
-          number: formData.number,
-          number_en: formData.number_en,
-          postcode: formData.postcode,
-          city: formData.city,
-          city_en: formData.city_en,
-          country: formData.country,
-          country_en: formData.country_en,
-          country_code: formData.country_code,
-          unlocode: formData.unlocode,
-          sourcelatitude: formData.sourcelatitude,
-          sourcelongitude: formData.sourcelongitude,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || '회원가입에 실패했습니다.');
+      // 비밀번호 확인
+      if (formData.password !== formData.confirm_password) {
+        setError('비밀번호가 일치하지 않습니다.');
+        setLoading(false);
+        return;
       }
 
-      setSuccess('회원가입이 완료되었습니다!');
-      setFormData({
-        company_id: '',
-        password: '',
-        confirm_password: '',
-        Installation: '',
-        Installation_en: '',
-        economic_activity: '',
-        economic_activity_en: '',
-        representative: '',
-        representative_en: '',
-        email: '',
-        telephone: '',
-        street: '',
-        street_en: '',
-        number: '',
-        number_en: '',
-        postcode: '',
-        city: '',
-        city_en: '',
-        country: '',
-        country_en: '',
-        country_code: '',
-        unlocode: '',
-        sourcelatitude: null,
-        sourcelongitude: null,
-      });
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.'
-      );
-    } finally {
-      setLoading(false);
+      try {
+        const response = await fetch('/api/v1/auth/register/company', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            company_id: formData.company_id,
+            password: formData.password,
+            Installation: formData.Installation,
+            Installation_en: formData.Installation_en,
+            economic_activity: formData.economic_activity,
+            economic_activity_en: formData.economic_activity_en,
+            representative: formData.representative,
+            representative_en: formData.representative_en,
+            email: formData.email,
+            telephone: formData.telephone,
+            street: formData.street,
+            street_en: formData.street_en,
+            number: formData.number,
+            number_en: formData.number_en,
+            postcode: formData.postcode,
+            city: formData.city,
+            city_en: formData.city_en,
+            country: formData.country,
+            country_en: formData.country_en,
+            country_code: formData.country_code,
+            unlocode: formData.unlocode,
+            sourcelatitude: formData.sourcelatitude,
+            sourcelongitude: formData.sourcelongitude,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || '회원가입에 실패했습니다.');
+        }
+
+        setSuccess('기업 회원가입이 완료되었습니다!');
+        setFormData({
+          company_id: '',
+          password: '',
+          confirm_password: '',
+          Installation: '',
+          Installation_en: '',
+          economic_activity: '',
+          economic_activity_en: '',
+          representative: '',
+          representative_en: '',
+          email: '',
+          telephone: '',
+          street: '',
+          street_en: '',
+          number: '',
+          number_en: '',
+          postcode: '',
+          city: '',
+          city_en: '',
+          country: '',
+          country_en: '',
+          country_code: '',
+          unlocode: '',
+          sourcelatitude: null,
+          sourcelongitude: null,
+        });
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.'
+        );
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // 개인 사용자 회원가입 로직
+      setLoading(true);
+      setError(null);
+      setSuccess(null);
+
+      // 비밀번호 확인
+      if (userFormData.password !== userFormData.confirmPassword) {
+        setError('비밀번호가 일치하지 않습니다.');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/v1/auth/register/user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username: userFormData.username,
+            password: userFormData.password,
+            full_name: userFormData.fullName,
+            email: userFormData.email,
+            phone: userFormData.phone,
+            company_id: userFormData.companyId,
+            country: userFormData.country,
+            city: userFormData.city,
+            zipcode: userFormData.zipcode,
+            address: userFormData.address,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || '회원가입에 실패했습니다.');
+        }
+
+        setSuccess('개인 사용자 회원가입이 완료되었습니다!');
+        setUserFormData({
+          username: '',
+          password: '',
+          confirmPassword: '',
+          fullName: '',
+          email: '',
+          phone: '',
+          companyId: '',
+          country: '',
+          city: '',
+          zipcode: '',
+          address: '',
+        });
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.'
+        );
+      } finally {
+        setLoading(false);
+      }
     }
+  };
+
+  const handleUserAddressSelect = (addressData: AddressData) => {
+    setUserFormData(prev => ({
+      ...prev,
+      address: addressData.roadAddress,
+      city: addressData.cityName,
+      zipcode: addressData.postalCode,
+    }));
+  };
+
+  const handleUserCountrySelect = (countryData: Country) => {
+    setUserFormData(prev => ({
+      ...prev,
+      country: countryData.korean_name,
+    }));
   };
 
   return (
@@ -574,28 +688,246 @@ export default function RegisterPage() {
               </div>
             </form>
           ) : (
-            // 개인 사용자 회원가입 안내
-            <div className='text-center space-y-6'>
-              <h2 className='text-2xl font-bold text-white'>
+            // 개인 사용자 회원가입 폼
+            <form onSubmit={handleSubmit} className='space-y-6'>
+              <h2 className='text-2xl font-bold text-white text-center mb-6'>
                 개인 사용자 회원가입
               </h2>
-              <p className='text-white/60'>
+              <p className='text-white/60 text-center mb-8'>
                 개인 정보를 입력하여 회원가입을 완료하세요.
               </p>
-              <p className='text-white/60'>
-                개인 사용자 회원가입을 원하시면 아래 버튼을 클릭하세요.
-              </p>
 
-              {/* 개인 사용자 회원가입 버튼 */}
+              {error && (
+                <div className='p-4 bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg'>
+                  {error}
+                </div>
+              )}
+
+              {success && (
+                <div className='p-4 bg-green-500/20 border border-green-500/30 text-green-400 rounded-lg'>
+                  {success}
+                </div>
+              )}
+
+              {/* 계정 정보 */}
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                <div>
+                  <label className='block text-sm font-medium text-white mb-2'>
+                    사용자명 *
+                  </label>
+                  <Input
+                    type='text'
+                    value={userFormData.username}
+                    onChange={e =>
+                      handleUserInputChange('username', e.target.value)
+                    }
+                    className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                    placeholder='사용자명을 입력하세요'
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className='block text-sm font-medium text-white mb-2'>
+                    성명 *
+                  </label>
+                  <Input
+                    type='text'
+                    value={userFormData.fullName}
+                    onChange={e =>
+                      handleUserInputChange('fullName', e.target.value)
+                    }
+                    className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                    placeholder='성명을 입력하세요'
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* 비밀번호 */}
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                <div>
+                  <label className='block text-sm font-medium text-white mb-2'>
+                    비밀번호 *
+                  </label>
+                  <Input
+                    type='password'
+                    value={userFormData.password}
+                    onChange={e =>
+                      handleUserInputChange('password', e.target.value)
+                    }
+                    className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                    placeholder='비밀번호를 입력하세요'
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className='block text-sm font-medium text-white mb-2'>
+                    비밀번호 확인 *
+                  </label>
+                  <Input
+                    type='password'
+                    value={userFormData.confirmPassword}
+                    onChange={e =>
+                      handleUserInputChange('confirmPassword', e.target.value)
+                    }
+                    className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                    placeholder='비밀번호를 다시 입력하세요'
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* 연락처 정보 */}
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                <div>
+                  <label className='block text-sm font-medium text-white mb-2'>
+                    이메일 *
+                  </label>
+                  <Input
+                    type='email'
+                    value={userFormData.email}
+                    onChange={e =>
+                      handleUserInputChange('email', e.target.value)
+                    }
+                    className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                    placeholder='이메일을 입력하세요'
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className='block text-sm font-medium text-white mb-2'>
+                    연락처 *
+                  </label>
+                  <Input
+                    type='tel'
+                    value={userFormData.phone}
+                    onChange={e =>
+                      handleUserInputChange('phone', e.target.value)
+                    }
+                    className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                    placeholder='010-1234-5678'
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* 기업 정보 */}
+              <div>
+                <label className='block text-sm font-medium text-white mb-2'>
+                  소속 기업 ID *
+                </label>
+                <Input
+                  type='text'
+                  value={userFormData.companyId}
+                  onChange={e =>
+                    handleUserInputChange('companyId', e.target.value)
+                  }
+                  className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                  placeholder='소속 기업 ID를 입력하세요'
+                  required
+                />
+              </div>
+
+              {/* 주소 정보 */}
+              <div className='space-y-4'>
+                <div>
+                  <label className='block text-sm font-medium text-white mb-2'>
+                    주소 *
+                  </label>
+                  <div className='flex gap-2'>
+                    <Input
+                      type='text'
+                      value={userFormData.address}
+                      onChange={e =>
+                        handleUserInputChange('address', e.target.value)
+                      }
+                      className='flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                      placeholder='주소를 입력하세요'
+                      readOnly
+                    />
+                    <Button
+                      type='button'
+                      onClick={() => setIsAddressModalOpen(true)}
+                      className='bg-primary text-primary-foreground hover:bg-primary/90 transition-colors'
+                    >
+                      주소 검색
+                    </Button>
+                  </div>
+                </div>
+
+                <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                  <div>
+                    <label className='block text-sm font-medium text-white mb-2'>
+                      도시 *
+                    </label>
+                    <Input
+                      type='text'
+                      value={userFormData.city}
+                      onChange={e =>
+                        handleUserInputChange('city', e.target.value)
+                      }
+                      className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                      placeholder='도시명'
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className='block text-sm font-medium text-white mb-2'>
+                      우편번호 *
+                    </label>
+                    <Input
+                      type='text'
+                      value={userFormData.zipcode}
+                      onChange={e =>
+                        handleUserInputChange('zipcode', e.target.value)
+                      }
+                      className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                      placeholder='우편번호'
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className='block text-sm font-medium text-white mb-2'>
+                      국가 *
+                    </label>
+                    <div className='flex gap-2'>
+                      <Input
+                        type='text'
+                        value={userFormData.country}
+                        onChange={e =>
+                          handleUserInputChange('country', e.target.value)
+                        }
+                        className='flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                        placeholder='국가를 선택하세요'
+                        readOnly
+                      />
+                      <Button
+                        type='button'
+                        onClick={() => setIsCountryModalOpen(true)}
+                        className='bg-primary text-primary-foreground hover:bg-primary/90 transition-colors'
+                      >
+                        검색
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 제출 버튼 */}
               <div className='flex justify-center pt-4'>
                 <Button
-                  onClick={() => router.push('/register/user')}
-                  className='w-full max-w-xs bg-primary text-primary-foreground hover:bg-primary/90 transition-colors'
+                  type='submit'
+                  className='w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors'
                 >
-                  개인 사용자 회원가입으로 이동
+                  개인 사용자 회원가입
                 </Button>
               </div>
-            </div>
+            </form>
           )}
         </div>
       </div>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import AddressSearchModal from '@/components/common/AddressSearchModal';
+import { enhanceAddressWithEnglish } from '@/lib/addressConverter';
 
 
 
@@ -48,6 +49,8 @@ interface AddressData {
   buildingNumber: string;
   postalCode: string;
   cityName: string;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 interface Country {
@@ -114,6 +117,11 @@ export default function RegisterPage() {
       ...prev,
       [field]: value,
     }));
+    
+    // 기업 ID가 변경되면 중복 체크 상태 초기화
+    if (field === 'company_id') {
+      setCompanyIdAvailability(null);
+    }
   };
 
   const handleUserInputChange = (field: keyof UserData, value: string) => {
@@ -121,21 +129,58 @@ export default function RegisterPage() {
       ...prev,
       [field]: value,
     }));
+    
+    // 사용자명이 변경되면 중복 체크 상태 초기화
+    if (field === 'username') {
+      setUsernameAvailable(null);
+    }
+    
+    // 기업 ID가 변경되면 존재 확인 상태 초기화
+    if (field === 'companyId') {
+      setCompanyIdAvailable(null);
+    }
   };
 
-  const handleAddressSelect = (addressData: AddressData) => {
-    setFormData(prev => ({
-      ...prev,
-      street: addressData.roadAddress || '',
-      street_en: addressData.roadAddress || '',
-      number: addressData.buildingNumber || '',
-      number_en: addressData.buildingNumber || '',
-      postcode: addressData.postalCode || '',
-      city: addressData.cityName || '',
-      city_en: addressData.cityName || '',
-      sourcelatitude: null,
-      sourcelongitude: null,
-    }));
+  const handleAddressSelect = async (addressData: AddressData) => {
+    try {
+      // 행정안전부 API를 통해 영문 주소 변환
+      const enhancedAddress = await enhanceAddressWithEnglish({
+        roadAddress: addressData.roadAddress,
+        buildingNumber: addressData.buildingNumber,
+        cityName: addressData.cityName,
+        postalCode: addressData.postalCode,
+      });
+
+      setFormData(prev => ({
+        ...prev,
+        street: enhancedAddress.roadAddress,
+        street_en: enhancedAddress.englishRoad, // 영문 도로명
+        number: enhancedAddress.buildingNumber,
+        number_en: enhancedAddress.buildingNumber, // 건물번호는 그대로
+        postcode: enhancedAddress.postalCode,
+        city: enhancedAddress.cityName,
+        city_en: enhancedAddress.englishCity, // 영문 도시명
+        sourcelatitude: addressData.latitude, // 카카오 API에서 받은 위도
+        sourcelongitude: addressData.longitude, // 카카오 API에서 받은 경도
+      }));
+
+      console.log('영문 주소 변환 완료:', enhancedAddress);
+    } catch (error) {
+      console.error('영문 주소 변환 실패:', error);
+      // 변환 실패 시 기존 방식으로 처리
+      setFormData(prev => ({
+        ...prev,
+        street: addressData.roadAddress || '',
+        street_en: addressData.roadAddress || '',
+        number: addressData.buildingNumber || '',
+        number_en: addressData.buildingNumber || '',
+        postcode: addressData.postalCode || '',
+        city: addressData.cityName || '',
+        city_en: addressData.cityName || '',
+        sourcelatitude: addressData.latitude, // 카카오 API에서 받은 위도
+        sourcelongitude: addressData.longitude, // 카카오 API에서 받은 경도
+      }));
+    }
   };
 
   const checkUsernameAvailability = async (username: string) => {
@@ -151,9 +196,21 @@ export default function RegisterPage() {
       
       const result = await response.json();
       console.log('Username check response:', result); // 디버깅용
-      setUsernameAvailable(result.data?.available);
+      
+      if (result.success) {
+        setUsernameAvailable(result.data?.available);
+        
+        // 사용자명이 기업 ID로 사용되고 있는 경우 추가 안내
+        if (result.data?.available === false && result.message?.includes('기업 ID로 사용')) {
+          setError('사용자명이 이미 기업 ID로 사용되고 있습니다. 다른 사용자명을 사용해주세요.');
+        }
+      } else {
+        setUsernameAvailable(false);
+        setError(result.message || '사용자명 중복 확인에 실패했습니다.');
+      }
     } catch (error) {
       setUsernameAvailable(null);
+      setError('사용자명 중복 확인 중 오류가 발생했습니다.');
     } finally {
       setCheckingUsername(false);
     }
@@ -193,9 +250,21 @@ export default function RegisterPage() {
       
       const result = await response.json();
       console.log('API Response:', result); // 디버깅용
-      setCompanyIdAvailability(result.data?.available);
+      
+      if (result.success) {
+        setCompanyIdAvailability(result.data?.available);
+        
+        // 기업 ID가 사용자명으로 사용되고 있는 경우 추가 안내
+        if (result.data?.available === false && result.message?.includes('사용자명으로 사용')) {
+          setError('기업 ID가 이미 사용자명으로 사용되고 있습니다. 다른 기업 ID를 사용해주세요.');
+        }
+      } else {
+        setCompanyIdAvailability(false);
+        setError(result.message || '기업 ID 중복 확인에 실패했습니다.');
+      }
     } catch (error) {
       setCompanyIdAvailability(null);
+      setError('기업 ID 중복 확인 중 오류가 발생했습니다.');
     } finally {
       setCheckingCompanyIdAvailability(false);
     }
@@ -211,6 +280,19 @@ export default function RegisterPage() {
       setLoading(true);
       setError(null);
       setSuccess(null);
+
+      // 기업 ID 중복 체크 확인
+      if (companyIdAvailability === null) {
+        setError('기업 ID 중복 확인을 먼저 해주세요.');
+        setLoading(false);
+        return;
+      }
+
+      if (companyIdAvailability === false) {
+        setError('이미 사용 중인 기업 ID입니다. 다른 기업 ID를 사용해주세요.');
+        setLoading(false);
+        return;
+      }
 
       // 비밀번호 확인
       if (formData.password !== formData.confirm_password) {
@@ -259,9 +341,9 @@ export default function RegisterPage() {
 
         setSuccess('기업 회원가입이 완료되었습니다! 3초 후 로그인 페이지로 이동합니다.');
         
-        // 3초 후 로그인 페이지로 이동
+        // 3초 후 프로덕션 로그인 페이지로 이동
         setTimeout(() => {
-          router.push('/login');
+          window.location.href = 'https://greensteel-pwdneh4wh-123s-projects-eed55fc0.vercel.app/login';
         }, 3000);
         
         setFormData({
@@ -303,6 +385,32 @@ export default function RegisterPage() {
       setError(null);
       setSuccess(null);
 
+      // 사용자명 중복 체크 확인
+      if (usernameAvailable === null) {
+        setError('사용자명 중복 확인을 먼저 해주세요.');
+        setLoading(false);
+        return;
+      }
+
+      if (usernameAvailable === false) {
+        setError('이미 사용 중인 사용자명입니다. 다른 사용자명을 사용해주세요.');
+        setLoading(false);
+        return;
+      }
+
+      // 기업 ID 존재 확인
+      if (companyIdAvailable === null) {
+        setError('기업 ID 확인을 먼저 해주세요.');
+        setLoading(false);
+        return;
+      }
+
+      if (companyIdAvailable === false) {
+        setError('존재하지 않는 기업 ID입니다. 올바른 기업 ID를 입력해주세요.');
+        setLoading(false);
+        return;
+      }
+
 
 
       try {
@@ -326,9 +434,9 @@ export default function RegisterPage() {
 
         setSuccess('개인 사용자 회원가입이 완료되었습니다! 3초 후 로그인 페이지로 이동합니다.');
         
-        // 3초 후 로그인 페이지로 이동
+        // 3초 후 프로덕션 로그인 페이지로 이동
         setTimeout(() => {
-          router.push('/login');
+          window.location.href = 'https://greensteel-pwdneh4wh-123s-projects-eed55fc0.vercel.app/login';
         }, 3000);
         
         setUserFormData({
@@ -387,6 +495,12 @@ export default function RegisterPage() {
               <p className='text-white/60 text-center mb-8'>
                 기업 정보를 입력하여 회원가입을 완료하세요.
               </p>
+              <div className='bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-lg p-4 mb-6'>
+                <p className='text-sm'>
+                  <strong>중요:</strong> 기업 ID는 사용자명과 겹칠 수 없습니다. 
+                  기업 ID를 입력하기 전에 반드시 중복 확인을 해주세요.
+                </p>
+              </div>
 
               {error && (
                 <div className='p-4 bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg'>
@@ -617,6 +731,9 @@ export default function RegisterPage() {
                   >
                     주소 검색
                   </Button>
+                  <div className='mt-2 text-sm text-blue-400'>
+                    📍 주소 검색 시 행정안전부 API를 통해 영문 주소가 자동으로 변환되고, 카카오 지도 API를 통해 위도/경도가 자동으로 설정됩니다.
+                  </div>
                 </div>
 
                 <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
@@ -677,6 +794,78 @@ export default function RegisterPage() {
                       onChange={e => handleInputChange('city', e.target.value)}
                       className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
                       placeholder='도시명'
+                      readOnly
+                    />
+                  </div>
+
+                  {/* 영문 주소 정보 */}
+                  <div>
+                    <label className='block text-sm font-medium text-white mb-2'>
+                      도로명 (영문)
+                    </label>
+                    <Input
+                      type='text'
+                      value={formData.street_en}
+                      onChange={e => handleInputChange('street_en', e.target.value)}
+                      className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                      placeholder='영문 도로명 (자동 입력)'
+                      readOnly
+                    />
+                  </div>
+
+                  <div>
+                    <label className='block text-sm font-medium text-white mb-2'>
+                      건물 번호 (영문)
+                    </label>
+                    <Input
+                      type='text'
+                      value={formData.number_en}
+                      onChange={e => handleInputChange('number_en', e.target.value)}
+                      className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                      placeholder='영문 건물 번호 (자동 입력)'
+                      readOnly
+                    />
+                  </div>
+
+                  <div>
+                    <label className='block text-sm font-medium text-white mb-2'>
+                      도시명 (영문)
+                    </label>
+                    <Input
+                      type='text'
+                      value={formData.city_en}
+                      onChange={e => handleInputChange('city_en', e.target.value)}
+                      className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                      placeholder='영문 도시명 (자동 입력)'
+                      readOnly
+                    />
+                  </div>
+
+                  {/* 위도/경도 정보 */}
+                  <div>
+                    <label className='block text-sm font-medium text-white mb-2'>
+                      위도 (Latitude)
+                    </label>
+                    <Input
+                      type='text'
+                      value={formData.sourcelatitude || ''}
+                      onChange={e => handleInputChange('sourcelatitude', e.target.value)}
+                      className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                      placeholder='위도 (자동 입력)'
+                      readOnly
+                    />
+                  </div>
+
+                  <div>
+                    <label className='block text-sm font-medium text-white mb-2'>
+                      경도 (Longitude)
+                    </label>
+                    <Input
+                      type='text'
+                      value={formData.sourcelongitude || ''}
+                      onChange={e => handleInputChange('sourcelongitude', e.target.value)}
+                      className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                      placeholder='경도 (자동 입력)'
                       readOnly
                     />
                   </div>
@@ -751,6 +940,12 @@ export default function RegisterPage() {
               <p className='text-white/60 text-center mb-8'>
                 개인 정보를 입력하여 회원가입을 완료하세요.
               </p>
+              <div className='bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-lg p-4 mb-6'>
+                <p className='text-sm'>
+                  <strong>중요:</strong> 사용자명은 기업 ID와 겹칠 수 없습니다. 
+                  사용자명을 입력하기 전에 반드시 중복 확인을 해주세요.
+                </p>
+              </div>
 
               {error && (
                 <div className='p-4 bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg'>

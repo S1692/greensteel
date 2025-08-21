@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import AddressSearchModal from '@/components/AddressSearchModal';
-import CountrySearchModal from '@/components/CountrySearchModal';
+
+
 
 interface CompanyData {
   company_id: string;
@@ -37,15 +38,8 @@ interface CompanyData {
 interface UserData {
   username: string;
   password: string;
-  confirmPassword: string;
   fullName: string;
-  email: string;
-  phone: string;
   companyId: string;
-  country: string;
-  city: string;
-  zipcode: string;
-  address: string;
 }
 
 interface AddressData {
@@ -64,11 +58,17 @@ interface Country {
   unlocode?: string;
 }
 
+
+
 export default function RegisterPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'company' | 'user'>('company');
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
-  const [isCountryModalOpen, setIsCountryModalOpen] = useState(false);
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const [checkingCompanyId, setCheckingCompanyId] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [companyIdAvailable, setCompanyIdAvailable] = useState<boolean | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -103,15 +103,8 @@ export default function RegisterPage() {
   const [userFormData, setUserFormData] = useState<UserData>({
     username: '',
     password: '',
-    confirmPassword: '',
     fullName: '',
-    email: '',
-    phone: '',
     companyId: '',
-    country: '',
-    city: '',
-    zipcode: '',
-    address: '',
   });
 
   const handleInputChange = (field: keyof CompanyData, value: string) => {
@@ -143,15 +136,47 @@ export default function RegisterPage() {
     }));
   };
 
-  const handleCountrySelect = (countryData: Country) => {
-    setFormData(prev => ({
-      ...prev,
-      country: countryData.korean_name,
-      country_en: countryData.country_name,
-      country_code: countryData.code,
-      unlocode: countryData.unlocode || '',
-    }));
+  const checkUsernameAvailability = async (username: string) => {
+    if (!username) return;
+    
+    setCheckingUsername(true);
+    try {
+      const response = await fetch('/api/v1/auth/check-username', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }),
+      });
+      
+      const result = await response.json();
+      setUsernameAvailable(result.available);
+    } catch (error) {
+      setUsernameAvailable(null);
+    } finally {
+      setCheckingUsername(false);
+    }
   };
+
+  const checkCompanyIdAvailability = async (companyId: string) => {
+    if (!companyId) return;
+    
+    setCheckingCompanyId(true);
+    try {
+      const response = await fetch('/api/v1/auth/check-company-id', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ company_id: companyId }),
+      });
+      
+      const result = await response.json();
+      setCompanyIdAvailable(result.available);
+    } catch (error) {
+      setCompanyIdAvailable(null);
+    } finally {
+      setCheckingCompanyId(false);
+    }
+  };
+
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -247,12 +272,7 @@ export default function RegisterPage() {
       setError(null);
       setSuccess(null);
 
-      // 비밀번호 확인
-      if (userFormData.password !== userFormData.confirmPassword) {
-        setError('비밀번호가 일치하지 않습니다.');
-        setLoading(false);
-        return;
-      }
+
 
       try {
         const response = await fetch('/api/v1/auth/register/user', {
@@ -264,13 +284,7 @@ export default function RegisterPage() {
             username: userFormData.username,
             password: userFormData.password,
             full_name: userFormData.fullName,
-            email: userFormData.email,
-            phone: userFormData.phone,
             company_id: userFormData.companyId,
-            country: userFormData.country,
-            city: userFormData.city,
-            zipcode: userFormData.zipcode,
-            address: userFormData.address,
           }),
         });
 
@@ -283,15 +297,8 @@ export default function RegisterPage() {
         setUserFormData({
           username: '',
           password: '',
-          confirmPassword: '',
           fullName: '',
-          email: '',
-          phone: '',
           companyId: '',
-          country: '',
-          city: '',
-          zipcode: '',
-          address: '',
         });
       } catch (err) {
         setError(
@@ -303,21 +310,7 @@ export default function RegisterPage() {
     }
   };
 
-  const handleUserAddressSelect = (addressData: AddressData) => {
-    setUserFormData(prev => ({
-      ...prev,
-      address: addressData.roadAddress,
-      city: addressData.cityName,
-      zipcode: addressData.postalCode,
-    }));
-  };
 
-  const handleUserCountrySelect = (countryData: Country) => {
-    setUserFormData(prev => ({
-      ...prev,
-      country: countryData.korean_name,
-    }));
-  };
 
   return (
     <div className='min-h-screen bg-ecotrace-background flex items-center justify-center p-4'>
@@ -586,7 +579,7 @@ export default function RegisterPage() {
                         handleInputChange('street', e.target.value)
                       }
                       className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
-                      placeholder='도로명'
+                      placeholder='도로명 (자동 입력)'
                       readOnly
                     />
                   </div>
@@ -602,8 +595,7 @@ export default function RegisterPage() {
                         handleInputChange('number', e.target.value)
                       }
                       className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
-                      placeholder='건물 번호'
-                      readOnly
+                      placeholder='건물 번호를 입력하세요'
                     />
                   </div>
 
@@ -654,25 +646,9 @@ export default function RegisterPage() {
                       readOnly
                       className='flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
                     />
-                    <Button
-                      type='button'
-                      onClick={() => setIsCountryModalOpen(true)}
-                      variant='outline'
-                      className='border-white/30 text-white hover:bg-white/10 transition-colors'
-                    >
-                      검색
-                    </Button>
+
                   </div>
-                  {(formData.country_code || formData.unlocode) && (
-                    <div className='mt-2 text-sm text-white/60 space-y-1'>
-                      {formData.country_code && (
-                        <p>국가 코드: {formData.country_code}</p>
-                      )}
-                      {formData.unlocode && (
-                        <p>UNLOCODE: {formData.unlocode}</p>
-                      )}
-                    </div>
-                  )}
+
                 </div>
               </div>
 
@@ -715,16 +691,31 @@ export default function RegisterPage() {
                   <label className='block text-sm font-medium text-white mb-2'>
                     사용자명 *
                   </label>
-                  <Input
-                    type='text'
-                    value={userFormData.username}
-                    onChange={e =>
-                      handleUserInputChange('username', e.target.value)
-                    }
-                    className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
-                    placeholder='사용자명을 입력하세요'
-                    required
-                  />
+                  <div className='flex gap-2'>
+                    <Input
+                      type='text'
+                      value={userFormData.username}
+                      onChange={e =>
+                        handleUserInputChange('username', e.target.value)
+                      }
+                      className='flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                      placeholder='사용자명을 입력하세요'
+                      required
+                    />
+                    <Button
+                      type='button'
+                      onClick={() => checkUsernameAvailability(userFormData.username)}
+                      disabled={checkingUsername || !userFormData.username}
+                      className='px-4 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors'
+                    >
+                      {checkingUsername ? '확인중...' : '중복확인'}
+                    </Button>
+                  </div>
+                  {usernameAvailable !== null && (
+                    <p className={`text-sm mt-1 ${usernameAvailable ? 'text-green-400' : 'text-red-400'}`}>
+                      {usernameAvailable ? '사용 가능한 사용자명입니다.' : '이미 사용 중인 사용자명입니다.'}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -745,178 +736,57 @@ export default function RegisterPage() {
               </div>
 
               {/* 비밀번호 */}
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                <div>
-                  <label className='block text-sm font-medium text-white mb-2'>
-                    비밀번호 *
-                  </label>
-                  <Input
-                    type='password'
-                    value={userFormData.password}
-                    onChange={e =>
-                      handleUserInputChange('password', e.target.value)
-                    }
-                    className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
-                    placeholder='비밀번호를 입력하세요'
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className='block text-sm font-medium text-white mb-2'>
-                    비밀번호 확인 *
-                  </label>
-                  <Input
-                    type='password'
-                    value={userFormData.confirmPassword}
-                    onChange={e =>
-                      handleUserInputChange('confirmPassword', e.target.value)
-                    }
-                    className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
-                    placeholder='비밀번호를 다시 입력하세요'
-                    required
-                  />
-                </div>
+              <div>
+                <label className='block text-sm font-medium text-white mb-2'>
+                  비밀번호 *
+                </label>
+                <Input
+                  type='password'
+                  value={userFormData.password}
+                  onChange={e =>
+                    handleUserInputChange('password', e.target.value)
+                  }
+                  className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                  placeholder='비밀번호를 입력하세요'
+                  required
+                />
               </div>
 
-              {/* 연락처 정보 */}
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                <div>
-                  <label className='block text-sm font-medium text-white mb-2'>
-                    이메일 *
-                  </label>
-                  <Input
-                    type='email'
-                    value={userFormData.email}
-                    onChange={e =>
-                      handleUserInputChange('email', e.target.value)
-                    }
-                    className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
-                    placeholder='이메일을 입력하세요'
-                    required
-                  />
-                </div>
 
-                <div>
-                  <label className='block text-sm font-medium text-white mb-2'>
-                    연락처 *
-                  </label>
-                  <Input
-                    type='tel'
-                    value={userFormData.phone}
-                    onChange={e =>
-                      handleUserInputChange('phone', e.target.value)
-                    }
-                    className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
-                    placeholder='010-1234-5678'
-                    required
-                  />
-                </div>
-              </div>
 
               {/* 기업 정보 */}
               <div>
                 <label className='block text-sm font-medium text-white mb-2'>
                   소속 기업 ID *
                 </label>
-                <Input
-                  type='text'
-                  value={userFormData.companyId}
-                  onChange={e =>
-                    handleUserInputChange('companyId', e.target.value)
-                  }
-                  className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
-                  placeholder='소속 기업 ID를 입력하세요'
-                  required
-                />
+                <div className='flex gap-2'>
+                  <Input
+                    type='text'
+                    value={userFormData.companyId}
+                    onChange={e =>
+                      handleUserInputChange('companyId', e.target.value)
+                    }
+                    className='flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+                    placeholder='소속 기업 ID를 입력하세요'
+                    required
+                  />
+                  <Button
+                    type='button'
+                    onClick={() => checkCompanyIdAvailability(userFormData.companyId)}
+                    disabled={checkingCompanyId || !userFormData.companyId}
+                    className='px-4 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors'
+                  >
+                    {checkingCompanyId ? '확인중...' : '기업확인'}
+                  </Button>
+                </div>
+                {companyIdAvailable !== null && (
+                  <p className={`text-sm mt-1 ${companyIdAvailable ? 'text-green-400' : 'text-red-400'}`}>
+                    {companyIdAvailable ? '존재하는 기업입니다.' : '존재하지 않는 기업입니다.'}
+                  </p>
+                )}
               </div>
 
-              {/* 주소 정보 */}
-              <div className='space-y-4'>
-                <div>
-                  <label className='block text-sm font-medium text-white mb-2'>
-                    주소 *
-                  </label>
-                  <div className='flex gap-2'>
-                    <Input
-                      type='text'
-                      value={userFormData.address}
-                      onChange={e =>
-                        handleUserInputChange('address', e.target.value)
-                      }
-                      className='flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
-                      placeholder='주소를 입력하세요'
-                      readOnly
-                    />
-                    <Button
-                      type='button'
-                      onClick={() => setIsAddressModalOpen(true)}
-                      className='bg-primary text-primary-foreground hover:bg-primary/90 transition-colors'
-                    >
-                      주소 검색
-                    </Button>
-                  </div>
-                </div>
 
-                <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-                  <div>
-                    <label className='block text-sm font-medium text-white mb-2'>
-                      도시 *
-                    </label>
-                    <Input
-                      type='text'
-                      value={userFormData.city}
-                      onChange={e =>
-                        handleUserInputChange('city', e.target.value)
-                      }
-                      className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
-                      placeholder='도시명'
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className='block text-sm font-medium text-white mb-2'>
-                      우편번호 *
-                    </label>
-                    <Input
-                      type='text'
-                      value={userFormData.zipcode}
-                      onChange={e =>
-                        handleUserInputChange('zipcode', e.target.value)
-                      }
-                      className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
-                      placeholder='우편번호'
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className='block text-sm font-medium text-white mb-2'>
-                      국가 *
-                    </label>
-                    <div className='flex gap-2'>
-                      <Input
-                        type='text'
-                        value={userFormData.country}
-                        onChange={e =>
-                          handleUserInputChange('country', e.target.value)
-                        }
-                        className='flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
-                        placeholder='국가를 선택하세요'
-                        readOnly
-                      />
-                      <Button
-                        type='button'
-                        onClick={() => setIsCountryModalOpen(true)}
-                        className='bg-primary text-primary-foreground hover:bg-primary/90 transition-colors'
-                      >
-                        검색
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
               {/* 제출 버튼 */}
               <div className='flex justify-center pt-4'>
@@ -939,12 +809,6 @@ export default function RegisterPage() {
         onSelect={handleAddressSelect}
       />
 
-      {/* 국가 검색 모달 */}
-      <CountrySearchModal
-        isOpen={isCountryModalOpen}
-        onClose={() => setIsCountryModalOpen(false)}
-        onSelect={handleCountrySelect}
-      />
     </div>
   );
 }

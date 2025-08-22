@@ -299,8 +299,7 @@ async def upload_output_data(data: dict):
         gateway_logger.log_error(f"Output 데이터 업로드 중 오류 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Output 데이터 업로드 오류: {str(e)}")
 
-=======
->>>>>>> origin/main
+# 서비스 상태 확인 엔드포인트
 # 서비스 상태 확인 엔드포인트
 @app.get("/status")
 async def service_status():

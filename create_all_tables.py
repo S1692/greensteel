@@ -57,18 +57,21 @@ def check_table_exists(conn, table_name):
 def create_product_table(conn):
     """product 테이블만 생성합니다."""
     try:
-        # product 테이블 생성
+        # product 테이블 생성 (CalculationRepository와 동일한 스키마)
         product_sql = """
         CREATE TABLE IF NOT EXISTS product (
             id SERIAL PRIMARY KEY,
             name VARCHAR(255) NOT NULL,
             cn_code VARCHAR(50),
-            description TEXT,
-            category VARCHAR(100),
-            unit VARCHAR(50),
-            carbon_intensity DECIMAL(10,6),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            period_start DATE,
+            period_end DATE,
+            production_qty DECIMAL(10,2) DEFAULT 0,
+            sales_qty DECIMAL(10,2) DEFAULT 0,
+            export_qty DECIMAL(10,2) DEFAULT 0,
+            inventory_qty DECIMAL(10,2) DEFAULT 0,
+            defect_rate DECIMAL(5,4) DEFAULT 0,
+            node_id VARCHAR(255),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         """
         

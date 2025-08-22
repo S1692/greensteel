@@ -559,35 +559,7 @@ const DataUploadPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Input 페이지에서 항상 표시되는 이동 버튼들 */}
-              <div className='mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg'>
-                <h3 className='text-sm font-medium text-blue-900 mb-3'>다른 페이지로 이동</h3>
-                <div className='flex flex-col sm:flex-row gap-3'>
-                  <Button 
-                    onClick={goToOutput} 
-                    variant='outline'
-                    className='flex-1 border-blue-500 text-blue-600 hover:bg-blue-100'
-                    disabled={!inputUploadResult}
-                  >
-                    <ArrowRight className='w-4 h-4 mr-2' />
-                    Output 데이터 업로드로 이동
-                  </Button>
-                  
-                  <Button 
-                    onClick={goToCBAM} 
-                    variant='outline'
-                    className='flex-1 border-green-500 text-green-600 hover:bg-green-50'
-                  >
-                    <ExternalLink className='w-4 h-4 mr-2' />
-                    CBAM 페이지로 이동
-                  </Button>
-                </div>
-                {!inputUploadResult && (
-                  <p className='text-xs text-blue-600 mt-2 text-center'>
-                    Output 페이지 이동을 위해서는 먼저 Input 데이터를 업로드해야 합니다.
-                  </p>
-                )}
-              </div>
+              {/* Input 페이지에서 항상 표시되는 이동 버튼들 - 제거됨 */}
             </div>
 
             {/* Input 데이터 미리보기 */}
@@ -865,6 +837,36 @@ const DataUploadPage: React.FC = () => {
               <p className='text-sm text-blue-700'>포트 8083</p>
             </div>
           </div>
+        </div>
+
+        {/* 페이지 최하단 이동 버튼들 */}
+        <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
+          <h3 className='text-lg font-semibold text-gray-900 mb-4 text-center'>다른 페이지로 이동</h3>
+          <div className='flex flex-col sm:flex-row gap-4'>
+            <Button 
+              onClick={goToOutput} 
+              variant='outline'
+              className='flex-1 py-3 bg-blue-100 border-blue-300 text-blue-800 hover:bg-blue-200 hover:border-blue-400 font-medium'
+              disabled={!inputUploadResult}
+            >
+              <ArrowRight className='w-5 h-5 mr-2' />
+              Output 데이터 업로드로 이동
+            </Button>
+            
+            <Button 
+              onClick={goToCBAM} 
+              variant='outline'
+              className='flex-1 py-3 bg-green-100 border-green-300 text-green-800 hover:bg-green-200 hover:border-green-400 font-medium'
+            >
+              <ExternalLink className='w-5 h-5 mr-2' />
+              CBAM 페이지로 이동
+            </Button>
+          </div>
+          {!inputUploadResult && (
+            <p className='text-sm text-blue-700 mt-3 text-center font-medium'>
+              Output 페이지 이동을 위해서는 먼저 Input 데이터를 업로드해야 합니다.
+            </p>
+          )}
         </div>
       </div>
     </CommonShell>

@@ -216,23 +216,23 @@ export default function RegisterPage() {
         fullAddress: fullAddress, // 전체 주소 전달
       });
 
-      // 영문 전체 주소를 정규식으로 파싱하여 분리된 필드들로 표시
-      const englishParts = parseEnglishAddressFromFull(enhancedAddress.fullAddress_en);
-      
       setFormData(prev => ({
         ...prev,
         street: addressData.roadAddress || '', // 국문 도로명
-        street_en: englishParts.road || '', // 영문 도로명 (정규식 파싱)
+        street_en: enhancedAddress.englishRoad || '', // 영문 도로명 (직접 사용)
         number: addressData.buildingNumber || '', // 국문 건물번호
         number_en: addressData.buildingNumber || '', // 건물번호 영문 = 국문 (동기화)
         postcode: enhancedAddress.postalCode || addressData.postalCode || '',
         city: addressData.cityName || '', // 국문 도시명
-        city_en: englishParts.city || '', // 영문 도시명 (정규식 파싱)
+        city_en: enhancedAddress.englishCity || '', // 영문 도시명 (직접 사용)
         sourcelatitude: addressData.latitude, // 카카오 API에서 받은 위도
         sourcelongitude: addressData.longitude, // 카카오 API에서 받은 경도
       }));
 
       console.log('영문 주소 변환 완료:', enhancedAddress);
+      console.log('영문 도로명:', enhancedAddress.englishRoad);
+      console.log('영문 도시명:', enhancedAddress.englishCity);
+      console.log('영문 전체 주소:', enhancedAddress.fullAddress_en);
     } catch (error) {
       console.error('영문 주소 변환 실패:', error);
       // 변환 실패 시 기존 방식으로 처리

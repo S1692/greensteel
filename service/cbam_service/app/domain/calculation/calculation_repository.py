@@ -161,6 +161,10 @@ class CalculationRepository:
         """제품 데이터 정리 및 검증"""
         cleaned_data = product_data.copy()
         
+        # node_id가 없으면 기본값 설정
+        if 'node_id' not in cleaned_data or cleaned_data['node_id'] is None:
+            cleaned_data['node_id'] = 'default'
+        
         # 날짜 검증 및 정리
         try:
             # period_start 검증

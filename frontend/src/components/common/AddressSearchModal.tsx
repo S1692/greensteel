@@ -44,6 +44,36 @@ interface AddressData {
   cityName: string;
   latitude: number | null;
   longitude: number | null;
+  fullAddress: string; // 전체 주소 추가
+}
+
+// 주소 파싱 함수 추가
+function parseAddressComponents(fullAddress: string): { roadName: string; buildingNumber: string } {
+  try {
+    console.log('주소 파싱 시작:', fullAddress);
+    
+    // 주소를 공백으로 분리
+    const parts = fullAddress.trim().split(/\s+/);
+    
+    if (parts.length < 3) {
+      console.warn('주소 형식이 올바르지 않습니다:', fullAddress);
+      return { roadName: '', buildingNumber: '' };
+    }
+    
+    // 마지막 부분이 건물번호 (숫자만)
+    const lastPart = parts[parts.length - 1];
+    const buildingNumber = lastPart.match(/\d+/)?.[0] || '';
+    
+    // 도로명은 뒤에서 2번째 부분 (예: "가로수길")
+    const roadName = parts[parts.length - 2] || '';
+    
+    console.log('주소 파싱 결과:', { roadName, buildingNumber, fullAddress });
+    
+    return { roadName, buildingNumber };
+  } catch (error) {
+    console.error('주소 파싱 실패:', error);
+    return { roadName: '', buildingNumber: '' };
+  }
 }
 
 export default function AddressSearchModal({
@@ -144,14 +174,18 @@ export default function AddressSearchModal({
             // 주소를 좌표로 변환
             const coordinates = await getCoordinatesFromAddress(data.roadAddress || '');
             
+            // 주소 파싱하여 도로명과 건물번호 추출
+            const { roadName, buildingNumber } = parseAddressComponents(data.roadAddress || '');
+            
             const addressData: AddressData = {
-              roadAddress: data.roadAddress || '',
+              roadAddress: roadName, // 파싱된 도로명만 (예: "가로수길")
               jibunAddress: data.jibunAddress || '',
-              buildingNumber: data.buildingName || '',
+              buildingNumber: buildingNumber, // 파싱된 건물번호만 (예: "12")
               postalCode: data.zonecode || '',
               cityName: (data.sido || '') + ' ' + (data.sigungu || ''),
               latitude: coordinates?.lat || null,
               longitude: coordinates?.lng || null,
+              fullAddress: data.roadAddress || '', // 전체 주소 (도로명주소)
             };
             
             setSelectedAddress(addressData);
@@ -174,14 +208,18 @@ export default function AddressSearchModal({
             alert(`${userMessage}\n\n기본 주소 정보는 정상적으로 설정됩니다.`);
             
             // 좌표 변환 실패 시에도 기본 주소 정보는 설정
+            // 주소 파싱하여 도로명과 건물번호 추출
+            const { roadName, buildingNumber } = parseAddressComponents(data.roadAddress || '');
+            
             const addressData: AddressData = {
-              roadAddress: data.roadAddress || '',
+              roadAddress: roadName, // 파싱된 도로명만 (예: "가로수길")
               jibunAddress: data.jibunAddress || '',
-              buildingNumber: data.buildingName || '',
+              buildingNumber: buildingNumber, // 파싱된 건물번호만 (예: "12")
               postalCode: data.zonecode || '',
               cityName: (data.sido || '') + ' ' + (data.sigungu || ''),
               latitude: null,
               longitude: null,
+              fullAddress: data.roadAddress || '', // 전체 주소 (도로명주소)
             };
             setSelectedAddress(addressData);
           }

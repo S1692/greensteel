@@ -51,6 +51,7 @@ interface AddressData {
   cityName: string;
   latitude: number | null;
   longitude: number | null;
+  fullAddress?: string; // 전체 주소 (JSON에서 받아옴)
 }
 
 interface Country {
@@ -151,23 +152,29 @@ export default function RegisterPage() {
 
   const handleAddressSelect = async (addressData: AddressData) => {
     try {
+      // 전체 주소 구성 (JSON에서 받아온 전체 주소 사용)
+      const fullAddress = addressData.fullAddress || `${addressData.cityName || ''} ${addressData.roadAddress || ''} ${addressData.buildingNumber || ''}`.trim();
+      
+      console.log('전체 주소로 영문 변환 시작:', fullAddress);
+      
       // 행정안전부 API를 통해 영문 주소 변환
       const enhancedAddress = await enhanceAddressWithEnglish({
         roadAddress: addressData.roadAddress,
         buildingNumber: addressData.buildingNumber,
         cityName: addressData.cityName,
         postalCode: addressData.postalCode,
+        fullAddress: fullAddress, // 전체 주소 전달
       });
 
       setFormData(prev => ({
         ...prev,
-        street: enhancedAddress.roadAddress,
-        street_en: enhancedAddress.englishRoad, // 영문 도로명
-        number: enhancedAddress.buildingNumber,
-        number_en: enhancedAddress.buildingNumber, // 건물번호는 그대로 (동기화)
-        postcode: enhancedAddress.postalCode,
-        city: enhancedAddress.cityName,
-        city_en: enhancedAddress.englishCity, // 영문 도시명
+        street: addressData.roadAddress || '', // 국문 도로명
+        street_en: enhancedAddress.englishRoad || '', // 영문 도로명
+        number: addressData.buildingNumber || '', // 국문 건물번호
+        number_en: addressData.buildingNumber || '', // 건물번호 영문 = 국문 (동기화)
+        postcode: enhancedAddress.postalCode || addressData.postalCode || '',
+        city: addressData.cityName || '', // 국문 도시명
+        city_en: enhancedAddress.englishCity || '', // 영문 도시명
         sourcelatitude: addressData.latitude, // 카카오 API에서 받은 위도
         sourcelongitude: addressData.longitude, // 카카오 API에서 받은 경도
       }));
@@ -179,14 +186,14 @@ export default function RegisterPage() {
       setFormData(prev => ({
         ...prev,
         street: addressData.roadAddress || '',
-        street_en: addressData.roadAddress || '',
+        street_en: '',
         number: addressData.buildingNumber || '',
         number_en: addressData.buildingNumber || '',
         postcode: addressData.postalCode || '',
         city: addressData.cityName || '',
-        city_en: addressData.cityName || '',
-        sourcelatitude: addressData.latitude, // 카카오 API에서 받은 위도
-        sourcelongitude: addressData.longitude, // 카카오 API에서 받은 경도
+        city_en: '',
+        sourcelatitude: addressData.latitude,
+        sourcelongitude: addressData.longitude,
       }));
     }
   };

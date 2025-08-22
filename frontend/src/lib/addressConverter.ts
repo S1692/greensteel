@@ -215,6 +215,7 @@ export async function enhanceAddressWithEnglish(kakaoAddress: {
   buildingNumber?: string;
   cityName?: string;
   postalCode?: string;
+  fullAddress?: string; // 전체 주소 추가
 }): Promise<{
   roadAddress: string;
   buildingNumber: string;
@@ -227,8 +228,8 @@ export async function enhanceAddressWithEnglish(kakaoAddress: {
   try {
     console.log('주소 영문 변환 시작:', kakaoAddress);
     
-    // 전체 주소 구성 (예: "서울 강남구 가로수길 5")
-    const fullAddress = `${kakaoAddress.cityName || ''} ${kakaoAddress.roadAddress || ''} ${kakaoAddress.buildingNumber || ''}`.trim();
+    // 전체 주소 우선 사용 (JSON에서 받아온 전체 주소)
+    const fullAddress = kakaoAddress.fullAddress || `${kakaoAddress.cityName || ''} ${kakaoAddress.roadAddress || ''} ${kakaoAddress.buildingNumber || ''}`.trim();
     
     if (!fullAddress) {
       throw new Error('검색할 주소 키워드가 없습니다.');

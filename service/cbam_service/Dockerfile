@@ -1,8 +1,4 @@
-# ============================================================================
-# 🐳 CBAM 서비스 Docker 이미지 - Railway 배포용
-# ============================================================================
-
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # 작업 디렉터리 설정
 WORKDIR /app
@@ -34,5 +30,5 @@ EXPOSE 8082
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8082/health || exit 1
 
-# 애플리케이션 실행 (main:app)
+# 애플리케이션 실행 (main.py의 app 인스턴스)
 CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8082", "--proxy-headers"]

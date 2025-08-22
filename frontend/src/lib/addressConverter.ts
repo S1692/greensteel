@@ -110,8 +110,8 @@ export async function convertAddressToEnglish(keyword: string): Promise<Converte
         }
       };
 
-      // JSONP 스크립트 생성
-      script.src = `https://www.juso.go.kr/addrlink/addrLinkApi.do?currentPage=1&countPerPage=10&keyword=${encodeURIComponent(keyword)}&confmKey=${process.env.NEXT_PUBLIC_ADMINISTRATIVE_API_KEY}&resultType=json&callback=${callbackName}`;
+      // JSONP 스크립트 생성 (business.juso.go.kr 사용)
+      script.src = `https://business.juso.go.kr/addrlink/openApi/searchApi.do?currentPage=1&countPerPage=10&keyword=${encodeURIComponent(keyword)}&confmKey=${process.env.NEXT_PUBLIC_ADMINISTRATIVE_API_KEY}&resultType=json&callback=${callbackName}`;
       script.onerror = () => {
         reject(new Error('주소 검색 API 스크립트 로드 실패'));
         delete (window as any)[callbackName];

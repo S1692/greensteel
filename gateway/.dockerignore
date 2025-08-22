@@ -19,15 +19,9 @@ nosetests.xml
 coverage.xml
 *.cover
 *.log
-.git
 .mypy_cache
 .pytest_cache
 .hypothesis
-
-# 환경변수 파일
-.env
-.env.local
-.env.production
 
 # IDE 관련
 .vscode
@@ -44,17 +38,3 @@ coverage.xml
 .Trashes
 ehthumbs.db
 Thumbs.db
-
-# 문서
-README.md
-*.md
-docs/
-
-# 테스트
-tests/
-test_*.py
-*_test.py
-
-# 로그
-logs/
-*.log

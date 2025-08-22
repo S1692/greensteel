@@ -38,8 +38,3 @@ coverage.xml
 .Trashes
 ehthumbs.db
 Thumbs.db
-
-# 다른 서비스 폴더 (중요!)
-../gateway
-../cbam_service
-../lci_service

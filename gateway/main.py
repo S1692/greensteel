@@ -1,19 +1,19 @@
 import os
-from fastapi import FastAPI, Request, Response, UploadFile, File, HTTPException
+from fastapi import FastAPI, Request, Response, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from contextlib import asynccontextmanager
 import time
 import httpx
+import logging
 
-from .domain.proxy import ProxyController
-from .common.utility.logger import gateway_logger
+# 로깅 설정
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # 환경변수에서 설정 가져오기 (기본값 포함)
 GATEWAY_NAME = os.getenv("GATEWAY_NAME", "greensteel-gateway")
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "https://greensteel.site,https://www.greensteel.site,http://localhost:3000")
 ALLOWED_ORIGIN_REGEX = os.getenv("ALLOWED_ORIGIN_REGEX", "^https://.*\\.vercel\\.app$|^https://.*\\.up\\.railway\\.app$")
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
 # CORS 허용 오리진 파싱
 allowed_origins = [origin.strip() for origin in ALLOWED_ORIGINS.split(",") if origin.strip()]
@@ -22,17 +22,16 @@ allowed_origins = [origin.strip() for origin in ALLOWED_ORIGINS.split(",") if or
 async def lifespan(app: FastAPI):
     """애플리케이션 생명주기 관리 - DDD Architecture"""
     # 시작 시
-    gateway_logger.log_info(f"Gateway {GATEWAY_NAME} starting up...")
-    gateway_logger.log_info("Architecture: DDD (Domain-Driven Design)")
-    gateway_logger.log_info("Domain Services: Identity-Access, Carbon-Border, Data-Collection, Lifecycle-Inventory")
+    logger.info(f"Gateway {GATEWAY_NAME} starting up...")
+    logger.info("Architecture: DDD (Domain-Driven Design)")
     yield
     # 종료 시
-    gateway_logger.log_info(f"Gateway {GATEWAY_NAME} shutting down...")
+    logger.info(f"Gateway {GATEWAY_NAME} shutting down...")
 
 # FastAPI 애플리케이션 생성
 app = FastAPI(
     title=f"{GATEWAY_NAME} - DDD API Gateway",
-    description="도메인 주도 설계(DDD)를 적용한 마이크로서비스 API Gateway - 프록시 라우팅 및 CORS 지원",
+    description="도메인 주도 설계(DDD)를 적용한 마이크로서비스 API Gateway",
     version="2.0.0",
     lifespan=lifespan
 )
@@ -49,15 +48,6 @@ app.add_middleware(
     max_age=3600
 )
 
-# 신뢰할 수 있는 호스트 미들웨어 (보안 강화)
-app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=["*"]  # 프로덕션에서는 특정 도메인만 허용하도록 설정
-)
-
-# 프록시 컨트롤러 인스턴스
-proxy_controller = ProxyController()
-
 # 요청 시간 측정 미들웨어
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
@@ -70,21 +60,25 @@ async def add_process_time_header(request: Request, call_next):
 # 헬스체크 엔드포인트
 @app.get("/health")
 async def health_check():
-    """게이트웨이 헬스체크 - DDD 도메인 서비스 상태"""
-    return proxy_controller.health_check()
+    """게이트웨이 헬스체크"""
+    return {
+        "status": "healthy",
+        "service": GATEWAY_NAME,
+        "timestamp": time.time()
+    }
 
 # favicon.ico 핸들러 (404 방지)
 @app.get("/favicon.ico")
 async def favicon():
     """Favicon 요청 처리 - 404 방지"""
-    gateway_logger.log_info("Favicon request handled")
+    logger.info("Favicon request handled")
     return Response(status_code=204)
 
 # robots.txt 핸들러 (선택적)
 @app.get("/robots.txt")
 async def robots():
     """Robots.txt 요청 처리"""
-    gateway_logger.log_info("Robots.txt request handled")
+    logger.info("Robots.txt request handled")
     return Response(
         content="User-agent: *\nDisallow: /api/\nDisallow: /auth/\nDisallow: /geo/", 
         media_type="text/plain"
@@ -95,7 +89,7 @@ async def robots():
 async def process_data_to_datagather(data: dict):
     """프론트엔드에서 받은 JSON 데이터를 datagather_service로 전달합니다."""
     try:
-        gateway_logger.log_info(f"JSON 데이터 처리 요청 받음: {data.get('filename', 'unknown')}")
+        logger.info(f"JSON 데이터 처리 요청 받음: {data.get('filename', 'unknown')}")
         
         # datagather_service로 JSON 데이터 전송 (포트 8083)
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -106,7 +100,7 @@ async def process_data_to_datagather(data: dict):
             
             if response.status_code == 200:
                 response_data = response.json()
-                gateway_logger.log_info(f"datagather_service로 데이터 전송 성공: {data.get('filename', 'unknown')}")
+                logger.info(f"datagather_service로 데이터 전송 성공: {data.get('filename', 'unknown')}")
                 
                 return {
                     "message": "게이트웨이를 통해 datagather_service로 전송 성공",
@@ -114,20 +108,20 @@ async def process_data_to_datagather(data: dict):
                     "data": response_data
                 }
             else:
-                gateway_logger.log_error(f"datagather_service 응답 오류: {response.status_code}")
+                logger.error(f"datagather_service 응답 오류: {response.status_code}")
                 raise HTTPException(
                     status_code=response.status_code,
                     detail=f"datagather_service 오류: {response.text}"
                 )
                 
     except httpx.TimeoutException:
-        gateway_logger.log_error("datagather_service 연결 시간 초과")
+        logger.error("datagather_service 연결 시간 초과")
         raise HTTPException(status_code=504, detail="서비스 연결 시간 초과")
     except httpx.ConnectError:
-        gateway_logger.log_error("datagather_service 연결 실패")
+        logger.error("datagather_service 연결 실패")
         raise HTTPException(status_code=503, detail="datagather_service에 연결할 수 없습니다")
     except Exception as e:
-        gateway_logger.log_error(f"게이트웨이 처리 중 오류 발생: {str(e)}")
+        logger.error(f"게이트웨이 처리 중 오류 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=f"게이트웨이 오류: {str(e)}")
 
 # AI 모델을 활용한 데이터 처리 엔드포인트
@@ -135,7 +129,7 @@ async def process_data_to_datagather(data: dict):
 async def ai_process_data(data: dict):
     """AI 모델을 활용하여 투입물명을 자동으로 수정합니다."""
     try:
-        gateway_logger.log_info(f"AI 모델 처리 요청 받음: {data.get('filename', 'unknown')}")
+        logger.info(f"AI 모델 처리 요청 받음: {data.get('filename', 'unknown')}")
         
         # datagather_service로 AI 처리 요청 전송 (포트 8083)
         async with httpx.AsyncClient(timeout=60.0) as client:
@@ -146,7 +140,7 @@ async def ai_process_data(data: dict):
             
             if response.status_code == 200:
                 response_data = response.json()
-                gateway_logger.log_info(f"AI 모델 처리 성공: {data.get('filename', 'unknown')}")
+                logger.info(f"AI 모델 처리 성공: {data.get('filename', 'unknown')}")
                 
                 return {
                     "message": "AI 모델을 통해 투입물명이 성공적으로 수정되었습니다",
@@ -160,20 +154,20 @@ async def ai_process_data(data: dict):
                     "timestamp": response_data.get('timestamp', time.time())
                 }
             else:
-                gateway_logger.log_error(f"AI 모델 처리 오류: {response.status_code}")
+                logger.error(f"AI 모델 처리 오류: {response.status_code}")
                 raise HTTPException(
                     status_code=response.status_code,
                     detail=f"AI 모델 처리 오류: {response.text}"
                 )
                 
     except httpx.TimeoutException:
-        gateway_logger.log_error("AI 모델 처리 시간 초과")
+        logger.error("AI 모델 처리 시간 초과")
         raise HTTPException(status_code=504, detail="AI 모델 처리 시간 초과")
     except httpx.ConnectError:
-        gateway_logger.log_error("datagather_service 연결 실패")
+        logger.error("datagather_service 연결 실패")
         raise HTTPException(status_code=503, detail="datagather_service에 연결할 수 없습니다")
     except Exception as e:
-        gateway_logger.log_error(f"AI 모델 처리 중 오류 발생: {str(e)}")
+        logger.error(f"AI 모델 처리 중 오류 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=f"AI 모델 처리 오류: {str(e)}")
 
 # 사용자 피드백 처리 엔드포인트
@@ -181,10 +175,10 @@ async def ai_process_data(data: dict):
 async def process_feedback(feedback_data: dict):
     """사용자 피드백을 받아 AI 모델을 재학습시킵니다."""
     try:
-        gateway_logger.log_info(f"사용자 피드백 처리 요청 받음")
+        logger.info(f"사용자 피드백 처리 요청 받음")
         
         # 피드백 데이터 로깅
-        gateway_logger.log_info(f"피드백 데이터: {feedback_data}")
+        logger.info(f"피드백 데이터: {feedback_data}")
         
         # datagather_service로 피드백 데이터 전송 (포트 8083)
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -195,7 +189,7 @@ async def process_feedback(feedback_data: dict):
             
             if response.status_code == 200:
                 response_data = response.json()
-                gateway_logger.log_info(f"피드백 처리 성공: {response_data}")
+                logger.info(f"피드백 처리 성공: {response_data}")
                 
                 return {
                     "message": "피드백이 성공적으로 처리되었습니다. AI 모델이 이 정보를 학습합니다.",
@@ -203,20 +197,20 @@ async def process_feedback(feedback_data: dict):
                     "data": response_data
                 }
             else:
-                gateway_logger.log_error(f"피드백 처리 오류: {response.status_code}")
+                logger.error(f"피드백 처리 오류: {response.status_code}")
                 raise HTTPException(
                     status_code=response.status_code,
                     detail=f"피드백 처리 오류: {response.text}"
                 )
                 
     except httpx.TimeoutException:
-        gateway_logger.log_error("피드백 처리 시간 초과")
+        logger.error("피드백 처리 시간 초과")
         raise HTTPException(status_code=504, detail="피드백 처리 시간 초과")
     except httpx.ConnectError:
-        gateway_logger.log_error("datagather_service 연결 실패")
+        logger.error("datagather_service 연결 실패")
         raise HTTPException(status_code=503, detail="datagather_service에 연결할 수 없습니다")
     except Exception as e:
-        gateway_logger.log_error(f"피드백 처리 중 오류 발생: {str(e)}")
+        logger.error(f"피드백 처리 중 오류 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=f"피드백 처리 오류: {str(e)}")
 
 # Input 데이터 업로드 엔드포인트
@@ -224,7 +218,7 @@ async def process_feedback(feedback_data: dict):
 async def upload_input_data(data: dict):
     """Input 데이터를 datagather_service로 업로드합니다."""
     try:
-        gateway_logger.log_info(f"Input 데이터 업로드 요청 받음: {data.get('filename', 'unknown')}")
+        logger.info(f"Input 데이터 업로드 요청 받음: {data.get('filename', 'unknown')}")
         
         # datagather_service로 Input 데이터 전송
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -235,7 +229,7 @@ async def upload_input_data(data: dict):
             
             if response.status_code == 200:
                 response_data = response.json()
-                gateway_logger.log_info(f"Input 데이터 업로드 성공: {data.get('filename', 'unknown')}")
+                logger.info(f"Input 데이터 업로드 성공: {data.get('filename', 'unknown')}")
                 
                 return {
                     "message": "Input 데이터가 성공적으로 업로드되었습니다",
@@ -243,20 +237,20 @@ async def upload_input_data(data: dict):
                     "data": response_data
                 }
             else:
-                gateway_logger.log_error(f"Input 데이터 업로드 오류: {response.status_code}")
+                logger.error(f"Input 데이터 업로드 오류: {response.status_code}")
                 raise HTTPException(
                     status_code=response.status_code,
                     detail=f"Input 데이터 업로드 오류: {response.text}"
                 )
                 
     except httpx.TimeoutException:
-        gateway_logger.log_error("Input 데이터 업로드 시간 초과")
+        logger.error("Input 데이터 업로드 시간 초과")
         raise HTTPException(status_code=504, detail="Input 데이터 업로드 시간 초과")
     except httpx.ConnectError:
-        gateway_logger.log_error("datagather_service 연결 실패")
+        logger.error("datagather_service 연결 실패")
         raise HTTPException(status_code=503, detail="datagather_service에 연결할 수 없습니다")
     except Exception as e:
-        gateway_logger.log_error(f"Input 데이터 업로드 중 오류 발생: {str(e)}")
+        logger.error(f"Input 데이터 업로드 중 오류 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Input 데이터 업로드 오류: {str(e)}")
 
 # Output 데이터 업로드 엔드포인트
@@ -264,7 +258,7 @@ async def upload_input_data(data: dict):
 async def upload_output_data(data: dict):
     """Output 데이터를 datagather_service로 업로드합니다."""
     try:
-        gateway_logger.log_info(f"Output 데이터 업로드 요청 받음: {data.get('filename', 'unknown')}")
+        logger.info(f"Output 데이터 업로드 요청 받음: {data.get('filename', 'unknown')}")
         
         # datagather_service로 Output 데이터 전송
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -275,7 +269,7 @@ async def upload_output_data(data: dict):
             
             if response.status_code == 200:
                 response_data = response.json()
-                gateway_logger.log_info(f"Output 데이터 업로드 성공: {data.get('filename', 'unknown')}")
+                logger.info(f"Output 데이터 업로드 성공: {data.get('filename', 'unknown')}")
                 
                 return {
                     "message": "Output 데이터가 성공적으로 업로드되었습니다",
@@ -283,38 +277,76 @@ async def upload_output_data(data: dict):
                     "data": response_data
                 }
             else:
-                gateway_logger.log_error(f"Output 데이터 업로드 오류: {response.status_code}")
+                logger.error(f"Output 데이터 업로드 오류: {response.status_code}")
                 raise HTTPException(
                     status_code=response.status_code,
                     detail=f"Output 데이터 업로드 오류: {response.text}"
                 )
                 
     except httpx.TimeoutException:
-        gateway_logger.log_error("Output 데이터 업로드 시간 초과")
+        logger.error("Output 데이터 업로드 시간 초과")
         raise HTTPException(status_code=504, detail="Output 데이터 업로드 시간 초과")
     except httpx.ConnectError:
-        gateway_logger.log_error("datagather_service 연결 실패")
+        logger.error("datagather_service 연결 실패")
         raise HTTPException(status_code=503, detail="datagather_service에 연결할 수 없습니다")
     except Exception as e:
-        gateway_logger.log_error(f"Output 데이터 업로드 중 오류 발생: {str(e)}")
+        logger.error(f"Output 데이터 업로드 중 오류 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Output 데이터 업로드 오류: {str(e)}")
+
+# CBAM 제품 생성 엔드포인트
+@app.post("/cbam/product")
+async def create_cbam_product(product_data: dict):
+    """CBAM 제품을 생성합니다."""
+    try:
+        logger.info(f"CBAM 제품 생성 요청 받음: {product_data.get('name', 'unknown')}")
+        
+        # cbam_service로 제품 데이터 전송 (포트 8082)
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                "http://localhost:8082/api/product",
+                json=product_data
+            )
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                logger.info(f"CBAM 제품 생성 성공: {product_data.get('name', 'unknown')}")
+                
+                return {
+                    "message": "CBAM 제품이 성공적으로 생성되었습니다",
+                    "status": "success",
+                    "data": response_data
+                }
+            else:
+                logger.error(f"CBAM 제품 생성 오류: {response.status_code}")
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"CBAM 제품 생성 오류: {response.text}"
+                )
+                
+    except httpx.TimeoutException:
+        logger.error("CBAM 서비스 연결 시간 초과")
+        raise HTTPException(status_code=504, detail="CBAM 서비스 연결 시간 초과")
+    except httpx.ConnectError:
+        logger.error("CBAM 서비스 연결 실패")
+        raise HTTPException(status_code=503, detail="CBAM 서비스에 연결할 수 없습니다")
+    except Exception as e:
+        logger.error(f"CBAM 제품 생성 중 오류 발생: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"CBAM 제품 생성 오류: {str(e)}")
 
 # 서비스 상태 확인 엔드포인트
 @app.get("/status")
 async def service_status():
     """서비스 상태 정보 - DDD 도메인별 상태"""
-    return await proxy_controller.get_service_status()
+    return {
+        "status": "healthy",
+        "service": GATEWAY_NAME,
+        "timestamp": time.time()
+    }
 
 # 라우팅 정보 엔드포인트
 @app.get("/routing")
 async def routing_info():
     """라우팅 규칙 및 설정 정보 - DDD 도메인 구조 기반"""
-    return proxy_controller.get_routing_info()
-
-# 아키텍처 정보 엔드포인트
-@app.get("/architecture")
-async def architecture_info():
-    """DDD 아키텍처 정보"""
     return {
         "gateway": GATEWAY_NAME,
         "architecture": "DDD (Domain-Driven Design)",
@@ -370,51 +402,39 @@ async def proxy_route(request: Request, path: str):
         return {"message": "Gateway is running", "health_check": "/health"}
     
     # 프록시 요청 처리
-    return await proxy_controller.proxy_request(request)
+    return {
+        "message": "Proxy route not found",
+        "path": path,
+        "supported_methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]
+    }
 
 # 루트 경로
 @app.get("/")
 async def root():
-    """루트 경로 - DDD 아키텍처 정보"""
+    """루트 경로"""
     return {
         "message": f"{GATEWAY_NAME} - DDD API Gateway",
         "version": "2.0.0",
-        "architecture": "DDD (Domain-Driven Design)",
-                    "endpoints": {
-            "health_check": "/health",
-            "status": "/status",
-            "routing": "/routing",
-            "architecture": "/architecture",
-            "documentation": "/docs",
-            "ai_processing": "/ai-process",
-            "feedback": "/feedback",
-            "data_upload": "/input-data, /output-data"
-        },
-        "domains": [
-            "identity-access (포트 8081)",
-            "carbon-border (포트 8082)",
-            "data-collection (포트 8083) - AI 처리 포함",
-            "lifecycle-inventory (포트 8084)"
-        ]
+        "status": "running"
     }
 
 # 예외 처리
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc):
     """404 에러 처리"""
-    gateway_logger.log_warning(f"404 Not Found: {request.url.path}")
+    logger.warning(f"404 Not Found: {request.url.path}")
     return {"error": "Not Found", "path": request.url.path}
 
 @app.exception_handler(400)
 async def bad_request_handler(request: Request, exc):
     """400 에러 처리"""
-    gateway_logger.log_warning(f"400 Bad Request: {request.url.path}")
+    logger.warning(f"400 Bad Request: {request.url.path}")
     return {"error": "Bad Request", "detail": str(exc.detail) if hasattr(exc, 'detail') else "Invalid request"}
 
 @app.exception_handler(500)
 async def internal_error_handler(request: Request, exc):
     """500 에러 처리"""
-    gateway_logger.log_error(f"Internal Server Error: {request.url.path}")
+    logger.error(f"Internal Server Error: {request.url.path}")
     return {"error": "Internal Server Error"}
 
 if __name__ == "__main__":

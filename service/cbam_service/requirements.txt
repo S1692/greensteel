@@ -1,38 +1,29 @@
-# ============================================================================
-# Cal_boundary Service Dependencies
-# ============================================================================
+# FastAPI 및 웹 서버
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
 
-# FastAPI and Web Server
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-
-# Database
+# 데이터베이스
 sqlalchemy==2.0.23
 asyncpg==0.29.0
 psycopg2-binary==2.9.9
 
-# Data Validation
+# 데이터 검증
 pydantic==2.5.0
 pydantic-settings==2.1.0
 
-# Utilities
+# 유틸리티
 python-multipart==0.0.6
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 
-# Development Tools
-pytest==7.4.3
-pytest-asyncio==0.21.1
-httpx==0.25.2
-
-# Environment Variables
+# 환경 변수
 python-dotenv==1.0.0
 
-# Logging
+# 로깅
 loguru==0.7.2
 
-# Image Processing (for shape rendering)
+# 이미지 처리
 Pillow==10.1.0
 
-# Math Calculations
+# 수학 계산
 numpy==1.25.2

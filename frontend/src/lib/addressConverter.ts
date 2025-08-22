@@ -91,13 +91,18 @@ export function parseAddress(address: string): ParsedAddress {
       throw new Error('도시명(시/군/구)을 찾을 수 없습니다.');
     }
     
-    // 도로명은 건물번호 앞부분 (시/군/구 다음부터 건물번호 전까지)
-    const cityIndex = parts.findIndex(part => part === cityName);
-    const roadName = parts.slice(cityIndex + 1, -1).join('');
-    
-    if (!roadName) {
-      throw new Error('도로명을 찾을 수 없습니다.');
+    // 도로명은 뒤에서 2번째 공백과 첫 번째 공백 사이 (예: "서울 강남구 테헤란로 419" → "테헤란로")
+    if (parts.length >= 4) {
+      // 뒤에서 2번째 요소가 도로명
+      const roadName = parts[parts.length - 2];
+      if (!roadName) {
+        throw new Error('도로명을 찾을 수 없습니다.');
+      }
+    } else {
+      throw new Error('주소 형식이 올바르지 않습니다. (시/도 시/군/구 도로명 건물번호)');
     }
+    
+    const roadName = parts[parts.length - 2];
     
     const result: ParsedAddress = {
       buildingNumber,
@@ -253,8 +258,8 @@ export async function enhanceAddressWithEnglish(kakaoAddress: {
     console.log('영문 주소 파싱 결과:', englishParts);
     
     return {
-      roadAddress: convertedAddress.roadAddr || kakaoAddress.roadAddress || '',
-      buildingNumber: kakaoAddress.buildingNumber || '', // 국문 건물번호 그대로 유지
+      roadAddress: kakaoAddress.roadAddress || '', // 국문 도로명 유지
+      buildingNumber: kakaoAddress.buildingNumber || '', // 국문 건물번호 유지
       cityName: kakaoAddress.cityName || '', // 국문 도시명 유지
       postalCode: convertedAddress.zipNo || kakaoAddress.postalCode || '',
       englishAddress: convertedAddress.engAddr || '',
@@ -279,35 +284,47 @@ export async function enhanceAddressWithEnglish(kakaoAddress: {
 
 
 /**
- * 영문 주소를 파싱하여 도시명과 도로명을 추출합니다.
- * @param engAddr 영문 주소 문자열
- * @returns 파싱된 도시명과 도로명
+ * 영문 주소를 파싱하여 건물번호, 도로명, 도시명을 추출합니다.
+ * @param engAddr 영문 주소 문자열 (예: "419 Teheran-ro, Gangnam-gu, Seoul")
+ * @returns 파싱된 건물번호, 도로명, 도시명
  */
-function parseEnglishAddress(engAddr: string): { city: string; road: string } {
+function parseEnglishAddress(engAddr: string): { buildingNumber: string; road: string; city: string } {
   try {
-    // 영문 주소에서 도시명과 도로명 추출
-    // 예: "123, Gangnam-daero, Gangnam-gu, Seoul" -> city: "Seoul", road: "Gangnam-daero"
+    console.log('영문 주소 파싱 시작:', engAddr);
+    
+    // 영문 주소를 쉼표로 분리
     const parts = engAddr.split(',').map(part => part.trim());
     
-    let city = '';
+    if (parts.length < 3) {
+      console.warn('영문 주소 형식이 올바르지 않습니다:', engAddr);
+      return { buildingNumber: '', road: '', city: '' };
+    }
+    
+    // 첫 번째 부분에서 건물번호와 도로명 추출 (예: "419 Teheran-ro")
+    const firstPart = parts[0];
+    const firstPartWords = firstPart.split(' ');
+    
+    let buildingNumber = '';
     let road = '';
-
-    // 마지막 부분이 보통 도시명
-    if (parts.length > 0) {
-      city = parts[parts.length - 1];
+    
+    if (firstPartWords.length >= 2) {
+      // 첫 번째 단어가 건물번호
+      buildingNumber = firstPartWords[0];
+      // 나머지가 도로명
+      road = firstPartWords.slice(1).join(' ');
+    } else {
+      road = firstPart;
     }
-
-    // "-daero", "-ro", "-gil" 등이 포함된 부분이 도로명
-    for (const part of parts) {
-      if (part.includes('-daero') || part.includes('-ro') || part.includes('-gil')) {
-        road = part;
-        break;
-      }
-    }
-
-    return { city, road };
+    
+    // 마지막 부분이 도시명 (예: "Seoul")
+    const city = parts[parts.length - 1];
+    
+    const result = { buildingNumber, road, city };
+    console.log('영문 주소 파싱 결과:', result);
+    
+    return result;
   } catch (error) {
     console.error('영문 주소 파싱 중 오류 발생:', error);
-    return { city: '', road: '' };
+    return { buildingNumber: '', road: '', city: '' };
   }
 }

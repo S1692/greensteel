@@ -2,9 +2,7 @@ from pydantic import BaseModel
 from typing import Dict, Any, Optional
 from ..entities.user import UserRole
 
-class AddressSearchRequest(BaseModel):
-    """주소 검색 요청"""
-    query: str
+
 
 class CheckUsernameRequest(BaseModel):
     """사용자명 중복 확인 요청"""

@@ -109,18 +109,61 @@ async def create_product(product_data: dict):
     try:
         logger.info(f"제품 생성 요청: {product_data.get('name', 'unknown')}")
         
-        return {
-            "status": "success",
-            "message": "제품이 성공적으로 생성되었습니다",
-            "version": APP_VERSION,
-            "data": product_data
-        }
+        # CalculationRepository를 사용하여 데이터베이스에 저장
+        from app.domain.calculation.calculation_repository import CalculationRepository
+        
+        repository = CalculationRepository(use_database=True)
+        saved_product = await repository.create_product(product_data)
+        
+        if saved_product:
+            logger.info(f"✅ 제품 데이터베이스 저장 성공: {saved_product.get('name', 'unknown')}")
+            return {
+                "status": "success",
+                "message": "제품이 성공적으로 생성되었습니다",
+                "version": APP_VERSION,
+                "data": saved_product
+            }
+        else:
+            logger.error("❌ 제품 데이터베이스 저장 실패")
+            raise HTTPException(
+                status_code=500,
+                detail="제품을 데이터베이스에 저장할 수 없습니다"
+            )
         
     except Exception as e:
         logger.error(f"제품 생성 중 오류: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail="제품 생성 중 오류가 발생했습니다"
+        )
+
+# CBAM 제품 목록 조회 엔드포인트
+@app.get("/api/products", tags=["cbam"])
+async def get_products():
+    """CBAM 제품 목록을 조회합니다."""
+    try:
+        logger.info("제품 목록 조회 요청")
+        
+        # CalculationRepository를 사용하여 데이터베이스에서 제품 목록 조회
+        from app.domain.calculation.calculation_repository import CalculationRepository
+        
+        repository = CalculationRepository(use_database=True)
+        products = await repository.get_products()
+        
+        logger.info(f"✅ 제품 목록 조회 성공: {len(products)}개")
+        return {
+            "status": "success",
+            "message": f"{len(products)}개의 제품을 조회했습니다",
+            "version": APP_VERSION,
+            "data": products,
+            "count": len(products)
+        }
+        
+    except Exception as e:
+        logger.error(f"제품 목록 조회 중 오류: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="제품 목록 조회 중 오류가 발생했습니다"
         )
 
 # CBAM 계산 엔드포인트

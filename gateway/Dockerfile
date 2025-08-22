@@ -2,34 +2,37 @@
 # 🐳 Gateway 서비스 Docker 이미지 - Railway 배포용
 # ============================================================================
 
-FROM python:3.11-slim
+FROM python:3.12-slim
 
-# 작업 디렉토리 설정
+# 작업 디렉터리 설정
 WORKDIR /app
+
+# 환경 변수 설정
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
 # 시스템 패키지 업데이트 및 필요한 패키지 설치
 RUN apt-get update && apt-get install -y \
     gcc \
-    g++ \
+    curl \
     libpq-dev \
+    libffi-dev \
+    libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Python 의존성 설치
-COPY requirements.txt .
+COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 애플리케이션 코드 복사
-COPY . .
-
-# 환경 변수 설정
-ENV PYTHONIOENCODING=utf-8
-ENV PYTHONUNBUFFERED=1
-ENV PORT=8080
-ENV LC_ALL=C.UTF-8
-ENV LANG=C.UTF-8
+COPY . /app/
 
 # 포트 노출
 EXPOSE 8080
 
-# 시작 명령어 (고정 포트 사용)
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+# 헬스체크 설정
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# 애플리케이션 실행 (main:app)
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080", "--proxy-headers"]

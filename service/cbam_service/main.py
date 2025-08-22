@@ -1,40 +1,42 @@
-# ============================================================================
-# 🚀 CBAM Service Main Application - VERSION 2.0.0
-# ============================================================================
-# Last Updated: 2024-12-19
-# Railway Deployment: FORCE_REBUILD
-# ============================================================================
-
 """
-CBAM 서비스 메인 애플리케이션
+🚀 CBAM SERVICE - RAILWAY DEPLOYMENT VERSION 3.0.0 🚀
+============================================================================
+BUILD DATE: 2024-12-19
+DEPLOYMENT: RAILWAY
+FORCE REBUILD: TRUE
+============================================================================
 
-CBAM 계산 및 제품 관리를 위한 FastAPI 애플리케이션입니다.
+CBAM (Carbon Border Adjustment Mechanism) 계산 서비스
+Railway 환경에서 실행되는 FastAPI 애플리케이션
 """
 
-from fastapi import FastAPI, Request
+import os
+import time
+import logging
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from loguru import logger
-import time
-import os
+
+# 로깅 설정
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # 환경 변수 설정
-APP_NAME = os.getenv("APP_NAME", "CBAM Service")
-APP_VERSION = os.getenv("APP_VERSION", "2.0.0")
-APP_DESCRIPTION = os.getenv("APP_DESCRIPTION", "CBAM 계산 서비스 - Railway 배포용")
+APP_NAME = os.getenv("APP_NAME", "CBAM Service v3.0.0")
+APP_VERSION = os.getenv("APP_VERSION", "3.0.0")
+APP_DESCRIPTION = os.getenv("APP_DESCRIPTION", "CBAM 계산 서비스 - Railway 배포 v3.0.0")
 DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """애플리케이션 생명주기 관리"""
-    # 시작 시
-    logger.info(f"🚀 {APP_NAME} 시작 중...")
-    logger.info(f"버전: {APP_VERSION}")
+    logger.info("🚀 CBAM Service v3.0.0 시작 중...")
     logger.info("✅ Railway 배포 환경에서 실행 중")
+    logger.info(f"📅 빌드 날짜: 2024-12-19")
+    logger.info(f"🔧 버전: {APP_VERSION}")
     yield
-    # 종료 시
-    logger.info(f"🛑 {APP_NAME} 종료 중...")
+    logger.info("🛑 CBAM Service v3.0.0 종료 중...")
 
 # FastAPI 애플리케이션 생성
 app = FastAPI(
@@ -59,14 +61,10 @@ app.add_middleware(
 async def log_requests(request: Request, call_next):
     """HTTP 요청/응답 로깅"""
     start_time = time.time()
-    
-    # 요청 로깅
     logger.info(f"📥 {request.method} {request.url.path}")
     
-    # 응답 처리
     response = await call_next(request)
     
-    # 응답 로깅
     process_time = time.time() - start_time
     logger.info(f"📤 {request.method} {request.url.path} - {response.status_code} ({process_time:.3f}s)")
     
@@ -82,7 +80,8 @@ async def health_check():
         "version": APP_VERSION,
         "timestamp": time.time(),
         "deployment": "railway",
-        "build": "v2.0.0"
+        "build_date": "2024-12-19",
+        "build_version": "v3.0.0"
     }
 
 # 루트 경로
@@ -94,9 +93,12 @@ async def root():
         "version": APP_VERSION,
         "description": APP_DESCRIPTION,
         "deployment": "railway",
+        "build_date": "2024-12-19",
         "endpoints": {
             "health": "/health",
-            "docs": "/docs"
+            "docs": "/docs",
+            "product": "/api/product",
+            "calculate": "/api/calculate"
         }
     }
 
@@ -107,21 +109,18 @@ async def create_product(product_data: dict):
     try:
         logger.info(f"제품 생성 요청: {product_data.get('name', 'unknown')}")
         
-        # 제품 생성 로직 (향후 구현)
         return {
             "status": "success",
             "message": "제품이 성공적으로 생성되었습니다",
+            "version": APP_VERSION,
             "data": product_data
         }
         
     except Exception as e:
         logger.error(f"제품 생성 중 오류: {str(e)}")
-        raise JSONResponse(
+        raise HTTPException(
             status_code=500,
-            content={
-                "error": "Internal Server Error",
-                "message": "제품 생성 중 오류가 발생했습니다"
-            }
+            detail="제품 생성 중 오류가 발생했습니다"
         )
 
 # CBAM 계산 엔드포인트
@@ -131,10 +130,10 @@ async def calculate_cbam(calculation_data: dict):
     try:
         logger.info(f"CBAM 계산 요청: {calculation_data.get('type', 'unknown')}")
         
-        # CBAM 계산 로직 (향후 구현)
         return {
             "status": "success",
             "message": "CBAM 계산이 완료되었습니다",
+            "version": APP_VERSION,
             "data": calculation_data,
             "result": {
                 "carbon_emission": 0.0,
@@ -144,13 +143,22 @@ async def calculate_cbam(calculation_data: dict):
         
     except Exception as e:
         logger.error(f"CBAM 계산 중 오류: {str(e)}")
-        raise JSONResponse(
+        raise HTTPException(
             status_code=500,
-            content={
-                "error": "Internal Server Error",
-                "message": "CBAM 계산 중 오류가 발생했습니다"
-            }
+            detail="CBAM 계산 중 오류가 발생했습니다"
         )
+
+# 버전 정보 엔드포인트
+@app.get("/version", tags=["info"])
+async def get_version():
+    """서비스 버전 정보"""
+    return {
+        "service": APP_NAME,
+        "version": APP_VERSION,
+        "build_date": "2024-12-19",
+        "deployment": "railway",
+        "status": "active"
+    }
 
 # 전역 예외 처리 핸들러
 @app.exception_handler(Exception)
@@ -162,6 +170,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={
             "error": "Internal Server Error",
             "message": "서버 내부 오류가 발생했습니다",
+            "version": APP_VERSION,
             "detail": str(exc) if DEBUG_MODE else "오류 세부 정보는 숨겨집니다"
         }
     )

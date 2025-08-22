@@ -147,7 +147,7 @@ const DataUploadPage: React.FC = () => {
             ) : (
               <span className="font-semibold">{step.id}</span>
             )}
-          </div>
+                    </div>
           {index < steps.length - 1 && (
             <div className={`w-16 h-0.5 mx-2 ${
               currentStep > step.id ? 'bg-gradient-to-r from-blue-500 to-purple-600' : 'bg-gray-300'
@@ -155,7 +155,7 @@ const DataUploadPage: React.FC = () => {
           )}
         </div>
       ))}
-    </div>
+            </div>
   );
 
   const renderInputUpload = () => (
@@ -163,8 +163,8 @@ const DataUploadPage: React.FC = () => {
       <div className="text-center">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Input 데이터 업로드</h2>
         <p className="text-gray-600">Input 데이터 파일을 업로드하여 AI 처리를 위한 데이터를 준비합니다</p>
-      </div>
-
+              </div>
+              
       <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-dashed border-blue-300 rounded-lg p-8 text-center">
         <Upload className="w-16 h-16 text-blue-500 mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-gray-900 mb-2">파일을 드래그하여 업로드하거나 클릭하여 선택하세요</h3>
@@ -175,8 +175,8 @@ const DataUploadPage: React.FC = () => {
         >
           파일 선택
         </button>
-        <input
-          ref={inputFileRef}
+                <input
+                  ref={inputFileRef}
           type="file"
           accept=".xlsx,.xls,.csv"
           onChange={(e) => handleFileChange(e, 'input')}
@@ -189,7 +189,7 @@ const DataUploadPage: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">업로드된 파일</h3>
             <span className="text-sm text-gray-500">{inputFile.name}</span>
-          </div>
+                  </div>
           <button
             onClick={handleAIProcess}
             disabled={isAiProcessing}
@@ -199,8 +199,8 @@ const DataUploadPage: React.FC = () => {
               <>
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                 <span>AI 처리 중...</span>
-              </>
-            ) : (
+                          </>
+                        ) : (
               <>
                 <Brain className="w-5 h-5" />
                 <span>AI 처리 시작</span>
@@ -234,10 +234,10 @@ const DataUploadPage: React.FC = () => {
                 ))}
               </tbody>
             </table>
-          </div>
-        </div>
-      )}
-    </div>
+                    </div>
+                  </div>
+                )}
+              </div>
   );
 
   const renderAIProcessing = () => (
@@ -245,14 +245,14 @@ const DataUploadPage: React.FC = () => {
       <div className="text-center">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">AI 데이터 처리</h2>
         <p className="text-gray-600">AI가 데이터를 분석하고 보정하여 정확성을 향상시킵니다</p>
-      </div>
+            </div>
 
       <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-8 text-center">
         <Brain className="w-16 h-16 text-purple-500 mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-gray-900 mb-2">AI 처리 중...</h3>
         <p className="text-gray-600 mb-4">데이터를 분석하고 보정하고 있습니다</p>
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto"></div>
-      </div>
+                </div>
 
       {aiProcessedData.length > 0 && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -272,10 +272,10 @@ const DataUploadPage: React.FC = () => {
                 </div>
               </div>
             ))}
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      )}
-    </div>
   );
 
   const renderOutputUpload = () => (
@@ -283,8 +283,8 @@ const DataUploadPage: React.FC = () => {
       <div className="text-center">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Output 데이터 업로드</h2>
         <p className="text-gray-600">Output 데이터 파일을 업로드하여 데이터 검증을 진행합니다</p>
-      </div>
-
+              </div>
+              
       <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-dashed border-green-300 rounded-lg p-8 text-center">
         <Database className="w-16 h-16 text-green-500 mx-auto mb-4" />
         <h3 className="text-lg font-semibold text-gray-900 mb-2">Output 데이터 파일을 업로드하세요</h3>
@@ -295,14 +295,14 @@ const DataUploadPage: React.FC = () => {
         >
           파일 선택
         </button>
-        <input
-          ref={outputFileRef}
+                <input
+                  ref={outputFileRef}
           type="file"
           accept=".xlsx,.xls,.csv"
           onChange={(e) => handleFileChange(e, 'output')}
           className="hidden"
         />
-      </div>
+                  </div>
 
       {outputData.length > 0 && (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -328,10 +328,10 @@ const DataUploadPage: React.FC = () => {
                 ))}
               </tbody>
             </table>
-          </div>
-        </div>
-      )}
-    </div>
+                    </div>
+                  </div>
+                )}
+              </div>
   );
 
   const renderDataValidation = () => (
@@ -339,7 +339,7 @@ const DataUploadPage: React.FC = () => {
       <div className="text-center">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">데이터 검증 완료</h2>
         <p className="text-gray-600">업로드된 모든 데이터가 성공적으로 검증되었습니다</p>
-      </div>
+                </div>
 
       <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-8 text-center">
         <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
@@ -348,12 +348,12 @@ const DataUploadPage: React.FC = () => {
         <div className="flex items-center justify-center space-x-4">
           <div className="bg-emerald-100 rounded-full px-4 py-2">
             <span className="text-emerald-800 font-medium">Input: {inputData.length}개</span>
-          </div>
+                  </div>
           <div className="bg-emerald-100 rounded-full px-4 py-2">
             <span className="text-emerald-800 font-medium">Output: {outputData.length}개</span>
-          </div>
-        </div>
-      </div>
+                  </div>
+                  </div>
+                </div>
 
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">처리 요약</h3>
@@ -372,10 +372,10 @@ const DataUploadPage: React.FC = () => {
             <Database className="w-8 h-8 text-green-500 mx-auto mb-2" />
             <p className="text-sm text-gray-600">Output 파일</p>
             <p className="text-lg font-semibold text-green-900">{outputFile?.name || '없음'}</p>
+            </div>
+            </div>
+            </div>
           </div>
-        </div>
-      </div>
-    </div>
   );
 
   const renderCurrentStep = () => {

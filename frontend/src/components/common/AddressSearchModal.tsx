@@ -44,7 +44,8 @@ interface AddressData {
   cityName: string;
   latitude: number | null;
   longitude: number | null;
-  fullAddress: string; // 전체 주소 추가
+  fullAddress: string; // 전체 주소 (한글)
+  fullAddress_en: string; // 전체 주소 (영문)
 }
 
 // 주소 파싱 함수 추가
@@ -185,7 +186,8 @@ export default function AddressSearchModal({
               cityName: (data.sido || '') + ' ' + (data.sigungu || ''),
               latitude: coordinates?.lat || null,
               longitude: coordinates?.lng || null,
-              fullAddress: data.roadAddress || '', // 전체 주소 (도로명주소)
+              fullAddress: data.roadAddress || '', // 전체 주소 (한글)
+              fullAddress_en: '', // 영문 전체 주소 (나중에 채워짐)
             };
             
             setSelectedAddress(addressData);
@@ -219,7 +221,8 @@ export default function AddressSearchModal({
               cityName: (data.sido || '') + ' ' + (data.sigungu || ''),
               latitude: null,
               longitude: null,
-              fullAddress: data.roadAddress || '', // 전체 주소 (도로명주소)
+              fullAddress: data.roadAddress || '', // 전체 주소 (한글)
+              fullAddress_en: '', // 영문 전체 주소 (나중에 채워짐)
             };
             setSelectedAddress(addressData);
           }

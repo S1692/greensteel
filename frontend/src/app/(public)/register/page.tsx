@@ -104,6 +104,7 @@ export default function RegisterPage() {
     unlocode: '',
     sourcelatitude: null,
     sourcelongitude: null,
+    // fullAddress_en은 DB로 전송하지 않음 (정규식 파싱 결과만 전송)
   });
 
   const [userFormData, setUserFormData] = useState<UserData>({
@@ -150,6 +151,55 @@ export default function RegisterPage() {
     }
   };
 
+  // 영문 전체 주소를 정규식으로 파싱하는 함수
+  const parseEnglishAddressFromFull = (fullAddressEn: string) => {
+    try {
+      console.log('영문 전체 주소 파싱 시작:', fullAddressEn);
+      
+      if (!fullAddressEn) {
+        return { road: '', city: '' };
+      }
+      
+      // 영문 주소를 쉼표로 분리
+      const parts = fullAddressEn.split(',').map(part => part.trim());
+      
+      if (parts.length < 2) {
+        console.warn('영문 주소 형식이 올바르지 않습니다:', fullAddressEn);
+        return { road: '', city: '' };
+      }
+      
+      // 첫 번째 부분에서 건물번호와 도로명 추출 (예: "419 Teheran-ro")
+      const firstPart = parts[0];
+      const firstPartWords = firstPart.split(' ');
+      
+      let road = '';
+      if (firstPartWords.length >= 2) {
+        // 첫 번째 단어가 건물번호, 나머지가 도로명
+        road = firstPartWords.slice(1).join(' ');
+      } else {
+        road = firstPart;
+      }
+      
+      // 도시명 추출 (2개 이상이면 마지막, 2개면 두 번째)
+      let city = '';
+      if (parts.length >= 3) {
+        // "419 Teheran-ro, Gangnam-gu, Seoul" → "Seoul"
+        city = parts[parts.length - 1];
+      } else if (parts.length === 2) {
+        // "419 Teheran-ro, Seoul" → "Seoul"
+        city = parts[1];
+      }
+      
+      const result = { road, city };
+      console.log('영문 전체 주소 파싱 결과:', result);
+      
+      return result;
+    } catch (error) {
+      console.error('영문 전체 주소 파싱 실패:', error);
+      return { road: '', city: '' };
+    }
+  };
+
   const handleAddressSelect = async (addressData: AddressData) => {
     try {
       // 전체 주소 구성 (JSON에서 받아온 전체 주소 사용)
@@ -166,15 +216,18 @@ export default function RegisterPage() {
         fullAddress: fullAddress, // 전체 주소 전달
       });
 
+      // 영문 전체 주소를 정규식으로 파싱하여 분리된 필드들로 표시
+      const englishParts = parseEnglishAddressFromFull(enhancedAddress.fullAddress_en);
+      
       setFormData(prev => ({
         ...prev,
         street: addressData.roadAddress || '', // 국문 도로명
-        street_en: enhancedAddress.englishRoad || '', // 영문 도로명
+        street_en: englishParts.road || '', // 영문 도로명 (정규식 파싱)
         number: addressData.buildingNumber || '', // 국문 건물번호
         number_en: addressData.buildingNumber || '', // 건물번호 영문 = 국문 (동기화)
         postcode: enhancedAddress.postalCode || addressData.postalCode || '',
         city: addressData.cityName || '', // 국문 도시명
-        city_en: enhancedAddress.englishCity || '', // 영문 도시명
+        city_en: englishParts.city || '', // 영문 도시명 (정규식 파싱)
         sourcelatitude: addressData.latitude, // 카카오 API에서 받은 위도
         sourcelongitude: addressData.longitude, // 카카오 API에서 받은 경도
       }));
@@ -334,12 +387,12 @@ export default function RegisterPage() {
             email: formData.email,
             telephone: formData.telephone,
             street: formData.street,
-            street_en: formData.street_en,
+            street_en: formData.street_en, // 정규식 파싱 결과 (영문 도로명)
             number: formData.number,
-            number_en: formData.number_en,
+            number_en: formData.number_en, // 정규식 파싱 결과 (영문 건물번호)
             postcode: formData.postcode,
             city: formData.city,
-            city_en: formData.city_en,
+            city_en: formData.city_en, // 정규식 파싱 결과 (영문 도시명)
             country: formData.country,
             country_en: formData.country_en,
             country_code: formData.country_code,

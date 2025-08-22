@@ -215,7 +215,7 @@ export async function enhanceAddressWithEnglish(kakaoAddress: {
   buildingNumber?: string;
   cityName?: string;
   postalCode?: string;
-  fullAddress?: string; // 전체 주소 추가
+  fullAddress?: string; // 전체 주소 (한글)
 }): Promise<{
   roadAddress: string;
   buildingNumber: string;
@@ -224,6 +224,7 @@ export async function enhanceAddressWithEnglish(kakaoAddress: {
   englishAddress: string;
   englishCity: string;
   englishRoad: string;
+  fullAddress_en: string; // 전체 주소 (영문) 추가
 }> {
   try {
     console.log('주소 영문 변환 시작:', kakaoAddress);
@@ -250,6 +251,7 @@ export async function enhanceAddressWithEnglish(kakaoAddress: {
         englishAddress: '', // 영문 주소 없음
         englishCity: '',   // 영문 도시명 없음
         englishRoad: '',   // 영문 도로명 없음
+        fullAddress_en: '', // 영문 전체 주소 없음
       };
     }
 
@@ -267,6 +269,7 @@ export async function enhanceAddressWithEnglish(kakaoAddress: {
       englishAddress: convertedAddress.engAddr || '',
       englishCity: englishParts.city || '', // 도시명 영문 저장
       englishRoad: englishParts.road || '', // 도로명 영문 저장
+      fullAddress_en: convertedAddress.engAddr || '', // 영문 전체 주소 저장
     };
   } catch (error) {
     console.error('주소 영문 변환 중 오류 발생:', error);
@@ -279,6 +282,7 @@ export async function enhanceAddressWithEnglish(kakaoAddress: {
       englishAddress: '',
       englishCity: '',
       englishRoad: '',
+      fullAddress_en: '', // 영문 전체 주소 없음
     };
   }
 }

@@ -109,7 +109,7 @@ export default function CBAMPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('/cbam/product', {
+      const response = await fetch('/api/cbam/product', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

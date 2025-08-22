@@ -333,6 +333,126 @@ async def create_cbam_product(product_data: dict):
         logger.error(f"CBAM 제품 생성 중 오류 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=f"CBAM 제품 생성 오류: {str(e)}")
 
+# CBAM 제품 목록 조회 엔드포인트
+@app.get("/cbam/products")
+async def get_cbam_products():
+    """CBAM 제품 목록을 조회합니다."""
+    try:
+        logger.info("CBAM 제품 목록 조회 요청 받음")
+        
+        # cbam_service로 제품 목록 조회 요청 (포트 8082)
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(
+                "http://localhost:8082/api/products"
+            )
+            
+            if response.status_code == 200:
+                products = response.json()
+                logger.info(f"CBAM 제품 목록 조회 성공: {len(products)}개")
+                
+                return {
+                    "message": "CBAM 제품 목록 조회 성공",
+                    "status": "success",
+                    "data": products,
+                    "count": len(products)
+                }
+            else:
+                logger.error(f"CBAM 제품 목록 조회 오류: {response.status_code}")
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"CBAM 제품 목록 조회 오류: {response.text}"
+                )
+                
+    except httpx.TimeoutException:
+        logger.error("CBAM 서비스 연결 시간 초과")
+        raise HTTPException(status_code=504, detail="CBAM 서비스 연결 시간 초과")
+    except httpx.ConnectError:
+        logger.error("CBAM 서비스 연결 실패")
+        raise HTTPException(status_code=503, detail="CBAM 서비스에 연결할 수 없습니다")
+    except Exception as e:
+        logger.error(f"CBAM 제품 목록 조회 중 오류 발생: {str(e)}")
+        raise HTTPException(status_code=500, detail="CBAM 제품 목록 조회 오류: {str(e)}")
+
+# DataGather AI 처리 엔드포인트
+@app.post("/ai-process")
+async def ai_process_data(data: dict):
+    """DataGather 서비스로 AI 처리 요청을 전달합니다."""
+    try:
+        logger.info(f"AI 처리 요청 받음: {data.get('filename', 'unknown')}")
+        
+        # datagather_service로 AI 처리 요청 전송 (포트 8083)
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                "http://localhost:8083/filtering/ai-process",
+                json=data
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                logger.info("AI 처리 성공")
+                
+                return {
+                    "message": "AI 처리가 완료되었습니다",
+                    "status": "success",
+                    "data": result
+                }
+            else:
+                logger.error(f"AI 처리 오류: {response.status_code}")
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"AI 처리 오류: {response.text}"
+                )
+                
+    except httpx.TimeoutException:
+        logger.error("DataGather 서비스 연결 시간 초과")
+        raise HTTPException(status_code=504, detail="DataGather 서비스 연결 시간 초과")
+    except httpx.ConnectError:
+        logger.error("DataGather 서비스 연결 실패")
+        raise HTTPException(status_code=503, detail="DataGather 서비스에 연결할 수 없습니다")
+    except Exception as e:
+        logger.error(f"AI 처리 중 오류 발생: {str(e)}")
+        raise HTTPException(status_code=500, detail="AI 처리 오류: {str(e)}")
+
+# DataGather 피드백 엔드포인트
+@app.post("/feedback")
+async def submit_feedback(feedback_data: dict):
+    """DataGather 서비스로 피드백을 전달합니다."""
+    try:
+        logger.info("피드백 제출 요청 받음")
+        
+        # datagather_service로 피드백 전송 (포트 8083)
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                "http://localhost:8083/filtering/feedback",
+                json=feedback_data
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                logger.info("피드백 제출 성공")
+                
+                return {
+                    "message": "피드백이 성공적으로 제출되었습니다",
+                    "status": "success",
+                    "data": result
+                }
+            else:
+                logger.error(f"피드백 제출 오류: {response.status_code}")
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"피드백 제출 오류: {response.text}"
+                )
+                
+    except httpx.TimeoutException:
+        logger.error("DataGather 서비스 연결 시간 초과")
+        raise HTTPException(status_code=504, detail="DataGather 서비스 연결 시간 초과")
+    except httpx.ConnectError:
+        logger.error("DataGather 서비스 연결 실패")
+        raise HTTPException(status_code=503, detail="DataGather 서비스에 연결할 수 없습니다")
+    except Exception as e:
+        logger.error(f"피드백 제출 중 오류 발생: {str(e)}")
+        raise HTTPException(status_code=500, detail="피드백 제출 오류: {str(e)}")
+
 # 서비스 상태 확인 엔드포인트
 @app.get("/status")
 async def service_status():

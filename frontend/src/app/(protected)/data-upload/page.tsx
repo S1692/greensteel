@@ -72,7 +72,7 @@ const DataUploadPage: React.FC = () => {
     
     try {
       // Gateway를 통해 AI 처리 요청
-      const response = await fetch('/ai-process', {
+      const response = await fetch('/api/ai-process', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

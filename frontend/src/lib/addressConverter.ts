@@ -156,18 +156,21 @@ export async function convertAddressToEnglish(keyword: string): Promise<Converte
           const firstResult = data.results.juso[0];
           console.log('첫 번째 결과:', firstResult);
 
-          const result: ConvertedAddress = {
-            roadAddr: firstResult.roadAddr || '',
-            jibunAddr: firstResult.jibunAddr || '',
-            engAddr: firstResult.engAddr || '',
-            zipNo: firstResult.zipNo || '',
-            siNm: firstResult.siNm || '',
-            sggNm: firstResult.sggNm || '',
-            emdNm: firstResult.emdNm || '',
-            rn: firstResult.rn || '',
-            buldMnnm: firstResult.buldMnnm || '',
-            buldSlno: firstResult.buldSlno || '',
-          };
+                     const result: ConvertedAddress = {
+             roadAddr: firstResult.roadAddr || '',
+             jibunAddr: firstResult.jibunAddr || '',
+             engAddr: firstResult.engAddr || '',
+             zipNo: firstResult.zipNo || '',
+             siNm: firstResult.siNm || '',
+             sggNm: firstResult.sggNm || '',
+             emdNm: firstResult.emdNm || '',
+             rn: firstResult.rn || '',
+             buldMnnm: firstResult.buldMnnm || '',
+             buldSlno: firstResult.buldSlno || '',
+           };
+           
+           console.log('API 응답에서 roadAddr:', firstResult.roadAddr);
+           console.log('API 응답에서 engAddr:', firstResult.engAddr);
 
           console.log('변환된 주소:', result);
           resolve(result);
@@ -255,9 +258,9 @@ export async function enhanceAddressWithEnglish(kakaoAddress: {
       };
     }
 
-    // 영문 주소에서 각 부분 추출
-    console.log('영문 주소 원본:', convertedAddress.engAddr);
-    const englishParts = parseEnglishAddress(convertedAddress.engAddr);
+    // 영문 주소에서 각 부분 추출 (roadAddr 사용)
+    console.log('영문 주소 원본 (roadAddr):', convertedAddress.roadAddr);
+    const englishParts = parseEnglishAddress(convertedAddress.roadAddr);
     
     console.log('영문 주소 파싱 결과:', englishParts);
     
@@ -266,10 +269,10 @@ export async function enhanceAddressWithEnglish(kakaoAddress: {
       buildingNumber: kakaoAddress.buildingNumber || '', // 국문 건물번호 유지
       cityName: kakaoAddress.cityName || '', // 국문 도시명 유지
       postalCode: convertedAddress.zipNo || kakaoAddress.postalCode || '',
-      englishAddress: convertedAddress.engAddr || '',
+      englishAddress: convertedAddress.roadAddr || '', // roadAddr 사용
       englishCity: englishParts.city || '', // 도시명 영문 저장
       englishRoad: englishParts.road || '', // 도로명 영문 저장
-      fullAddress_en: convertedAddress.engAddr || '', // 영문 전체 주소 저장
+      fullAddress_en: convertedAddress.roadAddr || '', // roadAddr을 영문 전체 주소로 저장
     };
   } catch (error) {
     console.error('주소 영문 변환 중 오류 발생:', error);

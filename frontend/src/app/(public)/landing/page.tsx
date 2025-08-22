@@ -45,66 +45,86 @@ export default function LandingPage() {
     console.log('PWA 설치 시작');
   };
 
-  // 모바일 PWA 화면
-  if (isMobile && !isPWAInstalled) {
+  // 모바일 첫 화면 (로그인 화면)
+  if (isMobile) {
     return (
       <div className='min-h-screen bg-ecotrace-background flex items-center justify-center p-4'>
         <div className='w-full max-w-md text-center'>
-          {/* PWA 설치 안내 */}
+          {/* 헤더 */}
           <div className='mb-8'>
-            <div className='w-24 h-24 bg-gradient-to-br from-primary to-primary/70 rounded-2xl flex items-center justify-center mx-auto mb-6'>
-              <svg
-                className='w-12 h-12 text-white'
-                fill='none'
-                stroke='currentColor'
-                viewBox='0 0 24 24'
-              >
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth={2}
-                  d='M13 10V3L4 14h7v7l9-11h-7z'
+            <h1 className='text-3xl font-bold text-white mb-2'>GreenSteel</h1>
+            <p className='text-white/60 text-lg'>로그인</p>
+          </div>
+
+          {/* 로그인 카드 */}
+          <div className='bg-ecotrace-card rounded-2xl p-6 shadow-lg border border-white/10'>
+            <div className='space-y-4'>
+              {/* ID 입력 필드 */}
+              <div className='text-left'>
+                <label className='block text-white text-sm font-medium mb-2'>
+                  ID *
+                </label>
+                <Input
+                  type='text'
+                  placeholder='예: smartuser'
+                  className='w-full bg-ecotrace-input border-white/20 text-white placeholder:text-white/50'
                 />
-              </svg>
+              </div>
+
+              {/* 비밀번호 입력 필드 */}
+              <div className='text-left'>
+                <label className='block text-white text-sm font-medium mb-2'>
+                  비밀번호 *
+                </label>
+                <Input
+                  type='password'
+                  placeholder='비밀번호를 입력하세요'
+                  className='w-full bg-ecotrace-input border-white/20 text-white placeholder:text-white/50'
+                />
+              </div>
+
+              {/* 로그인 버튼 */}
+              <Button
+                onClick={handleEnter}
+                className='w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-lg py-3 mt-6'
+              >
+                로그인
+              </Button>
+
+              {/* 구분선 */}
+              <div className='relative my-6'>
+                <div className='absolute inset-0 flex items-center'>
+                  <div className='w-full border-t border-white/20'></div>
+                </div>
+                <div className='relative flex justify-center text-sm'>
+                  <span className='px-2 bg-ecotrace-card text-white/50'>또는</span>
+                </div>
+              </div>
+
+              {/* 들어가기 버튼 */}
+              <Button
+                onClick={handleEnter}
+                className='w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-lg py-3'
+              >
+                들어가기
+              </Button>
+
+              {/* 회원가입 버튼 */}
+              <Button
+                onClick={handleRegister}
+                variant='outline'
+                className='w-full border-white/30 text-white hover:bg-white/10 transition-colors py-3'
+              >
+                회원가입
+              </Button>
             </div>
-            <h1 className='text-3xl font-bold text-white mb-4'>GreenSteel</h1>
-            <p className='text-white/60 text-lg mb-6'>
-              더 나은 경험을 위해 앱을 설치하세요
+          </div>
+
+          {/* 푸터 */}
+          <div className='mt-8'>
+            <p className='text-white/60 text-sm'>
+              GreenSteel은 LCA, CBAM, ESG 관리의 모든 것을 제공합니다
             </p>
-          </div>
-
-          {/* PWA 설치 버튼 */}
-          <div className='space-y-4'>
-            <Button
-              onClick={handleInstallPWA}
-              className='w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-lg py-4'
-            >
-              📱 앱 설치하기
-            </Button>
-
-            <Button
-              onClick={handleEnter}
-              variant='outline'
-              className='w-full border-white/30 text-white hover:bg-white/10 transition-colors py-4'
-            >
-              🌐 웹에서 계속하기
-            </Button>
-          </div>
-
-          {/* PWA 장점 설명 */}
-          <div className='mt-8 text-left space-y-3'>
-            <div className='flex items-center gap-3 text-white/80'>
-              <span className='w-2 h-2 bg-primary rounded-full'></span>
-              <span>오프라인에서도 사용 가능</span>
-            </div>
-            <div className='flex items-center gap-3 text-white/80'>
-              <span className='w-2 h-2 bg-primary rounded-full'></span>
-              <span>홈 화면에 바로가기 추가</span>
-            </div>
-            <div className='flex items-center gap-3 text-white/80'>
-              <span className='w-2 h-2 bg-primary rounded-full'></span>
-              <span>더 빠른 로딩 속도</span>
-            </div>
           </div>
         </div>
       </div>

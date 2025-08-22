@@ -11,40 +11,32 @@ interface AdministrativeAddressResponse {
       totalCount: string;
     };
     juso: Array<{
-      roadAddr: string;
-      roadAddrPart1: string;
-      roadAddrPart2: string;
-      engAddr: string;
-      zipNo: string;
-      admCd: string;
-      rdnMgtSn: string;
-      bdMgtSn: string;
-      detBdNmList: string;
-      bdNm: string;
-      bdKdcd: string;
-      siNm: string;
-      sggNm: string;
-      emdNm: string;
-      liNm: string;
-      rn: string;
-      udrtYn: string;
-      buldMnnm: string;
-      buldSlno: string;
-      mtYn: string;
-      lnbrMnnm: string;
-      lnbrSlno: string;
-      emdNo: string;
-      hstryYn: string;
-      relJibun: string;
-      hemdNm: string;
+      roadAddr: string;        // 도로명주소
+      jibunAddr: string;       // 지번주소
+      zipNo: string;           // 우편번호
+      admCd: string;           // 행정구역코드
+      rnMgtSn: string;         // 도로명관리번호
+      bdKdcd: string;          // 건물종류코드
+      siNm: string;            // 시도명
+      sggNm: string;           // 시군구명
+      emdNm: string;           // 읍면동명
+      liNm: string;            // 법정리명
+      rn: string;              // 도로명
+      udrtYn: string;          // 지하여부
+      buldMnnm: string;        // 건물본번
+      buldSlno: string;        // 건물부번
+      mtYn: string;            // 산여부
+      lnbrMnnm: string;        // 지번본번
+      lnbrSlno: string;        // 지번부번
+      korAddr: string;         // 한국주소
+      engAddr: string;         // 영문주소
     }>;
   };
 }
 
 interface ConvertedAddress {
   roadAddr: string;        // 도로명주소
-  roadAddrPart1: string;   // 도로명주소(지번)
-  roadAddrPart2: string;   // 도로명주소(상세)
+  jibunAddr: string;       // 지번주소
   engAddr: string;         // 영문주소
   zipNo: string;           // 우편번호
   siNm: string;            // 시도명
@@ -55,6 +47,74 @@ interface ConvertedAddress {
   buldSlno: string;        // 건물부번
 }
 
+interface ParsedAddress {
+  buildingNumber: string;  // 건물번호
+  cityName: string;        // 도시명 (시/군/구)
+  roadName: string;        // 도로명
+  fullAddress: string;     // 전체 주소
+}
+
+/**
+ * 주소 문자열을 파싱하여 건물번호, 도시명, 도로명을 추출합니다.
+ * @param address 파싱할 주소 문자열 (예: "서울 강남구 가로수길 5")
+ * @returns 파싱된 주소 정보
+ */
+export function parseAddress(address: string): ParsedAddress {
+  try {
+    console.log('주소 파싱 시작:', address);
+    
+    // 주소를 공백으로 분리
+    const parts = address.trim().split(/\s+/);
+    
+    if (parts.length < 3) {
+      throw new Error('주소 형식이 올바르지 않습니다. (시/도 시/군/구 도로명 건물번호)');
+    }
+    
+    // 마지막 부분이 건물번호
+    const buildingNumber = parts[parts.length - 1];
+    
+    // 건물번호가 숫자인지 확인
+    if (!/^\d+$/.test(buildingNumber)) {
+      throw new Error('건물번호가 숫자가 아닙니다: ' + buildingNumber);
+    }
+    
+    // 도시명은 시/군/구 단위 (보통 2번째 부분)
+    let cityName = '';
+    for (let i = 1; i < parts.length - 1; i++) {
+      if (parts[i].endsWith('시') || parts[i].endsWith('군') || parts[i].endsWith('구')) {
+        cityName = parts[i];
+        break;
+      }
+    }
+    
+    if (!cityName) {
+      throw new Error('도시명(시/군/구)을 찾을 수 없습니다.');
+    }
+    
+    // 도로명은 건물번호 앞부분 (시/군/구 다음부터 건물번호 전까지)
+    const cityIndex = parts.findIndex(part => part === cityName);
+    const roadName = parts.slice(cityIndex + 1, -1).join('');
+    
+    if (!roadName) {
+      throw new Error('도로명을 찾을 수 없습니다.');
+    }
+    
+    const result: ParsedAddress = {
+      buildingNumber,
+      cityName,
+      roadName,
+      fullAddress: address
+    };
+    
+    console.log('주소 파싱 결과:', result);
+    return result;
+    
+  } catch (error) {
+    console.error('주소 파싱 실패:', error);
+    throw error;
+  }
+}
+
 /**
  * 행정안전부 주소 API를 통해 주소를 검색하고 영문 주소를 가져옵니다.
  * @param keyword 검색할 주소 키워드
@@ -62,7 +122,9 @@ interface ConvertedAddress {
  */
 export async function convertAddressToEnglish(keyword: string): Promise<ConvertedAddress | null> {
   try {
-    // 행정안전부 주소 검색 API 호출 (JSONP 방식으로 우회)
+    console.log('영문 주소 변환 시작:', keyword);
+    
+    // 행정안전부 영문 주소 검색 API 호출 (JSONP 방식)
     const script = document.createElement('script');
     const callbackName = 'jusoCallback_' + Date.now();
     
@@ -70,6 +132,8 @@ export async function convertAddressToEnglish(keyword: string): Promise<Converte
       // 전역 콜백 함수 설정
       (window as any)[callbackName] = (data: AdministrativeAddressResponse) => {
         try {
+          console.log('API 응답 데이터:', data);
+          
           // 에러 체크
           if (data.results.common.errorCode !== '0') {
             reject(new Error(`주소 검색 API 에러: ${data.results.common.errorMessage}`));
@@ -85,11 +149,11 @@ export async function convertAddressToEnglish(keyword: string): Promise<Converte
 
           // 첫 번째 결과 사용 (가장 정확한 매칭)
           const firstResult = data.results.juso[0];
+          console.log('첫 번째 결과:', firstResult);
 
-          const result = {
+          const result: ConvertedAddress = {
             roadAddr: firstResult.roadAddr || '',
-            roadAddrPart1: firstResult.roadAddrPart1 || '',
-            roadAddrPart2: firstResult.roadAddrPart2 || '',
+            jibunAddr: firstResult.jibunAddr || '',
             engAddr: firstResult.engAddr || '',
             zipNo: firstResult.zipNo || '',
             siNm: firstResult.siNm || '',
@@ -100,6 +164,7 @@ export async function convertAddressToEnglish(keyword: string): Promise<Converte
             buldSlno: firstResult.buldSlno || '',
           };
 
+          console.log('변환된 주소:', result);
           resolve(result);
         } catch (error) {
           reject(error);
@@ -110,8 +175,8 @@ export async function convertAddressToEnglish(keyword: string): Promise<Converte
         }
       };
 
-      // JSONP 스크립트 생성
-      script.src = `https://www.juso.go.kr/addrlink/addrLinkApi.do?currentPage=1&countPerPage=10&keyword=${encodeURIComponent(keyword)}&confmKey=${process.env.NEXT_PUBLIC_ADMINISTRATIVE_API_KEY}&resultType=json&callback=${callbackName}`;
+      // JSONP 스크립트 생성 (영문 주소 API 사용)
+      script.src = `https://business.juso.go.kr/addrlink/addrEngApiJsonp.do?currentPage=1&countPerPage=10&keyword=${encodeURIComponent(keyword)}&confmKey=${process.env.NEXT_PUBLIC_ADMINISTRATIVE_API_KEY}&resultType=json&callback=${callbackName}`;
       script.onerror = () => {
         reject(new Error('주소 검색 API 스크립트 로드 실패'));
         delete (window as any)[callbackName];
@@ -155,17 +220,22 @@ export async function enhanceAddressWithEnglish(kakaoAddress: {
   englishRoad: string;
 }> {
   try {
-    // 카카오 주소를 기반으로 행정안전부 API 검색
-    const searchKeyword = `${kakaoAddress.cityName || ''} ${kakaoAddress.roadAddress || ''}`.trim();
+    console.log('주소 영문 변환 시작:', kakaoAddress);
     
-    if (!searchKeyword) {
+    // 전체 주소 구성 (예: "서울 강남구 가로수길 5")
+    const fullAddress = `${kakaoAddress.cityName || ''} ${kakaoAddress.roadAddress || ''} ${kakaoAddress.buildingNumber || ''}`.trim();
+    
+    if (!fullAddress) {
       throw new Error('검색할 주소 키워드가 없습니다.');
     }
 
-    const convertedAddress = await convertAddressToEnglish(searchKeyword);
+    console.log('전체 주소로 검색:', fullAddress);
+    
+    // 행정안전부 API로 영문 주소 검색
+    const convertedAddress = await convertAddressToEnglish(fullAddress);
 
     if (!convertedAddress) {
-      // 변환 실패 시 카카오 주소 그대로 사용
+      console.warn('영문 주소 변환 실패, 카카오 주소 그대로 사용');
       return {
         roadAddress: kakaoAddress.roadAddress || '',
         buildingNumber: kakaoAddress.buildingNumber || '',
@@ -177,17 +247,19 @@ export async function enhanceAddressWithEnglish(kakaoAddress: {
       };
     }
 
-    // 영문 주소 파싱 (행정안전부 API 응답에서 추출)
+    // 영문 주소에서 각 부분 추출
     const englishParts = parseEnglishAddress(convertedAddress.engAddr);
-
+    
+    console.log('영문 주소 파싱 결과:', englishParts);
+    
     return {
       roadAddress: convertedAddress.roadAddr || kakaoAddress.roadAddress || '',
-      buildingNumber: kakaoAddress.buildingNumber || '',
-      cityName: convertedAddress.siNm || kakaoAddress.cityName || '',
+      buildingNumber: kakaoAddress.buildingNumber || '', // 국문 건물번호 그대로 유지
+      cityName: kakaoAddress.cityName || '', // 국문 도시명 유지
       postalCode: convertedAddress.zipNo || kakaoAddress.postalCode || '',
       englishAddress: convertedAddress.engAddr || '',
-      englishCity: englishParts.city || '',
-      englishRoad: englishParts.road || '',
+      englishCity: englishParts.city || '', // 도시명 영문 저장
+      englishRoad: englishParts.road || '', // 도로명 영문 저장
     };
   } catch (error) {
     console.error('주소 영문 변환 중 오류 발생:', error);
@@ -203,6 +275,8 @@ export async function enhanceAddressWithEnglish(kakaoAddress: {
     };
   }
 }
+
+
 
 /**
  * 영문 주소를 파싱하여 도시명과 도로명을 추출합니다.

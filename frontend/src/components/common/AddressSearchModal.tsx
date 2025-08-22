@@ -109,12 +109,19 @@ export default function AddressSearchModal({
         const firstResult = data.documents[0];
         console.log('첫 번째 결과:', firstResult);
         
+        // 카카오 API 응답 구조에 맞게 수정
         const coordinates = {
-          lat: parseFloat(firstResult.y), // 위도
-          lng: parseFloat(firstResult.x), // 경도
+          lat: parseFloat(firstResult.y), // 위도 (latitude)
+          lng: parseFloat(firstResult.x), // 경도 (longitude)
         };
         
         console.log('변환된 좌표:', coordinates);
+        console.log('주소 정보:', {
+          address_name: firstResult.address_name,
+          road_address_name: firstResult.road_address_name,
+          place_name: firstResult.place_name
+        });
+        
         return coordinates;
       }
       

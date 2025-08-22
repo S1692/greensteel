@@ -12,14 +12,7 @@ RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     libpq-dev \
-    locales \
     && rm -rf /var/lib/apt/lists/*
-
-# PostgreSQL collation 문제 해결을 위한 로케일 설정
-RUN locale-gen en_US.UTF-8
-ENV LANG en_US.UTF-8
-ENV LANGUAGE en_US:en
-ENV LC_ALL en_US.UTF-8
 
 # Python 의존성 설치
 COPY requirements.txt .
@@ -32,9 +25,11 @@ COPY . .
 ENV PYTHONIOENCODING=utf-8
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8083
+ENV LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8
 
-# 포트 노출 (Railway에서 동적으로 할당)
-EXPOSE $PORT
+# 포트 노출
+EXPOSE 8083
 
-# 시작 명령어 (Railway에서 PORT 환경변수 사용)
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port $PORT"]
+# 시작 명령어 (고정 포트 사용)
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8083"]

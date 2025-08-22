@@ -557,6 +557,36 @@ const DataUploadPage: React.FC = () => {
                   </div>
                 )}
               </div>
+
+              {/* Input 페이지에서 항상 표시되는 이동 버튼들 */}
+              <div className='mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg'>
+                <h3 className='text-sm font-medium text-gray-700 mb-3'>다른 페이지로 이동</h3>
+                <div className='flex flex-col sm:flex-row gap-3'>
+                  <Button 
+                    onClick={goToOutput} 
+                    variant='outline'
+                    className='flex-1 border-blue-600 text-blue-600 hover:bg-blue-50'
+                    disabled={!inputUploadResult}
+                  >
+                    <ArrowRight className='w-4 h-4 mr-2' />
+                    Output 데이터 업로드로 이동
+                  </Button>
+                  
+                  <Button 
+                    onClick={goToCBAM} 
+                    variant='outline'
+                    className='flex-1 border-green-600 text-green-600 hover:bg-green-50'
+                  >
+                    <ExternalLink className='w-4 h-4 mr-2' />
+                    CBAM 페이지로 이동
+                  </Button>
+                </div>
+                {!inputUploadResult && (
+                  <p className='text-xs text-gray-500 mt-2 text-center'>
+                    Output 페이지 이동을 위해서는 먼저 Input 데이터를 업로드해야 합니다.
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Input 데이터 미리보기 */}

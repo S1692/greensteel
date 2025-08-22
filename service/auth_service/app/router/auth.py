@@ -1,6 +1,5 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from app.domain.schemas.auth import (
-    AddressSearchRequest, 
     UserRegisterRequest, 
     CompanyRegisterRequest,
     LoginRequest,
@@ -9,20 +8,14 @@ from app.domain.schemas.auth import (
     CheckCompanyIdRequest,
     CheckCompanyIdAvailabilityRequest
 )
-from app.domain.services.address_service import AddressService
 from app.domain.services.auth_service import AuthService
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 # 서비스 인스턴스
-address_service = AddressService()
 auth_service = AuthService()
 
-@router.post("/address/search", response_model=StandardResponse)
-async def search_address(request: AddressSearchRequest):
-    """카카오 주소 검색 API"""
-    result = await address_service.search_address(request.query)
-    return StandardResponse(**result)
+
 
 @router.post("/check-username", response_model=StandardResponse)
 async def check_username(request: CheckUsernameRequest):

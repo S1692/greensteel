@@ -254,6 +254,7 @@ export async function enhanceAddressWithEnglish(kakaoAddress: {
     }
 
     // 영문 주소에서 각 부분 추출
+    console.log('영문 주소 원본:', convertedAddress.engAddr);
     const englishParts = parseEnglishAddress(convertedAddress.engAddr);
     
     console.log('영문 주소 파싱 결과:', englishParts);
@@ -296,7 +297,7 @@ function parseEnglishAddress(engAddr: string): { buildingNumber: string; road: s
     // 영문 주소를 쉼표로 분리
     const parts = engAddr.split(',').map(part => part.trim());
     
-    if (parts.length < 3) {
+    if (parts.length < 2) {
       console.warn('영문 주소 형식이 올바르지 않습니다:', engAddr);
       return { buildingNumber: '', road: '', city: '' };
     }
@@ -317,8 +318,15 @@ function parseEnglishAddress(engAddr: string): { buildingNumber: string; road: s
       road = firstPart;
     }
     
-    // 마지막 부분이 도시명 (예: "Seoul")
-    const city = parts[parts.length - 1];
+    // 도시명 추출 (2개 이상이면 마지막, 2개면 두 번째)
+    let city = '';
+    if (parts.length >= 3) {
+      // "419 Teheran-ro, Gangnam-gu, Seoul" → "Seoul"
+      city = parts[parts.length - 1];
+    } else if (parts.length === 2) {
+      // "419 Teheran-ro, Seoul" → "Seoul"
+      city = parts[1];
+    }
     
     const result = { buildingNumber, road, city };
     console.log('영문 주소 파싱 결과:', result);

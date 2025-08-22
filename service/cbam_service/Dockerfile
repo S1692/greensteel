@@ -34,5 +34,5 @@ EXPOSE 8082
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8082/health || exit 1
 
-# 애플리케이션 실행 (main:app)
+# 애플리케이션 실행 (main.py의 app 인스턴스)
 CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8082", "--proxy-headers"]

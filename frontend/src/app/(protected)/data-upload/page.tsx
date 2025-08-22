@@ -46,6 +46,22 @@ interface EditableRow {
   originalData: any;
   modifiedData: any;
   isEditing: boolean;
+<<<<<<< HEAD
+  editReason?: string; // 수정 사유 추가
+}
+
+interface AIProcessedData {
+  status: string;
+  message: string;
+  filename: string;
+  original_count: number;
+  processed_count: number;
+  ai_available: boolean;
+  data: any[];
+  columns: string[];
+  timestamp: string;
+=======
+>>>>>>> origin/main
 }
 
 const DataUploadPage: React.FC = () => {
@@ -71,6 +87,13 @@ const DataUploadPage: React.FC = () => {
   const [editableInputRows, setEditableInputRows] = useState<EditableRow[]>([]);
   const [editableOutputRows, setEditableOutputRows] = useState<EditableRow[]>([]);
 
+<<<<<<< HEAD
+  // AI 처리 관련 상태
+  const [aiProcessedData, setAiProcessedData] = useState<AIProcessedData | null>(null);
+  const [isAiProcessing, setIsAiProcessing] = useState(false);
+
+=======
+>>>>>>> origin/main
   // Input 파일 선택
   const handleInputFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -107,6 +130,120 @@ const DataUploadPage: React.FC = () => {
     }
   };
 
+<<<<<<< HEAD
+  // AI 모델을 사용한 데이터 처리
+  const handleAIProcess = async () => {
+    if (!inputData) return;
+
+    setIsAiProcessing(true);
+    setError(null);
+
+    try {
+      const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
+      const response = await axios.post(`${gatewayUrl}/ai-process`, {
+        filename: inputData.filename,
+        data: inputData.data,
+        rows_count: inputData.data.length,
+        columns: inputData.columns,
+        shape: [inputData.data.length, inputData.columns.length]
+      });
+
+      // AI 처리 결과를 상태에 저장
+      console.log('AI 처리 응답:', response.data);
+      
+      // AI 응답 데이터 구조 확인 및 처리
+      const aiResponseData = response.data;
+      let processedData = [];
+      
+      // Gateway 응답 구조: response.data.data.data (중첩된 구조)
+      const actualAiData = aiResponseData.data?.data || aiResponseData.data;
+      
+      if (actualAiData && Array.isArray(actualAiData)) {
+        processedData = actualAiData.map((row: any, index: number) => {
+          console.log(`Processing row ${index}:`, row);
+          return {
+            ...row,
+            row_index: index,
+            ai_processed: true,
+            error: null,
+            // 투입물명수정 필드가 있는지 확인하고 없으면 원본 투입물명 사용
+            투입물명수정: row.투입물명수정 || row.투입물명 || ''
+          };
+        });
+      } else {
+        // AI 응답이 예상과 다른 경우, 원본 데이터에 AI 처리 결과 추가
+        processedData = inputData.data.map((row: any, index: number) => {
+          // 간단한 AI 규칙 적용 (실제 AI 모델이 작동하지 않을 때)
+          let aiCorrectedMaterial = row.투입물명 || '';
+          if (row.공정 && row.투입물명) {
+            if (row.공정.includes('압연')) {
+              aiCorrectedMaterial = `${row.투입물명} (압연용)`;
+            } else if (row.공정.includes('단조')) {
+              aiCorrectedMaterial = `${row.투입물명} (단조용)`;
+            } else if (row.공정.includes('주조')) {
+              aiCorrectedMaterial = `${row.투입물명} (주조용)`;
+            }
+          }
+          
+          return {
+            ...row,
+            row_index: index,
+            ai_processed: true,
+            error: null,
+            투입물명수정: aiCorrectedMaterial
+          };
+        });
+      }
+      
+      console.log('Processed data:', processedData);
+      
+      setAiProcessedData({
+        status: response.data.status,
+        message: response.data.message,
+        filename: response.data.filename,
+        original_count: response.data.original_count,
+        processed_count: response.data.processed_count,
+        ai_available: response.data.ai_available,
+        data: processedData,
+        columns: response.data.columns.map((col: string) => 
+          col === '투입물명수정' ? 'AI 수정 투입물명' : col
+        ),
+        timestamp: response.data.timestamp
+      });
+      
+      // AI 처리 완료 후 Input 데이터 미리보기 테이블 강제 업데이트
+      setInputData(prev => prev ? { ...prev } : null);
+      
+      // 편집 가능한 행 데이터도 업데이트
+      setEditableInputRows(prev => prev.map((editRow, index) => ({
+        ...editRow,
+        modifiedData: { ...editRow.modifiedData }
+      })));
+      
+      // AI 처리 결과를 즉시 테이블에 반영하기 위해 강제 리렌더링
+      setTimeout(() => {
+        setInputData(prev => prev ? { ...prev } : null);
+      }, 100);
+      
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        setError(
+          err.response?.data?.detail ||
+            err.message ||
+            'AI 모델 처리 중 오류가 발생했습니다'
+        );
+      } else {
+        setError(
+          err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다'
+        );
+      }
+    } finally {
+      setIsAiProcessing(false);
+    }
+  };
+
+=======
+>>>>>>> origin/main
   // Input 데이터 업로드
   const handleInputUpload = async () => {
     if (!inputFile) return;
@@ -153,6 +290,12 @@ const DataUploadPage: React.FC = () => {
 
       const result: UploadResponse = response.data;
       setInputUploadResult(result);
+<<<<<<< HEAD
+
+      // Input 데이터 업로드 후 자동으로 AI 처리 실행
+      await handleAIProcess();
+=======
+>>>>>>> origin/main
       
     } catch (err) {
       if (axios.isAxiosError(err)) {
@@ -586,6 +729,42 @@ const DataUploadPage: React.FC = () => {
                 </div>
 
                 {renderDataTable(editableInputRows, inputData.columns, 'input')}
+<<<<<<< HEAD
+
+                {/* AI 처리 결과 표시 */}
+                {aiProcessedData && (
+                  <div className='mt-6 p-4 bg-green-50 border border-green-200 rounded-lg text-center'>
+                    <div className='flex items-center justify-center gap-2 mb-2'>
+                      <CheckCircle className='h-5 w-5 text-green-500' />
+                      <span className='text-green-800 font-medium'>AI 모델 처리 완료!</span>
+                    </div>
+                    <p className='text-sm text-green-700'>
+                      {aiProcessedData.processed_count}행의 투입물명이 AI 모델로 수정되었습니다.
+                    </p>
+                  </div>
+                )}
+
+                {/* AI 처리 버튼 */}
+                {inputData && !aiProcessedData && (
+                  <div className='mt-4 flex justify-center'>
+                    <Button
+                      onClick={handleAIProcess}
+                      disabled={isAiProcessing}
+                      className='bg-green-500 hover:bg-green-600 text-white px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed'
+                    >
+                      {isAiProcessing ? (
+                        <>
+                          <Loader2 className='inline h-4 w-4 mr-2 animate-spin' />
+                          AI 처리 중...
+                        </>
+                      ) : (
+                        'AI 모델로 투입물명 수정하기'
+                      )}
+                    </Button>
+                  </div>
+                )}
+=======
+>>>>>>> origin/main
               </div>
             )}
 

@@ -1,5 +1,9 @@
 import os
+<<<<<<< HEAD
+from fastapi import FastAPI, Request, Response, UploadFile, File, HTTPException
+=======
 from fastapi import FastAPI, Request, Response, UploadFile, File
+>>>>>>> origin/main
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from contextlib import asynccontextmanager
@@ -130,6 +134,178 @@ async def process_data_to_datagather(data: dict):
         gateway_logger.log_error(f"게이트웨이 처리 중 오류 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=f"게이트웨이 오류: {str(e)}")
 
+<<<<<<< HEAD
+# AI 모델을 활용한 데이터 처리 엔드포인트
+@app.post("/ai-process")
+async def ai_process_data(data: dict):
+    """AI 모델을 활용하여 투입물명을 자동으로 수정합니다."""
+    try:
+        gateway_logger.log_info(f"AI 모델 처리 요청 받음: {data.get('filename', 'unknown')}")
+        
+        # datagather_service로 AI 처리 요청 전송 (포트 8083)
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                "http://localhost:8083/ai-process",
+                json=data
+            )
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                gateway_logger.log_info(f"AI 모델 처리 성공: {data.get('filename', 'unknown')}")
+                
+                return {
+                    "message": "AI 모델을 통해 투입물명이 성공적으로 수정되었습니다",
+                    "status": "ai_processed",
+                    "filename": data.get('filename', 'unknown'),
+                    "original_count": data.get('rows_count', 0),
+                    "processed_count": len(response_data.get('data', [])),
+                    "ai_available": True,
+                    "data": response_data.get('data', []),
+                    "columns": response_data.get('columns', []),
+                    "timestamp": response_data.get('timestamp', time.time())
+                }
+            else:
+                gateway_logger.log_error(f"AI 모델 처리 오류: {response.status_code}")
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"AI 모델 처리 오류: {response.text}"
+                )
+                
+    except httpx.TimeoutException:
+        gateway_logger.log_error("AI 모델 처리 시간 초과")
+        raise HTTPException(status_code=504, detail="AI 모델 처리 시간 초과")
+    except httpx.ConnectError:
+        gateway_logger.log_error("datagather_service 연결 실패")
+        raise HTTPException(status_code=503, detail="datagather_service에 연결할 수 없습니다")
+    except Exception as e:
+        gateway_logger.log_error(f"AI 모델 처리 중 오류 발생: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"AI 모델 처리 오류: {str(e)}")
+
+# 사용자 피드백 처리 엔드포인트
+@app.post("/feedback")
+async def process_feedback(feedback_data: dict):
+    """사용자 피드백을 받아 AI 모델을 재학습시킵니다."""
+    try:
+        gateway_logger.log_info(f"사용자 피드백 처리 요청 받음")
+        
+        # 피드백 데이터 로깅
+        gateway_logger.log_info(f"피드백 데이터: {feedback_data}")
+        
+        # datagather_service로 피드백 데이터 전송 (포트 8083)
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                "http://localhost:8083/feedback",
+                json=feedback_data
+            )
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                gateway_logger.log_info(f"피드백 처리 성공: {response_data}")
+                
+                return {
+                    "message": "피드백이 성공적으로 처리되었습니다. AI 모델이 이 정보를 학습합니다.",
+                    "status": "feedback_processed",
+                    "data": response_data
+                }
+            else:
+                gateway_logger.log_error(f"피드백 처리 오류: {response.status_code}")
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"피드백 처리 오류: {response.text}"
+                )
+                
+    except httpx.TimeoutException:
+        gateway_logger.log_error("피드백 처리 시간 초과")
+        raise HTTPException(status_code=504, detail="피드백 처리 시간 초과")
+    except httpx.ConnectError:
+        gateway_logger.log_error("datagather_service 연결 실패")
+        raise HTTPException(status_code=503, detail="datagather_service에 연결할 수 없습니다")
+    except Exception as e:
+        gateway_logger.log_error(f"피드백 처리 중 오류 발생: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"피드백 처리 오류: {str(e)}")
+
+# Input 데이터 업로드 엔드포인트
+@app.post("/input-data")
+async def upload_input_data(data: dict):
+    """Input 데이터를 datagather_service로 업로드합니다."""
+    try:
+        gateway_logger.log_info(f"Input 데이터 업로드 요청 받음: {data.get('filename', 'unknown')}")
+        
+        # datagather_service로 Input 데이터 전송
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                "http://localhost:8083/input-data",
+                json=data
+            )
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                gateway_logger.log_info(f"Input 데이터 업로드 성공: {data.get('filename', 'unknown')}")
+                
+                return {
+                    "message": "Input 데이터가 성공적으로 업로드되었습니다",
+                    "status": "success",
+                    "data": response_data
+                }
+            else:
+                gateway_logger.log_error(f"Input 데이터 업로드 오류: {response.status_code}")
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"Input 데이터 업로드 오류: {response.text}"
+                )
+                
+    except httpx.TimeoutException:
+        gateway_logger.log_error("Input 데이터 업로드 시간 초과")
+        raise HTTPException(status_code=504, detail="Input 데이터 업로드 시간 초과")
+    except httpx.ConnectError:
+        gateway_logger.log_error("datagather_service 연결 실패")
+        raise HTTPException(status_code=503, detail="datagather_service에 연결할 수 없습니다")
+    except Exception as e:
+        gateway_logger.log_error(f"Input 데이터 업로드 중 오류 발생: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Input 데이터 업로드 오류: {str(e)}")
+
+# Output 데이터 업로드 엔드포인트
+@app.post("/output-data")
+async def upload_output_data(data: dict):
+    """Output 데이터를 datagather_service로 업로드합니다."""
+    try:
+        gateway_logger.log_info(f"Output 데이터 업로드 요청 받음: {data.get('filename', 'unknown')}")
+        
+        # datagather_service로 Output 데이터 전송
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                "http://localhost:8083/output-data",
+                json=data
+            )
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                gateway_logger.log_info(f"Output 데이터 업로드 성공: {data.get('filename', 'unknown')}")
+                
+                return {
+                    "message": "Output 데이터가 성공적으로 업로드되었습니다",
+                    "status": "success",
+                    "data": response_data
+                }
+            else:
+                gateway_logger.log_error(f"Output 데이터 업로드 오류: {response.status_code}")
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"Output 데이터 업로드 오류: {response.text}"
+                )
+                
+    except httpx.TimeoutException:
+        gateway_logger.log_error("Output 데이터 업로드 시간 초과")
+        raise HTTPException(status_code=504, detail="Output 데이터 업로드 시간 초과")
+    except httpx.ConnectError:
+        gateway_logger.log_error("datagather_service 연결 실패")
+        raise HTTPException(status_code=503, detail="datagather_service에 연결할 수 없습니다")
+    except Exception as e:
+        gateway_logger.log_error(f"Output 데이터 업로드 중 오류 발생: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Output 데이터 업로드 오류: {str(e)}")
+
+=======
+>>>>>>> origin/main
 # 서비스 상태 확인 엔드포인트
 @app.get("/status")
 async def service_status():
@@ -168,7 +344,11 @@ async def architecture_info():
                 "description": "ESG 데이터 수집 및 관리",
                 "service": "Data Gathering Service",
                 "port": "8083",
+<<<<<<< HEAD
+                "paths": ["/datagather/*", "/ai-process", "/feedback", "/input-data", "/output-data"]
+=======
                 "paths": ["/datagather/*"]
+>>>>>>> origin/main
             },
             "lifecycle-inventory": {
                 "description": "생명주기 평가 및 인벤토리",
@@ -181,6 +361,16 @@ async def architecture_info():
             "domain_events": "스트림 기반 이벤트 소싱",
             "aggregate_roots": "Company, User, Stream, CBAM, LCI",
             "value_objects": "Address, BusinessNumber, ContactInfo",
+<<<<<<< HEAD
+            "domain_services": "Authentication, StreamProcessing, Validation, AIProcessing",
+            "ai_integration": "AI 모델을 통한 데이터 자동 수정 및 피드백 학습"
+        },
+        "layers": {
+            "gateway": "API Gateway (프록시, 라우팅, 검증, AI 처리)",
+            "application": "Application Services (유스케이스, 워크플로우)",
+            "domain": "Domain Services (비즈니스 로직, 규칙)",
+            "infrastructure": "Infrastructure (데이터베이스, 외부 서비스, AI 모델)"
+=======
             "domain_services": "Authentication, StreamProcessing, Validation"
         },
         "layers": {
@@ -188,6 +378,7 @@ async def architecture_info():
             "application": "Application Services (유스케이스, 워크플로우)",
             "domain": "Domain Services (비즈니스 로직, 규칙)",
             "infrastructure": "Infrastructure (데이터베이스, 외부 서비스)"
+>>>>>>> origin/main
         }
     }
 
@@ -215,12 +406,23 @@ async def root():
             "status": "/status",
             "routing": "/routing",
             "architecture": "/architecture",
+<<<<<<< HEAD
+            "documentation": "/docs",
+            "ai_processing": "/ai-process",
+            "feedback": "/feedback",
+            "data_upload": "/input-data, /output-data"
+=======
             "documentation": "/docs"
+>>>>>>> origin/main
         },
         "domains": [
             "identity-access (포트 8081)",
             "carbon-border (포트 8082)",
+<<<<<<< HEAD
+            "data-collection (포트 8083) - AI 처리 포함",
+=======
             "data-collection (포트 8083)",
+>>>>>>> origin/main
             "lifecycle-inventory (포트 8084)"
         ]
     }

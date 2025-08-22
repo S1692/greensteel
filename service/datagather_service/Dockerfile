@@ -1,5 +1,5 @@
 # ============================================================================
-# 🐳 Gateway 서비스 Docker 이미지 - Railway 배포용
+# 🐳 DataGather 서비스 Docker 이미지 - Railway 배포용
 # ============================================================================
 
 FROM python:3.11-slim
@@ -31,7 +31,7 @@ COPY . .
 # 환경 변수 설정
 ENV PYTHONIOENCODING=utf-8
 ENV PYTHONUNBUFFERED=1
-ENV PORT=8080
+ENV PORT=8083
 
 # 포트 노출 (Railway에서 동적으로 할당)
 EXPOSE $PORT

@@ -12,6 +12,7 @@ import {
   ArrowRight,
   FileText,
   BarChart3,
+  ExternalLink,
 } from 'lucide-react';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
@@ -127,9 +128,6 @@ const DataUploadPage: React.FC = () => {
 
       const result: UploadResponse = response.data;
       setInputUploadResult(result);
-      
-      // Input 업로드 성공 시 Output 단계로 진행
-      setCurrentStep('output');
       
     } catch (err) {
       if (axios.isAxiosError(err)) {
@@ -249,6 +247,16 @@ const DataUploadPage: React.FC = () => {
     setOutputFile(null);
     setOutputData(null);
     setOutputUploadResult(null);
+  };
+
+  // CBAM 페이지로 이동
+  const goToCBAM = () => {
+    window.location.href = '/cbam';
+  };
+
+  // Output 단계로 이동
+  const goToOutput = () => {
+    setCurrentStep('output');
   };
 
   return (
@@ -393,7 +401,7 @@ const DataUploadPage: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {inputData.data.slice(0, 5).map((row, rowIndex) => (
+                      {inputData.data.map((row, rowIndex) => (
                         <tr key={rowIndex} className='hover:bg-gray-50'>
                           {inputData.columns.map((column, colIndex) => (
                             <td
@@ -407,16 +415,11 @@ const DataUploadPage: React.FC = () => {
                       ))}
                     </tbody>
                   </table>
-                  {inputData.data.length > 5 && (
-                    <p className='text-sm text-gray-500 mt-2 text-center'>
-                      상위 5행만 표시됩니다. 총 {inputData.data.length}행의 데이터가 있습니다.
-                    </p>
-                  )}
                 </div>
               </div>
             )}
 
-            {/* Input 업로드 결과 */}
+            {/* Input 업로드 결과 및 진행 버튼 */}
             {inputUploadResult && (
               <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
                 <div className='flex items-center mb-4'>
@@ -424,16 +427,16 @@ const DataUploadPage: React.FC = () => {
                   <h3 className='text-lg font-semibold text-gray-900'>Input 데이터 업로드 성공</h3>
                 </div>
 
-                <div className='bg-green-50 border border-green-200 rounded-lg p-4'>
+                <div className='bg-green-50 border border-green-200 rounded-lg p-4 mb-6'>
                   <div className='flex items-center'>
                     <CheckCircle className='h-5 w-5 text-green-500 mr-2' />
                     <p className='text-green-800 font-medium'>
-                      Input 데이터가 성공적으로 업로드되었습니다! 이제 Output 데이터를 업로드할 수 있습니다.
+                      Input 데이터가 성공적으로 업로드되었습니다! 다음 단계를 선택해주세요.
                     </p>
                   </div>
                 </div>
 
-                <div className='mt-4 grid grid-cols-1 md:grid-cols-2 gap-4'>
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-6'>
                   <div className='bg-gray-50 rounded-lg p-4'>
                     <h4 className='font-medium text-gray-700 mb-2'>파일 정보</h4>
                     <p className='text-sm text-gray-600'>
@@ -453,6 +456,26 @@ const DataUploadPage: React.FC = () => {
                       총 열 수: {inputUploadResult.data.columns.length}
                     </p>
                   </div>
+                </div>
+
+                {/* 진행 버튼들 */}
+                <div className='flex flex-col sm:flex-row gap-3'>
+                  <Button 
+                    onClick={goToOutput} 
+                    className='flex-1 bg-blue-600 hover:bg-blue-700 text-white'
+                  >
+                    <ArrowRight className='w-4 h-4 mr-2' />
+                    Output 데이터 업로드로 진행
+                  </Button>
+                  
+                  <Button 
+                    onClick={goToCBAM} 
+                    variant='outline'
+                    className='flex-1 border-blue-600 text-blue-600 hover:bg-blue-50'
+                  >
+                    <ExternalLink className='w-4 h-4 mr-2' />
+                    CBAM 페이지로 이동
+                  </Button>
                 </div>
               </div>
             )}
@@ -578,7 +601,7 @@ const DataUploadPage: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {outputData.data.slice(0, 5).map((row, rowIndex) => (
+                      {outputData.data.map((row, rowIndex) => (
                         <tr key={rowIndex} className='hover:bg-gray-50'>
                           {outputData.columns.map((column, colIndex) => (
                             <td
@@ -592,11 +615,6 @@ const DataUploadPage: React.FC = () => {
                       ))}
                     </tbody>
                   </table>
-                  {outputData.data.length > 5 && (
-                    <p className='text-sm text-gray-500 mt-2 text-center'>
-                      상위 5행만 표시됩니다. 총 {outputData.data.length}행의 데이터가 있습니다.
-                    </p>
-                  )}
                 </div>
               </div>
             )}

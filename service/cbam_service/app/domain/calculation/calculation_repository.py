@@ -53,7 +53,7 @@ class CalculationRepository:
                         export_qty DECIMAL(10,2) DEFAULT 0,
                         inventory_qty DECIMAL(10,2) DEFAULT 0,
                         defect_rate DECIMAL(5,4) DEFAULT 0,
-                        node_id VARCHAR(255),
+                        node_id VARCHAR(255) NULL,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """))

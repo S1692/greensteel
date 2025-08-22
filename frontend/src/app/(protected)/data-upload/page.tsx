@@ -13,6 +13,9 @@ import {
   FileText,
   BarChart3,
   ExternalLink,
+  Edit3,
+  Save,
+  X,
 } from 'lucide-react';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
@@ -38,6 +41,13 @@ interface DataPreview {
   fileSize: string;
 }
 
+interface EditableRow {
+  id: string;
+  originalData: any;
+  modifiedData: any;
+  isEditing: boolean;
+}
+
 const DataUploadPage: React.FC = () => {
   // Input 데이터 관련 상태
   const [inputFile, setInputFile] = useState<File | null>(null);
@@ -57,6 +67,10 @@ const DataUploadPage: React.FC = () => {
   const inputFileRef = useRef<HTMLInputElement>(null);
   const outputFileRef = useRef<HTMLInputElement>(null);
 
+  // 편집 가능한 행 데이터
+  const [editableInputRows, setEditableInputRows] = useState<EditableRow[]>([]);
+  const [editableOutputRows, setEditableOutputRows] = useState<EditableRow[]>([]);
+
   // Input 파일 선택
   const handleInputFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -71,6 +85,7 @@ const DataUploadPage: React.FC = () => {
       setError(null);
       setInputUploadResult(null);
       setInputData(null);
+      setEditableInputRows([]);
     }
   };
 
@@ -88,6 +103,7 @@ const DataUploadPage: React.FC = () => {
       setError(null);
       setOutputUploadResult(null);
       setOutputData(null);
+      setEditableOutputRows([]);
     }
   };
 
@@ -114,6 +130,15 @@ const DataUploadPage: React.FC = () => {
         filename: inputFile.name,
         fileSize: (inputFile.size / 1024 / 1024).toFixed(2)
       });
+
+      // 편집 가능한 행 데이터 초기화
+      const editableRows: EditableRow[] = jsonData.map((row, index) => ({
+        id: `input-${index}`,
+        originalData: row,
+        modifiedData: row,
+        isEditing: false
+      }));
+      setEditableInputRows(editableRows);
 
       // 게이트웨이로 Input 데이터 전송
       const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway-production-da31.up.railway.app';
@@ -163,12 +188,13 @@ const DataUploadPage: React.FC = () => {
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
       // Output 데이터 미리보기 설정
-      setOutputData({
-        data: jsonData,
-        columns: Object.keys(jsonData[0] || {}),
-        filename: outputFile.name,
-        fileSize: (outputFile.size / 1024 / 1024).toFixed(2)
-      });
+      const editableRows: EditableRow[] = jsonData.map((row, index) => ({
+        id: `output-${index}`,
+        originalData: row,
+        modifiedData: row,
+        isEditing: false
+      }));
+      setEditableOutputRows(editableRows);
 
       // 게이트웨이로 Output 데이터 전송
       const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'https://gateway-production-da31.up.railway.app';
@@ -212,11 +238,13 @@ const DataUploadPage: React.FC = () => {
         setError(null);
         setInputUploadResult(null);
         setInputData(null);
+        setEditableInputRows([]);
       } else {
         setOutputFile(droppedFile);
         setError(null);
         setOutputUploadResult(null);
         setOutputData(null);
+        setEditableOutputRows([]);
       }
     } else {
       setError('엑셀 파일만 업로드 가능합니다 (.xlsx, .xls)');
@@ -237,6 +265,8 @@ const DataUploadPage: React.FC = () => {
     setInputUploadResult(null);
     setOutputUploadResult(null);
     setCurrentStep('input');
+    setEditableInputRows([]);
+    setEditableOutputRows([]);
     if (inputFileRef.current) inputFileRef.current.value = '';
     if (outputFileRef.current) outputFileRef.current.value = '';
   };
@@ -247,6 +277,7 @@ const DataUploadPage: React.FC = () => {
     setOutputFile(null);
     setOutputData(null);
     setOutputUploadResult(null);
+    setEditableOutputRows([]);
   };
 
   // CBAM 페이지로 이동
@@ -257,6 +288,171 @@ const DataUploadPage: React.FC = () => {
   // Output 단계로 이동
   const goToOutput = () => {
     setCurrentStep('output');
+  };
+
+  // 편집 모드 시작
+  const startEditing = (id: string, type: 'input' | 'output') => {
+    if (type === 'input') {
+      setEditableInputRows(prev => 
+        prev.map(row => 
+          row.id === id ? { ...row, isEditing: true } : row
+        )
+      );
+    } else {
+      setEditableOutputRows(prev => 
+        prev.map(row => 
+          row.id === id ? { ...row, isEditing: true } : row
+        )
+      );
+    }
+  };
+
+  // 편집 모드 종료
+  const cancelEditing = (id: string, type: 'input' | 'output') => {
+    if (type === 'input') {
+      setEditableInputRows(prev => 
+        prev.map(row => 
+          row.id === id ? { ...row, isEditing: false, modifiedData: { ...row.originalData } } : row
+        )
+      );
+    } else {
+      setEditableOutputRows(prev => 
+        prev.map(row => 
+          row.id === id ? { ...row, isEditing: false, modifiedData: { ...row.originalData } } : row
+        )
+      );
+    }
+  };
+
+  // 편집 내용 저장
+  const saveEditing = (id: string, type: 'input' | 'output') => {
+    if (type === 'input') {
+      setEditableInputRows(prev => 
+        prev.map(row => 
+          row.id === id ? { ...row, isEditing: false, originalData: { ...row.modifiedData } } : row
+        )
+      );
+    } else {
+      setEditableOutputRows(prev => 
+        prev.map(row => 
+          row.id === id ? { ...row, isEditing: false, originalData: { ...row.modifiedData } } : row
+        )
+      );
+    }
+  };
+
+  // 편집 데이터 변경
+  const handleEditChange = (id: string, field: string, value: string, type: 'input' | 'output') => {
+    if (type === 'input') {
+      setEditableInputRows(prev => 
+        prev.map(row => 
+          row.id === id ? { ...row, modifiedData: { ...row.modifiedData, [field]: value } } : row
+        )
+      );
+    } else {
+      setEditableOutputRows(prev => 
+        prev.map(row => 
+          row.id === id ? { ...row, modifiedData: { ...row.modifiedData, [field]: value } } : row
+        )
+      );
+    }
+  };
+
+  // 데이터 테이블 렌더링
+  const renderDataTable = (editableRows: EditableRow[], columns: string[], type: 'input' | 'output') => {
+    return (
+      <div className='overflow-x-auto'>
+        <table className='min-w-full border border-gray-200'>
+          <thead>
+            <tr className='bg-blue-100'>
+              {columns.map((column, index) => (
+                <th
+                  key={index}
+                  className='border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700'
+                >
+                  {column}
+                </th>
+              ))}
+              <th className='border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700'>
+                수정 전
+              </th>
+              <th className='border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700'>
+                수정 후
+              </th>
+              <th className='border border-gray-200 px-3 py-2 text-center text-sm font-medium text-gray-700'>
+                수정
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {editableRows.map((row, rowIndex) => (
+              <tr key={row.id} className={rowIndex % 2 === 0 ? 'bg-blue-50' : 'bg-white'}>
+                {columns.map((column, colIndex) => (
+                  <td
+                    key={colIndex}
+                    className='border border-gray-200 px-3 py-2 text-sm text-gray-900'
+                  >
+                    {String(row.originalData[column] || '')}
+                  </td>
+                ))}
+                <td className='border border-gray-200 px-3 py-2 text-sm text-gray-900'>
+                  {row.isEditing ? (
+                    <Input
+                      value={String(row.modifiedData[columns[0]] || '')}
+                      onChange={(e) => handleEditChange(row.id, columns[0], e.target.value, type)}
+                      className='w-full text-sm'
+                    />
+                  ) : (
+                    String(row.originalData[columns[0]] || '')
+                  )}
+                </td>
+                <td className='border border-gray-200 px-3 py-2 text-sm text-gray-900'>
+                  {row.isEditing ? (
+                    <Input
+                      value={String(row.modifiedData[columns[0]] || '')}
+                      onChange={(e) => handleEditChange(row.id, columns[0], e.target.value, type)}
+                      className='w-full text-sm'
+                    />
+                  ) : (
+                    String(row.originalData[columns[0]] || '')
+                  )}
+                </td>
+                <td className='border border-gray-200 px-3 py-2 text-center'>
+                  {row.isEditing ? (
+                    <div className='flex space-x-1 justify-center'>
+                      <Button
+                        onClick={() => saveEditing(row.id, type)}
+                        size='sm'
+                        className='h-6 px-2 bg-green-600 hover:bg-green-700'
+                      >
+                        <Save className='w-3 h-3' />
+                      </Button>
+                      <Button
+                        onClick={() => cancelEditing(row.id, type)}
+                        size='sm'
+                        variant='outline'
+                        className='h-6 px-2'
+                      >
+                        <X className='w-3 h-3' />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={() => startEditing(row.id, type)}
+                      size='sm'
+                      variant='outline'
+                      className='h-6 px-2 text-green-600 border-green-600 hover:bg-green-50'
+                    >
+                      <Edit3 className='w-3 h-3' />
+                    </Button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
   };
 
   return (
@@ -386,36 +582,7 @@ const DataUploadPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className='overflow-x-auto'>
-                  <table className='min-w-full border border-gray-200'>
-                    <thead>
-                      <tr className='bg-gray-50'>
-                        {inputData.columns.map((column, index) => (
-                          <th
-                            key={index}
-                            className='border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700'
-                          >
-                            {column}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {inputData.data.map((row, rowIndex) => (
-                        <tr key={rowIndex} className='hover:bg-gray-50'>
-                          {inputData.columns.map((column, colIndex) => (
-                            <td
-                              key={colIndex}
-                              className='border border-gray-200 px-3 py-2 text-sm text-gray-900'
-                            >
-                              {String(row[column] || '')}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                {renderDataTable(editableInputRows, inputData.columns, 'input')}
               </div>
             )}
 
@@ -586,36 +753,7 @@ const DataUploadPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className='overflow-x-auto'>
-                  <table className='min-w-full border border-gray-200'>
-                    <thead>
-                      <tr className='bg-gray-50'>
-                        {outputData.columns.map((column, index) => (
-                          <th
-                            key={index}
-                            className='border border-gray-200 px-3 py-2 text-left text-sm font-medium text-gray-700'
-                          >
-                            {column}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {outputData.data.map((row, rowIndex) => (
-                        <tr key={rowIndex} className='hover:bg-gray-50'>
-                          {outputData.columns.map((column, colIndex) => (
-                            <td
-                              key={colIndex}
-                              className='border border-gray-200 px-3 py-2 text-sm text-gray-900'
-                            >
-                              {String(row[column] || '')}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                {renderDataTable(editableOutputRows, outputData.columns, 'output')}
               </div>
             )}
 

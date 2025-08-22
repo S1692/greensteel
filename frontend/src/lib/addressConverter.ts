@@ -252,14 +252,17 @@ export async function enhanceAddressWithEnglish(kakaoAddress: {
     
     console.log('영문 주소 파싱 결과:', englishParts);
 
+    // 건물번호만 영문과 동기화
+    const englishBuildingNumber = extractBuildingNumberFromEnglish(convertedAddress.engAddr);
+    
     return {
       roadAddress: convertedAddress.roadAddr || kakaoAddress.roadAddress || '',
-      buildingNumber: kakaoAddress.buildingNumber || '',
-      cityName: convertedAddress.sggNm || kakaoAddress.cityName || '',
+      buildingNumber: englishBuildingNumber || kakaoAddress.buildingNumber || '', // 건물번호 영문으로 교체
+      cityName: kakaoAddress.cityName || '', // 원래 도시명 유지
       postalCode: convertedAddress.zipNo || kakaoAddress.postalCode || '',
       englishAddress: convertedAddress.engAddr || '',
-      englishCity: englishParts.city || '',
-      englishRoad: englishParts.road || '',
+      englishCity: '', // 도시명 영문 제거
+      englishRoad: '', // 도로명 영문 제거
     };
   } catch (error) {
     console.error('주소 영문 변환 중 오류 발생:', error);
@@ -273,6 +276,37 @@ export async function enhanceAddressWithEnglish(kakaoAddress: {
       englishCity: '',
       englishRoad: '',
     };
+  }
+}
+
+/**
+ * 영문 주소에서 건물번호만 추출합니다.
+ * @param engAddr 영문 주소 문자열
+ * @returns 건물번호 (영문)
+ */
+function extractBuildingNumberFromEnglish(engAddr: string): string {
+  try {
+    console.log('영문 주소에서 건물번호 추출:', engAddr);
+    
+    // 영문 주소를 쉼표로 분리
+    const parts = engAddr.split(',').map(part => part.trim());
+    
+    // 첫 번째 부분이 보통 건물번호 (예: "5, Garosu-gil, Gangnam-gu, Seoul")
+    if (parts.length > 0) {
+      const firstPart = parts[0];
+      
+      // 숫자인지 확인
+      if (/^\d+$/.test(firstPart)) {
+        console.log('건물번호 추출 성공:', firstPart);
+        return firstPart;
+      }
+    }
+    
+    console.log('건물번호를 찾을 수 없음');
+    return '';
+  } catch (error) {
+    console.error('건물번호 추출 중 오류 발생:', error);
+    return '';
   }
 }
 

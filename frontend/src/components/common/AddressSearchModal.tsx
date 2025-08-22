@@ -77,6 +77,9 @@ export default function AddressSearchModal({
 
   const getCoordinatesFromAddress = async (address: string): Promise<{ lat: number; lng: number } | null> => {
     try {
+      console.log('위도/경도 변환 시작:', address);
+      console.log('카카오 API 키:', process.env.NEXT_PUBLIC_KAKAO_MAP_API_KEY ? '설정됨' : '설정되지 않음');
+      
       // 카카오 지도 API를 사용하여 주소를 좌표로 변환
       const response = await fetch(
         `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(address)}`,
@@ -86,6 +89,8 @@ export default function AddressSearchModal({
           },
         }
       );
+
+      console.log('카카오 API 응답 상태:', response.status, response.statusText);
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -98,18 +103,27 @@ export default function AddressSearchModal({
       }
 
       const data = await response.json();
+      console.log('카카오 API 응답 데이터:', data);
       
       if (data.documents && data.documents.length > 0) {
         const firstResult = data.documents[0];
-        return {
+        console.log('첫 번째 결과:', firstResult);
+        
+        const coordinates = {
           lat: parseFloat(firstResult.y), // 위도
           lng: parseFloat(firstResult.x), // 경도
         };
+        
+        console.log('변환된 좌표:', coordinates);
+        return coordinates;
       }
       
+      console.warn('검색 결과가 없습니다');
       return null;
     } catch (error) {
-      console.error('주소 좌표 변환 실패:', error);
+      console.error('주소 좌표 변환 실패 - 상세 에러:', error);
+      console.error('에러 타입:', error instanceof Error ? error.constructor.name : typeof error);
+      console.error('에러 메시지:', error instanceof Error ? error.message : String(error));
       return null;
     }
   };
@@ -140,7 +154,17 @@ export default function AddressSearchModal({
             
             // 사용자에게 에러 메시지 표시
             const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
-            alert(`주소 처리 중 오류가 발생했습니다: ${errorMessage}\n\n기본 주소 정보만 설정됩니다.`);
+            
+            // 더 친화적인 에러 메시지
+            let userMessage = '주소 처리 중 일부 정보를 가져오지 못했습니다.';
+            
+            if (errorMessage.includes('카카오 API 키')) {
+              userMessage = '카카오 지도 API 키가 설정되지 않았습니다. 기본 주소 정보만 설정됩니다.';
+            } else if (errorMessage.includes('행정안전부')) {
+              userMessage = '영문 주소 변환에 실패했습니다. 기본 주소 정보만 설정됩니다.';
+            }
+            
+            alert(`${userMessage}\n\n기본 주소 정보는 정상적으로 설정됩니다.`);
             
             // 좌표 변환 실패 시에도 기본 주소 정보는 설정
             const addressData: AddressData = {

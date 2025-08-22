@@ -40,10 +40,10 @@ class CalculationRepository:
         """필요한 테이블들을 생성합니다"""
         try:
             with self.engine.connect() as conn:
-                # 제품 테이블 생성
+                # 제품 테이블 생성 (create_all_tables.py와 정확히 동일한 스키마)
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS product (
-                        product_id SERIAL PRIMARY KEY,
+                        id SERIAL PRIMARY KEY,
                         name VARCHAR(255) NOT NULL,
                         cn_code VARCHAR(50),
                         period_start DATE,
@@ -117,13 +117,13 @@ class CalculationRepository:
                     query = text("""
                         INSERT INTO product (name, cn_code, period_start, period_end, production_qty, sales_qty, export_qty, inventory_qty, defect_rate, node_id)
                         VALUES (:name, :cn_code, :period_start, :period_end, :production_qty, :sales_qty, :export_qty, :inventory_qty, :defect_rate, :node_id)
-                        RETURNING product_id, name, cn_code, period_start, period_end, production_qty, sales_qty, export_qty, inventory_qty, defect_rate, node_id, created_at
+                        RETURNING id, name, cn_code, period_start, period_end, production_qty, sales_qty, export_qty, inventory_qty, defect_rate, node_id, created_at
                     """)
                 else:
                     query = text("""
                         INSERT INTO product (name, cn_code, period_start, period_end, production_qty, sales_qty, export_qty, inventory_qty, defect_rate, node_id)
                         VALUES (:name, :cn_code, :period_start, :period_end, :production_qty, :sales_qty, :export_qty, :inventory_qty, :defect_rate, :node_id)
-                        RETURNING product_id, name, cn_code, period_start, period_end, production_qty, sales_qty, export_qty, inventory_qty, defect_rate, node_id
+                        RETURNING id, name, cn_code, period_start, period_end, production_qty, sales_qty, export_qty, inventory_qty, defect_rate, node_id
                     """)
                 
                 result = conn.execute(query, cleaned_data)
@@ -132,7 +132,7 @@ class CalculationRepository:
                 
                 if row:
                     response_data = {
-                        "product_id": row[0],
+                        "id": row[0],
                         "name": row[1],
                         "cn_code": row[2],
                         "period_start": row[3].isoformat() if row[3] else None,
@@ -220,15 +220,15 @@ class CalculationRepository:
                 
                 if has_created_at:
                     query = text("""
-                        SELECT product_id, name, cn_code, period_start, period_end, production_qty, sales_qty, export_qty, inventory_qty, defect_rate, node_id, created_at
+                        SELECT id, name, cn_code, period_start, period_end, production_qty, sales_qty, export_qty, inventory_qty, defect_rate, node_id, created_at
                         FROM product
                         ORDER BY created_at DESC
                     """)
                 else:
                     query = text("""
-                        SELECT product_id, name, cn_code, period_start, period_end, production_qty, sales_qty, export_qty, inventory_qty, defect_rate, node_id
+                        SELECT id, name, cn_code, period_start, period_end, production_qty, sales_qty, export_qty, inventory_qty, defect_rate, node_id
                         FROM product
-                        ORDER BY product_id DESC
+                        ORDER BY id DESC
                     """)
                 
                 result = conn.execute(query)
@@ -236,7 +236,7 @@ class CalculationRepository:
                 
                 for row in result:
                     product_data = {
-                        "product_id": row[0],
+                        "id": row[0],
                         "name": row[1],
                         "cn_code": row[2],
                         "period_start": row[3].isoformat() if row[3] else None,
@@ -267,7 +267,7 @@ class CalculationRepository:
         product_id = len(self._memory_products) + 1
         product = {
             **product_data,
-            "product_id": product_id,
+            "id": product_id,
             "created_at": datetime.utcnow().isoformat()
         }
         self._memory_products[product_id] = product

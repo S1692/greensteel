@@ -15,6 +15,12 @@ GATEWAY_NAME = os.getenv("GATEWAY_NAME", "greensteel-gateway")
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "https://greensteel.site,https://www.greensteel.site,http://localhost:3000")
 ALLOWED_ORIGIN_REGEX = os.getenv("ALLOWED_ORIGIN_REGEX", "^https://.*\\.vercel\\.app$|^https://.*\\.up\\.railway\\.app$")
 
+# Railway 환경 서비스 URL 설정
+CBAM_SERVICE_URL = os.getenv("CBAM_SERVICE_URL", "http://localhost:8082")
+DATAGATHER_SERVICE_URL = os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")
+AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")
+LCI_SERVICE_URL = os.getenv("LCI_SERVICE_URL", "http://localhost:8084")
+
 # CORS 허용 오리진 파싱
 allowed_origins = [origin.strip() for origin in ALLOWED_ORIGINS.split(",") if origin.strip()]
 
@@ -91,10 +97,10 @@ async def process_data_to_datagather(data: dict):
     try:
         logger.info(f"JSON 데이터 처리 요청 받음: {data.get('filename', 'unknown')}")
         
-        # datagather_service로 JSON 데이터 전송 (포트 8083)
+        # datagather_service로 JSON 데이터 전송 (Railway 환경)
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
-                "http://localhost:8083/process-data",
+                f"{DATAGATHER_SERVICE_URL}/process-data",
                 json=data
             )
             
@@ -131,10 +137,10 @@ async def ai_process_data(data: dict):
     try:
         logger.info(f"AI 모델 처리 요청 받음: {data.get('filename', 'unknown')}")
         
-        # datagather_service로 AI 처리 요청 전송 (포트 8083)
+        # datagather_service로 AI 처리 요청 전송 (Railway 환경)
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
-                "http://localhost:8083/ai-process",
+                f"{DATAGATHER_SERVICE_URL}/ai-process",
                 json=data
             )
             
@@ -180,10 +186,10 @@ async def process_feedback(feedback_data: dict):
         # 피드백 데이터 로깅
         logger.info(f"피드백 데이터: {feedback_data}")
         
-        # datagather_service로 피드백 데이터 전송 (포트 8083)
+        # datagather_service로 피드백 데이터 전송 (Railway 환경)
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
-                "http://localhost:8083/feedback",
+                f"{DATAGATHER_SERVICE_URL}/feedback",
                 json=feedback_data
             )
             
@@ -220,10 +226,10 @@ async def upload_input_data(data: dict):
     try:
         logger.info(f"Input 데이터 업로드 요청 받음: {data.get('filename', 'unknown')}")
         
-        # datagather_service로 Input 데이터 전송
+        # datagather_service로 Input 데이터 전송 (Railway 환경)
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
-                "http://localhost:8083/input-data",
+                f"{DATAGATHER_SERVICE_URL}/input-data",
                 json=data
             )
             
@@ -260,10 +266,10 @@ async def upload_output_data(data: dict):
     try:
         logger.info(f"Output 데이터 업로드 요청 받음: {data.get('filename', 'unknown')}")
         
-        # datagather_service로 Output 데이터 전송
+        # datagather_service로 Output 데이터 전송 (Railway 환경)
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
-                "http://localhost:8083/output-data",
+                f"{DATAGATHER_SERVICE_URL}/output-data",
                 json=data
             )
             
@@ -300,10 +306,10 @@ async def create_cbam_product(product_data: dict):
     try:
         logger.info(f"CBAM 제품 생성 요청 받음: {product_data.get('name', 'unknown')}")
         
-        # cbam_service로 제품 데이터 전송 (포트 8082)
+        # cbam_service로 제품 데이터 전송 (Railway 환경)
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
-                "http://localhost:8082/api/product",
+                f"{CBAM_SERVICE_URL}/api/product",
                 json=product_data
             )
             
@@ -340,10 +346,10 @@ async def get_cbam_products():
     try:
         logger.info("CBAM 제품 목록 조회 요청 받음")
         
-        # cbam_service로 제품 목록 조회 요청 (포트 8082)
+        # cbam_service로 제품 목록 조회 요청 (Railway 환경)
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(
-                "http://localhost:8082/api/products"
+                f"{CBAM_SERVICE_URL}/api/products"
             )
             
             if response.status_code == 200:
@@ -380,10 +386,10 @@ async def ai_process_data(data: dict):
     try:
         logger.info(f"AI 처리 요청 받음: {data.get('filename', 'unknown')}")
         
-        # datagather_service로 AI 처리 요청 전송 (포트 8083)
+        # datagather_service로 AI 처리 요청 전송 (Railway 환경)
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
-                "http://localhost:8083/filtering/ai-process",
+                f"{DATAGATHER_SERVICE_URL}/filtering/ai-process",
                 json=data
             )
             
@@ -420,10 +426,10 @@ async def submit_feedback(feedback_data: dict):
     try:
         logger.info("피드백 제출 요청 받음")
         
-        # datagather_service로 피드백 전송 (포트 8083)
+        # datagather_service로 피드백 전송 (Railway 환경)
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
-                "http://localhost:8083/filtering/feedback",
+                f"{DATAGATHER_SERVICE_URL}/filtering/feedback",
                 json=feedback_data
             )
             

@@ -300,7 +300,6 @@ async def upload_output_data(data: dict):
         raise HTTPException(status_code=500, detail=f"Output 데이터 업로드 오류: {str(e)}")
 
 # 서비스 상태 확인 엔드포인트
-# 서비스 상태 확인 엔드포인트
 @app.get("/status")
 async def service_status():
     """서비스 상태 정보 - DDD 도메인별 상태"""

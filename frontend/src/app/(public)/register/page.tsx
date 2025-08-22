@@ -122,6 +122,14 @@ export default function RegisterPage() {
     if (field === 'company_id') {
       setCompanyIdAvailability(null);
     }
+    
+    // 건물번호가 변경되면 영문 건물번호도 동일하게 설정
+    if (field === 'number') {
+      setFormData(prev => ({
+        ...prev,
+        number_en: value, // 건물번호 영문 = 건물번호 국문
+      }));
+    }
   };
 
   const handleUserInputChange = (field: keyof UserData, value: string) => {
@@ -156,7 +164,7 @@ export default function RegisterPage() {
         street: enhancedAddress.roadAddress,
         street_en: enhancedAddress.englishRoad, // 영문 도로명
         number: enhancedAddress.buildingNumber,
-        number_en: enhancedAddress.buildingNumber, // 건물번호는 그대로
+        number_en: enhancedAddress.buildingNumber, // 건물번호는 그대로 (동기화)
         postcode: enhancedAddress.postalCode,
         city: enhancedAddress.cityName,
         city_en: enhancedAddress.englishCity, // 영문 도시명

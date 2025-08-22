@@ -46,6 +46,7 @@ interface EditableRow {
   originalData: any;
   modifiedData: any;
   isEditing: boolean;
+<<<<<<< HEAD
   editReason?: string; // 수정 사유 추가
 }
 
@@ -59,6 +60,8 @@ interface AIProcessedData {
   data: any[];
   columns: string[];
   timestamp: string;
+=======
+>>>>>>> origin/main
 }
 
 const DataUploadPage: React.FC = () => {
@@ -84,10 +87,13 @@ const DataUploadPage: React.FC = () => {
   const [editableInputRows, setEditableInputRows] = useState<EditableRow[]>([]);
   const [editableOutputRows, setEditableOutputRows] = useState<EditableRow[]>([]);
 
+<<<<<<< HEAD
   // AI 처리 관련 상태
   const [aiProcessedData, setAiProcessedData] = useState<AIProcessedData | null>(null);
   const [isAiProcessing, setIsAiProcessing] = useState(false);
 
+=======
+>>>>>>> origin/main
   // Input 파일 선택
   const handleInputFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -124,6 +130,7 @@ const DataUploadPage: React.FC = () => {
     }
   };
 
+<<<<<<< HEAD
   // AI 모델을 사용한 데이터 처리
   const handleAIProcess = async () => {
     if (!inputData) return;
@@ -235,6 +242,8 @@ const DataUploadPage: React.FC = () => {
     }
   };
 
+=======
+>>>>>>> origin/main
   // Input 데이터 업로드
   const handleInputUpload = async () => {
     if (!inputFile) return;
@@ -281,9 +290,12 @@ const DataUploadPage: React.FC = () => {
 
       const result: UploadResponse = response.data;
       setInputUploadResult(result);
+<<<<<<< HEAD
 
       // Input 데이터 업로드 후 자동으로 AI 처리 실행
       await handleAIProcess();
+=======
+>>>>>>> origin/main
       
     } catch (err) {
       if (axios.isAxiosError(err)) {
@@ -717,6 +729,7 @@ const DataUploadPage: React.FC = () => {
                 </div>
 
                 {renderDataTable(editableInputRows, inputData.columns, 'input')}
+<<<<<<< HEAD
 
                 {/* AI 처리 결과 표시 */}
                 {aiProcessedData && (
@@ -750,6 +763,8 @@ const DataUploadPage: React.FC = () => {
                     </Button>
                   </div>
                 )}
+=======
+>>>>>>> origin/main
               </div>
             )}
 

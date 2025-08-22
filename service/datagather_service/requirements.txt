@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # FastAPI 및 웹 서버
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
@@ -21,3 +22,13 @@ httpx==0.25.2
 
 # 로깅 및 설정
 structlog==23.2.0
+=======
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.8.2
+python-multipart==0.0.9
+pandas==2.2.1
+openpyxl==3.1.2
+xlrd==2.0.1
+python-dotenv==1.0.1
+>>>>>>> origin/main

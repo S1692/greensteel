@@ -11,6 +11,7 @@ import { ReactFlowProvider } from '@xyflow/react';
 
 export default function CBAMPage() {
   const [activeTab, setActiveTab] = useState<
+<<<<<<< HEAD
     'overview' | 'flow' | 'calculation' | 'reports' | 'settings'
   >('overview');
 
@@ -141,6 +142,11 @@ export default function CBAMPage() {
     }
   };
 
+=======
+    'overview' | 'flow' | 'reports' | 'settings'
+  >('overview');
+
+>>>>>>> origin/main
   const renderOverview = () => (
     <div className='space-y-6'>
       <div className='stitch-card p-6'>
@@ -189,6 +195,7 @@ export default function CBAMPage() {
     </div>
   );
 
+<<<<<<< HEAD
   const renderCalculation = () => (
     <div className='space-y-6'>
       {/* 하위 탭 네비게이션 */}
@@ -562,6 +569,8 @@ export default function CBAMPage() {
     </div>
   );
 
+=======
+>>>>>>> origin/main
   const renderReports = () => (
     <div className='space-y-6'>
       <div className='stitch-card p-6'>
@@ -626,6 +635,7 @@ export default function CBAMPage() {
             프로세스 관리
           </button>
           <button
+<<<<<<< HEAD
             onClick={() => setActiveTab('calculation')}
             className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === 'calculation'
@@ -636,6 +646,8 @@ export default function CBAMPage() {
             계산
           </button>
           <button
+=======
+>>>>>>> origin/main
             onClick={() => setActiveTab('reports')}
             className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === 'reports'
@@ -660,6 +672,7 @@ export default function CBAMPage() {
         {/* 탭 콘텐츠 */}
         {activeTab === 'overview' && renderOverview()}
         {activeTab === 'flow' && renderFlow()}
+<<<<<<< HEAD
         {activeTab === 'calculation' && renderCalculation()}
         {activeTab === 'reports' && renderReports()}
         {activeTab === 'settings' && renderSettings()}
@@ -682,6 +695,11 @@ export default function CBAMPage() {
           </div>
         </div>
       )}
+=======
+        {activeTab === 'reports' && renderReports()}
+        {activeTab === 'settings' && renderSettings()}
+      </div>
+>>>>>>> origin/main
     </CommonShell>
   );
 }

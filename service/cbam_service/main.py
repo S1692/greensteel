@@ -1,11 +1,14 @@
 # ============================================================================
-# 🚀 Cal_boundary Main Application
+# 🚀 CBAM Service Main Application - VERSION 2.0.0
+# ============================================================================
+# Last Updated: 2024-12-19
+# Railway Deployment: FORCE_REBUILD
 # ============================================================================
 
 """
-Cal_boundary 서비스 메인 애플리케이션
+CBAM 서비스 메인 애플리케이션
 
-ReactFlow 기반 HTTP API를 제공하는 FastAPI 애플리케이션입니다.
+CBAM 계산 및 제품 관리를 위한 FastAPI 애플리케이션입니다.
 """
 
 from fastapi import FastAPI, Request
@@ -18,8 +21,8 @@ import os
 
 # 환경 변수 설정
 APP_NAME = os.getenv("APP_NAME", "CBAM Service")
-APP_VERSION = os.getenv("APP_VERSION", "1.0.0")
-APP_DESCRIPTION = os.getenv("APP_DESCRIPTION", "CBAM 계산 서비스")
+APP_VERSION = os.getenv("APP_VERSION", "2.0.0")
+APP_DESCRIPTION = os.getenv("APP_DESCRIPTION", "CBAM 계산 서비스 - Railway 배포용")
 DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
 
 @asynccontextmanager
@@ -28,6 +31,7 @@ async def lifespan(app: FastAPI):
     # 시작 시
     logger.info(f"🚀 {APP_NAME} 시작 중...")
     logger.info(f"버전: {APP_VERSION}")
+    logger.info("✅ Railway 배포 환경에서 실행 중")
     yield
     # 종료 시
     logger.info(f"🛑 {APP_NAME} 종료 중...")
@@ -76,7 +80,9 @@ async def health_check():
         "status": "healthy",
         "service": APP_NAME,
         "version": APP_VERSION,
-        "timestamp": time.time()
+        "timestamp": time.time(),
+        "deployment": "railway",
+        "build": "v2.0.0"
     }
 
 # 루트 경로
@@ -87,6 +93,7 @@ async def root():
         "service": APP_NAME,
         "version": APP_VERSION,
         "description": APP_DESCRIPTION,
+        "deployment": "railway",
         "endpoints": {
             "health": "/health",
             "docs": "/docs"

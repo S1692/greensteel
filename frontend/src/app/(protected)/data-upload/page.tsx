@@ -364,7 +364,7 @@ const DataUploadPage: React.FC = () => {
       <div className='overflow-x-auto'>
         <table className='min-w-full border border-gray-200'>
           <thead>
-            <tr className='bg-blue-100'>
+            <tr className='bg-blue-50'>
               {columns.map((column, index) => (
                 <th
                   key={index}
@@ -423,7 +423,7 @@ const DataUploadPage: React.FC = () => {
                       <Button
                         onClick={() => saveEditing(row.id, type)}
                         size='sm'
-                        className='h-6 px-2 bg-green-600 hover:bg-green-700'
+                        className='h-6 px-2 bg-green-500 hover:bg-green-600 text-white'
                       >
                         <Save className='w-3 h-3' />
                       </Button>
@@ -431,7 +431,7 @@ const DataUploadPage: React.FC = () => {
                         onClick={() => cancelEditing(row.id, type)}
                         size='sm'
                         variant='outline'
-                        className='h-6 px-2'
+                        className='h-6 px-2 border-gray-300 text-gray-600 hover:bg-gray-50'
                       >
                         <X className='w-3 h-3' />
                       </Button>
@@ -441,7 +441,7 @@ const DataUploadPage: React.FC = () => {
                       onClick={() => startEditing(row.id, type)}
                       size='sm'
                       variant='outline'
-                      className='h-6 px-2 text-green-600 border-green-600 hover:bg-green-50'
+                      className='h-6 px-2 text-blue-600 border-blue-500 hover:bg-blue-50'
                     >
                       <Edit3 className='w-3 h-3' />
                     </Button>
@@ -468,7 +468,7 @@ const DataUploadPage: React.FC = () => {
         {/* 진행 단계 표시 */}
         <div className='flex items-center justify-center space-x-4'>
           <div className={`flex items-center space-x-2 ${currentStep === 'input' ? 'text-blue-600' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'input' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'input' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>
               1
             </div>
             <span className='font-medium'>Input 데이터</span>
@@ -477,7 +477,7 @@ const DataUploadPage: React.FC = () => {
           <ArrowRight className='w-6 h-6 text-gray-400' />
           
           <div className={`flex items-center space-x-2 ${currentStep === 'output' ? 'text-blue-600' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'output' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === 'output' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>
               2
             </div>
             <span className='font-medium'>Output 데이터</span>
@@ -489,7 +489,7 @@ const DataUploadPage: React.FC = () => {
           <div className='space-y-6'>
             <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
               <div className='flex items-center gap-2 mb-4'>
-                <FileText className='h-6 w-6 text-blue-600' />
+                <FileText className='h-6 w-6 text-blue-500' />
                 <h2 className='text-xl font-semibold text-gray-900'>Input 데이터 업로드</h2>
               </div>
               
@@ -500,8 +500,8 @@ const DataUploadPage: React.FC = () => {
               <div
                 className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                   inputFile
-                    ? 'border-green-300 bg-green-50'
-                    : 'border-gray-300 hover:border-gray-400'
+                    ? 'border-green-400 bg-green-50'
+                    : 'border-gray-300 hover:border-blue-400'
                 }`}
                 onDrop={(e) => handleDrop(e, 'input')}
                 onDragOver={handleDragOver}
@@ -524,6 +524,7 @@ const DataUploadPage: React.FC = () => {
                     <Button
                       onClick={() => inputFileRef.current?.click()}
                       variant='outline'
+                      className='border-blue-500 text-blue-600 hover:bg-blue-50'
                     >
                       파일 선택
                     </Button>
@@ -539,7 +540,7 @@ const DataUploadPage: React.FC = () => {
                       <Button
                         onClick={handleInputUpload}
                         disabled={isInputUploading}
-                        className='disabled:opacity-50 disabled:cursor-not-allowed'
+                        className='disabled:opacity-50 disabled:cursor-not-allowed bg-blue-500 hover:bg-blue-600 text-white'
                       >
                         {isInputUploading ? (
                           <>
@@ -550,7 +551,7 @@ const DataUploadPage: React.FC = () => {
                           'Input 데이터 업로드'
                         )}
                       </Button>
-                      <Button onClick={resetForm} variant='ghost'>
+                      <Button onClick={resetForm} variant='ghost' className='text-gray-600 hover:bg-gray-100'>
                         취소
                       </Button>
                     </div>
@@ -559,13 +560,13 @@ const DataUploadPage: React.FC = () => {
               </div>
 
               {/* Input 페이지에서 항상 표시되는 이동 버튼들 */}
-              <div className='mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg'>
-                <h3 className='text-sm font-medium text-gray-700 mb-3'>다른 페이지로 이동</h3>
+              <div className='mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg'>
+                <h3 className='text-sm font-medium text-blue-900 mb-3'>다른 페이지로 이동</h3>
                 <div className='flex flex-col sm:flex-row gap-3'>
                   <Button 
                     onClick={goToOutput} 
                     variant='outline'
-                    className='flex-1 border-blue-600 text-blue-600 hover:bg-blue-50'
+                    className='flex-1 border-blue-500 text-blue-600 hover:bg-blue-100'
                     disabled={!inputUploadResult}
                   >
                     <ArrowRight className='w-4 h-4 mr-2' />
@@ -575,14 +576,14 @@ const DataUploadPage: React.FC = () => {
                   <Button 
                     onClick={goToCBAM} 
                     variant='outline'
-                    className='flex-1 border-green-600 text-green-600 hover:bg-green-50'
+                    className='flex-1 border-green-500 text-green-600 hover:bg-green-50'
                   >
                     <ExternalLink className='w-4 h-4 mr-2' />
                     CBAM 페이지로 이동
                   </Button>
                 </div>
                 {!inputUploadResult && (
-                  <p className='text-xs text-gray-500 mt-2 text-center'>
+                  <p className='text-xs text-blue-600 mt-2 text-center'>
                     Output 페이지 이동을 위해서는 먼저 Input 데이터를 업로드해야 합니다.
                   </p>
                 )}
@@ -593,20 +594,20 @@ const DataUploadPage: React.FC = () => {
             {inputData && (
               <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
                 <div className='flex items-center gap-2 mb-4'>
-                  <Table className='h-5 w-5 text-blue-600' />
+                  <Table className='h-5 w-5 text-blue-500' />
                   <h3 className='text-lg font-semibold text-gray-900'>Input 데이터 미리보기</h3>
                 </div>
 
                 <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-4'>
-                  <div className='bg-blue-50 rounded-lg p-3'>
+                  <div className='bg-blue-50 rounded-lg p-3 border border-blue-200'>
                     <p className='text-sm font-medium text-blue-900'>파일명</p>
                     <p className='text-sm text-blue-700'>{inputData.filename}</p>
                   </div>
-                  <div className='bg-blue-50 rounded-lg p-3'>
+                  <div className='bg-blue-50 rounded-lg p-3 border border-blue-200'>
                     <p className='text-sm font-medium text-blue-900'>크기</p>
                     <p className='text-sm text-blue-700'>{inputData.fileSize} MB</p>
                   </div>
-                  <div className='bg-blue-50 rounded-lg p-3'>
+                  <div className='bg-blue-50 rounded-lg p-3 border border-blue-200'>
                     <p className='text-sm font-medium text-blue-900'>데이터</p>
                     <p className='text-sm text-blue-700'>{inputData.data.length}행 × {inputData.columns.length}열</p>
                   </div>
@@ -634,22 +635,22 @@ const DataUploadPage: React.FC = () => {
                 </div>
 
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-6'>
-                  <div className='bg-gray-50 rounded-lg p-4'>
-                    <h4 className='font-medium text-gray-700 mb-2'>파일 정보</h4>
-                    <p className='text-sm text-gray-600'>
+                  <div className='bg-blue-50 rounded-lg p-4 border border-blue-200'>
+                    <h4 className='font-medium text-blue-900 mb-2'>파일 정보</h4>
+                    <p className='text-sm text-blue-700'>
                       파일명: {inputUploadResult.data.filename}
                     </p>
-                    <p className='text-sm text-gray-600'>
+                    <p className='text-sm text-blue-700'>
                       크기: {inputUploadResult.data.shape[0]}행 × {inputUploadResult.data.shape[1]}열
                     </p>
                   </div>
 
-                  <div className='bg-gray-50 rounded-lg p-4'>
-                    <h4 className='font-medium text-gray-700 mb-2'>데이터 요약</h4>
-                    <p className='text-sm text-gray-600'>
+                  <div className='bg-blue-50 rounded-lg p-4 border border-blue-200'>
+                    <h4 className='font-medium text-blue-900 mb-2'>데이터 요약</h4>
+                    <p className='text-sm text-blue-700'>
                       총 행 수: {inputUploadResult.data.rows_count}
                     </p>
-                    <p className='text-sm text-gray-600'>
+                    <p className='text-sm text-blue-700'>
                       총 열 수: {inputUploadResult.data.columns.length}
                     </p>
                   </div>
@@ -659,7 +660,7 @@ const DataUploadPage: React.FC = () => {
                 <div className='flex flex-col sm:flex-row gap-3'>
                   <Button 
                     onClick={goToOutput} 
-                    className='flex-1 bg-blue-600 hover:bg-blue-700 text-white'
+                    className='flex-1 bg-blue-500 hover:bg-blue-600 text-white'
                   >
                     <ArrowRight className='w-4 h-4 mr-2' />
                     Output 데이터 업로드로 진행
@@ -668,7 +669,7 @@ const DataUploadPage: React.FC = () => {
                   <Button 
                     onClick={goToCBAM} 
                     variant='outline'
-                    className='flex-1 border-blue-600 text-blue-600 hover:bg-blue-50'
+                    className='flex-1 border-green-500 text-green-600 hover:bg-green-50'
                   >
                     <ExternalLink className='w-4 h-4 mr-2' />
                     CBAM 페이지로 이동
@@ -684,7 +685,7 @@ const DataUploadPage: React.FC = () => {
           <div className='space-y-6'>
             <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
               <div className='flex items-center gap-2 mb-4'>
-                <BarChart3 className='h-6 w-6 text-green-600' />
+                <BarChart3 className='h-6 w-6 text-green-500' />
                 <h2 className='text-xl font-semibold text-gray-900'>Output 데이터 업로드</h2>
               </div>
               
@@ -701,8 +702,8 @@ const DataUploadPage: React.FC = () => {
               <div
                 className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
                   outputFile
-                    ? 'border-green-300 bg-green-50'
-                    : 'border-gray-300 hover:border-gray-400'
+                    ? 'border-green-400 bg-green-50'
+                    : 'border-gray-300 hover:border-green-400'
                 }`}
                 onDrop={(e) => handleDrop(e, 'output')}
                 onDragOver={handleDragOver}
@@ -725,6 +726,7 @@ const DataUploadPage: React.FC = () => {
                     <Button
                       onClick={() => outputFileRef.current?.click()}
                       variant='outline'
+                      className='border-green-500 text-green-600 hover:bg-green-50'
                     >
                       파일 선택
                     </Button>
@@ -740,7 +742,7 @@ const DataUploadPage: React.FC = () => {
                       <Button
                         onClick={handleOutputUpload}
                         disabled={isOutputUploading}
-                        className='disabled:opacity-50 disabled:cursor-not-allowed'
+                        className='disabled:opacity-50 disabled:cursor-not-allowed bg-green-500 hover:bg-green-600 text-white'
                       >
                         {isOutputUploading ? (
                           <>
@@ -751,7 +753,7 @@ const DataUploadPage: React.FC = () => {
                           'Output 데이터 업로드'
                         )}
                       </Button>
-                      <Button onClick={goBackToInput} variant='ghost'>
+                      <Button onClick={goBackToInput} variant='ghost' className='text-gray-600 hover:bg-gray-100'>
                         Input으로 돌아가기
                       </Button>
                     </div>
@@ -764,20 +766,20 @@ const DataUploadPage: React.FC = () => {
             {outputData && (
               <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
                 <div className='flex items-center gap-2 mb-4'>
-                  <Table className='h-5 w-5 text-green-600' />
+                  <Table className='h-5 w-5 text-green-500' />
                   <h3 className='text-lg font-semibold text-gray-900'>Output 데이터 미리보기</h3>
                 </div>
 
                 <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-4'>
-                  <div className='bg-green-50 rounded-lg p-3'>
+                  <div className='bg-green-50 rounded-lg p-3 border border-green-200'>
                     <p className='text-sm font-medium text-green-900'>파일명</p>
                     <p className='text-sm text-green-700'>{outputData.filename}</p>
                   </div>
-                  <div className='bg-green-50 rounded-lg p-3'>
+                  <div className='bg-green-50 rounded-lg p-3 border border-green-200'>
                     <p className='text-sm font-medium text-green-900'>크기</p>
                     <p className='text-sm text-green-700'>{outputData.fileSize} MB</p>
                   </div>
-                  <div className='bg-green-50 rounded-lg p-3'>
+                  <div className='bg-green-50 rounded-lg p-3 border border-green-200'>
                     <p className='text-sm font-medium text-green-900'>데이터</p>
                     <p className='text-sm text-green-700'>{outputData.data.length}행 × {outputData.columns.length}열</p>
                   </div>
@@ -805,29 +807,29 @@ const DataUploadPage: React.FC = () => {
                 </div>
 
                 <div className='mt-4 grid grid-cols-1 md:grid-cols-2 gap-4'>
-                  <div className='bg-gray-50 rounded-lg p-4'>
-                    <h4 className='font-medium text-gray-700 mb-2'>Input 데이터</h4>
-                    <p className='text-sm text-gray-600'>
+                  <div className='bg-blue-50 rounded-lg p-4 border border-blue-200'>
+                    <h4 className='font-medium text-blue-900 mb-2'>Input 데이터</h4>
+                    <p className='text-sm text-blue-700'>
                       파일명: {inputData?.filename}
                     </p>
-                    <p className='text-sm text-gray-600'>
+                    <p className='text-sm text-blue-700'>
                       크기: {inputData?.data.length}행 × {inputData?.columns.length}열
                     </p>
                   </div>
 
-                  <div className='bg-gray-50 rounded-lg p-4'>
-                    <h4 className='font-medium text-gray-700 mb-2'>Output 데이터</h4>
-                    <p className='text-sm text-gray-600'>
+                  <div className='bg-green-50 rounded-lg p-4 border border-green-200'>
+                    <h4 className='font-medium text-green-900 mb-2'>Output 데이터</h4>
+                    <p className='text-sm text-green-700'>
                       파일명: {outputData?.filename}
                     </p>
-                    <p className='text-sm text-gray-600'>
+                    <p className='text-sm text-green-700'>
                       크기: {outputData?.data.length}행 × {outputData?.columns.length}열
                     </p>
                   </div>
                 </div>
 
                 <div className='mt-6'>
-                  <Button onClick={resetForm} className='w-full'>
+                  <Button onClick={resetForm} className='w-full bg-blue-500 hover:bg-blue-600 text-white'>
                     새로운 데이터 업로드 시작
                   </Button>
                 </div>
@@ -840,8 +842,8 @@ const DataUploadPage: React.FC = () => {
         {error && (
           <div className='bg-red-50 border border-red-200 rounded-lg p-4'>
             <div className='flex items-center'>
-              <AlertCircle className='h-5 w-5 text-red-400 mr-2' />
-              <p className='text-red-800'>{error}</p>
+              <AlertCircle className='h-5 w-5 text-red-500 mr-2' />
+              <p className='text-red-600'>{error}</p>
             </div>
           </div>
         )}
@@ -850,17 +852,17 @@ const DataUploadPage: React.FC = () => {
         <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
           <h3 className='text-lg font-semibold text-gray-900 mb-4'>시스템 상태</h3>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-            <div className='text-center p-4 bg-blue-50 rounded-lg'>
+            <div className='text-center p-4 bg-blue-50 rounded-lg border border-blue-200'>
               <h4 className='font-medium text-blue-900'>프론트엔드</h4>
               <p className='text-sm text-blue-700'>정상 작동</p>
             </div>
-            <div className='text-center p-4 bg-green-50 rounded-lg'>
+            <div className='text-center p-4 bg-green-50 rounded-lg border border-green-200'>
               <h4 className='font-medium text-green-900'>게이트웨이</h4>
               <p className='text-sm text-green-700'>포트 8080</p>
             </div>
-            <div className='text-center p-4 bg-purple-50 rounded-lg'>
-              <h4 className='font-medium text-purple-900'>DataGather Service</h4>
-              <p className='text-sm text-purple-700'>포트 8083</p>
+            <div className='text-center p-4 bg-blue-50 rounded-lg border border-blue-200'>
+              <h4 className='font-medium text-blue-900'>DataGather Service</h4>
+              <p className='text-sm text-blue-700'>포트 8083</p>
             </div>
           </div>
         </div>

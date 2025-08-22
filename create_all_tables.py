@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-GreenSteel 프로젝트 핵심 테이블 생성 스크립트
-product 테이블만 생성합니다.
+GreenSteel 프로젝트 테이블 정리 스크립트
+이미지에 있는 테이블들만 삭제하고 product 테이블만 재생성합니다.
 """
 
 import psycopg2
@@ -54,6 +54,42 @@ def check_table_exists(conn, table_name):
         logger.error(f"테이블 존재 확인 실패: {e}")
         return False
 
+def drop_table(conn, table_name):
+    """테이블을 삭제합니다."""
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(f"DROP TABLE IF EXISTS {table_name} CASCADE;")
+            logger.info(f"🗑️ 테이블 {table_name} 삭제 완료")
+    except Exception as e:
+        logger.error(f"❌ 테이블 {table_name} 삭제 실패: {e}")
+
+def drop_image_tables(conn):
+    """이미지에 있는 테이블들만 삭제합니다."""
+    # 이미지에 있는 테이블들 (삭제 대상)
+    image_tables = [
+        "cbam_calculations",
+        "cbam_fuels", 
+        "cbam_materials",
+        "cbam_products",
+        "input_data",
+        "lca_impact_categories",
+        "lca_products",
+        "lca_results",
+        "output_data",
+        "upload_history",
+        "product"
+    ]
+    
+    logger.info("🗑️ 이미지에 있는 테이블들 삭제 시작...")
+    
+    for table_name in image_tables:
+        if check_table_exists(conn, table_name):
+            drop_table(conn, table_name)
+        else:
+            logger.info(f"ℹ️ 테이블 {table_name}은 이미 존재하지 않음")
+    
+    logger.info("✅ 이미지 테이블들 삭제 완료")
+
 def create_product_table(conn):
     """product 테이블만 생성합니다."""
     try:
@@ -86,7 +122,7 @@ def create_product_table(conn):
 
 def main():
     """메인 함수"""
-    logger.info("🚀 GreenSteel 프로젝트 product 테이블 생성 시작...")
+    logger.info("🚀 GreenSteel 프로젝트 테이블 정리 시작...")
     
     conn = get_connection()
     if not conn:
@@ -94,13 +130,17 @@ def main():
         sys.exit(1)
     
     try:
-        # product 테이블만 생성
+        # 1단계: 이미지에 있는 테이블들만 삭제
+        drop_image_tables(conn)
+        
+        # 2단계: product 테이블만 생성
         create_product_table(conn)
         
-        logger.info("🎉 product 테이블 생성 완료!")
+        logger.info("🎉 테이블 정리 완료!")
+        logger.info("ℹ️ 이미지에 없는 테이블들(users 등)은 그대로 유지됨")
         
     except Exception as e:
-        logger.error(f"데이터베이스 초기화 실패: {e}")
+        logger.error(f"테이블 정리 실패: {e}")
     finally:
         conn.close()
         logger.info("🔌 데이터베이스 연결 종료")

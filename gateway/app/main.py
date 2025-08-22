@@ -1,9 +1,5 @@
 import os
-<<<<<<< HEAD
 from fastapi import FastAPI, Request, Response, UploadFile, File, HTTPException
-=======
-from fastapi import FastAPI, Request, Response, UploadFile, File
->>>>>>> origin/main
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from contextlib import asynccontextmanager
@@ -134,7 +130,6 @@ async def process_data_to_datagather(data: dict):
         gateway_logger.log_error(f"게이트웨이 처리 중 오류 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=f"게이트웨이 오류: {str(e)}")
 
-<<<<<<< HEAD
 # AI 모델을 활용한 데이터 처리 엔드포인트
 @app.post("/ai-process")
 async def ai_process_data(data: dict):
@@ -344,11 +339,7 @@ async def architecture_info():
                 "description": "ESG 데이터 수집 및 관리",
                 "service": "Data Gathering Service",
                 "port": "8083",
-<<<<<<< HEAD
                 "paths": ["/datagather/*", "/ai-process", "/feedback", "/input-data", "/output-data"]
-=======
-                "paths": ["/datagather/*"]
->>>>>>> origin/main
             },
             "lifecycle-inventory": {
                 "description": "생명주기 평가 및 인벤토리",
@@ -361,7 +352,6 @@ async def architecture_info():
             "domain_events": "스트림 기반 이벤트 소싱",
             "aggregate_roots": "Company, User, Stream, CBAM, LCI",
             "value_objects": "Address, BusinessNumber, ContactInfo",
-<<<<<<< HEAD
             "domain_services": "Authentication, StreamProcessing, Validation, AIProcessing",
             "ai_integration": "AI 모델을 통한 데이터 자동 수정 및 피드백 학습"
         },
@@ -370,15 +360,6 @@ async def architecture_info():
             "application": "Application Services (유스케이스, 워크플로우)",
             "domain": "Domain Services (비즈니스 로직, 규칙)",
             "infrastructure": "Infrastructure (데이터베이스, 외부 서비스, AI 모델)"
-=======
-            "domain_services": "Authentication, StreamProcessing, Validation"
-        },
-        "layers": {
-            "gateway": "API Gateway (프록시, 라우팅, 검증)",
-            "application": "Application Services (유스케이스, 워크플로우)",
-            "domain": "Domain Services (비즈니스 로직, 규칙)",
-            "infrastructure": "Infrastructure (데이터베이스, 외부 서비스)"
->>>>>>> origin/main
         }
     }
 
@@ -401,28 +382,20 @@ async def root():
         "message": f"{GATEWAY_NAME} - DDD API Gateway",
         "version": "2.0.0",
         "architecture": "DDD (Domain-Driven Design)",
-        "endpoints": {
+                    "endpoints": {
             "health_check": "/health",
             "status": "/status",
             "routing": "/routing",
             "architecture": "/architecture",
-<<<<<<< HEAD
             "documentation": "/docs",
             "ai_processing": "/ai-process",
             "feedback": "/feedback",
             "data_upload": "/input-data, /output-data"
-=======
-            "documentation": "/docs"
->>>>>>> origin/main
         },
         "domains": [
             "identity-access (포트 8081)",
             "carbon-border (포트 8082)",
-<<<<<<< HEAD
             "data-collection (포트 8083) - AI 처리 포함",
-=======
-            "data-collection (포트 8083)",
->>>>>>> origin/main
             "lifecycle-inventory (포트 8084)"
         ]
     }

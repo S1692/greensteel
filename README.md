@@ -1,177 +1,225 @@
-# GreenSteel MSA 프로젝트
+# 🚀 CBAM Service (Cal_boundary)
 
-GreenSteel은 Next.js + TypeScript + React + FastAPI + PostgreSQL을 기반으로 한 마이크로서비스 아키텍처 프로젝트입니다.
+ReactFlow 기반 CBAM 계산 서비스입니다.
 
-## 🏗️ 프로젝트 구조
+## 🏗️ 아키텍처
+
+- **FastAPI**: 현대적인 Python 웹 프레임워크
+- **SQLAlchemy 2.x**: ORM 및 데이터베이스 관리
+- **PostgreSQL**: 프로덕션 데이터베이스 (SQLite 폴백 지원)
+- **ReactFlow**: 다이어그램 기반 프로세스 관리
+
+## 🚨 PostgreSQL Collation 문제 해결
+
+Railway PostgreSQL에서 발생하는 collation 버전 불일치 문제를 자동으로 해결합니다:
 
 ```
-LCA_final-main/
-├── frontend/              # Next.js 프론트엔드 애플리케이션
-│   ├── src/               # 소스 코드
-│   ├── public/            # 정적 파일
-│   ├── package.json       # 프론트엔드 의존성
-│   └── Dockerfile         # 프론트엔드 Docker 이미지
-├── gateway/               # FastAPI API Gateway
-│   ├── app/               # 게이트웨이 애플리케이션 코드
-│   ├── main.py            # 게이트웨이 메인 파일
-│   └── Dockerfile         # 게이트웨이 Docker 이미지
-├── service/               # 마이크로서비스들
-│   ├── auth-service/      # 인증 서비스
-│   │   ├── app/           # 서비스 코드
-│   │   └── Dockerfile     # 인증 서비스 Docker 이미지
-│   └── Cal_boundary/      # 계산 경계 서비스
-│       ├── app/           # 서비스 코드
-│       └── Dockerfile     # 계산 경계 서비스 Docker 이미지
-├── docker-compose.yml     # Docker Compose 설정
-├── start-docker.bat       # Windows Docker 시작 스크립트
-├── stop-docker.bat        # Windows Docker 중지 스크립트
-└── README.md              # 프로젝트 문서
+WARNING: database "railway" has a collation version mismatch
+DETAIL: The database was created using collation version 2.36, but the operating system provides version 2.41.
 ```
 
-## 🚀 기술 스택
+### 해결 방법
 
-### Frontend
-- **Next.js 14** - React 프레임워크
-- **TypeScript** - 타입 안전성
-- **React 18** - UI 라이브러리
-- **Tailwind CSS** - 스타일링
-- **PWA** - Progressive Web App
+1. **자동 해결**: 배포 시 `migrate_db.py` 스크립트가 자동으로 실행되어 문제를 해결합니다.
+2. **수동 해결**: Railway 대시보드에서 다음 SQL을 실행:
 
-### Backend
-- **FastAPI** - API Gateway 및 서비스
-- **Python 3.11** - 백엔드 언어
-- **PostgreSQL 15** - 데이터베이스
-- **SQLAlchemy** - ORM
+```sql
+-- Collation 버전 업데이트
+ALTER DATABASE railway REFRESH COLLATION VERSION;
 
-### DevOps
-- **Docker** - 컨테이너화
-- **Docker Compose** - 로컬 개발 환경
-- **GitHub Actions** - CI/CD
+-- 또는 특정 테이블의 collation 재설정
+ALTER TABLE your_table_name ALTER COLUMN your_column_name TYPE text COLLATE "default";
+```
 
-## 🛠️ 개발 환경 설정
+## 🚀 Railway 배포
 
-### 1. Docker 설치
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) 설치
-- Docker Compose가 포함되어 있어야 함
+### 1. 환경변수 설정
 
-### 2. 프로젝트 클론
+Railway 대시보드에서 다음 환경변수를 설정하세요:
+
 ```bash
-git clone <repository-url>
-cd LCA_final-main
+# 필수 환경변수
+DATABASE_URL=postgresql://username:password@host:port/database
+PORT=8001
+
+# 선택적 환경변수
+DEBUG_MODE=false
+LOG_LEVEL=INFO
 ```
 
-### 3. Docker 서비스 실행
+### 2. 배포 과정
 
-#### Windows
-```bash
-# 서비스 시작
-start-docker.bat
+1. **GitHub 연동**: Railway에서 GitHub 저장소를 연결
+2. **자동 배포**: 코드 변경 시 자동으로 배포됨
+3. **마이그레이션**: 배포 시 자동으로 데이터베이스 테이블 생성 및 샘플 데이터 삽입
 
-# 서비스 중지
-stop-docker.bat
+### 3. 배포 로그 확인
+
+배포 로그에서 다음 메시지들을 확인할 수 있습니다:
+
+```
+🚀 CBAM 서비스 시작 중...
+🗄️ 데이터베이스 마이그레이션 실행 중...
+✅ 데이터베이스 연결 성공
+🔧 PostgreSQL collation 문제 해결 중...
+✅ Collation 설정 완료
+🗄️ 데이터베이스 테이블 생성 중...
+✅ fuels 테이블 생성 완료
+✅ materials 테이블 생성 완료
+✅ precursors 테이블 생성 완료
+✅ calculation_results 테이블 생성 완료
+✅ 인덱스 생성 완료
+📊 샘플 데이터 삽입 중...
+✅ 연료 샘플 데이터 삽입 완료
+✅ 원료 샘플 데이터 삽입 완료
+🎉 데이터베이스 마이그레이션 완료!
+🚀 애플리케이션 시작...
 ```
 
-#### Linux/Mac
-```bash
-# 서비스 시작
-docker-compose up -d
+## 📊 데이터베이스 스키마
 
-# 서비스 중지
-docker-compose down
+### fuels 테이블
+```sql
+CREATE TABLE fuels (
+    id SERIAL PRIMARY KEY,
+    fuel_name VARCHAR(255) NOT NULL,
+    fuel_eng VARCHAR(255),
+    fuel_emfactor DECIMAL(10,2),
+    net_calory DECIMAL(10,2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
-### 4. 개별 서비스 실행 (개발용)
-```bash
-# 프론트엔드
-cd frontend
-npm install
-npm run dev
+### materials 테이블
+```sql
+CREATE TABLE materials (
+    id SERIAL PRIMARY KEY,
+    item_name VARCHAR(255) NOT NULL,
+    item_eng VARCHAR(255),
+    carbon_factor DECIMAL(10,2),
+    em_factor DECIMAL(10,2),
+    cn_code VARCHAR(50),
+    cn_code1 VARCHAR(50),
+    cn_code2 VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
 
-# 게이트웨이
-cd gateway
+### precursors 테이블
+```sql
+CREATE TABLE precursors (
+    id SERIAL PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL,
+    calculation_type VARCHAR(50) NOT NULL,
+    fuel_id INTEGER,
+    material_id INTEGER,
+    quantity DECIMAL(10,2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (fuel_id) REFERENCES fuels(id) ON DELETE SET NULL,
+    FOREIGN KEY (material_id) REFERENCES materials(id) ON DELETE SET NULL
+);
+```
+
+### calculation_results 테이블
+```sql
+CREATE TABLE calculation_results (
+    id SERIAL PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL,
+    calculation_type VARCHAR(50) NOT NULL,
+    fuel_id INTEGER,
+    material_id INTEGER,
+    quantity DECIMAL(10,2) NOT NULL,
+    result_data JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (fuel_id) REFERENCES fuels(id) ON DELETE SET NULL,
+    FOREIGN KEY (material_id) REFERENCES materials(id) ON DELETE SET NULL
+);
+```
+
+## 🔧 로컬 개발
+
+### 1. 환경 설정
+
+```bash
+# .env 파일 생성
+cp env.example .env
+
+# 환경변수 설정
+DATABASE_URL=postgresql://username:password@localhost:5432/cbam_db
+PORT=8001
+DEBUG_MODE=true
+```
+
+### 2. 의존성 설치
+
+```bash
 pip install -r requirements.txt
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8080
-
-# 인증 서비스
-cd service/auth-service
-pip install -r requirements.txt
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
-
-# 계산 경계 서비스
-cd service/Cal_boundary
-pip install -r requirements.txt
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8001
 ```
 
-## 📦 서비스 정보
+### 3. 데이터베이스 마이그레이션
 
-### 서비스 포트
-- **Frontend**: http://localhost:3000
-- **Gateway**: http://localhost:8080
-- **Auth Service**: http://localhost:8000
-- **Cal Boundary**: http://localhost:8001
-- **PostgreSQL**: localhost:5432
-
-### API 문서
-- **Gateway Swagger**: http://localhost:8080/docs
-- **Auth Service Swagger**: http://localhost:8000/docs
-- **Cal Boundary Swagger**: http://localhost:8001/docs
-
-## 🔄 개발 워크플로우
-
-1. **코드 수정** → 소스 코드 편집
-2. **Docker 재빌드** → `docker-compose build`
-3. **서비스 재시작** → `docker-compose up -d`
-4. **로그 확인** → `docker-compose logs -f [service-name]`
-
-## 🐛 문제 해결
-
-### 포트 충돌
 ```bash
-# 포트 사용 확인
-netstat -ano | findstr :3000
-netstat -ano | findstr :8080
-
-# Docker 컨테이너 상태 확인
-docker-compose ps
+python migrate_db.py
 ```
 
-### 로그 확인
+### 4. 애플리케이션 실행
+
 ```bash
-# 전체 로그
-docker-compose logs
-
-# 특정 서비스 로그
-docker-compose logs frontend
-docker-compose logs gateway
-docker-compose logs auth-service
-docker-compose logs cal-boundary
+uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
 ```
 
-### 컨테이너 재시작
+## 📚 API 문서
+
+서비스가 실행되면 다음 URL에서 API 문서를 확인할 수 있습니다:
+
+- **Swagger UI**: `http://localhost:8001/docs`
+- **ReDoc**: `http://localhost:8001/redoc`
+
+## 🐳 Docker
+
+### 빌드
+
 ```bash
-# 특정 서비스 재시작
-docker-compose restart frontend
-
-# 전체 재시작
-docker-compose restart
+docker build -t cbam-service .
 ```
 
-## 📚 추가 문서
+### 실행
 
-- **Frontend**: `frontend/README.md`
-- **Gateway**: `gateway/README.md`
-- **Auth Service**: `service/auth-service/README.md`
-- **Cal Boundary**: `service/Cal_boundary/README.md`
+```bash
+docker run -p 8001:8001 --env-file .env cbam-service
+```
 
-## 🤝 기여하기
+## 🔍 문제 해결
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+### 1. 데이터베이스 연결 실패
 
-## 📄 라이선스
+```bash
+# 연결 테스트
+python -c "
+from app.common.database_base import create_database_engine
+engine = create_database_engine()
+print('✅ 데이터베이스 연결 성공')
+"
+```
 
-이 프로젝트는 MIT 라이선스 하에 배포됩니다. 
+### 2. Collation 문제
+
+```bash
+# 마이그레이션 스크립트 실행
+python migrate_db.py
+```
+
+### 3. 테이블 생성 실패
+
+```bash
+# 수동으로 테이블 생성
+python -c "
+from app.domain.calculation.calculation_repository import CalculationRepository
+repo = CalculationRepository(use_database=True)
+print('✅ 테이블 생성 완료')
+"
+```
+
+## 📞 지원
+
+문제가 발생하면 Railway 배포 로그를 확인하고 GitHub 이슈를 생성해주세요.

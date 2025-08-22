@@ -87,8 +87,8 @@ def create_frontend_tables(conn):
     # ============================================================================
     
     # 1. CBAM 제품 테이블 (프론트엔드 제품 관리)
-    cbam_products_sql = """
-    CREATE TABLE IF NOT EXISTS cbam_products (
+    product_sql = """
+    CREATE TABLE IF NOT EXISTS product (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
         cn_code VARCHAR(50),
@@ -105,7 +105,7 @@ def create_frontend_tables(conn):
     cbam_calculations_sql = """
     CREATE TABLE IF NOT EXISTS cbam_calculations (
         id SERIAL PRIMARY KEY,
-        product_id INTEGER REFERENCES cbam_products(id),
+        product_id INTEGER REFERENCES product(id),
         calculation_date DATE NOT NULL,
         production_quantity DECIMAL(15,2),
         export_quantity DECIMAL(15,2),
@@ -273,8 +273,8 @@ def create_frontend_tables(conn):
     
     # 프론트엔드 연계 핵심 테이블 정의
     tables = [
-        # CBAM 서비스
-        ("cbam_products", cbam_products_sql),
+                        # CBAM 서비스
+                ("product", product_sql),
         ("cbam_calculations", cbam_calculations_sql),
         ("cbam_fuels", cbam_fuels_sql),
         ("cbam_materials", cbam_materials_sql),

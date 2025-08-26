@@ -26,7 +26,8 @@ const DashboardPage: React.FC = () => {
     try {
       setGatewayStatus('connecting');
       // 챗봇 서비스에 직접 연결
-      const response = await fetch(`http://localhost:8084/health`);
+      const chatbotUrl = process.env.NEXT_PUBLIC_CHATBOT_SERVICE_URL || 'http://localhost:8084';
+      const response = await fetch(`${chatbotUrl}/health`);
       if (response.ok) {
         setGatewayStatus('connected');
       } else {
@@ -54,7 +55,8 @@ const DashboardPage: React.FC = () => {
 
       try {
         // 챗봇 서비스에 직접 호출
-        const response = await fetch(`http://localhost:8084/api/v1/chatbot/chat`, {
+        const chatbotUrl = process.env.NEXT_PUBLIC_CHATBOT_SERVICE_URL || 'http://localhost:8084';
+        const response = await fetch(`${chatbotUrl}/api/v1/chatbot/chat`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -182,7 +184,7 @@ const DashboardPage: React.FC = () => {
             </button>
           </div>
           <div className='mt-2 text-xs text-white/50'>
-            서버 주소: http://localhost:8084
+            서버 주소: {process.env.NEXT_PUBLIC_CHATBOT_SERVICE_URL || 'http://localhost:8084'}
           </div>
         </div>
 

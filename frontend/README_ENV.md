@@ -45,7 +45,7 @@ CHATBOT_SERVICE_URL=http://localhost:8084
 NEXT_PUBLIC_CHATBOT_DIRECT_ACCESS=false
 ```
 
-**중요: 챗봇 서비스는 포트 8004에서 실행됩니다.**
+**중요: 챗봇 서비스는 포트 8084에서 실행됩니다.**
 
 ### 5. 환경변수 적용
 
@@ -83,12 +83,12 @@ NODE_ENV=production
 
 ### 옵션 1: Gateway를 통한 챗봇 접근 (권장)
 ```
-Frontend → Gateway (8000) → Chatbot Service (8004)
+Frontend → Gateway (8000) → Chatbot Service (8084)
 ```
 
 ### 옵션 2: 챗봇 서비스 직접 접근
 ```
-Frontend → Chatbot Service (8004)
+Frontend → Chatbot Service (8084)
 ```
 
 ## 문제 해결
@@ -102,7 +102,7 @@ Frontend → Chatbot Service (8004)
 ### 챗봇 기능이 작동하지 않을 때
 1. `NEXT_PUBLIC_CHATBOT_ENABLED=true` 설정 확인
 2. Gateway 상태가 "연결됨"인지 확인
-3. 챗봇 서비스가 실행 중인지 확인 (포트 8004)
+3. 챗봇 서비스가 실행 중인지 확인 (포트 8084)
 4. 브라우저 개발자 도구에서 네트워크 오류 확인
 
 ### 챗봇 서비스 직접 연결 시

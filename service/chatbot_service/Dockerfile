@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # 포트 노출
-EXPOSE 8085
+EXPOSE 8084
 
 # 환경변수 설정
 ENV PYTHONPATH=/app
@@ -25,7 +25,7 @@ ENV PYTHONUNBUFFERED=1
 
 # 헬스체크
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8004/health || exit 1
+    CMD curl -f http://localhost:8084/health || exit 1
 
 # 애플리케이션 실행
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8084"]

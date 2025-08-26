@@ -80,10 +80,15 @@ const DashboardPage: React.FC = () => {
 
         if (response.ok) {
           const data = await response.json();
+          console.log('Gateway 응답:', data); // 디버깅용
+          
+          // 챗봇 응답 구조: data.data.response 또는 data.response
+          const responseContent = data.data?.response || data.response || '죄송합니다. 응답을 생성할 수 없습니다.';
+          
           const assistantMessage: ChatMessage = {
             id: (Date.now() + 1).toString(),
             type: 'assistant',
-            content: data.response || '죄송합니다. 응답을 생성할 수 없습니다.',
+            content: responseContent,
             timestamp: new Date()
           };
           setMessages(prev => [...prev, assistantMessage]);

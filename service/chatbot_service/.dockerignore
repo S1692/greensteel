@@ -1,0 +1,64 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# Environment files
+.env*
+env.example
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+env/
+.venv/
+.ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test files
+tests/
+test_*.py
+*_test.py
+
+# Coverage reports
+.coverage
+htmlcov/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# ChromaDB data (if using)
+chroma_db/
+
+# Docker
+Dockerfile*
+.dockerignore
+docker-compose*.yml

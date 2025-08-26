@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+httpx
+python-dotenv
+openai
+langchain
+langchain-openai
+langchain-community
+python-multipart
+aiofiles

@@ -1,0 +1,4 @@
+{
+  "/page": "app/page.js",
+  "/(protected)/cbam/page": "app/(protected)/cbam/page.js"
+}

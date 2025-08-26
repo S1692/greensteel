@@ -1,0 +1,23 @@
+# FastAPI 및 웹 서버
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+
+# 데이터베이스
+sqlalchemy==2.0.23
+asyncpg==0.29.0
+psycopg2-binary==2.9.9
+
+# 데이터 검증
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# 유틸리티
+python-multipart==0.0.6
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# 환경 변수
+python-dotenv==1.0.0
+
+# 로깅
+loguru==0.7.2

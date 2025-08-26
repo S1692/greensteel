@@ -1,0 +1,11 @@
+# FastAPI 및 웹 서버
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+
+# 데이터 처리
+pandas==2.2.1
+openpyxl==3.1.2
+
+# 유틸리티
+python-dotenv==1.0.1
+httpx==0.25.2

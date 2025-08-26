@@ -1,0 +1,20 @@
+# ============================================================================
+# 🔧 Cal_boundary Common Package  
+# ============================================================================
+
+"""
+공통 기능 패키지
+
+ReactFlow 기반 서비스에서 사용하는 공통 기능들을 포함합니다.
+각 ReactFlow 도메인에서 공통으로 사용되는 유틸리티들이 여기에 위치합니다.
+
+🔄 ReactFlow 공통 기능:
+- Node 도메인: ReactFlow 노드 관리
+- Edge 도메인: ReactFlow 엣지 관리  
+- Flow 도메인: ReactFlow 플로우 관리
+- Handler 도메인: ReactFlow 이벤트 핸들러 관리
+"""
+
+from .settings import settings
+
+__all__ = ["settings"]

@@ -109,13 +109,10 @@ async def chatbot_chat(data: dict):
             
             if response.status_code == 200:
                 response_data = response.json()
-                gateway_logger.log_info(f"Chatbot 응답 성공")
+                gateway_logger.log_info(f"Chatbot 응답 성공: {response_data}")
                 
-                return {
-                    "message": "Chatbot 응답이 성공적으로 처리되었습니다",
-                    "status": "success",
-                    "data": response_data
-                }
+                # 챗봇 서비스 응답을 그대로 전달
+                return response_data
             else:
                 gateway_logger.log_error(f"Chatbot 서비스 응답 오류: {response.status_code}")
                 raise HTTPException(

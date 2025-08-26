@@ -15,6 +15,9 @@ ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "https://greensteel.site,https://
 ALLOWED_ORIGIN_REGEX = os.getenv("ALLOWED_ORIGIN_REGEX", "^https://.*\\.vercel\\.app$|^https://.*\\.up\\.railway\\.app$")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
+# 서비스 URL 환경 변수
+CHATBOT_SERVICE_URL = os.getenv("CHATBOT_SERVICE_URL", "http://localhost:8084")
+
 # CORS 허용 오리진 파싱
 allowed_origins = [origin.strip() for origin in ALLOWED_ORIGINS.split(",") if origin.strip()]
 
@@ -24,7 +27,7 @@ async def lifespan(app: FastAPI):
     # 시작 시
     gateway_logger.log_info(f"Gateway {GATEWAY_NAME} starting up...")
     gateway_logger.log_info("Architecture: DDD (Domain-Driven Design)")
-    gateway_logger.log_info("Domain Services: Identity-Access, Carbon-Border, Data-Collection, Lifecycle-Inventory")
+    gateway_logger.log_info("Domain Services: Identity-Access, Carbon-Border, Data-Collection, Lifecycle-Inventory, AI-Assistant")
     yield
     # 종료 시
     gateway_logger.log_info(f"Gateway {GATEWAY_NAME} shutting down...")
@@ -89,6 +92,83 @@ async def robots():
         content="User-agent: *\nDisallow: /api/\nDisallow: /auth/\nDisallow: /geo/", 
         media_type="text/plain"
     )
+
+# Chatbot 서비스 연결 엔드포인트
+@app.post("/chatbot/chat")
+async def chatbot_chat(data: dict):
+    """Chatbot 서비스로 채팅 요청을 전달합니다."""
+    try:
+        gateway_logger.log_info(f"Chatbot 채팅 요청 받음: {data.get('message', 'unknown')}")
+        
+        # chatbot_service로 채팅 요청 전송 (포트 8084)
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                f"{CHATBOT_SERVICE_URL}/api/v1/chatbot/chat",
+                json=data
+            )
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                gateway_logger.log_info(f"Chatbot 응답 성공")
+                
+                return {
+                    "message": "Chatbot 응답이 성공적으로 처리되었습니다",
+                    "status": "success",
+                    "data": response_data
+                }
+            else:
+                gateway_logger.log_error(f"Chatbot 서비스 응답 오류: {response.status_code}")
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"Chatbot 서비스 오류: {response.text}"
+                )
+                
+    except httpx.TimeoutException:
+        gateway_logger.log_error("Chatbot 서비스 연결 시간 초과")
+        raise HTTPException(status_code=504, detail="Chatbot 서비스 연결 시간 초과")
+    except httpx.ConnectError:
+        gateway_logger.log_error("Chatbot 서비스 연결 실패")
+        raise HTTPException(status_code=503, detail="Chatbot 서비스에 연결할 수 없습니다")
+    except Exception as e:
+        gateway_logger.log_error(f"Chatbot 처리 중 오류 발생: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Chatbot 오류: {str(e)}")
+
+# Chatbot 서비스 상태 확인 엔드포인트
+@app.get("/chatbot/health")
+async def chatbot_health():
+    """Chatbot 서비스 상태를 확인합니다."""
+    try:
+        gateway_logger.log_info("Chatbot 서비스 상태 확인 요청")
+        
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(f"{CHATBOT_SERVICE_URL}/health")
+            
+            if response.status_code == 200:
+                health_data = response.json()
+                gateway_logger.log_info(f"Chatbot 서비스 상태: {health_data.get('status', 'unknown')}")
+                
+                return {
+                    "message": "Chatbot 서비스 상태 확인 성공",
+                    "status": "success",
+                    "chatbot_status": health_data.get('status', 'unknown'),
+                    "data": health_data
+                }
+            else:
+                gateway_logger.log_error(f"Chatbot 서비스 상태 확인 오류: {response.status_code}")
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"Chatbot 서비스 상태 확인 오류: {response.text}"
+                )
+                
+    except httpx.TimeoutException:
+        gateway_logger.log_error("Chatbot 서비스 상태 확인 시간 초과")
+        raise HTTPException(status_code=504, detail="Chatbot 서비스 상태 확인 시간 초과")
+    except httpx.ConnectError:
+        gateway_logger.log_error("Chatbot 서비스 연결 실패")
+        raise HTTPException(status_code=503, detail="Chatbot 서비스에 연결할 수 없습니다")
+    except Exception as e:
+        gateway_logger.log_error(f"Chatbot 상태 확인 중 오류 발생: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Chatbot 상태 확인 오류: {str(e)}")
 
 # JSON 데이터를 datagather_service로 전송하는 엔드포인트
 @app.post("/process-data")
@@ -344,6 +424,12 @@ async def architecture_info():
                 "service": "Life Cycle Inventory Service",
                 "port": "8084",
                 "paths": ["/lci/*"]
+            },
+            "ai-assistant": {
+                "description": "AI 어시스턴트 서비스",
+                "service": "AI Assistant Service",
+                "port": "8084",
+                "paths": ["/chatbot/*"]
             }
         },
         "features": {
@@ -388,13 +474,16 @@ async def root():
             "documentation": "/docs",
             "ai_processing": "/ai-process",
             "feedback": "/feedback",
-            "data_upload": "/input-data, /output-data"
+            "data_upload": "/input-data, /output-data",
+            "chatbot_chat": "/chatbot/chat",
+            "chatbot_health": "/chatbot/health"
         },
         "domains": [
             "identity-access (포트 8081)",
             "carbon-border (포트 8082)",
             "data-collection (포트 8083) - AI 처리 포함",
-            "lifecycle-inventory (포트 8084)"
+            "lifecycle-inventory (포트 8084)",
+            "ai-assistant (포트 8084)"
         ]
     }
 

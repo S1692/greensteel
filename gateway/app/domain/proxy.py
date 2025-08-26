@@ -31,7 +31,10 @@ class ProxyController:
             # ESG 관리 도메인
             "/cbam": self._clean_service_url(os.getenv("CBAM_SERVICE_URL", "http://localhost:8082")),
             "/datagather": self._clean_service_url(os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")),
-            "/lci": self._clean_service_url(os.getenv("LCI_SERVICE_URL", "http://localhost:8084")),
+            "/lci": self._clean_service_url(os.getenv("LCI_SERVICE_URL", "http://localhost:8083")),
+            
+            # AI 어시스턴트 도메인
+            "/chatbot": self._clean_service_url(os.getenv("CHATBOT_SERVICE_URL", "http://localhost:8084")),
         }
         
         # HTTP 클라이언트 설정 - DDD 패턴에 맞는 타임아웃 설정
@@ -257,6 +260,8 @@ class ProxyController:
             return "data-collection"
         elif path.startswith("/lci"):
             return "lifecycle-inventory"
+        elif path.startswith("/chatbot"):
+            return "ai-assistant"
         else:
             return "unknown"
     
@@ -391,7 +396,8 @@ class ProxyController:
                 "identity-access": "configured" if self.service_map.get("/auth") else "not configured",
                 "carbon-border": "configured" if self.service_map.get("/cbam") else "not configured",
                 "data-collection": "configured" if self.service_map.get("/datagather") else "not configured",
-                "lifecycle-inventory": "configured" if self.service_map.get("/lci") else "not configured"
+                "lifecycle-inventory": "configured" if self.service_map.get("/lci") else "not configured",
+                "ai-assistant": "configured" if self.service_map.get("/chatbot") else "not configured"
             }
         }
     
@@ -416,7 +422,8 @@ class ProxyController:
             "/api": "identity-access",
             "/cbam": "carbon-border",
             "/datagather": "data-collection",
-            "/lci": "lifecycle-inventory"
+            "/lci": "lifecycle-inventory",
+            "/chatbot": "ai-assistant"
         }
         
         for prefix, domain_name in domain_mapping.items():
@@ -467,6 +474,12 @@ class ProxyController:
                     "service": "Life Cycle Inventory Service",
                     "port": "8084",
                     "description": "생명주기 평가 및 인벤토리"
+                },
+                "ai-assistant": {
+                    "paths": ["/chatbot/*"],
+                    "service": "AI Assistant Service",
+                    "port": "8084",
+                    "description": "AI 어시스턴트 기능"
                 }
             },
             "supported_methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],

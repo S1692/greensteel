@@ -32,7 +32,7 @@ const DashboardPage: React.FC = () => {
         setGatewayStatus('disconnected');
         return;
       }
-      const response = await fetch(`${gatewayUrl}/api/health`);
+      const response = await fetch(`${gatewayUrl}/chatbot/health`);
       if (response.ok) {
         setGatewayStatus('connected');
       } else {
@@ -65,7 +65,7 @@ const DashboardPage: React.FC = () => {
           console.error('Gateway URL 환경변수가 설정되지 않았습니다.');
           return;
         }
-        const response = await fetch(`${gatewayUrl}/api/ai-process`, {
+        const response = await fetch(`${gatewayUrl}/chatbot/chat`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

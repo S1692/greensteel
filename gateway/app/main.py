@@ -210,7 +210,7 @@ async def process_data_to_datagather(data: dict):
         gateway_logger.log_error(f"게이트웨이 처리 중 오류 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=f"게이트웨이 오류: {str(e)}")
 
-# AI 모델을 활용한 데이터 처리 엔드포인트
+# AI 모델을 활용한 데이터 처리 엔드포인트 (기존 datagather용)
 @app.post("/ai-process")
 async def ai_process_data(data: dict):
     """AI 모델을 활용하여 투입물명을 자동으로 수정합니다."""

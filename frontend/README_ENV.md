@@ -32,8 +32,9 @@ NODE_ENV=development
 
 Gateway 서버가 다음 엔드포인트를 제공해야 합니다:
 
-- `GET /api/health` - 서버 상태 확인
-- `POST /api/ai-process` - 챗봇 AI 처리
+- `GET /health` - Gateway 상태 확인
+- `GET /chatbot/health` - 챗봇 서비스 상태 확인
+- `POST /chatbot/chat` - 챗봇 채팅 요청
 
 ### 4. 챗봇 서비스 설정
 

@@ -41,7 +41,7 @@ Gateway 서버가 다음 엔드포인트를 제공해야 합니다:
 
 ```bash
 # 챗봇 서비스 직접 연결 (Gateway 우회)
-CHATBOT_SERVICE_URL=http://localhost:8004
+CHATBOT_SERVICE_URL=http://localhost:8084
 NEXT_PUBLIC_CHATBOT_DIRECT_ACCESS=false
 ```
 
@@ -64,7 +64,7 @@ pnpm dev
 NEXT_PUBLIC_API_BASE=http://localhost:8000
 NEXT_PUBLIC_CHATBOT_ENABLED=true
 NEXT_PUBLIC_CHATBOT_TIMEOUT=30000
-CHATBOT_SERVICE_URL=http://localhost:8004
+CHATBOT_SERVICE_URL=http://localhost:8084
 NEXT_PUBLIC_CHATBOT_DIRECT_ACCESS=false
 NODE_ENV=development
 ```

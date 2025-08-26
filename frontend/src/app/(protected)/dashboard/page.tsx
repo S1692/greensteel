@@ -25,21 +25,21 @@ const DashboardPage: React.FC = () => {
   const checkGatewayStatus = async () => {
     try {
       setGatewayStatus('connecting');
-      // 챗봇 서비스에 직접 연결
-      const chatbotUrl = process.env.CHATBOT_SERVICE_URL;
-      if (!chatbotUrl) {
-        console.error('CHATBOT_SERVICE_URL 환경변수가 설정되지 않았습니다.');
+      // Gateway를 통해 연결 상태 확인
+      const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || process.env.NEXT_PUBLIC_API_BASE;
+      if (!gatewayUrl) {
+        console.error('Gateway URL 환경변수가 설정되지 않았습니다.');
         setGatewayStatus('disconnected');
         return;
       }
-      const response = await fetch(`${chatbotUrl}/health`);
+      const response = await fetch(`${gatewayUrl}/api/health`);
       if (response.ok) {
         setGatewayStatus('connected');
       } else {
         setGatewayStatus('disconnected');
       }
     } catch (error) {
-      console.error('챗봇 서비스 연결 확인 실패:', error);
+      console.error('Gateway 연결 확인 실패:', error);
       setGatewayStatus('disconnected');
     }
   };
@@ -59,13 +59,13 @@ const DashboardPage: React.FC = () => {
       setIsLoading(true);
 
       try {
-        // 챗봇 서비스에 직접 호출
-        const chatbotUrl = process.env.CHATBOT_SERVICE_URL;
-        if (!chatbotUrl) {
-          console.error('CHATBOT_SERVICE_URL 환경변수가 설정되지 않았습니다.');
+        // Gateway를 통해 챗봇 서비스 호출
+        const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || process.env.NEXT_PUBLIC_API_BASE;
+        if (!gatewayUrl) {
+          console.error('Gateway URL 환경변수가 설정되지 않았습니다.');
           return;
         }
-        const response = await fetch(`${chatbotUrl}/api/v1/chatbot/chat`, {
+        const response = await fetch(`${gatewayUrl}/api/ai-process`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -193,7 +193,7 @@ const DashboardPage: React.FC = () => {
             </button>
           </div>
           <div className='mt-2 text-xs text-white/50'>
-            서버 주소: {process.env.CHATBOT_SERVICE_URL || '환경변수 미설정'}
+            Gateway 주소: {process.env.NEXT_PUBLIC_GATEWAY_URL || process.env.NEXT_PUBLIC_API_BASE || '환경변수 미설정'}
           </div>
         </div>
 

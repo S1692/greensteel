@@ -35,14 +35,14 @@ Gateway 서버가 다음 엔드포인트를 제공해야 합니다:
 - `GET /api/health` - 서버 상태 확인
 - `POST /api/ai-process` - 챗봇 AI 처리
 
-### 4. 챗봇 서비스 설정 (새로 추가)
+### 4. 챗봇 서비스 설정
 
-챗봇 서비스가 별도로 실행되는 경우 다음 설정을 추가하세요:
+챗봇 서비스는 Gateway를 통해 접근합니다:
 
 ```bash
-# 챗봇 서비스 직접 연결 (Gateway 우회)
-CHATBOT_SERVICE_URL=https://your-chatbot-service.railway.app
-NEXT_PUBLIC_CHATBOT_DIRECT_ACCESS=false
+# Gateway를 통한 챗봇 접근 (권장)
+# CHATBOT_SERVICE_URL은 Gateway 내부에서만 사용
+# 프론트엔드는 Gateway의 /api/ai-process 엔드포인트 사용
 ```
 
 **중요: 챗봇 서비스는 포트 8084에서 실행됩니다.**

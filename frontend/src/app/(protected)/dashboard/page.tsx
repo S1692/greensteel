@@ -26,7 +26,12 @@ const DashboardPage: React.FC = () => {
     try {
       setGatewayStatus('connecting');
       // 챗봇 서비스에 직접 연결
-      const chatbotUrl = process.env.CHATBOT_SERVICE_URL || 'http://localhost:8084';
+      const chatbotUrl = process.env.CHATBOT_SERVICE_URL;
+      if (!chatbotUrl) {
+        console.error('CHATBOT_SERVICE_URL 환경변수가 설정되지 않았습니다.');
+        setGatewayStatus('disconnected');
+        return;
+      }
       const response = await fetch(`${chatbotUrl}/health`);
       if (response.ok) {
         setGatewayStatus('connected');
@@ -55,7 +60,11 @@ const DashboardPage: React.FC = () => {
 
       try {
         // 챗봇 서비스에 직접 호출
-        const chatbotUrl = process.env.CHATBOT_SERVICE_URL || 'http://localhost:8084';
+        const chatbotUrl = process.env.CHATBOT_SERVICE_URL;
+        if (!chatbotUrl) {
+          console.error('CHATBOT_SERVICE_URL 환경변수가 설정되지 않았습니다.');
+          return;
+        }
         const response = await fetch(`${chatbotUrl}/api/v1/chatbot/chat`, {
           method: 'POST',
           headers: {
@@ -184,7 +193,7 @@ const DashboardPage: React.FC = () => {
             </button>
           </div>
           <div className='mt-2 text-xs text-white/50'>
-            서버 주소: {process.env.CHATBOT_SERVICE_URL || 'http://localhost:8084'}
+            서버 주소: {process.env.CHATBOT_SERVICE_URL || '환경변수 미설정'}
           </div>
         </div>
 

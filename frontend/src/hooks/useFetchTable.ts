@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getJSON } from '@/lib/http';
+import { getJSON } from '@/lib';
 
 type FetchStatus = 'idle' | 'loading' | 'error' | 'success';
 

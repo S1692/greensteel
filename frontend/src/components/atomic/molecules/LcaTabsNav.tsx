@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Tabs from '@/components/atomic/atoms/Tabs';
-import { LcaTabKey, ManageSegment } from '@/lib/lcaEndpoints';
+import { LcaTabKey, ManageSegment } from '@/lib';
 
 interface LcaTabsNavProps {
   activeTab: LcaTabKey | 'manage';

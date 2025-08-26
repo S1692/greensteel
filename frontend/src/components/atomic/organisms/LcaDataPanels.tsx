@@ -2,7 +2,7 @@
 
 import React from 'react';
 import LcaTableView from './LcaTableView';
-import { LCA_ENDPOINTS, LcaTabKey, ManageSegment } from '@/lib/lcaEndpoints';
+import { LCA_ENDPOINTS, LcaTabKey, ManageSegment } from '@/lib';
 
 interface LcaDataPanelsProps {
   activeTab: LcaTabKey | 'manage';

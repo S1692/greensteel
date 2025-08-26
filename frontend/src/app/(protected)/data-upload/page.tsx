@@ -6,7 +6,7 @@ import { Upload, FileText, Database, Brain, CheckCircle, AlertCircle, ArrowRight
 import { Button } from '@/components/atomic/atoms';
 import { Input } from '@/components/atomic/atoms';
 import TabGroup from '@/components/atomic/molecules/TabGroup';
-import { parseExcel, createColumns } from '@/lib/excel';
+import { parseExcel, createColumns } from '@/lib';
 
 type TabKey = 'standard' | 'actual' | 'classification' | 'transport' | 'process';
 

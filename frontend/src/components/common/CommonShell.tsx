@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { cn } from '@/lib/utils';
-import { env } from '@/lib/env';
+import { cn, env } from '@/lib';
 import {
   Menu,
   X,

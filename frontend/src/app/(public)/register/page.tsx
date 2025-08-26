@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import AddressSearchModal from '@/components/common/AddressSearchModal';
-import { enhanceAddressWithEnglish } from '@/lib/addressConverter';
+import { enhanceAddressWithEnglish } from '@/lib';
 
 
 

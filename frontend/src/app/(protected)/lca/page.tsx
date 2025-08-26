@@ -5,7 +5,7 @@ import CommonShell from '@/components/common/CommonShell';
 import LcaTabsNav from '@/components/atomic/molecules/LcaTabsNav';
 import LcaDataPanels from '@/components/atomic/organisms/LcaDataPanels';
 import InfoPanel from '@/components/atomic/molecules/InfoPanel';
-import { LcaTabKey, ManageSegment } from '@/lib/lcaEndpoints';
+import { LcaTabKey, ManageSegment } from '@/lib';
 
 const LcaPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<LcaTabKey | 'manage'>('base');

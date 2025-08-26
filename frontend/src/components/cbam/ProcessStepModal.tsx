@@ -1,18 +1,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Save, Settings } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { X, Save, Trash2 } from 'lucide-react';
 import { Node } from '@xyflow/react';
 
 interface ProcessStepData extends Record<string, unknown> {
   name: string;
-  type: 'input' | 'process' | 'output' | 'transport' | 'storage';
+  type: 'input' | 'process' | 'output';
   description: string;
   parameters: Record<string, any>;
-  status: 'active' | 'inactive' | 'error' | 'warning';
-  carbonIntensity?: number;
-  energyConsumption?: number;
-  materialFlow?: number;
+  status: 'active' | 'inactive' | 'error';
 }
 
 interface ProcessStepModalProps {
@@ -22,12 +20,12 @@ interface ProcessStepModalProps {
   onSave: (data: ProcessStepData) => void;
 }
 
-const ProcessStepModal: React.FC<ProcessStepModalProps> = ({
+export default function ProcessStepModal({
   isOpen,
   onClose,
   node,
   onSave,
-}) => {
+}: ProcessStepModalProps) {
   const [formData, setFormData] = useState<ProcessStepData>({
     name: '',
     type: 'process',
@@ -39,19 +37,11 @@ const ProcessStepModal: React.FC<ProcessStepModalProps> = ({
   const [newParameterKey, setNewParameterKey] = useState('');
   const [newParameterValue, setNewParameterValue] = useState('');
 
-  // 노드 데이터가 변경될 때 폼 데이터 업데이트
   useEffect(() => {
     if (node) {
       setFormData(node.data);
     }
   }, [node]);
-
-  // 모달이 열릴 때마다 폼 초기화
-  useEffect(() => {
-    if (isOpen && node) {
-      setFormData(node.data);
-    }
-  }, [isOpen, node]);
 
   const handleInputChange = (field: keyof ProcessStepData, value: any) => {
     setFormData(prev => ({
@@ -70,15 +60,7 @@ const ProcessStepModal: React.FC<ProcessStepModalProps> = ({
     }));
   };
 
-  const addParameter = () => {
-    if (newParameterKey.trim() && newParameterValue.trim()) {
-      handleParameterChange(newParameterKey.trim(), newParameterValue.trim());
-      setNewParameterKey('');
-      setNewParameterValue('');
-    }
-  };
-
-  const removeParameter = (key: string) => {
+  const handleParameterDelete = (key: string) => {
     setFormData(prev => {
       const newParameters = { ...prev.parameters };
       delete newParameters[key];
@@ -87,6 +69,14 @@ const ProcessStepModal: React.FC<ProcessStepModalProps> = ({
         parameters: newParameters,
       };
     });
+  };
+
+  const addParameter = () => {
+    if (newParameterKey.trim() && newParameterValue.trim()) {
+      handleParameterChange(newParameterKey.trim(), newParameterValue.trim());
+      setNewParameterKey('');
+      setNewParameterValue('');
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -102,215 +92,157 @@ const ProcessStepModal: React.FC<ProcessStepModalProps> = ({
       parameters: {},
       status: 'active',
     });
+    setNewParameterKey('');
+    setNewParameterValue('');
     onClose();
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        {/* 헤더 */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <Settings className="h-6 w-6 text-blue-600" />
-            <h2 className="text-xl font-semibold text-gray-900">
-              프로세스 단계 편집
-            </h2>
-          </div>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-gray-900 border border-white/20 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-white">
+            {node ? '프로세스 단계 편집' : '새 프로세스 단계'}
+          </h2>
           <button
             onClick={handleClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="text-white/60 hover:text-white"
           >
-            <X className="h-5 w-5 text-gray-500" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* 폼 */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* 기본 정보 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                단계 이름 *
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="예: 고로 공정"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                단계 유형 *
-              </label>
-              <select
-                value={formData.type}
-                onChange={(e) => handleInputChange('type', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="input">📥 입력 (Input)</option>
-                <option value="process">⚙️ 처리 (Process)</option>
-                <option value="transport">🚚 운송 (Transport)</option>
-                <option value="storage">📦 저장 (Storage)</option>
-                <option value="output">📤 출력 (Output)</option>
-              </select>
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-white/80 mb-1">
+              단계 이름
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+              placeholder="단계 이름을 입력하세요"
+              required
+            />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-white/80 mb-1">
+              단계 유형
+            </label>
+            <select
+              value={formData.type}
+              onChange={(e) => handleInputChange('type', e.target.value)}
+              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+            >
+              <option value="input">입력</option>
+              <option value="process">처리</option>
+              <option value="output">출력</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-white/80 mb-1">
               설명
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => handleInputChange('description', e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="이 단계에 대한 상세 설명을 입력하세요"
+              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+              placeholder="단계에 대한 설명을 입력하세요"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-white/80 mb-1">
               상태
             </label>
             <select
               value={formData.status}
               onChange={(e) => handleInputChange('status', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
             >
-              <option value="active">🟢 활성 (Active)</option>
-              <option value="inactive">⚪ 비활성 (Inactive)</option>
-              <option value="warning">🟡 경고 (Warning)</option>
-              <option value="error">🔴 오류 (Error)</option>
+              <option value="active">활성</option>
+              <option value="inactive">비활성</option>
+              <option value="error">오류</option>
             </select>
           </div>
 
-          {/* 환경 영향 지표 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                🏭 탄소 배출량 (tCO2/t)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.carbonIntensity || ''}
-                onChange={(e) => handleInputChange('carbonIntensity', parseFloat(e.target.value) || undefined)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="0.00"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                ⚡ 에너지 소비량 (GJ/t)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.energyConsumption || ''}
-                onChange={(e) => handleInputChange('energyConsumption', parseFloat(e.target.value) || undefined)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="0.00"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                📊 물질 흐름 (t/h)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.materialFlow || ''}
-                onChange={(e) => handleInputChange('materialFlow', parseFloat(e.target.value) || undefined)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="0.00"
-              />
-            </div>
-          </div>
-
-          {/* 파라미터 관리 */}
+          {/* 매개변수 관리 */}
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">파라미터</h3>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newParameterKey}
-                  onChange={(e) => setNewParameterKey(e.target.value)}
-                  placeholder="파라미터 이름"
-                  className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input
-                  type="text"
-                  value={newParameterValue}
-                  onChange={(e) => setNewParameterValue(e.target.value)}
-                  placeholder="값"
-                  className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button
-                  type="button"
-                  onClick={addParameter}
-                  className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 transition-colors"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* 기존 파라미터 목록 */}
-            <div className="space-y-2">
-              {Object.entries(formData.parameters).map(([key, value]) => (
-                <div key={key} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-                  <div className="flex-1">
-                    <span className="font-medium text-gray-900">{key}:</span>
-                    <span className="ml-2 text-gray-600">{String(value)}</span>
+            <label className="block text-sm font-medium text-white/80 mb-2">
+              매개변수
+            </label>
+            
+            {/* 기존 매개변수 표시 */}
+            {Object.keys(formData.parameters).length > 0 && (
+              <div className="space-y-2 mb-3">
+                {Object.entries(formData.parameters).map(([key, value]) => (
+                  <div key={key} className="flex items-center gap-2 p-2 bg-white/5 rounded">
+                    <span className="text-white/80 text-sm flex-1">{key}</span>
+                    <span className="text-white text-sm flex-1">{String(value)}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleParameterDelete(key)}
+                      className="text-red-400 hover:text-red-300"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => removeParameter(key)}
-                    className="p-1 text-red-600 hover:bg-red-100 rounded transition-colors"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-              {Object.keys(formData.parameters).length === 0 && (
-                <div className="text-center py-4 text-gray-500">
-                  파라미터가 없습니다. 위에서 추가해보세요.
-                </div>
-              )}
+                ))}
+              </div>
+            )}
+
+            {/* 새 매개변수 추가 */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newParameterKey}
+                onChange={(e) => setNewParameterKey(e.target.value)}
+                placeholder="키"
+                className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+              />
+              <input
+                type="text"
+                value={newParameterValue}
+                onChange={(e) => setNewParameterValue(e.target.value)}
+                placeholder="값"
+                className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+              />
+              <Button
+                type="button"
+                onClick={addParameter}
+                className="bg-blue-600 hover:bg-blue-700 px-3 py-2"
+              >
+                추가
+              </Button>
             </div>
           </div>
 
           {/* 액션 버튼 */}
-          <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
-            <button
+          <div className="flex gap-3 pt-4">
+            <Button
+              type="submit"
+              className="flex-1 bg-primary hover:bg-primary/90"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              저장
+            </Button>
+            <Button
               type="button"
               onClick={handleClose}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+              className="flex-1 bg-gray-600 hover:bg-gray-700"
             >
               취소
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2"
-            >
-              <Save className="h-4 w-4" />
-              저장
-            </button>
+            </Button>
           </div>
         </form>
       </div>
     </div>
   );
-};
-
-export default ProcessStepModal;
+}

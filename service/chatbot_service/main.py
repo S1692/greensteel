@@ -41,6 +41,16 @@ async def lifespan(app: FastAPI):
         chatbot_service = ChatbotService()
         await chatbot_service.initialize()
         chatbot_logger.info("LangChain and OpenAI initialized successfully")
+        
+        # 지식 베이스 로드 상태 확인
+        kb_info = await chatbot_service.get_knowledge_base_info()
+        if kb_info.get("loaded"):
+            chatbot_logger.info("Knowledge base loaded successfully")
+            chatbot_logger.info(f"Vector store: {kb_info.get('vectorstore_type')}")
+            chatbot_logger.info(f"Collection: {kb_info.get('collection_name')}")
+        else:
+            chatbot_logger.warning("Knowledge base not loaded")
+            
     except Exception as e:
         chatbot_logger.error(f"LangChain initialization failed: {str(e)}")
         chatbot_logger.warning("Service will continue without LangChain initialization")

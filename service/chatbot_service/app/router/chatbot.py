@@ -125,3 +125,31 @@ async def search_knowledge_base(query: KnowledgeBaseQuery):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"지식 검색 중 오류가 발생했습니다: {str(e)}")
+
+@router.get("/knowledge/info")
+async def get_knowledge_base_info():
+    """지식 베이스 정보 조회"""
+    try:
+        info = await chatbot_service.get_knowledge_base_info()
+        return {
+            "success": True,
+            "message": "지식 베이스 정보를 성공적으로 조회했습니다.",
+            "data": info
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"지식 베이스 정보 조회 중 오류가 발생했습니다: {str(e)}")
+
+@router.post("/knowledge/reload")
+async def reload_knowledge_base():
+    """지식 베이스 재로드"""
+    try:
+        await chatbot_service._load_knowledge_base()
+        return {
+            "success": True,
+            "message": "지식 베이스가 성공적으로 재로드되었습니다.",
+            "data": await chatbot_service.get_knowledge_base_info()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"지식 베이스 재로드 중 오류가 발생했습니다: {str(e)}")

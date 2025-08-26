@@ -41,7 +41,7 @@ Gateway 서버가 다음 엔드포인트를 제공해야 합니다:
 
 ```bash
 # 챗봇 서비스 직접 연결 (Gateway 우회)
-NEXT_PUBLIC_CHATBOT_SERVICE_URL=http://localhost:8004
+CHATBOT_SERVICE_URL=http://localhost:8004
 NEXT_PUBLIC_CHATBOT_DIRECT_ACCESS=false
 ```
 
@@ -64,7 +64,7 @@ pnpm dev
 NEXT_PUBLIC_API_BASE=http://localhost:8000
 NEXT_PUBLIC_CHATBOT_ENABLED=true
 NEXT_PUBLIC_CHATBOT_TIMEOUT=30000
-NEXT_PUBLIC_CHATBOT_SERVICE_URL=http://localhost:8004
+CHATBOT_SERVICE_URL=http://localhost:8004
 NEXT_PUBLIC_CHATBOT_DIRECT_ACCESS=false
 NODE_ENV=development
 ```
@@ -74,7 +74,7 @@ NODE_ENV=development
 NEXT_PUBLIC_API_BASE=https://api.greensteel.com
 NEXT_PUBLIC_CHATBOT_ENABLED=true
 NEXT_PUBLIC_CHATBOT_TIMEOUT=30000
-NEXT_PUBLIC_CHATBOT_SERVICE_URL=https://chatbot.greensteel.com
+CHATBOT_SERVICE_URL=https://chatbot.greensteel.com
 NEXT_PUBLIC_CHATBOT_DIRECT_ACCESS=false
 NODE_ENV=production
 ```
@@ -107,6 +107,6 @@ Frontend → Chatbot Service (8004)
 
 ### 챗봇 서비스 직접 연결 시
 1. `NEXT_PUBLIC_CHATBOT_DIRECT_ACCESS=true` 설정
-2. `NEXT_PUBLIC_CHATBOT_SERVICE_URL` 설정 확인
+2. `CHATBOT_SERVICE_URL` 설정 확인
 3. 챗봇 서비스의 CORS 설정 확인
 4. OpenAI API 키가 챗봇 서비스에 설정되었는지 확인

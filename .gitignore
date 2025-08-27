@@ -1,6 +1,12 @@
 # Filtering folder (AI service - exclude from frontend commit)
 service/datagather_service/app/filtering/
 
+# Large model files (exceed GitHub 100MB limit)
+service/datagather_service/app/data/studied/**/*.safetensors
+service/datagather_service/app/data/studied/**/*.bin
+service/datagather_service/app/data/studied/**/*.pkl
+service/datagather_service/app/data/studied/**/model_v24/
+
 # Python cache files
 __pycache__/
 *.pyc

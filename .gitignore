@@ -48,3 +48,51 @@ next-env.d.ts
 
 # OS
 Thumbs.db
+
+# Python
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.env
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite3
+
+# Project specific
+*.pyc
+*.pyo
+*.pyd
+*.dll
+*.dylib
+*.zip
+*.tar.gz
+*.rar
+*.7z

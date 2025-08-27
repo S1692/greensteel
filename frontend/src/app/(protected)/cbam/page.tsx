@@ -5,7 +5,7 @@ import { ReactFlowProvider } from '@xyflow/react';
 import ProcessManager from '@/components/cbam/ProcessManager';
 import CommonShell from '@/components/common/CommonShell';
 import axiosClient from '@/lib/axiosClient';
-import { Plus, Download, Upload, FileText, Settings, BarChart3, Calculator, Database, Globe, Truck, Factory, Package, GitBranch } from 'lucide-react';
+import { Plus, Download, Upload, FileText, Settings, BarChart3, Calculator, Database, Globe, Truck, Factory, Package, GitBranch, Building2, Network, RefreshCcw, ChevronDown, ArrowUp, Trash2 } from 'lucide-react';
 
 // ============================================================================
 // 🚀 CBAM 페이지 - 탄소국경조정메커니즘 통합 관리
@@ -15,6 +15,13 @@ export default function CBAMPage() {
   const [activeTab, setActiveTab] = useState<
     'overview' | 'install' | 'flow' | 'reports' | 'settings'
   >('overview');
+
+  // 사업장 관리 관련 상태
+  const [businessSiteName, setBusinessSiteName] = useState<string>('');
+  const [reportingYear, setReportingYear] = useState<string>('2025');
+  const [registeredSites, setRegisteredSites] = useState<Array<{ id: number; name: string; reportingYear: string }>>([
+    { id: 11, name: '포항제철소', reportingYear: '2025' } // 이미지에 보이는 예시 데이터
+  ]);
 
   // CBAM 계산 관련 상태
   const [calculationData, setCalculationData] = useState({
@@ -54,6 +61,53 @@ export default function CBAMPage() {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
+  // 사업장 추가 함수
+  const handleAddBusinessSite = useCallback(() => {
+    if (businessSiteName && reportingYear) {
+      const newSite = {
+        id: registeredSites.length > 0 ? Math.max(...registeredSites.map(site => site.id)) + 1 : 1,
+        name: businessSiteName,
+        reportingYear: reportingYear,
+      };
+      setRegisteredSites(prev => [...prev, newSite]);
+      setBusinessSiteName(''); // 입력 필드 초기화
+      setToast({
+        message: '사업장이 성공적으로 생성되었습니다!',
+        type: 'success'
+      });
+    } else {
+      setToast({
+        message: '사업장명과 보고기간을 입력해주세요.',
+        type: 'error'
+      });
+    }
+  }, [businessSiteName, reportingYear, registeredSites]);
+
+  // 사업장 삭제 함수
+  const handleDeleteBusinessSite = useCallback((id: number) => {
+    setRegisteredSites(prev => prev.filter(site => site.id !== id));
+    setToast({
+      message: '사업장이 삭제되었습니다.',
+      type: 'info'
+    });
+  }, []);
+
+  // 제품 관리 페이지로 이동 (모의 함수)
+  const handleManageProducts = useCallback((siteId: number) => {
+    setToast({
+      message: `사업장 ID ${siteId}의 제품 관리 페이지로 이동합니다.`,
+      type: 'info'
+    });
+  }, []);
+
+  // 전체 제품 관리 페이지로 이동 (모의 함수)
+  const handleOverallProductManagement = useCallback(() => {
+    setToast({
+      message: '전체 제품 관리 페이지로 이동합니다.',
+      type: 'info'
+    });
+  }, []);
+
   // 제품 불러오기
   const fetchProducts = useCallback(async () => {
     try {
@@ -64,6 +118,7 @@ export default function CBAMPage() {
         { product_id: 'dummy-1', name: '테스트 제품 1', cn_code: '7208.51.00', production_qty: 1000, sales_qty: 800, export_qty: 200, inventory_qty: 150, defect_rate: 0.05, period_start: '2024-01-01', period_end: '2024-12-31' },
         { product_id: 'dummy-2', name: '테스트 제품 2', cn_code: '7208.52.00', production_qty: 2000, sales_qty: 1800, export_qty: 400, inventory_qty: 300, defect_rate: 0.03, period_start: '2024-01-01', period_end: '2024-12-31' },
         { product_id: 'dummy-3', name: '테스트 제품 3', cn_code: '7208.53.00', production_qty: 1500, sales_qty: 1200, export_qty: 300, inventory_qty: 200, defect_rate: 0.07, period_start: '2024-01-01', period_end: '2024-12-31' },
+        { product_id: 'dummy-4', name: '고품질 철강 제품', cn_code: '7208.54.00', production_qty: 2500, sales_qty: 2200, export_qty: 500, inventory_qty: 400, defect_rate: 0.02, period_start: '2024-01-01', period_end: '2024-12-31' },
       ]);
     }
   }, []);
@@ -201,14 +256,12 @@ export default function CBAMPage() {
         <h3 className='stitch-h1 text-xl font-semibold mb-4'>주요 지표</h3>
         <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
           <div className='p-4 bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-lg border border-blue-500/30'>
-            <div className='text-2xl font-bold text-blue-400 mb-1'>{products.length}</div>
-            <div className='text-sm text-blue-300'>등록된 제품</div>
+            <div className='text-2xl font-bold text-blue-400 mb-1'>{registeredSites.length}</div>
+            <div className='text-sm text-blue-300'>등록된 사업장</div>
           </div>
           <div className='p-4 bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-lg border border-green-500/30'>
-            <div className='text-2xl font-bold text-green-400 mb-1'>
-              {products.reduce((sum, p) => sum + (p.export_qty || 0), 0).toLocaleString()}
-            </div>
-            <div className='text-sm text-green-300'>총 수출량 (톤)</div>
+            <div className='text-2xl font-bold text-green-400 mb-1'>{products.length}</div>
+            <div className='text-sm text-green-300'>등록된 제품</div>
           </div>
           <div className='p-4 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-lg border border-purple-500/30'>
             <div className='text-2xl font-bold text-purple-400 mb-1'>
@@ -229,32 +282,129 @@ export default function CBAMPage() {
 
   const renderInstall = () => (
     <div className='space-y-6'>
+      {/* 사업장 생성 섹션 */}
       <div className='stitch-card p-6'>
         <h3 className='stitch-h1 text-xl font-semibold mb-4 flex items-center gap-2'>
-          <Package className='w-5 h-5 text-blue-400' />
-          CBAM 설치 및 설정
+          <Building2 className='w-5 h-5 text-blue-400' />
+          사업장 생성
         </h3>
-        <p className='stitch-caption text-white/60 mb-6'>
-          CBAM 시스템 설치 및 초기 설정을 관리합니다.
-        </p>
-        
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-          <div className='p-6 bg-white/5 rounded-lg border border-white/20'>
-            <h4 className='text-lg font-semibold text-white mb-3'>시스템 설치</h4>
-            <p className='text-white/60 text-sm mb-4'>CBAM 모듈 및 관련 컴포넌트 설치</p>
-            <button className='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'>
-              설치하기
+        <form onSubmit={(e) => { e.preventDefault(); handleAddBusinessSite(); }} className='space-y-6'>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+            <div>
+              <label htmlFor='businessSiteName' className='block text-sm font-medium text-white/80 mb-2'>
+                사업장명 *
+              </label>
+              <input
+                type='text'
+                id='businessSiteName'
+                className='w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors'
+                placeholder='예: 포항제철소'
+                value={businessSiteName}
+                onChange={(e) => setBusinessSiteName(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor='reportingYear' className='block text-sm font-medium text-white/80 mb-2'>
+                보고기간 *
+              </label>
+              <input
+                type='number'
+                id='reportingYear'
+                className='w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors'
+                placeholder='예: 2025'
+                min='2000'
+                max='2100'
+                value={reportingYear}
+                onChange={(e) => setReportingYear(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+          <div className='flex justify-end pt-6'>
+            <button
+              type='submit'
+              className='px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors duration-200'
+            >
+              사업장 생성
             </button>
           </div>
-          
-          <div className='p-6 bg-white/5 rounded-lg border border-white/20'>
-            <h4 className='text-lg font-semibold text-white mb-3'>초기 설정</h4>
-            <p className='text-white/60 text-sm mb-4'>기본 환경 및 설정값 구성</p>
-            <button className='px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors'>
-              설정하기
+        </form>
+      </div>
+
+      {/* 등록된 사업장 목록 섹션 */}
+      <div className='stitch-card p-6'>
+        <div className='flex justify-between items-center mb-6'>
+          <h3 className='stitch-h1 text-xl font-semibold flex items-center gap-2'>
+            <FileText className='w-5 h-5 text-purple-400' />
+            등록된 사업장 목록 ({registeredSites.length}개)
+          </h3>
+          <div className='flex gap-2'>
+            <select className='px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'>
+              <option value='name'>이름순</option>
+              <option value='id'>ID순</option>
+            </select>
+            <button className='px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white text-sm hover:bg-white/20 transition-colors duration-200'>
+              <ArrowUp className='w-4 h-4' />
+            </button>
+            <button className='px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors duration-200 flex items-center gap-2'>
+              <RefreshCcw className='w-4 h-4' />
+              새로고침
             </button>
           </div>
         </div>
+
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+          {registeredSites.length === 0 ? (
+            <p className='text-white/60 text-center col-span-full py-8'>등록된 사업장이 없습니다.</p>
+          ) : (
+            registeredSites.map(site => (
+              <div key={site.id} className='bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 hover:bg-white/20 transition-all duration-200'>
+                <div className='flex justify-between items-start mb-2'>
+                  <h4 className='text-white font-semibold text-lg'>{site.name}</h4>
+                  <span className='px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300'>
+                    ID: {site.id}
+                  </span>
+                </div>
+                <div className='space-y-1 mb-3'>
+                  <p className='text-gray-300 text-sm'>보고기간: {site.reportingYear}년</p>
+                </div>
+                <div className='mt-3 pt-3 border-t border-white/10 flex gap-2'>
+                  <button
+                    onClick={() => handleManageProducts(site.id)}
+                    className='flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors duration-200'
+                  >
+                    제품 관리
+                  </button>
+                  <button
+                    onClick={() => handleDeleteBusinessSite(site.id)}
+                    className='px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors duration-200'
+                  >
+                    <Trash2 className='w-4 h-4' />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* 전체 제품 관리 섹션 */}
+      <div className='stitch-card p-6'>
+        <h3 className='stitch-h1 text-xl font-semibold mb-4 flex items-center gap-2'>
+          <Package className='w-5 h-5 text-green-400' />
+          전체 제품 관리
+        </h3>
+        <p className='stitch-caption text-white/60 mb-4'>
+          모든 사업장의 제품을 한 번에 관리할 수 있습니다.
+        </p>
+        <button
+          onClick={handleOverallProductManagement}
+          className='px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center gap-2'
+        >
+          <Package className='w-4 h-4' />
+          전체 제품 관리 페이지로 이동
+        </button>
       </div>
     </div>
   );
@@ -263,12 +413,38 @@ export default function CBAMPage() {
     <div className='space-y-6'>
       <div className='stitch-card p-6'>
         <h3 className='stitch-h1 text-xl font-semibold mb-4 flex items-center gap-2'>
-          <GitBranch className='w-5 h-5 text-green-400' />
-          CBAM 프로세스 플로우
+          <Network className='w-5 h-5 text-green-400' />
+          CBAM 시설군 설정
         </h3>
         <p className='stitch-caption text-white/60 mb-6'>
-          CBAM 관련 프로세스 플로우를 생성하고 관리합니다.
+          CBAM 배출량 산정을 위한 경계를 설정하고 노드를 생성합니다.
         </p>
+        
+        <div className='mb-6'>
+          <a href='/facility-groups' className='inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'>
+            <Network className='w-4 h-4' />
+            시설군 설정 페이지로 이동
+          </a>
+        </div>
+        
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-6 mb-6'>
+          <div className='p-6 bg-white/5 rounded-lg border border-white/20'>
+            <h4 className='text-lg font-semibold text-white mb-3'>노드 생성</h4>
+            <p className='text-white/60 text-sm mb-4'>배출량 산정을 위한 노드 및 엣지 생성</p>
+            <button className='px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors'>
+              생성하기
+            </button>
+          </div>
+          
+          <div className='p-6 bg-white/5 rounded-lg border border-white/20'>
+            <h4 className='text-lg font-semibold text-white mb-3'>경계 설정</h4>
+            <p className='text-white/60 text-sm mb-4'>배출량 산정 경계 및 범위 설정</p>
+            <button className='px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors'>
+              설정하기
+            </button>
+          </div>
+        </div>
+        
         <div className='h-[600px]'>
           <ReactFlowProvider>
             <ProcessManager />
@@ -289,22 +465,8 @@ export default function CBAMPage() {
           CBAM 관련 보고서를 생성하고 관리합니다.
         </p>
         
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-          <div className='p-6 bg-white/5 rounded-lg border border-white/20'>
-            <h4 className='text-lg font-semibold text-white mb-3'>월간 보고서</h4>
-            <p className='text-white/60 text-sm mb-4'>매월 CBAM 신고 현황을 요약한 보고서</p>
-            <button className='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'>
-              생성하기
-            </button>
-          </div>
-          
-          <div className='p-6 bg-white/5 rounded-lg border border-white/20'>
-            <h4 className='text-lg font-semibold text-white mb-3'>분기별 보고서</h4>
-            <p className='text-white/60 text-sm mb-4'>분기별 CBAM 부과금 현황 분석</p>
-            <button className='px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors'>
-              생성하기
-            </button>
-          </div>
+        <div className='p-6 bg-white/5 rounded-lg border border-white/20'>
+          <p className='text-white/60 text-sm'>보고서 기능은 개발 중입니다...</p>
         </div>
       </div>
     </div>
@@ -318,37 +480,11 @@ export default function CBAMPage() {
           CBAM 설정
         </h3>
         <p className='stitch-caption text-white/60 mb-6'>
-          CBAM 관련 설정을 관리합니다.
+          CBAM 관련 설정을 구성합니다.
         </p>
         
-        <div className='space-y-4'>
-          <div className='p-4 bg-white/5 rounded-lg border border-white/20'>
-            <h4 className='font-semibold text-white mb-2'>기본 설정</h4>
-            <div className='space-y-3'>
-              <div className='flex items-center justify-between'>
-                <span className='text-white/60'>기본 EU ETS 가격</span>
-                <input
-                  type='number'
-                  value={calculationData.euEtsPrice}
-                  onChange={(e) => setCalculationData(prev => ({ ...prev, euEtsPrice: e.target.value }))}
-                  className='w-24 px-3 py-1 bg-white/10 border border-white/20 rounded text-white text-sm'
-                />
-              </div>
-              <div className='flex items-center justify-between'>
-                <span className='text-white/60'>기본 운송 수단</span>
-                <select
-                  value={calculationData.transportMode}
-                  onChange={(e) => setCalculationData(prev => ({ ...prev, transportMode: e.target.value as any }))}
-                  className='px-3 py-1 bg-white/10 border border-white/20 rounded text-white text-sm'
-                >
-                  <option value='sea'>해운</option>
-                  <option value='rail'>철도</option>
-                  <option value='road'>도로</option>
-                  <option value='air'>항공</option>
-                </select>
-              </div>
-            </div>
-          </div>
+        <div className='p-6 bg-white/5 rounded-lg border border-white/20'>
+          <p className='text-white/60 text-sm'>설정 기능은 개발 중입니다...</p>
         </div>
       </div>
     </div>
@@ -366,7 +502,7 @@ export default function CBAMPage() {
         <div className='flex flex-col gap-3'>
           <h1 className='stitch-h1 text-2xl lg:text-3xl xl:text-4xl font-bold'>CBAM 관리</h1>
           <p className='stitch-caption text-white/60 text-sm lg:text-base'>
-            탄소국경조정메커니즘(CBAM)을 통합적으로 관리합니다.
+            탄소국경조정메커니즘(CBAM) 프로세스 및 계산 관리
           </p>
         </div>
 
@@ -391,8 +527,8 @@ export default function CBAMPage() {
                 : 'text-white/60 hover:text-white hover:bg-white/5'
             }`}
           >
-            <Package className='w-4 h-4' />
-            설치
+            <Building2 className='w-4 h-4' />
+            사업장 관리
           </button>
           <button
             onClick={() => setActiveTab('flow')}
@@ -402,8 +538,8 @@ export default function CBAMPage() {
                 : 'text-white/60 hover:text-white hover:bg-white/5'
             }`}
           >
-            <GitBranch className='w-4 h-4' />
-            플로우
+            <Network className='w-4 h-4' />
+            시설군 설정
           </button>
           <button
             onClick={() => setActiveTab('reports')}

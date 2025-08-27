@@ -161,8 +161,8 @@ function ProcessManagerInner() {
     <div className="w-full h-full flex flex-col">
       {/* 헤더 */}
       <div className="bg-gray-900 text-white p-4">
-        <h1 className="text-2xl font-bold">CBAM 프로세스 관리</h1>
-        <p className="text-gray-300">CBAM 관련 프로세스 플로우를 생성하고 관리합니다.</p>
+        <h1 className="text-2xl font-bold">CBAM 산정경계 설정</h1>
+        <p className="text-gray-300">CBAM 배출량 산정을 위한 경계를 설정하고 노드를 생성합니다.</p>
       </div>
 
       {/* 버튼 */}
@@ -216,22 +216,22 @@ function ProcessManagerInner() {
 
       {/* 제품 선택 모달 */}
       {showProductModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
+          <div className="bg-gray-800 border border-gray-700 p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">제품 선택</h3>
-              <button onClick={() => setShowProductModal(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+              <h3 className="text-lg font-semibold text-white">제품 선택</h3>
+              <button onClick={() => setShowProductModal(false)} className="text-gray-400 hover:text-white transition-colors">✕</button>
             </div>
             <div className="space-y-2">
               {products.map((p) => (
                 <div
                   key={p.id}
-                  className="p-3 border rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                  className="p-3 border border-gray-600 rounded-lg cursor-pointer hover:bg-gray-700 hover:border-blue-400 transition-colors"
                   onClick={() => handleProductSelect(p)}
                 >
-                  <div className="font-medium">{p.product_name}</div>
-                  <div className="text-sm text-gray-600">CN: {p.product_cncode}</div>
-                  <div className="text-sm text-gray-600">생산량: {p.product_amount}</div>
+                  <div className="font-medium text-white">{p.product_name}</div>
+                  <div className="text-sm text-gray-300">CN: {p.product_cncode}</div>
+                  <div className="text-sm text-gray-300">생산량: {p.product_amount}</div>
                 </div>
               ))}
             </div>

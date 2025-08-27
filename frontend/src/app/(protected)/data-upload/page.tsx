@@ -18,7 +18,9 @@ import {
   Save, 
   Table, 
   Brain, 
-  AlertCircle 
+  AlertCircle,
+  BarChart3,
+  Cog
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -1068,6 +1070,327 @@ const DataUploadPage: React.FC = () => {
     }
   };
 
+  // 탭 콘텐츠 렌더링 함수
+  const renderTabContent = () => {
+    switch (currentTab) {
+      case '실적정보':
+        return (
+          <>
+            {/* 1. 템플릿 다운로드 섹션 */}
+            <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-6'>
+              <div className='flex items-center gap-3 mb-4'>
+                <div className='w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center'>
+                  <Download className='w-5 h-5 text-blue-600' />
+                </div>
+                <div>
+                  <h2 className='text-lg font-semibold text-gray-900'>템플릿 다운로드</h2>
+                  <p className='text-sm text-gray-600'>표준 형식의 템플릿을 다운로드하여 데이터 입력에 활용하세요</p>
+                </div>
+              </div>
+              <Button
+                onClick={handleTemplateDownload}
+                className='bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors'
+              >
+                <Download className='w-4 h-4 mr-2' />
+                템플릿 다운로드
+              </Button>
+            </div>
+            
+            {/* 2. Excel 업로드 섹션 */}
+            <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-6'>
+              <div className='flex items-center gap-3 mb-4'>
+                <div className='w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center'>
+                  <Upload className='w-5 h-5 text-green-600' />
+                </div>
+                <div>
+                  <h2 className='text-lg font-semibold text-gray-900'>Excel 업로드</h2>
+                  <p className='text-sm text-gray-600'>템플릿 형식에 맞는 Excel 파일을 업로드하면 AI가 자동으로 투입물명을 표준화합니다</p>
+                </div>
+              </div>
+              
+              <div
+                className={`border-2 border-dashed rounded-xl p-12 text-center transition-all duration-200 ${
+                  inputFile
+                    ? 'border-green-400 bg-green-50'
+                    : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
+                }`}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+              >
+                <input
+                  ref={inputFileRef}
+                  type='file'
+                  accept='.xlsx,.xls'
+                  onChange={handleInputFileSelect}
+                  className='hidden'
+                />
+
+                {!inputFile ? (
+                  <div>
+                    <Upload className='mx-auto h-16 w-16 text-gray-400 mb-6' />
+                    <p className='text-xl text-gray-700 mb-3 font-medium'>
+                      Excel 파일을 여기에 드래그하거나 클릭하여 선택하세요
+                    </p>
+                    <p className='text-gray-500 mb-6'>지원 형식: .xlsx, .xls</p>
+                    <Button
+                      onClick={() => inputFileRef.current?.click()}
+                      variant='outline'
+                      className='border-blue-500 text-blue-600 hover:bg-blue-50 px-8 py-3 text-lg rounded-lg transition-colors'
+                    >
+                      파일 선택
+                    </Button>
+                  </div>
+                ) : (
+                  <div>
+                    <FileSpreadsheet className='mx-auto h-16 w-16 text-green-500 mb-6' />
+                    <p className='text-xl text-gray-900 mb-3 font-medium'>{inputFile.name}</p>
+                    <p className='text-gray-500 mb-6'>
+                      파일 크기: {(inputFile.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                    <div className='space-x-4'>
+                      <Button
+                        onClick={handleInputUpload}
+                        disabled={isInputUploading}
+                        className='bg-green-600 hover:bg-green-700 text-white px-6 py-3 text-lg rounded-lg transition-colors'
+                      >
+                        {isInputUploading ? '업로드 중...' : '업로드 및 AI 처리'}
+                      </Button>
+                      <Button onClick={() => setInputFile(null)} variant='ghost' className='text-gray-600 hover:bg-gray-100 px-6 py-3 text-lg rounded-lg transition-colors'>
+                        취소
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 에러 메시지 */}
+            {error && (
+              <div className='bg-red-50 border border-red-200 rounded-xl p-6'>
+                <div className='flex items-center gap-3'>
+                  <div className='w-10 h-10 bg-red-100 rounded-full flex items-center justify-center'>
+                    <AlertCircle className='h-5 w-5 text-red-600' />
+                  </div>
+                  <div>
+                    <h3 className='text-lg font-semibold text-red-800'>오류가 발생했습니다</h3>
+                    <p className='text-red-700 mt-1'>{error}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 3. 데이터 테이블 섹션 */}
+            <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-6'>
+              <div className='flex items-center gap-3 mb-4'>
+                <div className='w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center'>
+                  <Table className='w-5 h-5 text-purple-600' />
+                </div>
+                <div>
+                  <h3 className='text-lg font-semibold text-gray-900'>업로드된 데이터</h3>
+                  <p className='text-sm text-gray-600'>Excel 파일의 내용을 확인하고 AI 처리 결과를 확인할 수 있습니다</p>
+                </div>
+              </div>
+
+              {inputData && (
+                <div className='mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg'>
+                  <div className='flex items-center gap-2 mb-3'>
+                    <CheckCircle className='w-5 h-5 text-blue-600' />
+                    <h3 className='text-sm font-semibold text-blue-900'>파일 업로드 완료</h3>
+                  </div>
+                  <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-4'>
+                    <div className='bg-white rounded p-3 border border-blue-200'>
+                      <p className='text-xs font-medium text-blue-900'>파일명</p>
+                      <p className='text-sm text-blue-700'>{inputData.filename}</p>
+                    </div>
+                    <div className='bg-white rounded p-3 border border-blue-200'>
+                      <p className='text-xs font-medium text-blue-900'>크기</p>
+                      <p className='text-sm text-blue-700'>{inputData.fileSize} MB</p>
+                    </div>
+                    <div className='bg-white rounded p-3 border border-blue-200'>
+                      <p className='text-xs font-medium text-blue-900'>데이터</p>
+                      <p className='text-sm text-blue-700'>{inputData.data.length}행 × {inputData.columns.length}열</p>
+                    </div>
+                  </div>
+                  <p className='text-xs text-blue-600'>
+                    ✅ 컬럼명 검증 완료: {inputData.columns.join(', ')}
+                  </p>
+                </div>
+              )}
+              
+              {!inputData && (
+                <div className='text-center py-12 text-gray-500'>
+                  <Table className='mx-auto h-12 w-12 mb-4' />
+                  <p>Excel 파일을 업로드하면 데이터가 여기에 표시됩니다</p>
+                </div>
+              )}
+
+              {/* 데이터 테이블 표시 */}
+              {renderDataTable()}
+            </div>
+
+            {/* AI 처리 완료 메시지 */}
+            {aiProcessedData && (
+              <div className='bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-xl p-6 text-center'>
+                <div className='flex items-center justify-center gap-3 mb-4'>
+                  <div className='w-12 h-12 bg-green-100 rounded-full flex items-center justify-center'>
+                    <Brain className='h-6 w-6 text-green-600' />
+                  </div>
+                  <div>
+                    <h3 className='text-lg font-semibold text-green-800'>AI 모델 처리 완료!</h3>
+                    <p className='text-sm text-green-700'>
+                      {aiProcessedData.processed_count}행의 투입물명이 AI 모델로 표준화되었습니다
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 5. 데이터 확인 버튼 */}
+            <div className='flex justify-center'>
+              <Button 
+                onClick={handlePrepareDataForDB}
+                className='bg-blue-600 hover:bg-blue-700 text-white px-12 py-4 text-xl font-semibold rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl'
+              >
+                📊 데이터 확인 및 저장 준비
+              </Button>
+            </div>
+
+            {/* DB 전송 준비 완료 상태 */}
+            {preparedDataForDB && (
+              <div className='bg-green-50 border border-green-200 rounded-xl p-6'>
+                <div className='flex items-center gap-3 mb-4'>
+                  <div className='w-10 h-10 bg-green-100 rounded-full flex items-center justify-center'>
+                    <CheckCircle className='h-5 w-5 text-green-600' />
+                  </div>
+                  <div>
+                    <h3 className='text-lg font-semibold text-green-800'>DB 전송 준비 완료!</h3>
+                    <p className='text-sm text-green-700 mt-1'>
+                      총 {preparedDataForDB.length}행의 데이터가 DB 전송 준비되었습니다
+                    </p>
+                  </div>
+                </div>
+                
+                <div className='bg-white rounded-lg p-4 border border-green-200'>
+                  <h4 className='font-medium text-green-800 mb-2'>처리된 데이터 정보:</h4>
+                  <ul className='text-sm text-green-700 space-y-1'>
+                    <li>• AI 추천 답변이 투입물명에 반영됨</li>
+                    <li>• AI 추천 답변 컬럼 유지됨</li>
+                    <li>• DB 컬럼과 동일한 구조로 준비됨</li>
+                    <li>• 총 {preparedDataForDB.length}행 × {Object.keys(preparedDataForDB[0] || {}).length}열</li>
+                  </ul>
+                </div>
+                
+                <div className='mt-4 text-xs text-green-600'>
+                  💡 이제 DB 연결 후 preparedDataForDB 데이터를 전송할 수 있습니다.
+                </div>
+              </div>
+            )}
+          </>
+        );
+
+      case '운송정보':
+        return (
+          <>
+            {/* 운송정보 헤더 */}
+            <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-6'>
+              <div className='flex items-center gap-3 mb-4'>
+                <div className='w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center'>
+                  <FileText className='w-5 h-5 text-orange-600' />
+                </div>
+                <div>
+                  <h2 className='text-lg font-semibold text-gray-900'>운송정보 관리</h2>
+                  <p className='text-sm text-gray-600'>운송 관련 데이터를 업로드하고 관리할 수 있습니다</p>
+                </div>
+              </div>
+              
+              {/* 운송정보 템플릿 다운로드 */}
+              <div className='mb-6'>
+                <Button
+                  onClick={() => {
+                    const templateUrl = '/templates/실적_데이터_운송정보.xlsx';
+                    const a = document.createElement('a');
+                    a.href = templateUrl;
+                    a.download = '실적 데이터 (운송정보).xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                  }}
+                  className='bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg transition-colors'
+                >
+                  <Download className='w-4 h-4 mr-2' />
+                  운송정보 템플릿 다운로드
+                </Button>
+              </div>
+
+              {/* 운송정보 설명 */}
+              <div className='bg-orange-50 border border-orange-200 rounded-lg p-4'>
+                <h3 className='font-medium text-orange-800 mb-2'>운송정보란?</h3>
+                <p className='text-sm text-orange-700 mb-3'>
+                  제품의 생산부터 소비까지의 운송 과정에서 발생하는 환경 영향을 추적하고 관리하는 데이터입니다.
+                </p>
+                <ul className='text-sm text-orange-700 space-y-1'>
+                  <li>• 운송 거리 및 방식</li>
+                  <li>• 연료 소비량</li>
+                  <li>• 탄소 배출량</li>
+                  <li>• 운송 경로 최적화</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* 다음 단계 안내 */}
+            <div className='bg-blue-50 border border-blue-200 rounded-xl p-6'>
+              <div className='flex items-center gap-3 mb-4'>
+                <div className='w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center'>
+                  <FileText className='w-5 h-5 text-blue-600' />
+                </div>
+                <div>
+                  <h3 className='text-lg font-semibold text-blue-800'>다음 단계: 공정정보 입력</h3>
+                  <p className='text-sm text-blue-700'>
+                    운송정보 입력이 완료되면 공정정보를 입력하여 전체 생명주기 평가를 완성할 수 있습니다
+                  </p>
+                </div>
+              </div>
+              
+              <div className='flex gap-3'>
+                <Button
+                  onClick={() => window.location.href = '/data-upload/process'}
+                  className='bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors'
+                >
+                  공정정보 입력하기 →
+                </Button>
+                <Button
+                  variant='outline'
+                  onClick={() => window.location.href = '/data-upload/output'}
+                  className='border-blue-500 text-blue-600 hover:bg-blue-50 px-6 py-3 rounded-lg transition-colors'
+                >
+                  산출물 정보 보기
+                </Button>
+              </div>
+            </div>
+          </>
+        );
+
+      case '데이터분류':
+        return (
+          <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-6'>
+            <div className='flex items-center gap-3 mb-4'>
+              <div className='w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center'>
+                <Database className='w-5 h-5 text-purple-600' />
+              </div>
+              <div>
+                <h2 className='text-lg font-semibold text-gray-900'>데이터 분류</h2>
+                <p className='text-sm text-gray-600'>업로드된 데이터를 분류하고 정리합니다</p>
+              </div>
+            </div>
+            <p className='text-gray-500'>데이터 분류 기능은 현재 개발 중입니다.</p>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
     return (
     <div className='flex h-screen bg-gray-50'>
       {/* 왼쪽 사이드바 메뉴 */}
@@ -1086,7 +1409,7 @@ const DataUploadPage: React.FC = () => {
             </a>
             
             <a href='/lca' className='flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors'>
-              <Database className='w-5 h-5' />
+              <BarChart3 className='w-5 h-5' />
               <span className='text-sm font-medium'>LCA</span>
             </a>
             
@@ -1108,8 +1431,13 @@ const DataUploadPage: React.FC = () => {
               </div>
             </div>
           
+            <a href='/data-classification' className='flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors'>
+              <Database className='w-5 h-5' />
+              <span className='text-sm font-medium'>데이터 분류</span>
+            </a>
+          
             <a href='/settings' className='flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors'>
-              <Settings className='w-5 h-5' />
+              <Cog className='w-5 h-5' />
               <span className='text-sm font-medium'>설정</span>
             </a>
           </nav>
@@ -1122,24 +1450,36 @@ const DataUploadPage: React.FC = () => {
         <div className='bg-white border-b border-gray-200 shadow-sm'>
           <div className='flex space-x-8 px-6'>
             {[
-              { key: '실적정보', label: '데이터 업로드', active: true },
-              { key: '데이터분류', label: '데이터분류', active: false },
-              { key: '운송정보', label: '운송정보', active: false }
+              { key: '실적정보', label: '데이터 업로드', active: true, href: null },
+              { key: '데이터분류', label: '데이터분류', active: false, href: '/data-classification' }
             ].map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setCurrentTab(tab.key as any)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  tab.active
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                {tab.label}
-              </button>
+              tab.href ? (
+                <a
+                  key={tab.key}
+                  href={tab.href}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    tab.active
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  {tab.label}
+                </a>
+              ) : (
+                <button
+                  key={tab.key}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    tab.active
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              )
             ))}
-                  </div>
-              </div>
+          </div>
+        </div>
 
         {/* 메인 콘텐츠 */}
         <div className='flex-1 flex overflow-hidden'>

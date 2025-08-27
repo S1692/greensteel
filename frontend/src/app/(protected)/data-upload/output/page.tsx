@@ -6,7 +6,7 @@ import {
   Upload, 
   FileSpreadsheet, 
   Download, 
-  FileText, 
+FileText, 
   Edit3, 
   CheckCircle, 
   X, 
@@ -21,7 +21,9 @@ import {
   Grid3X3,
   Truck,
   Cog,
-  Table
+  Table,
+  Plus,
+  Database
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -202,15 +204,41 @@ export default function OutputDataPage() {
 
   // 템플릿 형식 검증 (산출물용)
   const validateTemplateFormat = (columns: string[]): boolean => {
+    // 디버깅: 실제 업로드된 파일의 컬럼명 출력
+    console.log('🔍 템플릿 형식 검증 시작');
+    console.log('🔍 실제 업로드된 파일의 컬럼명:', columns);
+
+    // 실제 산출물 템플릿의 컬럼명 (실제 파일 기준)
     const expectedColumns = [
-      '로트번호', '생산품명', '생산수량', '생산일', '종료일', '공정', '산출물명', '수량', '단위'
+      '로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '산출물명', '수량', '단위'
     ];
-    
+
+    console.log('🔍 예상 컬럼명:', expectedColumns);
+    console.log('🔍 컬럼 개수 비교:', columns.length, 'vs', expectedColumns.length);
+
+    // 컬럼 개수가 다르면 false
     if (columns.length !== expectedColumns.length) {
+      console.log('❌ 컬럼 개수가 다릅니다!');
       return false;
     }
-    
-    return expectedColumns.every(col => columns.includes(col));
+
+    // 각 컬럼이 포함되어 있는지 확인 (공백 제거 후 비교)
+    const isValid = expectedColumns.every(expectedCol => {
+      const trimmedExpected = expectedCol.trim();
+      return columns.some(actualCol => actualCol.trim() === trimmedExpected);
+    });
+
+    console.log('🔍 컬럼 검증 결과:', isValid);
+
+    if (!isValid) {
+      const missingColumns = expectedColumns.filter(expectedCol => {
+        const trimmedExpected = expectedCol.trim();
+        return !columns.some(actualCol => actualCol.trim() === trimmedExpected);
+      });
+      console.log('❌ 누락된 컬럼:', missingColumns);
+    }
+
+    return isValid;
   };
 
   // AI 처리 즉시 시작 (산출물용)
@@ -223,6 +251,9 @@ export default function OutputDataPage() {
         setError('처리할 산출물명 데이터가 없습니다.');
         return;
       }
+
+      console.log('🔍 AI 처리할 산출물명 데이터:', outputNames);
+      console.log('🔍 AI 서비스 URL:', `${process.env.NEXT_PUBLIC_GATEWAY_URL}/ailink/ai-process-stream`);
 
       // AI 서비스로 데이터 전송
       const response = await axios.post(`${process.env.NEXT_PUBLIC_GATEWAY_URL}/ailink/ai-process-stream`, {
@@ -262,9 +293,20 @@ export default function OutputDataPage() {
         setError('AI 처리에 실패했습니다.');
       }
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('AI 처리 오류:', err);
-      setError('AI 처리 중 오류가 발생했습니다.');
+      
+      // 더 자세한 오류 정보 표시
+      if (err.response) {
+        // 서버 응답이 있는 경우
+        setError(`AI 처리 중 오류가 발생했습니다. (${err.response.status}: ${err.response.data?.message || err.response.statusText})`);
+      } else if (err.request) {
+        // 요청은 보냈지만 응답을 받지 못한 경우
+        setError('AI 서비스에 연결할 수 없습니다. 게이트웨이와 AI 서비스가 실행 중인지 확인해주세요.');
+      } else {
+        // 기타 오류
+        setError(`AI 처리 중 오류가 발생했습니다: ${err.message || '알 수 없는 오류'}`);
+      }
     }
   };
 
@@ -313,15 +355,15 @@ export default function OutputDataPage() {
 
     const reason = editReasons[id] || '';
     
-    try {
-      // 피드백 데이터 저장
-      const feedbackData = {
-        공정: row.modifiedData['공정'],
-        투입물명: row.originalData['투입물명'],
-        수정된결과: row.modifiedData['AI추천답변'],
-        사유: reason,
-        생산품명: row.modifiedData['생산품명']
-      };
+         try {
+       // 피드백 데이터 저장
+       const feedbackData = {
+         공정: row.modifiedData['공정'],
+         산출물명: row.originalData['산출물명'],
+         수정된결과: row.modifiedData['AI추천답변'],
+         사유: reason,
+         생산품명: row.modifiedData['생산품명']
+       };
 
       await axios.post(`${process.env.NEXT_PUBLIC_GATEWAY_URL}/ailink/save-feedback`, feedbackData);
       
@@ -388,7 +430,7 @@ export default function OutputDataPage() {
         '투입일': '',
         '종료일': '',
         '공정': '',
-        '투입물명': '',
+        '산출물명': '',
         '수량': '',
         '단위': '',
         'AI추천답변': ''
@@ -427,7 +469,7 @@ export default function OutputDataPage() {
 
   // 필수 필드 검증
   const validateRequiredFields = (row: EditableRow): boolean => {
-    const requiredFields = ['로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '투입물명', '수량', '단위'];
+    const requiredFields = ['로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '산출물명', '수량', '단위'];
     return requiredFields.every(field => {
       const value = row.modifiedData[field];
       return value && value.toString().trim() !== '';
@@ -510,14 +552,8 @@ export default function OutputDataPage() {
 
     return (
       <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-6'>
-        <div className='flex items-center justify-between mb-6'>
+        <div className='mb-6'>
           <h3 className='text-lg font-semibold text-gray-900'>데이터 테이블</h3>
-          <Button
-            onClick={handleAddNewRow}
-            className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-sm rounded-lg'
-          >
-            새 행 추가
-          </Button>
         </div>
         
         <div className='overflow-x-auto'>
@@ -662,6 +698,19 @@ export default function OutputDataPage() {
             </tbody>
           </table>
         </div>
+        
+        {/* 새 행 추가 버튼 - 테이블 하단에 배치 (투입물 페이지와 동일한 디자인) */}
+        <div className='px-6 py-4 bg-gray-50 border-t border-gray-200 mt-6'>
+          <div className='flex justify-center'>
+            <Button 
+              onClick={handleAddNewRow}
+              className='bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg transition-colors'
+            >
+              <Plus className='w-5 h-5 mr-2' />
+              새 행 추가
+            </Button>
+          </div>
+        </div>
       </div>
     );
   };
@@ -673,21 +722,21 @@ export default function OutputDataPage() {
       return;
     }
 
-    try {
-      // DB 전송용 데이터 준비
-      const preparedData = editableInputRows.map(row => {
-        const rowData = { ...row.modifiedData };
-        
-        // AI 추천 답변을 투입물명에 덮어쓰기
-        if (rowData['AI추천답변'] && rowData['AI추천답변'].trim() !== '') {
-          rowData['투입물명'] = rowData['AI추천답변'];
-        }
-        
-        // AI 추천 답변 컬럼은 유지 (제거하지 않음)
-        // delete rowData['AI추천답변'];
-        
-        return rowData;
-      });
+         try {
+       // DB 전송용 데이터 준비
+       const preparedData = editableInputRows.map(row => {
+         const rowData = { ...row.modifiedData };
+         
+         // AI 추천 답변을 산출물명에 덮어쓰기
+         if (rowData['AI추천답변'] && rowData['AI추천답변'].trim() !== '') {
+           rowData['산출물명'] = rowData['AI추천답변'];
+         }
+         
+         // AI 추천 답변 컬럼은 유지 (제거하지 않음)
+         // delete rowData['AI추천답변'];
+         
+         return rowData;
+       });
 
       setPreparedDataForDB(preparedData);
       setError(null);
@@ -698,8 +747,8 @@ export default function OutputDataPage() {
         sampleData: preparedData[0]
       });
 
-      // 성공 메시지 표시
-      alert(`DB 전송 준비가 완료되었습니다!\n총 ${preparedData.length}행의 데이터가 준비되었습니다.\n\nAI 추천 답변이 투입물명에 반영되었습니다.`);
+             // 성공 메시지 표시
+       alert(`DB 전송 준비가 완료되었습니다!\n총 ${preparedData.length}행의 데이터가 준비되었습니다.\n\nAI 추천 답변이 산출물명에 반영되었습니다.`);
 
     } catch (err) {
       console.error('DB 전송 준비 오류:', err);
@@ -748,6 +797,10 @@ export default function OutputDataPage() {
                 <a href='/data-upload/process' className='block px-3 py-2 text-xs text-gray-700 font-medium'>공정정보</a>
               </div>
             </div>
+            <a href='/data-classification' className='flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100'>
+              <Database className='w-5 h-5' />
+              <span className='text-sm font-medium'>데이터 분류</span>
+            </a>
             <a href='/settings' className='flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100'>
               <Cog className='w-5 h-5' />
               <span className='text-sm font-medium'>설정</span>
@@ -762,20 +815,33 @@ export default function OutputDataPage() {
         <div className='bg-white border-b border-gray-200 shadow-sm'>
           <div className='flex space-x-8 px-6'>
             {[
-              { key: '실적정보', label: '데이터 업로드', active: true },
-              { key: '데이터분류', label: '데이터분류', active: false },
-              { key: '운송정보', label: '운송정보', active: false }
+              { key: '실적정보', label: '데이터 업로드', active: true, href: null },
+              { key: '데이터분류', label: '데이터분류', active: false, href: '/data-classification' }
             ].map((tab) => (
-              <button
-                key={tab.key}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  tab.active
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                {tab.label}
-              </button>
+              tab.href ? (
+                <a
+                  key={tab.key}
+                  href={tab.href}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    tab.active
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  {tab.label}
+                </a>
+              ) : (
+                <button
+                  key={tab.key}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    tab.active
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              )
             ))}
           </div>
         </div>
@@ -827,7 +893,7 @@ export default function OutputDataPage() {
               <Upload className='w-8 h-8 text-green-600' />
               <h2 className='text-xl font-semibold text-gray-900'>Excel 업로드</h2>
             </div>
-            <p className='text-gray-600 mb-6'>템플릿 형식에 맞는 Excel 파일을 업로드하면 AI가 자동으로 투입물명을 표준화합니다</p>
+                         <p className='text-gray-600 mb-6'>템플릿 형식에 맞는 Excel 파일을 업로드하면 AI가 자동으로 산출물명을 표준화합니다</p>
             
             <div
               className={`border-2 border-dashed rounded-xl p-12 text-center transition-all duration-200 ${
@@ -958,24 +1024,24 @@ export default function OutputDataPage() {
           </div>
         </div>
 
-        {/* AI 처리 완료 메시지 */}
-        {aiProcessedData && (
-          <div className='px-8 pb-8'>
-            <div className='bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-xl p-6 text-center'>
-              <div className='flex items-center justify-center gap-3 mb-4'>
-                <div className='w-12 h-12 bg-green-100 rounded-full flex items-center justify-center'>
-                  <Brain className='w-6 h-6 text-green-600' />
-                </div>
-                <div>
-                  <h3 className='text-lg font-semibold text-green-800'>AI 모델 처리 완료!</h3>
-                  <p className='text-sm text-green-700'>
-                    {aiProcessedData.processed_count}행의 투입물명이 AI 모델로 표준화되었습니다
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+                 {/* AI 처리 완료 메시지 */}
+         {aiProcessedData && (
+           <div className='px-8 pb-8'>
+             <div className='bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-xl p-6 text-center'>
+               <div className='flex items-center justify-center gap-3 mb-4'>
+                 <div className='w-12 h-12 bg-green-100 rounded-full flex items-center justify-center'>
+                   <Brain className='w-6 h-6 text-green-600' />
+                 </div>
+                 <div>
+                   <h3 className='text-lg font-semibold text-green-800'>AI 모델 처리 완료!</h3>
+                   <p className='text-sm text-green-700'>
+                     {aiProcessedData.processed_count}행의 산출물명이 AI 모델로 표준화되었습니다
+                   </p>
+                 </div>
+               </div>
+             </div>
+           </div>
+         )}
 
         {/* 5. 데이터 확인 버튼 */}
         <div className='flex justify-center'>
@@ -1003,15 +1069,15 @@ export default function OutputDataPage() {
                 </div>
               </div>
               
-              <div className='bg-white rounded-lg p-4 border border-green-200'>
-                <h4 className='font-medium text-green-800 mb-2'>처리된 데이터 정보:</h4>
-                <ul className='text-sm text-green-700 space-y-1'>
-                  <li>• AI 추천 답변이 투입물명에 반영됨</li>
-                  <li>• AI 추천 답변 컬럼 유지됨</li>
-                  <li>• DB 컬럼과 동일한 구조로 준비됨</li>
-                  <li>• 총 {preparedDataForDB.length}행 × {Object.keys(preparedDataForDB[0] || {}).length}열</li>
-                </ul>
-              </div>
+                             <div className='bg-white rounded-lg p-4 border border-green-200'>
+                 <h4 className='font-medium text-green-800 mb-2'>처리된 데이터 정보:</h4>
+                 <ul className='text-sm text-green-700 space-y-1'>
+                   <li>• AI 추천 답변이 산출물명에 반영됨</li>
+                   <li>• AI 추천 답변 컬럼 유지됨</li>
+                   <li>• DB 컬럼과 동일한 구조로 준비됨</li>
+                   <li>• 총 {preparedDataForDB.length}행 × {Object.keys(preparedDataForDB[0] || {}).length}열</li>
+                 </ul>
+               </div>
               
               <div className='mt-4 text-xs text-green-600'>
                 💡 이제 DB 연결 후 preparedDataForDB 데이터를 전송할 수 있습니다.

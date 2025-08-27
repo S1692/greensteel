@@ -19,7 +19,8 @@ import {
   CheckCircle,
   X,
   Trash2,
-  Plus
+  Plus,
+  Database
 } from 'lucide-react';
 
 import * as XLSX from 'xlsx';
@@ -50,9 +51,46 @@ export default function TransportDataPage() {
   // refs
   const inputFileRef = useRef<HTMLInputElement>(null);
 
-    // 템플릿 다운로드 (간단한 방식)
+    // 템플릿 컬럼명 확인 함수
+  const checkTemplateColumns = async () => {
+    try {
+      const templateUrl = '/templates/실적_데이터_운송정보.xlsx';
+      const response = await fetch(templateUrl);
+      
+      if (!response.ok) {
+        throw new Error(`템플릿 읽기 실패: ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      const arrayBuffer = await blob.arrayBuffer();
+      const data = new Uint8Array(arrayBuffer);
+      
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      
+      if (jsonData.length > 0) {
+        const headers = jsonData[0] as string[];
+        console.log('🔍 템플릿 파일의 실제 컬럼명:', headers);
+        console.log('🔍 템플릿 컬럼 개수:', headers.length);
+        console.log('🔍 각 컬럼명 (공백 포함):');
+        headers.forEach((header, index) => {
+          console.log(`  ${index + 1}. "${header}" (길이: ${header.length})`);
+        });
+      }
+      
+    } catch (err) {
+      console.error('템플릿 컬럼명 확인 오류:', err);
+    }
+  };
+
+  // 템플릿 다운로드 (간단한 방식)
   const handleTemplateDownload = async () => {
     try {
+      // 템플릿 컬럼명 먼저 확인
+      await checkTemplateColumns();
+      
       // 간단하게 public/templates에서 직접 다운로드
       const templateUrl = '/templates/실적_데이터_운송정보.xlsx';
       const response = await fetch(templateUrl);
@@ -232,28 +270,44 @@ export default function TransportDataPage() {
     // 디버깅: 실제 업로드된 파일의 컬럼명 출력
     console.log('🔍 템플릿 형식 검증 시작');
     console.log('🔍 실제 업로드된 파일의 컬럼명:', columns);
+    console.log('🔍 컬럼 개수:', columns.length);
     
     // 실제 운송정보 템플릿의 컬럼명 (실제 파일 기준)
     const expectedColumns = [
-      '운송번호', '운송품목', '운송수량', '출발지', '도착지', '운송수단', '운송거리', '운송비용', '운송일자'
+      '생산품명', '로트번호', '운송 물질', '운송 수량', '운송 일자', '도착 공정', '출발지', '이동 수단'
     ];
     
     console.log('🔍 예상 컬럼명:', expectedColumns);
-    console.log('🔍 컬럼 개수 비교:', columns.length, 'vs', expectedColumns.length);
+    console.log('🔍 예상 컬럼 개수:', expectedColumns.length);
     
     // 컬럼 개수가 다르면 false
     if (columns.length !== expectedColumns.length) {
       console.log('❌ 컬럼 개수가 다릅니다!');
+      console.log('❌ 실제:', columns.length, '개, 예상:', expectedColumns.length, '개');
       return false;
     }
     
-    // 각 컬럼이 포함되어 있는지 확인
-    const isValid = expectedColumns.every(col => columns.includes(col));
+    // 각 컬럼이 포함되어 있는지 확인 (공백 제거 후 비교)
+    const isValid = expectedColumns.every(expectedCol => {
+      const trimmedExpected = expectedCol.trim();
+      return columns.some(actualCol => actualCol.trim() === trimmedExpected);
+    });
+    
     console.log('🔍 컬럼 검증 결과:', isValid);
     
     if (!isValid) {
-      const missingColumns = expectedColumns.filter(col => !columns.includes(col));
+      const missingColumns = expectedColumns.filter(expectedCol => {
+        const trimmedExpected = expectedCol.trim();
+        return !columns.some(actualCol => actualCol.trim() === trimmedExpected);
+      });
       console.log('❌ 누락된 컬럼:', missingColumns);
+      
+      // 실제 컬럼과 예상 컬럼을 비교하여 차이점 출력
+      console.log('🔍 컬럼 비교:');
+      expectedColumns.forEach((expected, index) => {
+        const actual = columns[index];
+        console.log(`  ${index + 1}. 예상: "${expected}" | 실제: "${actual}" | 일치: ${expected.trim() === actual?.trim()}`);
+      });
     }
     
     return isValid;
@@ -284,15 +338,14 @@ export default function TransportDataPage() {
       id: `new-${Date.now()}`,
       originalData: {},
       modifiedData: {
-        '운송번호': '',
-        '운송품목': '',
-        '운송수량': '',
+        '생산품명': '',
+        '로트번호': '',
+        '운송 물질': '',
+        '운송 수량': '',
+        '운송 일자': '',
+        '도착 공정': '',
         '출발지': '',
-        '도착지': '',
-        '운송수단': '',
-        '운송거리': '',
-        '운송비용': '',
-        '운송일자': ''
+        '이동 수단': ''
       },
       isEditing: true,
       isNewlyAdded: true
@@ -312,73 +365,149 @@ export default function TransportDataPage() {
 
   // 행 저장
   const handleSaveRow = (id: string) => {
+    const row = editableInputRows.find(r => r.id === id);
+    if (!row) return;
+
+    // 새로 추가된 행인지 확인
+    const isNewRow = row.isNewlyAdded;
+    
+    if (isNewRow) {
+      // 새 행의 경우 모든 필수 필드 검증
+      if (!validateRequiredFields(row.modifiedData)) {
+        setError('모든 필수 필드를 입력해주세요.');
+        return;
+      }
+    }
+
+    // 저장 처리 - 새로 추가된 행은 isNewlyAdded 플래그 유지
     setEditableInputRows(prev => 
-      prev.map(row => 
-        row.id === id ? { ...row, isEditing: false } : row
+      prev.map(r => 
+        r.id === id 
+          ? { 
+              ...r, 
+              isEditing: false,
+              originalData: { ...r.modifiedData }, // 수정된 데이터를 원본으로 저장
+              isNewlyAdded: isNewRow ? true : (r.isNewlyAdded || false) // 새로 추가된 행 플래그 유지
+            }
+          : r
       )
     );
+    
+    setError(null);
   };
 
-  // 행 취소
+  // 행 편집 취소
   const handleCancelRow = (id: string) => {
     const row = editableInputRows.find(r => r.id === id);
     if (!row) return;
 
     if (row.isNewlyAdded) {
-      // 새로 추가된 행은 완전히 제거
+      // 새로 추가된 행인 경우 삭제
       setEditableInputRows(prev => prev.filter(r => r.id !== id));
     } else {
-      // 기존 데이터는 원본으로 복원
+      // 기존 행인 경우 원래 데이터로 복원
       setEditableInputRows(prev => 
-        prev.map(r => 
-          r.id === id ? { ...r, isEditing: false, modifiedData: { ...r.originalData } } : r
+        prev.map(row => 
+          row.id === id 
+            ? { ...row, isEditing: false, modifiedData: { ...row.originalData } }
+            : row
         )
       );
     }
+    setError(null);
   };
 
   // 행 삭제
   const handleDeleteRow = (id: string) => {
-    setEditableInputRows(prev => prev.filter(row => row.id !== id));
+    const row = editableInputRows.find(r => r.id === id);
+    if (!row) return;
+
+    // 새로 추가된 행만 삭제 가능
+    if (!row.isNewlyAdded) {
+      // 새로 추가되지 않은 행은 삭제 불가
+      setError('Excel로 업로드된 기존 데이터는 삭제할 수 없습니다.');
+      return;
+    }
+
+    // 새로 추가된 행만 삭제 가능
+    setEditableInputRows(prev => prev.filter(r => r.id !== id));
+    setError(null);
   };
 
-  // 입력 변경 처리
-  const handleInputChange = (id: string, column: string, value: string) => {
+  // 입력값 변경 핸들러
+  const handleInputChange = (rowId: string, column: string, value: string) => {
     setEditableInputRows(prev => 
       prev.map(row => 
-        row.id === id 
+        row.id === rowId 
           ? { ...row, modifiedData: { ...row.modifiedData, [column]: value } }
           : row
       )
     );
   };
 
+  // 필수 필드 검증
+  const validateRequiredFields = (data: any): boolean => {
+    const requiredFields = [
+      '생산품명', '로트번호', '운송 물질', '운송 수량', 
+      '운송 일자', '도착 공정', '출발지', '이동 수단'
+    ];
+    
+    return requiredFields.every(field => {
+      const value = data[field];
+      return value && value.toString().trim() !== '';
+    });
+  };
+
+  // 저장 가능 여부 확인
+  const canSaveRow = (row: EditableRow) => {
+    if (!row.isEditing) return false;
+    
+    // 새로 추가된 행인지 확인
+    if (row.isNewlyAdded) {
+      return validateRequiredFields(row.modifiedData);
+    }
+    
+    // 기존 행은 수정된 데이터가 있을 때만 저장 가능
+    return JSON.stringify(row.modifiedData) !== JSON.stringify(row.originalData);
+  };
+
   // 입력 필드 렌더링
   const renderInputField = (row: EditableRow, column: string) => {
     const value = row.modifiedData[column] || '';
+    const isNewRow = row.isNewlyAdded;
     
-    let inputType = 'text';
-    let placeholder = '';
-    
-    if (column === '운송번호' || column === '운송수량' || column === '운송거리' || column === '운송비용') {
-      inputType = 'number';
-      placeholder = '숫자만 입력';
-    } else if (column === '운송일자') {
-      inputType = 'date';
-      placeholder = 'YYYY-MM-DD';
-    } else {
-      placeholder = '텍스트 입력';
-    }
+    // 새로 추가된 행만 편집 가능
+    if (isNewRow) {
+      let inputType = 'text';
+      let placeholder = '';
+      
+      // 컬럼별 입력 타입 제한
+      if (column === '로트번호' || column === '운송 수량') {
+        inputType = 'number';
+        placeholder = '숫자만 입력';
+      } else if (column === '운송 일자') {
+        inputType = 'date';
+        placeholder = 'YYYY-MM-DD';
+      } else {
+        // 생산품명, 운송 물질, 도착 공정, 출발지, 이동 수단은 텍스트
+        placeholder = '텍스트 입력';
+      }
 
+      return (
+        <input
+          type={inputType}
+          value={value}
+          onChange={(e) => handleInputChange(row.id, column, e.target.value)}
+          className='w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500'
+          placeholder={placeholder}
+          maxLength={column === '로트번호' || column === '운송 수량' ? 10 : 50}
+        />
+      );
+    }
+    
+    // 기존 Excel 데이터는 편집 불가능 (읽기 전용)
     return (
-      <input
-        type={inputType}
-        value={value}
-        onChange={(e) => handleInputChange(row.id, column, e.target.value)}
-        className='w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500'
-        placeholder={placeholder}
-        maxLength={50}
-      />
+      <span className='text-gray-900'>{value}</span>
     );
   };
 
@@ -390,15 +519,8 @@ export default function TransportDataPage() {
 
     return (
       <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-6'>
-        <div className='flex items-center justify-between mb-6'>
+        <div className='mb-6'>
           <h3 className='text-lg font-semibold text-gray-900'>데이터 테이블</h3>
-          <Button
-            onClick={handleAddNewRow}
-            className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-sm rounded-lg'
-          >
-            <Plus className='w-4 h-4 mr-1' />
-            새 행 추가
-          </Button>
         </div>
         
         <div className='overflow-x-auto'>
@@ -437,9 +559,14 @@ export default function TransportDataPage() {
                       <div className='flex gap-2'>
                         <Button
                           onClick={() => handleSaveRow(row.id)}
+                          disabled={!canSaveRow(row)}
                           variant='ghost'
                           size='sm'
-                          className='text-green-600 hover:text-green-700 hover:bg-green-50'
+                          className={`${
+                            canSaveRow(row)
+                              ? 'text-green-600 hover:text-green-700 hover:bg-green-50'
+                              : 'text-gray-400 cursor-not-allowed'
+                          }`}
                         >
                           <CheckCircle className='w-4 h-4 mr-1' />
                           저장
@@ -456,15 +583,19 @@ export default function TransportDataPage() {
                       </div>
                     ) : (
                       <div className='flex gap-2'>
-                        <Button
-                          onClick={() => handleEditRow(row.id)}
-                          variant='ghost'
-                          size='sm'
-                          className='text-blue-600 hover:text-blue-700 hover:bg-blue-50'
-                        >
-                          <Edit3 className='w-4 h-4 mr-1' />
-                          편집
-                        </Button>
+                        {/* 편집 버튼 - 새로 추가된 행에만 표시 */}
+                        {row.isNewlyAdded && (
+                          <Button
+                            onClick={() => handleEditRow(row.id)}
+                            variant='ghost'
+                            size='sm'
+                            className='text-blue-600 hover:text-blue-700 hover:bg-blue-50'
+                          >
+                            <Edit3 className='w-4 h-4 mr-1' />
+                            편집
+                          </Button>
+                        )}
+                        {/* 삭제 버튼 - 새로 추가된 행에만 표시 */}
                         {row.isNewlyAdded && (
                           <Button
                             onClick={() => handleDeleteRow(row.id)}
@@ -483,6 +614,19 @@ export default function TransportDataPage() {
               ))}
             </tbody>
           </table>
+        </div>
+        
+        {/* 새 행 추가 버튼 - 테이블 하단에 배치 (산출물 페이지와 동일한 디자인) */}
+        <div className='px-6 py-4 bg-gray-50 border-t border-gray-200 mt-6'>
+          <div className='flex justify-center'>
+            <Button 
+              onClick={handleAddNewRow}
+              className='bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg transition-colors'
+            >
+              <Plus className='w-5 h-5 mr-2' />
+              새 행 추가
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -506,12 +650,15 @@ export default function TransportDataPage() {
           <h2 className='text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4'>메뉴</h2>
           <nav className='space-y-1'>
             <a href='/' className='flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100'>
+              <Home className='w-5 h-5' />
               <span className='text-sm font-medium'>홈</span>
             </a>
             <a href='/lca' className='flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100'>
+              <BarChart3 className='w-5 h-5' />
               <span className='text-sm font-medium'>LCA</span>
             </a>
             <a href='/cbam' className='flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100'>
+              <Shield className='w-5 h-5' />
               <span className='text-sm font-medium'>CBAM</span>
             </a>
             <div className='space-y-1'>
@@ -525,10 +672,12 @@ export default function TransportDataPage() {
                 <a href='/data-upload/process' className='block px-3 py-2 text-xs text-gray-700 font-medium'>공정정보</a>
               </div>
             </div>
-            <a href='/process' className='flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100'>
-              <span className='text-sm font-medium'>공정정보</span>
+            <a href='/data-classification' className='flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100'>
+              <Database className='w-5 h-5' />
+              <span className='text-sm font-medium'>데이터 분류</span>
             </a>
             <a href='/settings' className='flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100'>
+              <Cog className='w-5 h-5' />
               <span className='text-sm font-medium'>설정</span>
             </a>
           </nav>
@@ -537,6 +686,41 @@ export default function TransportDataPage() {
 
       {/* 메인 콘텐츠 */}
       <div className='flex-1 flex flex-col'>
+        {/* 상단 탭 네비게이션 */}
+        <div className='bg-white border-b border-gray-200 shadow-sm'>
+          <div className='flex space-x-8 px-6'>
+            {[
+              { key: '실적정보', label: '데이터 업로드', active: true, href: null },
+              { key: '데이터분류', label: '데이터분류', active: false, href: '/data-classification' }
+            ].map((tab) => (
+              tab.href ? (
+                <a
+                  key={tab.key}
+                  href={tab.href}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    tab.active
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  {tab.label}
+                </a>
+              ) : (
+                <button
+                  key={tab.key}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    tab.active
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              )
+            ))}
+          </div>
+        </div>
+
         {/* 상단 헤더 */}
         <div className='bg-white shadow-sm border-b border-gray-200'>
           <div className='px-8 py-4'>
@@ -697,6 +881,8 @@ export default function TransportDataPage() {
 
             {/* 데이터 테이블 표시 */}
             {renderDataTable()}
+
+
           </div>
         </div>
       </div>

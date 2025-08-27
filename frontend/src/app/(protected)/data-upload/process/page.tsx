@@ -18,7 +18,8 @@ import {
   Shield,
   Settings,
   Cog,
-  Table
+  Table,
+  Database
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -543,6 +544,10 @@ export default function ProcessDataPage() {
                 <a href='/data-upload/process' className='block px-3 py-2 text-xs text-blue-600 font-medium bg-blue-50 rounded border border-blue-200'>공정정보</a>
               </div>
             </div>
+            <a href='/data-classification' className='flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100'>
+              <Database className='w-5 h-5' />
+              <span className='text-sm font-medium'>데이터 분류</span>
+            </a>
             <a href='/settings' className='flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100'>
               <Cog className='w-5 h-5' />
               <span className='text-sm font-medium'>설정</span>
@@ -558,8 +563,7 @@ export default function ProcessDataPage() {
           <div className='flex space-x-8 px-6'>
             {[
               { key: '실적정보', label: '데이터 업로드', active: true },
-              { key: '데이터분류', label: '데이터분류', active: false },
-              { key: '운송정보', label: '운송정보', active: false }
+              { key: '데이터분류', label: '데이터분류', active: false }
             ].map((tab) => (
               <button
                 key={tab.key}

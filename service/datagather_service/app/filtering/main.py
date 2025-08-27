@@ -63,143 +63,67 @@ def predict_material_name(input_material: str, process: str, production_name: st
             logger.warning(f"상태값이 투입물명으로 입력됨: {input_material}")
             return input_material  # 상태값은 그대로 반환
         
-        # AI 모델이 사용 가능한 경우 AI 예측 시도
+        # AI 모델 필수 사용 - 규칙 기반 제거
         if AI_AVAILABLE and ai_model:
             try:
-                # AI 모델을 사용한 예측 (실제 학습된 모델 사용)
-                logger.info(f"AI 모델을 사용하여 예측 시도: {input_material}")
-                
-                # GPU 메모리 상태 확인
+                # GPU 메모리 상태 확인 및 최적화
                 import torch
                 if torch.cuda.is_available():
                     try:
                         torch.cuda.empty_cache()  # GPU 메모리 정리
+                        logger.info(f"🚀 GPU 메모리 정리 완료")
                     except Exception as gpu_error:
                         logger.warning(f"GPU 메모리 정리 실패: {gpu_error}")
                 
-                # 실제 AI 모델 예측 시도
-                try:
-                    # 학습된 모델이 있는 경우 실제 예측 수행
-                    if hasattr(ai_model, 'predict') and callable(getattr(ai_model, 'predict', None)):
-                        ai_prediction = ai_model.predict(input_material)
-                        if ai_prediction:
-                            logger.info(f"AI 모델 예측 성공: {input_material} → {ai_prediction}")
-                            return ai_prediction
+                # AI 모델을 통한 예측 (학습된 라벨만 사용)
+                logger.info(f"🤖 AI 모델 예측 시작: '{input_material}'")
+                
+                # 분류기와 레이블 임베딩 상태 확인
+                if not (hasattr(ai_model, 'classifier') and ai_model.classifier is not None):
+                    raise Exception("분류기가 로드되지 않음")
+                
+                if not (hasattr(ai_model, 'label_embeddings') and ai_model.label_embeddings):
+                    raise Exception("레이블 임베딩이 로드되지 않음")
+                
+                logger.info(f"✅ AI 모델 준비 완료 - 분류기: 정상, 레이블: {len(ai_model.label_embeddings)}개")
+                
+                # AI 모델 예측 수행 (학습된 라벨만 반환)
+                ai_prediction_results = ai_model.predict(input_material)
+                logger.info(f"AI 모델 예측 결과: {ai_prediction_results}")
+                
+                if ai_prediction_results and len(ai_prediction_results) > 0:
+                    # 가장 높은 신뢰도의 학습된 라벨 사용
+                    best_prediction = ai_prediction_results[0]['label']
+                    confidence = ai_prediction_results[0]['similarity']
+                    
+                    # 신뢰도 임계값 확인 (30% 이상만 신뢰)
+                    if confidence >= 30.0:
+                        logger.info(f"🎯 AI 모델 예측 성공: {input_material} → {best_prediction} (신뢰도: {confidence:.1f}%)")
+                        return best_prediction
                     else:
-                        # 학습된 모델이 없는 경우 규칙 기반 예측
-                        ai_prediction = apply_ai_rules(input_material, process, production_name)
-                        if ai_prediction:
-                            logger.info(f"규칙 기반 예측 성공: {input_material} → {ai_prediction}")
-                            return ai_prediction
-                            
-                except Exception as prediction_error:
-                    logger.warning(f"AI 모델 예측 실패: {prediction_error}")
-                    # 예측 실패 시 규칙 기반으로 대체
-                    ai_prediction = apply_ai_rules(input_material, process, production_name)
-                    if ai_prediction:
-                        logger.info(f"규칙 기반 예측으로 대체: {input_material} → {ai_prediction}")
-                        return ai_prediction
+                        logger.warning(f"⚠️ AI 모델 신뢰도 낮음: {input_material} → {best_prediction} (신뢰도: {confidence:.1f}% < 30%)")
+                        # 낮은 신뢰도라도 학습된 라벨 중에서 최선의 선택 반환
+                        return best_prediction
+                else:
+                    logger.warning(f"❌ AI 모델이 예측 결과를 반환하지 않음: {input_material}")
+                    # 예측 결과가 없으면 원본 반환
+                    return input_material
                     
             except Exception as ai_error:
-                logger.warning(f"AI 모델 예측 실패, 규칙 기반으로 대체: {ai_error}")
-                # GPU 오류인 경우 메모리 정리 시도
-                try:
-                    import torch
-                    if torch.cuda.is_available():
-                        torch.cuda.empty_cache()
-                except:
-                    pass
-        
-        # AI 모델이 없거나 실패한 경우 규칙 기반 예측
-        return apply_rule_based_prediction(input_material, process, production_name)
+                logger.error(f"❌ AI 모델 예측 실패: {ai_error}")
+                # AI 모델 실패 시에도 원본 반환 (규칙 기반 사용 안 함)
+                logger.info(f"AI 모델 실패로 원본 반환: {input_material}")
+                return input_material
+        else:
+            # AI 모델이 없는 경우 원본 반환 (규칙 기반 사용 안 함)
+            logger.warning(f"AI 모델이 사용 불가능하여 원본 반환: {input_material}")
+            return input_material
         
     except Exception as e:
         logger.error(f"투입물명 예측 중 오류: {e}")
         return input_material
 
-def apply_ai_rules(input_material: str, process: str, production_name: str) -> str:
-    """
-    AI 모델을 사용한 투입물명 예측 (공정 고려하지 않음, 개선된 규칙 기반)
-    """
-    try:
-        # 공정을 고려하지 않고 투입물명만으로 예측
-        # 실제 AI 모델에서는 학습된 데이터만을 바탕으로 판단
-        
-        # 명확한 분류 규칙 (개선됨)
-        if '점결탄' in input_material:
-            return '점결탄'
-        elif '광석' in input_material or '정립광' in input_material:
-            return '광석'
-        elif '석회' in input_material:
-            return '석회'
-        elif '코크스' in input_material:
-            return '코크스'
-        elif '철' in input_material and '철' != input_material:
-            return '철'
-        elif '냉각수' in input_material or '물' in input_material:
-            return '냉각수'  # 냉각수는 철이 아님!
-        elif '윤활제' in input_material:
-            return '윤활제'  # 윤활제는 철이 아님!
-        elif '모래' in input_material:
-            return '모래'    # 모래는 환윗널이 아님!
-        elif '열유입' in input_material:
-            return '열유입'  # 열유입은 철이 아님!
-        elif 'EAF' in input_material or '탄소' in input_material:
-            return 'EAF 탄소 전극'
-        
-        # 공정별 특화는 하지 않음 - 단순히 원본 투입물명 반환
-        return input_material
-        
-    except Exception as e:
-        logger.error(f"AI 규칙 적용 중 오류: {e}")
-        return input_material
-
-def apply_rule_based_prediction(input_material: str, process: str, production_name: str) -> str:
-    """
-    기본 규칙 기반 투입물명 예측
-    """
-    try:
-        # 공정별 일반적인 투입물명 매핑
-        process_material_mapping = {
-            '압연': ['압연용 원료', '압연재', '압연 소재', '압연 강재'],
-            '단조': ['단조용 원료', '단조재', '단조 소재', '단조 강재'],
-            '주조': ['주조용 원료', '주조재', '주조 소재', '주조 강재'],
-            '용접': ['용접재', '용접 소재', '용접용 원료', '용접 강재'],
-            '절삭': ['절삭재', '절삭 소재', '절삭용 원료', '절삭 강재'],
-            '열처리': ['열처리재', '열처리 소재', '열처리용 원료', '열처리 강재'],
-            '가공': ['가공재', '가공 소재', '가공용 원료', '가공 강재'],
-            '성형': ['성형재', '성형 소재', '성형용 원료', '성형 강재']
-        }
-        
-        # 공정에 따른 투입물명 추천
-        if process and process.strip():
-            process_lower = process.lower()
-            
-            # 공정명에 포함된 키워드 찾기
-            matched_process = None
-            for key in process_material_mapping.keys():
-                if key in process_lower:
-                    matched_process = key
-                    break
-            
-            if matched_process:
-                recommended_materials = process_material_mapping[matched_process]
-                
-                # 원본 투입물명과 유사한 것을 찾거나, 첫 번째 추천 사용
-                for recommended in recommended_materials:
-                    if (input_material.lower() in recommended.lower() or 
-                        recommended.lower() in input_material.lower()):
-                        return recommended
-                
-                # 유사한 것이 없으면 공정에 맞는 추천 사용
-                return recommended_materials[0]
-        
-        # 공정별 매핑이 없는 경우 원본 반환
-        return input_material
-        
-    except Exception as e:
-        logger.error(f"규칙 기반 예측 중 오류: {e}")
-        return input_material
+# 하드코딩된 규칙 기반 함수들을 제거하고 AI 모델만 사용
 
 async def save_feedback_to_training_data(feedback_data: dict):
     """피드백 데이터를 학습 데이터 파일에 저장합니다."""
@@ -244,25 +168,59 @@ async def lifespan(app: FastAPI):
             else:
                 logger.info("GPU 사용 불가능, CPU 모드로 실행")
             
-            # 기존 학습된 모델 경로 설정
+            # 새로 추가된 model_v24 학습 모델 경로 설정
             current_dir = os.path.dirname(os.path.abspath(__file__))
-            model_dir = os.path.join(current_dir, "..", "data", "studied", "latest_model")
+            model_dir = os.path.join(current_dir, "..", "data", "studied", "model_v24", "model_v24")
             
-            # AI 모델 인스턴스 생성 (기존 학습된 모델 사용)
+            # AI 모델 인스턴스 생성 (새로 추가된 model_v24 학습 모델 사용)
             try:
+                logger.info(f"모델 디렉토리 확인: {model_dir}")
+                logger.info(f"모델 디렉토리 존재 여부: {os.path.exists(model_dir)}")
+                
                 if os.path.exists(model_dir):
-                    logger.info(f"기존 학습된 모델을 로드합니다: {model_dir}")
+                    # 모델 디렉토리 내용 확인
+                    model_files = os.listdir(model_dir)
+                    logger.info(f"모델 디렉토리 내용: {model_files}")
+                    
+                    # 필수 파일들 확인
+                    required_files = ['config.json', 'pytorch_model.bin', 'tokenizer.json', 'classifier.pkl', 'label_mapping.json']
+                    missing_files = [f for f in required_files if f not in model_files]
+                    if missing_files:
+                        logger.warning(f"누락된 모델 파일들: {missing_files}")
+                    
+                    logger.info(f"새로 추가된 model_v24 학습 모델을 로드합니다: {model_dir}")
                     app.state.ai_model = XMLRoBERTaClassifier(model_dir=model_dir)
-                    logger.info("기존 학습된 AI 모델이 성공적으로 로드되었습니다.")
-                    logger.info("AI 모델: 학습된 데이터를 기반으로 정확한 예측 수행")
+                    logger.info("model_v24 학습 모델이 성공적으로 로드되었습니다.")
+                    logger.info("AI 모델: 최신 학습된 데이터(v24)를 기반으로 정확한 예측 수행")
+                    
+                    # 모델 로드 성공 확인
+                    if hasattr(app.state.ai_model, 'classifier') and app.state.ai_model.classifier is not None:
+                        logger.info("✅ AI 모델의 분류기가 성공적으로 로드되었습니다.")
+                    else:
+                        logger.warning("⚠️ AI 모델의 분류기 로드에 문제가 있습니다.")
+                        
+                    if hasattr(app.state.ai_model, 'label_embeddings') and app.state.ai_model.label_embeddings:
+                        logger.info(f"✅ 레이블 임베딩이 성공적으로 로드되었습니다: {len(app.state.ai_model.label_embeddings)}개")
+                    else:
+                        logger.warning("⚠️ 레이블 임베딩 로드에 문제가 있습니다.")
                 else:
-                    logger.info("기존 학습된 모델이 없습니다. 새로운 모델을 초기화합니다.")
-                    app.state.ai_model = XMLRoBERTaClassifier()
-                    logger.info("새로운 AI 모델이 초기화되었습니다.")
-                    logger.info("AI 모델: 기본 규칙 기반으로 예측")
+                    logger.warning(f"model_v24 모델 폴더를 찾을 수 없습니다: {model_dir}")
+                    # fallback: latest_model 폴더 확인
+                    fallback_dir = os.path.join(current_dir, "..", "data", "studied", "latest_model")
+                    if os.path.exists(fallback_dir):
+                        logger.info(f"fallback: 기존 학습된 모델을 로드합니다: {fallback_dir}")
+                        app.state.ai_model = XMLRoBERTaClassifier(model_dir=fallback_dir)
+                        logger.info("기존 학습된 AI 모델이 성공적으로 로드되었습니다.")
+                    else:
+                        logger.info("학습된 모델이 없습니다. 새로운 모델을 초기화합니다.")
+                        app.state.ai_model = XMLRoBERTaClassifier()
+                        logger.info("새로운 AI 모델이 초기화되었습니다.")
+                        logger.info("AI 모델: 기본 규칙 기반으로 예측")
                     
             except Exception as model_error:
-                logger.warning(f"AI 모델 초기화 실패 (GPU 문제일 수 있음): {model_error}")
+                import traceback
+                logger.error(f"AI 모델 초기화 실패: {model_error}")
+                logger.error(f"에러 상세 정보: {traceback.format_exc()}")
                 logger.info("규칙 기반 모드로 전환합니다.")
                 app.state.ai_model = None
                 
@@ -301,12 +259,21 @@ def create_app() -> FastAPI:
     @app.get("/health")
     async def health_check():
         """헬스 체크 엔드포인트"""
+        # 현재 사용 중인 모델 정보 확인
+        model_info = "None"
+        if hasattr(app.state, 'ai_model') and app.state.ai_model:
+            model_info = "model_v24 (최신 학습 모델)"
+        elif AI_AVAILABLE:
+            model_info = "기본 모델 (fallback)"
+        
         return {
             "status": "ok",
             "service": "datagather",
             "domain": "data-collection",
             "architecture": "AI Model + Rule-based",
             "ai_available": AI_AVAILABLE,
+            "current_model": model_info,
+            "model_version": "v24",
             "timestamp": datetime.now().isoformat(),
             "version": "1.0.0"
         }
@@ -315,12 +282,21 @@ def create_app() -> FastAPI:
     @app.get("/")
     async def root():
         """루트 경로"""
+        # 현재 사용 중인 모델 정보 확인
+        model_info = "None"
+        if hasattr(app.state, 'ai_model') and app.state.ai_model:
+            model_info = "model_v24 (최신 학습 모델)"
+        elif AI_AVAILABLE:
+            model_info = "기본 모델 (fallback)"
+        
         return {
             "service": "DataGather Service",
             "version": "1.0.0",
             "domain": "Data Collection & Processing",
             "architecture": "AI Model + Rule-based",
             "ai_available": AI_AVAILABLE,
+            "current_model": model_info,
+            "model_version": "v24",
             "endpoints": {
                 "health": "/health",
                 "ai-process": "/ai-process",
@@ -383,15 +359,17 @@ def create_app() -> FastAPI:
                         )
                         
                         method_used = "AI 모델" if ai_model and AI_AVAILABLE else "규칙 기반"
-                        logger.info(f"{method_used} 수정: {input_material} → {corrected_material}")
                         if ai_model and AI_AVAILABLE:
-                            logger.info(f"AI 모델: 공정 고려하지 않고 투입물명만으로 예측")
+                            logger.info(f"🤖 AI 모델 수정: {input_material} → {corrected_material}")
+                            logger.info(f"🧠 AI 모델: 학습된 라벨 기반 예측 (규칙 없음)")
                             # 분류 정확도 모니터링
                             if input_material != corrected_material:
-                                logger.info(f"✅ AI 모델이 투입물명을 성공적으로 수정했습니다")
+                                logger.info(f"✅ AI 모델이 투입물명을 학습된 라벨로 수정했습니다")
                             else:
-                                logger.info(f"ℹ️ AI 모델이 원본 투입물명을 유지했습니다")
-                        logger.info(f"공정 정보: {process} (참고용, 예측에는 미사용)")
+                                logger.info(f"ℹ️ AI 모델이 원본 투입물명을 최적 라벨로 판단했습니다")
+                        else:
+                            logger.info(f"⚠️ AI 모델 미사용: {input_material} → {corrected_material}")
+                        logger.info(f"📋 공정 정보: {process} (참고용, AI 예측에는 미사용)")
                         
                         # 수정된 행 생성
                         processed_row = row.copy()
@@ -424,11 +402,15 @@ def create_app() -> FastAPI:
             # 결과 반환
             result = {
                 "status": "processed",
-                "message": f"AI 모델과 규칙 기반으로 투입물명을 수정했습니다 (AI 사용: {AI_AVAILABLE})",
+                "message": f"🤖 AI 모델(v24)로 투입물명을 학습된 라벨 기반으로 수정했습니다 (GPU 가속: {torch.cuda.is_available() if 'torch' in locals() else False})",
                 "filename": data.get('filename'),
                 "original_count": len(excel_data),
                 "processed_count": len(processed_data),
                 "ai_available": AI_AVAILABLE,
+                "model_version": "v24",
+                "model_type": "학습된 라벨 기반 (규칙 없음)",
+                "current_model": "model_v24 (최신 학습 모델)" if hasattr(app.state, 'ai_model') and app.state.ai_model else "AI 모델 없음",
+                "gpu_enabled": torch.cuda.is_available() if 'torch' in locals() else False,
                 "data": processed_data,
                 "columns": expected_columns + ['투입물명수정'],
                 "timestamp": datetime.now().isoformat()

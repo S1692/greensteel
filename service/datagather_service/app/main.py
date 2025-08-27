@@ -1,13 +1,13 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from typing import Dict, Any
 import logging
 from datetime import datetime
 from pathlib import Path
 
 # 서브라우터 import
 from .filtering.main import app as filtering_app
+from .api.results import router as results_router
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -15,19 +15,29 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """애플리케이션 생명주기 관리 - DDD Architecture"""
+    """애플리케이션 생명주기 관리"""
     # 시작 시
     logger.info(f"DataGather Service starting up...")
     logger.info("Domain: Data Collection & Processing")
-    logger.info("Architecture: DDD (Domain-Driven Design)")
+    logger.info("Architecture: Modular Design with Sub-routers")
+    
+    # 데이터베이스 초기화
+    try:
+        from .database import init_db
+        init_db()
+        logger.info("✅ 데이터베이스 초기화 완료")
+    except Exception as e:
+        logger.error(f"❌ 데이터베이스 초기화 실패: {e}")
+        logger.warning("서비스는 계속 실행되지만 데이터베이스 기능이 제한됩니다.")
+    
     yield
     # 종료 시
     logger.info(f"DataGather Service shutting down...")
 
 # 메인 FastAPI 애플리케이션 생성
 app = FastAPI(
-    title="DataGather Service - DDD Architecture",
-    description="ESG 데이터 수집 및 처리 도메인 서비스 - DDD 패턴 적용",
+    title="DataGather Service - Modular Architecture",
+    description="ESG 데이터 수집 및 처리 서비스 - 모듈형 설계",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -44,15 +54,18 @@ app.add_middleware(
 # 서브라우터 마운트
 app.mount("/filtering", filtering_app)
 
+# 결과 API 라우터 추가
+app.include_router(results_router)
+
 # 헬스 체크 엔드포인트
 @app.get("/health")
 async def health_check():
-    """헬스 체크 엔드포인트 - DDD 도메인 상태"""
+    """헬스 체크 엔드포인트"""
     return {
         "status": "ok",
         "service": "datagather",
         "domain": "data-collection",
-        "architecture": "DDD (Domain-Driven Design)",
+        "architecture": "Modular with Sub-routers",
         "timestamp": datetime.now().isoformat(),
         "version": "1.0.0",
         "modules": ["filtering"]
@@ -61,15 +74,16 @@ async def health_check():
 # 루트 경로
 @app.get("/")
 async def root():
-    """루트 경로 - DDD 도메인 정보"""
+    """루트 경로"""
     return {
         "service": "DataGather Service",
         "version": "1.0.0",
         "domain": "Data Collection & Processing",
-        "architecture": "DDD (Domain-Driven Design)",
+        "architecture": "Modular with Sub-routers",
         "endpoints": {
             "health": "/health",
             "filtering": "/filtering",
+            "results": "/results",
             "documentation": "/docs"
         },
         "sub_routers": {
@@ -83,31 +97,6 @@ async def root():
             }
         }
     }
-
-# JSON 데이터 처리 엔드포인트
-@app.post("/process-data")
-async def process_data(data: dict):
-    """JSON 형태의 데이터를 받아서 처리합니다."""
-    try:
-        logger.info(f"JSON 데이터 처리 요청 받음: {data.get('filename', 'unknown')}, 행 수: {len(data.get('data', []))}")
-        
-        # 여기에 향후 AI 모델 처리 로직이 들어갈 예정
-        processed_data = {
-            "original_count": len(data.get('data', [])),
-            "processed_count": len(data.get('data', [])),
-            "status": "processed",
-            "message": "데이터가 성공적으로 처리되었습니다",
-            "filename": data.get('filename'),
-            "rows_count": data.get('rows_count'),
-            "columns": data.get('columns"),
-            "shape": data.get('shape')
-        }
-        
-        return processed_data
-        
-    except Exception as e:
-        logger.error(f"데이터 처리 중 오류 발생: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"데이터 처리 중 오류가 발생했습니다: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

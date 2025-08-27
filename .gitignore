@@ -193,3 +193,9 @@ jspm_packages/
 .env.test
 .env.production
 env
+
+# Data gather service specific ignores
+service/datagather_service/ai_env/
+service/datagather_service/app/data/
+service/datagather_service/app/data/dataforstudy/
+service/datagather_service/app/data/studied/

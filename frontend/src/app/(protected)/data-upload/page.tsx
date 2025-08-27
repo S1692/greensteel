@@ -1,439 +1,206 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import React from 'react';
 import CommonShell from '@/components/common/CommonShell';
-import { Upload, FileText, Database, Brain, CheckCircle, AlertCircle, ArrowRight, Download, Plus, Trash2, Edit } from 'lucide-react';
+import {
+  Upload,
+  FileText,
+  Database,
+  Truck,
+  Cog,
+  ArrowRight,
+  Download,
+  FileSpreadsheet,
+  Brain,
+  CheckCircle
+} from 'lucide-react';
 import { Button } from '@/components/atomic/atoms';
-import { Input } from '@/components/atomic/atoms';
-import TabGroup from '@/components/atomic/molecules/TabGroup';
-import { parseExcel, createColumns } from '@/lib';
-
-type TabKey = 'standard' | 'actual' | 'classification' | 'transport' | 'process';
-
-interface TabState {
-  rows: Record<string, any>[];
-  columns: { key: string; header: string }[];
-  fileName?: string;
-}
-
-interface TabConfig {
-  id: TabKey;
-  label: string;
-  subtitle: string;
-  templateUrl: string;
-}
+import Link from 'next/link';
 
 const DataUploadPage: React.FC = () => {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [activeTab, setActiveTab] = useState<TabKey>('standard');
-  const [data, setData] = useState<Record<TabKey, TabState>>({
-    standard: { rows: [], columns: [] },
-    actual: { rows: [], columns: [] },
-    classification: { rows: [], columns: [] },
-    transport: { rows: [], columns: [] },
-    process: { rows: [], columns: [] }
-  });
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  
-  const fileRefs = useRef<Record<TabKey, HTMLInputElement | null>>({
-    standard: null,
-    actual: null,
-    classification: null,
-    transport: null,
-    process: null
-  });
-
-  const tabConfigs: TabConfig[] = [
-    { id: 'standard', label: '기준정보', subtitle: '(기준 정보)', templateUrl: '/api/templates?type=standard' },
-    { id: 'actual', label: '실적정보', subtitle: '(실적 데이터)', templateUrl: '/api/templates?type=actual' },
-    { id: 'classification', label: '데이터분류', subtitle: '(분류 데이터)', templateUrl: '/api/templates?type=classification' },
-    { id: 'transport', label: '운송정보', subtitle: '(운송 데이터)', templateUrl: '/api/templates?type=transport' },
-    { id: 'process', label: '공정정보', subtitle: '(공정 데이터)', templateUrl: '/api/templates?type=process' }
+  const uploadPages = [
+    {
+      id: 'input',
+      title: '실적정보(투입물)',
+      subtitle: '투입물 데이터 업로드 및 관리',
+      description: '생산 과정에서 투입되는 원재료, 부재료 등의 데이터를 업로드하고 AI로 표준화합니다.',
+      icon: Upload,
+      href: '/data-upload/input',
+      color: 'from-blue-500 to-blue-600',
+      features: ['Excel 템플릿 다운로드', 'AI 기반 데이터 표준화', '실시간 편집 및 검증'],
+      templateFile: '실적_데이터_인풋.xlsx'
+    },
+    {
+      id: 'output',
+      title: '실적정보(산출물)',
+      subtitle: '산출물 데이터 업로드 및 관리',
+      description: '생산 과정에서 나오는 제품, 부산물 등의 데이터를 업로드하고 분석합니다.',
+      icon: FileSpreadsheet,
+      href: '/data-upload/output',
+      color: 'from-green-500 to-green-600',
+      features: ['제품 정보 관리', '생산량 추적', '품질 데이터 분석'],
+      templateFile: '실적_데이터_아웃풋.xlsx'
+    },
+    {
+      id: 'transport',
+      title: '운송정보',
+      subtitle: '운송 데이터 업로드 및 관리',
+      description: '원재료 및 제품의 운송 과정에서 발생하는 데이터를 관리합니다.',
+      icon: Truck,
+      href: '/data-upload/transport',
+      color: 'from-purple-500 to-purple-600',
+      features: ['운송 경로 관리', '탄소 배출량 계산', '비용 분석'],
+      templateFile: '실적_데이터_운송정보.xlsx'
+    },
+    {
+      id: 'process',
+      title: '공정정보',
+      subtitle: '공정 데이터 업로드 및 관리',
+      description: '생산 공정의 세부 정보와 공정별 데이터를 체계적으로 관리합니다.',
+      icon: Cog,
+      href: '/data-upload/process',
+      color: 'from-orange-500 to-orange-600',
+      features: ['공정 흐름 관리', '설비 정보 관리', '공정별 성과 분석'],
+      templateFile: '실적_데이터_공정정보.xlsx'
+    }
   ];
 
-  const handleFileUpload = async (file: File, tabKey: TabKey) => {
-    setIsProcessing(true);
-    
-    try {
-      const result = await parseExcel(file);
-      const columns = createColumns(result.headers);
-      
-      setData(prev => ({
-        ...prev,
-        [tabKey]: {
-          rows: result.rows,
-          columns: columns,
-          fileName: file.name
-        }
-      }));
-      
-      setToast({
-        message: `${tabConfigs.find(t => t.id === tabKey)?.label} 파일이 성공적으로 업로드되었습니다!`,
-        type: 'success'
-      });
-    } catch (error) {
-      console.error('파일 업로드 오류:', error);
-      setToast({
-        message: error instanceof Error ? error.message : '파일 업로드 중 오류가 발생했습니다.',
-        type: 'error'
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, tabKey: TabKey) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      handleFileUpload(file, tabKey);
-    }
-  };
-
-  const handleUploadClick = (tabKey: TabKey) => {
-    if (fileRefs.current[tabKey]) {
-      fileRefs.current[tabKey]?.click();
-    }
-  };
-
-  const addRow = (tabKey: TabKey) => {
-    const currentData = data[tabKey];
-    if (currentData.columns.length === 0) return;
-
-    const newRow: Record<string, any> = {};
-    currentData.columns.forEach(col => {
-      newRow[col.key] = '';
-    });
-
-    setData(prev => ({
-      ...prev,
-      [tabKey]: {
-        ...prev[tabKey],
-        rows: [...prev[tabKey].rows, newRow]
-      }
-    }));
-  };
-
-  const deleteRow = (tabKey: TabKey, rowIndex: number) => {
-    setData(prev => ({
-      ...prev,
-      [tabKey]: {
-        ...prev[tabKey],
-        rows: prev[tabKey].rows.filter((_, index) => index !== rowIndex)
-      }
-    }));
-  };
-
-  const updateCell = (tabKey: TabKey, rowIndex: number, columnKey: string, value: string) => {
-    setData(prev => ({
-      ...prev,
-      [tabKey]: {
-        ...prev[tabKey],
-        rows: prev[tabKey].rows.map((row, index) => 
-          index === rowIndex ? { ...row, [columnKey]: value } : row
-        )
-      }
-    }));
-  };
-
-  const handleSave = (tabKey: TabKey) => {
-    const currentData = data[tabKey];
-    if (currentData.rows.length === 0) {
-      setToast({
-        message: '저장할 데이터가 없습니다.',
-        type: 'error'
-      });
-      return;
-    }
-
-    // Mock 저장 처리
-    setToast({
-      message: `${tabConfigs.find(t => t.id === tabKey)?.label} 데이터가 저장되었습니다!`,
-      type: 'success'
-    });
-  };
-
-  const handleConfirm = (tabKey: TabKey) => {
-    const currentData = data[tabKey];
-    if (currentData.rows.length === 0) {
-      setToast({
-        message: '확인할 데이터가 없습니다.',
-        type: 'error'
-      });
-      return;
-    }
-
-    // Mock 확인 처리
-    setToast({
-      message: `${tabConfigs.find(t => t.id === tabKey)?.label} 데이터 확인이 완료되었습니다!`,
-      type: 'success'
-    });
-  };
-
-  const renderStandardActualTab = (tabKey: TabKey) => {
-    const currentData = data[tabKey];
-    const tabConfig = tabConfigs.find(t => t.id === tabKey);
-
-    return (
-      <div className="space-y-4">
-        {/* 상단 정보 */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">{tabConfig?.label}</h3>
-            <p className="text-sm text-gray-600">{tabConfig?.subtitle}</p>
-          </div>
-          {currentData.fileName && (
-            <div className="text-sm text-gray-500">
-              파일: {currentData.fileName} ({currentData.rows.length}행)
-            </div>
-          )}
-        </div>
-
-        {/* 템플릿 다운로드 및 업로드 */}
-        <div className="flex items-center space-x-3">
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="flex items-center space-x-2"
-          >
-            <a href={tabConfig?.templateUrl} download>
-              <Download className="w-4 h-4" />
-              <span>템플릿 다운로드</span>
-            </a>
-          </Button>
-
-          <Button
-            onClick={() => handleUploadClick(tabKey)}
-            variant="outline"
-            size="sm"
-            className="flex items-center space-x-2"
-            disabled={isProcessing}
-          >
-            <Upload className="w-4 h-4" />
-            <span>{isProcessing ? '처리 중...' : '파일 업로드'}</span>
-          </Button>
-
-          <input
-            ref={(el) => { fileRefs.current[tabKey] = el; }}
-            type="file"
-            accept=".csv,.xlsx,.xls"
-            onChange={(e) => handleFileChange(e, tabKey)}
-            className="hidden"
-          />
-        </div>
-
-        {/* 데이터 테이블 */}
-        {currentData.rows.length > 0 && (
-          <div className="bg-gray-50 rounded-lg p-3">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-gray-900">데이터 미리보기</h4>
-              <Button
-                onClick={() => addRow(tabKey)}
-                size="sm"
-                className="flex items-center space-x-2"
-              >
-                <Plus className="w-4 h-4" />
-                <span>행 추가</span>
-              </Button>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="min-w-full bg-white rounded-lg border border-gray-200">
-                <thead>
-                  <tr className="bg-gray-50">
-                    {currentData.columns.map((col, index) => (
-                      <th key={index} className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
-                        {col.header}
-                      </th>
-                    ))}
-                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
-                      작업
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentData.rows.map((row, rowIndex) => (
-                    <tr key={rowIndex} className="hover:bg-gray-50">
-                      {currentData.columns.map((col, colIndex) => (
-                        <td key={colIndex} className="px-3 py-2 border-b border-gray-200">
-                          <Input
-                            value={row[col.key] || ''}
-                            onChange={(e) => updateCell(tabKey, rowIndex, col.key, e.target.value)}
-                            inputSize="sm"
-                            className="w-full"
-                          />
-                        </td>
-                      ))}
-                      <td className="px-3 py-2 border-b border-gray-200">
-                        <Button
-                          onClick={() => deleteRow(tabKey, rowIndex)}
-                          variant="outline"
-                          size="sm"
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* 하단 액션 버튼 */}
-            <div className="flex justify-end space-x-3 pt-3">
-              <Button
-                onClick={() => handleSave(tabKey)}
-                disabled={currentData.rows.length === 0}
-                variant="outline"
-                size="sm"
-              >
-                저장
-              </Button>
-              <Button
-                onClick={() => handleConfirm(tabKey)}
-                disabled={currentData.rows.length === 0}
-                size="sm"
-              >
-                확인
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* 업로드 안내 */}
-        {currentData.rows.length === 0 && (
-          <div className="text-center py-8">
-            <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500 mb-2">파일을 업로드하여 데이터를 시작하세요</p>
-            <p className="text-sm text-gray-400">CSV, Excel 파일을 지원합니다</p>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const renderClassificationTab = () => {
-    const currentData = data.classification;
-
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">데이터분류</h3>
-            <p className="text-sm text-gray-600">(분류 데이터)</p>
-          </div>
-          {currentData.fileName && (
-            <div className="text-sm text-gray-500">
-              파일: {currentData.fileName} ({currentData.rows.length}행)
-            </div>
-          )}
-        </div>
-
-        <div className="text-center py-8">
-          <Database className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500 mb-2">데이터분류는 읽기 전용입니다</p>
-          <p className="text-sm text-gray-400">업로드된 데이터를 분류 기준에 따라 조회할 수 있습니다</p>
-        </div>
-
-        {currentData.rows.length > 0 && (
-          <div className="bg-gray-50 rounded-lg p-3">
-            <h4 className="font-medium text-gray-900 mb-3">분류 데이터</h4>
-            <div className="overflow-x-auto">
-              <table className="min-w-full bg-white rounded-lg border border-gray-200">
-                <thead>
-                  <tr className="bg-gray-50">
-                    {currentData.columns.map((col, index) => (
-                      <th key={index} className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200">
-                        {col.header}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentData.rows.map((row, rowIndex) => (
-                    <tr key={rowIndex} className="hover:bg-gray-50">
-                      {currentData.columns.map((col, colIndex) => (
-                        <td key={colIndex} className="px-3 py-2 border-b border-gray-200 text-sm text-gray-900">
-                          {row[col.key] || ''}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const renderTransportTab = () => {
-    return renderStandardActualTab('transport');
-  };
-
-  const renderProcessTab = () => {
-    return renderStandardActualTab('process');
-  };
-
-  const renderTabContent = (tabKey: TabKey) => {
-    switch (tabKey) {
-      case 'standard':
-      case 'actual':
-        return renderStandardActualTab(tabKey);
-      case 'classification':
-        return renderClassificationTab();
-      case 'transport':
-        return renderTransportTab();
-      case 'process':
-        return renderProcessTab();
-      default:
-        return null;
-    }
+  // 템플릿 다운로드 함수
+  const handleTemplateDownload = (templateFile: string) => {
+    const link = document.createElement('a');
+    link.href = `/templates/${templateFile}`;
+    link.download = templateFile;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
     <CommonShell>
-      <div className="min-h-screen p-4 space-y-4">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold text-gray-900 text-center">데이터 업로드</h1>
-          <p className="text-gray-700 text-sm text-center max-w-2xl mx-auto">
-            각 탭에서 필요한 데이터를 업로드하고 관리합니다
+      <div className='w-full h-full p-4 lg:p-6 xl:p-8 space-y-4 lg:space-y-6 xl:space-y-8'>
+        {/* 페이지 헤더 */}
+        <div className='flex flex-col gap-2 lg:gap-3'>
+          <h1 className='stitch-h1 text-xl lg:text-2xl xl:text-3xl font-bold'>데이터 업로드</h1>
+          <p className='stitch-caption text-white/60 text-xs lg:text-sm'>
+            AI 기반 데이터 관리 시스템을 통해 각종 데이터를 업로드하고 처리합니다.
           </p>
         </div>
-        
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4">
-          {/* 탭 그룹 */}
-          <TabGroup
-            tabs={tabConfigs.map(config => ({
-              id: config.id,
-              label: config.label,
-              content: renderTabContent(config.id)
-            }))}
-            activeTab={activeTab}
-            onTabChange={(tabId: string) => setActiveTab(tabId as TabKey)}
-            variant="underline"
-          />
-        </div>
-      </div>
 
-      {/* 토스트 알림 */}
-      {toast && (
-        <div className={`fixed bottom-6 right-6 p-4 rounded-xl shadow-2xl ${
-          toast.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
-        }`}>
-          <div className="flex items-center space-x-2">
-            {toast.type === 'success' ? (
-              <CheckCircle className='w-5 h-5' />
-            ) : (
-              <AlertCircle className='w-5 h-5' />
-            )}
-            <span className="text-sm font-medium">{toast.message}</span>
+        {/* 개요 카드 */}
+        <div className='stitch-card p-6'>
+          <div className='flex items-center gap-3 mb-4'>
+            <div className='w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center'>
+              <Brain className='w-6 h-6 text-white' />
+            </div>
+            <div>
+              <h2 className='text-lg font-semibold text-white'>AI 기반 데이터 관리</h2>
+              <p className='text-sm text-white/60'>
+                업로드된 데이터를 AI가 자동으로 분석하고 표준화하여 일관성 있는 데이터베이스를 구축합니다.
+              </p>
+            </div>
+          </div>
+          
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
+            <div className='p-3 bg-white/5 rounded-lg text-center'>
+              <div className='text-2xl font-bold text-blue-400'>4</div>
+              <div className='text-xs text-white/60'>데이터 유형</div>
+            </div>
+            <div className='p-3 bg-white/5 rounded-lg text-center'>
+              <div className='text-2xl font-bold text-green-400'>AI</div>
+              <div className='text-xs text-white/60'>자동 표준화</div>
+            </div>
+            <div className='p-3 bg-white/5 rounded-lg text-center'>
+              <div className='text-2xl font-bold text-purple-400'>실시간</div>
+              <div className='text-xs text-white/60'>편집 및 검증</div>
+            </div>
+            <div className='p-3 bg-white/5 rounded-lg text-center'>
+              <div className='text-2xl font-bold text-orange-400'>템플릿</div>
+              <div className='text-xs text-white/60'>표준 형식</div>
+            </div>
           </div>
         </div>
-      )}
+
+        {/* 업로드 페이지 그리드 */}
+        <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+          {uploadPages.map((page) => {
+            const IconComponent = page.icon;
+            return (
+              <div key={page.id} className='stitch-card p-6 hover:bg-white/5 transition-colors'>
+                <div className='flex items-start gap-4'>
+                  <div className={`w-12 h-12 bg-gradient-to-r ${page.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                    <IconComponent className='w-6 h-6 text-white' />
+                  </div>
+                  
+                  <div className='flex-1 min-w-0'>
+                    <h3 className='text-lg font-semibold text-white mb-1'>{page.title}</h3>
+                    <p className='text-sm text-white/80 mb-2'>{page.subtitle}</p>
+                    <p className='text-sm text-white/60 mb-4'>{page.description}</p>
+                    
+                    {/* 주요 기능 */}
+                    <div className='space-y-2 mb-4'>
+                      {page.features.map((feature, index) => (
+                        <div key={index} className='flex items-center gap-2 text-xs text-white/70'>
+                          <CheckCircle className='w-3 h-3 text-green-400' />
+                          <span>{feature}</span>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* 액션 버튼 */}
+                    <div className='flex gap-3'>
+                      <Link href={page.href}>
+                        <Button className='bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2'>
+                          <span>데이터 업로드</span>
+                          <ArrowRight className='w-4 h-4' />
+                        </Button>
+                      </Link>
+                      
+                      <Button 
+                        variant='outline'
+                        className='border-white/20 text-white/80 hover:bg-white/10 px-4 py-2 rounded-lg transition-colors'
+                        onClick={() => handleTemplateDownload(page.templateFile)}
+                      >
+                        <Download className='w-4 h-4 mr-2' />
+                        템플릿
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* 추가 정보 */}
+        <div className='stitch-card p-6'>
+          <h3 className='text-lg font-semibold text-white mb-4'>데이터 업로드 가이드</h3>
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+            <div className='p-4 bg-white/5 rounded-lg'>
+              <div className='w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mb-3'>
+                <span className='text-white text-sm font-bold'>1</span>
+              </div>
+              <h4 className='font-medium text-white mb-2'>템플릿 다운로드</h4>
+              <p className='text-xs text-white/60'>각 데이터 유형에 맞는 표준 템플릿을 다운로드합니다.</p>
+            </div>
+            
+            <div className='p-4 bg-white/5 rounded-lg'>
+              <div className='w-8 h-8 bg-green-500 rounded-full flex items-center justify-center mb-3'>
+                <span className='text-white text-sm font-bold'>2</span>
+              </div>
+              <h4 className='font-medium text-white mb-2'>데이터 입력</h4>
+              <p className='text-xs text-white/60'>템플릿에 맞춰 데이터를 입력하고 Excel 파일로 저장합니다.</p>
+            </div>
+            
+            <div className='p-4 bg-white/5 rounded-lg'>
+              <div className='w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center mb-3'>
+                <span className='text-white text-sm font-bold'>3</span>
+              </div>
+              <h4 className='font-medium text-white mb-2'>AI 처리</h4>
+              <p className='text-xs text-white/60'>업로드된 데이터를 AI가 자동으로 분석하고 표준화합니다.</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </CommonShell>
   );
 };

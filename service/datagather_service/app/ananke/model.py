@@ -12,18 +12,31 @@ import pandas as pd
 
 class XMLRoBERTaClassifier:
     def __init__(self, model_name="xlm-roberta-base", model_dir=None):
-        # GPU 설정 강화
+        # GPU 설정 강화 - 우선적으로 GPU 사용
         if torch.cuda.is_available():
+            # CUDA 호환성 문제 해결을 위한 환경변수 설정
+            import os
+            os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:128'
+            
             self.device = torch.device("cuda")
             # GPU 메모리 최적화
             torch.cuda.empty_cache()
             # 혼합 정밀도 학습 활성화
             torch.backends.cudnn.benchmark = True
-            print(f"GPU 사용: {torch.cuda.get_device_name(0)}")
-            print(f"GPU 메모리: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f}GB")
+            torch.backends.cudnn.deterministic = False  # 성능 최적화
+            
+            try:
+                print(f"🚀 GPU 사용: {torch.cuda.get_device_name(0)}")
+                print(f"💾 GPU 메모리: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f}GB")
+                # GPU 메모리 미리 할당
+                torch.cuda.set_per_process_memory_fraction(0.8)
+            except Exception as e:
+                print(f"⚠️ GPU 정보 조회 실패: {e}")
+                print("GPU 사용은 가능하지만 정보 조회에 문제가 있습니다.")
         else:
             self.device = torch.device("cpu")
-            print("CPU 사용")
+            print("⚠️ GPU를 사용할 수 없습니다. CPU 모드로 실행됩니다.")
+            print("CUDA 설치 상태를 확인하세요.")
         
         self.model_name = model_name
         
@@ -60,11 +73,20 @@ class XMLRoBERTaClassifier:
         classifier_path = os.path.join(model_dir, "classifier.pkl")
         if os.path.exists(classifier_path):
             with open(classifier_path, 'rb') as f:
-                self.classifier = pickle.load(f)
+                # GPU/CPU 호환성을 위한 map_location 설정
+                if torch.cuda.is_available():
+                    self.classifier = pickle.load(f)
+                else:
+                    # CPU에서 GPU 모델을 로드할 때 map_location 사용
+                    import io
+                    buffer = f.read()
+                    self.classifier = torch.load(io.BytesIO(buffer), map_location=torch.device('cpu'))
+                
                 self.classifier.to(self.device)
-                print(f"분류기 로드 완료: {self.classifier.in_features} → {self.classifier.out_features}")
+                print(f"✅ 분류기 로드 완료: {self.classifier.in_features} → {self.classifier.out_features}")
+                print(f"📱 장치: {next(self.classifier.parameters()).device}")
         else:
-            print(f"분류기 파일이 없습니다: {classifier_path}")
+            print(f"❌ 분류기 파일이 없습니다: {classifier_path}")
         
         # 레이블 매핑 로드
         label_map_path = os.path.join(model_dir, "label_mapping.json")
@@ -339,48 +361,82 @@ class XMLRoBERTaClassifier:
             print(f"{'='*60}\n")
     
     def predict(self, text, top_k=3):
-        """텍스트에 대한 예측을 수행합니다."""
-        print(f"예측 시작: '{text}', 레이블 임베딩 수: {len(self.label_embeddings)}")
+        """
+        학습된 라벨을 기반으로 텍스트 분류를 수행합니다.
+        각 라벨은 독립적으로 평가되며, 하드코딩된 규칙 없이 순수하게 학습된 데이터만 사용합니다.
+        """
+        print(f"🤖 AI 모델 예측 시작: '{text}'")
+        print(f"📊 사용 가능한 학습된 라벨: {len(self.label_embeddings)}개")
+        
+        if not self.label_embeddings:
+            print("❌ 학습된 라벨이 없습니다.")
+            return []
+        
+        # 모델을 평가 모드로 설정
         self.model.eval()
         
-        # 입력 텍스트 토크나이징
-        inputs = self.tokenizer(text, return_tensors="pt", truncation=True, max_length=512, padding=True)
+        # GPU 최적화된 입력 처리
+        inputs = self.tokenizer(
+            text, 
+            return_tensors="pt", 
+            truncation=True, 
+            max_length=512, 
+            padding=True
+        )
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
         
+        # GPU에서 텍스트 임베딩 생성
         with torch.no_grad():
-            outputs = self.model(**inputs)
-            text_embedding = outputs.last_hidden_state[:, 0, :].cpu().numpy()
+            if torch.cuda.is_available():
+                # GPU 혼합 정밀도 사용
+                with torch.cuda.amp.autocast():
+                    outputs = self.model(**inputs)
+            else:
+                outputs = self.model(**inputs)
+            
+            # [CLS] 토큰 임베딩 추출 (GPU에서 처리)
+            text_embedding = outputs.last_hidden_state[:, 0, :]
+            if torch.cuda.is_available():
+                text_embedding = text_embedding.cpu()
+            text_embedding = text_embedding.numpy()
         
-        print(f"텍스트 임베딩 크기: {text_embedding.shape}")
+        print(f"✅ 텍스트 임베딩 생성 완료: {text_embedding.shape}")
         
-        # 레이블 임베딩과의 유사도 계산
+        # 각 학습된 라벨과의 독립적인 유사도 계산
         similarities = {}
         for label, label_embedding in self.label_embeddings.items():
             try:
-                # 차원 맞추기: label_embedding이 (1, 768)이면 flatten
-                if label_embedding.ndim > 1:
+                # 레이블 임베딩 차원 정규화
+                if hasattr(label_embedding, 'ndim') and label_embedding.ndim > 1:
                     label_embedding = label_embedding.flatten()
+                
+                # 코사인 유사도 계산 (라벨 간 독립성 보장)
                 similarity = self._cosine_similarity(text_embedding[0], label_embedding)
                 similarities[label] = similarity
+                
+                print(f"📏 라벨 '{label}': 유사도 {similarity:.4f}")
+                
             except Exception as e:
-                print(f"유사도 계산 오류 ({label}): {e}")
-                print(f"label_embedding 크기: {label_embedding.shape if hasattr(label_embedding, 'shape') else type(label_embedding)}")
+                print(f"❌ 라벨 '{label}' 유사도 계산 오류: {e}")
+                similarities[label] = 0.0
         
-        print(f"유사도 계산 완료: {len(similarities)}개")
+        print(f"✅ 유사도 계산 완료: {len(similarities)}개 라벨 처리")
         
-        # 유사도 기준으로 정렬
+        # 유사도 기준 정렬 (높은 순서)
         sorted_similarities = sorted(similarities.items(), key=lambda x: x[1], reverse=True)
         
-        # 상위 k개 결과 반환
+        # 상위 k개 학습된 라벨 반환 (독립적 평가)
         results = []
         for i, (label, similarity) in enumerate(sorted_similarities[:top_k]):
+            confidence = float(similarity * 100)  # 백분율 변환
             results.append({
                 'rank': i + 1,
                 'label': label,
-                'similarity': float(similarity * 100)  # 백분율로 변환
+                'similarity': confidence
             })
+            print(f"🏆 순위 {i+1}: {label} (신뢰도: {confidence:.1f}%)")
         
-        print(f"최종 결과 수: {len(results)}")
+        print(f"🎯 최종 예측 완료: {len(results)}개 결과 반환")
         return results
     
     def _cosine_similarity(self, vec1, vec2):

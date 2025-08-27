@@ -1,21 +1,19 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { cn, env } from '@/lib';
+import { cn } from '@/lib/utils';
 import {
-  Menu,
-  X,
   Home,
   BarChart3,
   FileText,
   Upload,
   Settings,
-  ChevronDown,
+  ChevronRight,
+  Menu,
+  X,
   User,
   LogOut,
-  Bell,
-  Search,
 } from 'lucide-react';
 
 interface CommonShellProps {
@@ -55,7 +53,7 @@ const CommonShell: React.FC<CommonShellProps> = ({ children }) => {
       name: '데이터 업로드',
       href: '/data-upload',
       icon: Upload,
-      current: pathname === '/data-upload',
+      current: pathname.startsWith('/data-upload'),
       description: 'ESG 데이터 업로드 및 관리',
     },
     {
@@ -66,6 +64,49 @@ const CommonShell: React.FC<CommonShellProps> = ({ children }) => {
       description: '계정 및 환경설정',
     },
   ];
+
+  // 하위 페이지 정의
+  const subPages = {
+    '/lca': [
+      { name: '기준데이터', href: '/lca', description: 'LCA 기준 데이터 관리' },
+      { name: '실적데이터', href: '/lca', description: 'LCA 실적 데이터 관리' },
+      { name: '데이터관리', href: '/lca', description: 'LCA 데이터 분류 관리' },
+      { name: '운송데이터', href: '/lca', description: 'LCA 운송 데이터 관리' },
+      { name: '공정데이터', href: '/lca', description: 'LCA 공정 데이터 관리' },
+    ],
+    '/cbam': [
+      { name: '개요', href: '/cbam', description: 'CBAM 개요 및 정보' },
+      { name: '프로세스 관리', href: '/cbam', description: 'CBAM 프로세스 플로우' },
+      { name: '계산', href: '/cbam', description: 'CBAM 계산 및 제품 관리' },
+      { name: '보고서', href: '/cbam', description: 'CBAM 보고서 생성' },
+      { name: '설정', href: '/cbam', description: 'CBAM 설정 관리' },
+    ],
+    '/data-upload': [
+      { name: '입력 데이터', href: '/data-upload/input', description: '투입물 데이터 업로드' },
+      { name: '출력 데이터', href: '/data-upload/output', description: '산출물 데이터 업로드' },
+      { name: '운송 데이터', href: '/data-upload/transport', description: '운송 정보 업로드' },
+      { name: '공정 데이터', href: '/data-upload/process', description: '공정 정보 업로드' },
+    ],
+  };
+
+  // 현재 페이지의 하위 페이지들 가져오기
+  const getCurrentSubPages = () => {
+    // 데이터 업로드 섹션의 모든 페이지에서 하위 페이지 표시
+    if (pathname.startsWith('/data-upload')) {
+      return subPages['/data-upload'];
+    }
+    // LCA 섹션의 모든 페이지에서 하위 페이지 표시
+    if (pathname.startsWith('/lca')) {
+      return subPages['/lca'];
+    }
+    // CBAM 섹션의 모든 페이지에서 하위 페이지 표시
+    if (pathname.startsWith('/cbam')) {
+      return subPages['/cbam'];
+    }
+    return null;
+  };
+
+  const currentSubPages = getCurrentSubPages();
 
   const handleNavigation = (href: string) => {
     router.push(href);
@@ -93,177 +134,143 @@ const CommonShell: React.FC<CommonShellProps> = ({ children }) => {
   // 경로 변경 시 모바일 메뉴 닫기
   useEffect(() => {
     setIsMobileMenuOpen(false);
-    setIsSidebarOpen(false);
   }, [pathname]);
 
   return (
-    <div className='h-screen bg-ecotrace-background text-ecotrace-text flex flex-col'>
-      {/* 헤더 */}
-      <header className='border-b border-ecotrace-border bg-ecotrace-background/95 backdrop-blur-sm sticky top-0 z-50 flex-shrink-0'>
-        <div className='w-full px-4 sm:px-6 lg:px-8 py-4'>
-          <div className='flex items-center justify-between'>
-            {/* 로고 및 브랜드 */}
-            <div className='flex items-center gap-4'>
-              <button
-                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className='lg:hidden p-2 rounded-lg hover:bg-ecotrace-secondary/10'
-              >
-                <Menu className='w-5 h-5' />
-              </button>
+    <div className='min-h-screen bg-ecotrace-background text-ecotrace-text flex'>
+      {/* 데스크톱 사이드바 */}
+      <div className='hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 lg:z-50 sidebar'>
+        <div className='flex-1 flex flex-col min-h-0 bg-ecotrace-surface border-r border-ecotrace-border'>
+          {/* 로고 및 브랜드 */}
+          <div className='flex items-center h-16 px-4 border-b border-ecotrace-border flex-shrink-0'>
+            <button
+              onClick={handleGoHome}
+              className='flex items-center space-x-2 text-xl font-bold text-ecotrace-accent hover:text-ecotrace-accent/80 transition-colors'
+            >
+              <div className='w-8 h-8 bg-ecotrace-accent rounded-lg flex items-center justify-center'>
+                <span className='text-white font-bold text-sm'>G</span>
+              </div>
+              <span>GreenSteel</span>
+            </button>
+          </div>
 
-              <div className='w-8 h-8 bg-gradient-to-br from-ecotrace-accent to-ecotrace-accent/70 rounded-lg flex items-center justify-center'>
-                <svg
-                  className='w-5 h-5 text-white'
-                  fill='none'
-                  stroke='currentColor'
-                  viewBox='0 0 24 24'
-                >
-                  <path
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    strokeWidth={2}
-                    d='M13 10V3L4 14h7v7l9-11h-7z'
-                  />
-                </svg>
-              </div>
-              <div className='flex flex-col'>
-                <span className='text-xl font-bold text-white'>
-                  {env.NEXT_PUBLIC_APP_NAME}
-                </span>
-                <span className='text-xs text-ecotrace-textSecondary'>
-                  ESG Platform
-                </span>
-              </div>
+          {/* 사이드바 네비게이션 */}
+          <nav className='flex-1 p-4 space-y-2 overflow-y-auto'>
+            {navigation.map(item => (
+              <button
+                key={item.name}
+                onClick={() => handleNavigation(item.href)}
+                className={cn(
+                  'w-full text-left p-3 rounded-lg transition-all duration-200 flex items-center gap-3 group',
+                  item.current
+                    ? 'bg-ecotrace-accent text-white'
+                    : 'text-ecotrace-textSecondary hover:text-white hover:bg-ecotrace-secondary/50'
+                )}
+              >
+                <item.icon
+                  className={cn(
+                    'w-5 h-5',
+                    item.current
+                      ? 'text-white'
+                      : 'text-ecotrace-textSecondary group-hover:text-white'
+                  )}
+                />
+                <div className='flex-1'>
+                  <div className='font-medium'>{item.name}</div>
+                  <div className='text-xs opacity-75'>{item.description}</div>
+                </div>
+              </button>
+            ))}
+          </nav>
+
+          {/* 하위 페이지 네비게이션 - 하위 페이지가 있는 경우에만 표시 */}
+          {currentSubPages && (
+            <div className='border-t border-ecotrace-border pt-4 px-4 pb-4'>
+              <h3 className='text-xs font-semibold text-ecotrace-textSecondary uppercase tracking-wider mb-3'>
+                하위 페이지
+              </h3>
+              <nav className='space-y-1'>
+                {currentSubPages.map((page, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleNavigation(page.href)}
+                    className={cn(
+                      'w-full text-left p-2 rounded-md transition-all duration-200 flex items-center gap-2 group text-sm',
+                      pathname === page.href
+                        ? 'bg-ecotrace-accent/20 text-ecotrace-accent border border-ecotrace-accent/30'
+                        : 'text-ecotrace-textSecondary hover:text-white hover:bg-ecotrace-secondary/30'
+                    )}
+                  >
+                    <ChevronRight className='w-3 h-3' />
+                    <div className='flex-1 text-left'>
+                      <div className='font-medium'>{page.name}</div>
+                      <div className='text-xs opacity-75'>{page.description}</div>
+                    </div>
+                  </button>
+                ))}
+              </nav>
+            </div>
+          )}
+
+          {/* 사이드바 푸터 */}
+          <div className='p-4 border-t border-ecotrace-border flex-shrink-0'>
+            <div className='text-xs text-ecotrace-textSecondary text-center'>
+              GreenSteel v1.0.0
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 메인 컨텐츠 영역 */}
+      <div className='lg:pl-64 flex-1 flex flex-col'>
+        {/* 상단 헤더 */}
+        <header className='bg-ecotrace-surface border-b border-ecotrace-border flex-shrink-0'>
+          <div className='flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8'>
+            {/* 모바일 메뉴 버튼 */}
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className='lg:hidden p-2 rounded-md text-ecotrace-textSecondary hover:text-white hover:bg-ecotrace-secondary/50 transition-colors'
+            >
+              <Menu className='w-6 h-6' />
+            </button>
+
+            {/* 페이지 제목 */}
+            <div className='flex-1 lg:flex-none'>
+              <h1 className='text-lg font-semibold text-ecotrace-text'>
+                {navigation.find(item => item.current)?.name || 'GreenSteel'}
+              </h1>
             </div>
 
-            {/* 데스크톱 네비게이션 */}
-            <nav className='hidden lg:flex items-center gap-6'>
-              {navigation.map(item => (
-                <button
-                  key={item.name}
-                  onClick={() => handleNavigation(item.href)}
-                  className={cn(
-                    'text-sm font-medium transition-all duration-200 px-3 py-2 rounded-lg cursor-pointer flex items-center gap-2',
-                    item.current
-                      ? 'text-ecotrace-text bg-ecotrace-secondary/20 border border-ecotrace-accent/30'
-                      : 'text-ecotrace-textSecondary hover:text-ecotrace-text hover:bg-ecotrace-secondary/10'
-                  )}
-                >
-                  <item.icon className='w-4 h-4' />
-                  {item.name}
-                </button>
-              ))}
-            </nav>
-
-            {/* 우측 액션 */}
-            <div className='flex items-center gap-4'>
-              {/* 검색 */}
-              <button className='p-2 rounded-lg hover:bg-ecotrace-secondary/10'>
-                <Search className='w-5 h-5' />
-              </button>
-
-              {/* 알림 */}
-              <button className='p-2 rounded-lg hover:bg-ecotrace-secondary/10 relative'>
-                <Bell className='w-5 h-5' />
-                <span className='absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full'></span>
+            {/* 사용자 프로필 */}
+            <div className='relative'>
+              <button
+                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                className='flex items-center space-x-2 p-2 rounded-lg text-ecotrace-textSecondary hover:text-white hover:bg-ecotrace-secondary/50 transition-colors'
+              >
+                <User className='w-5 h-5' />
+                <span className='hidden sm:block text-sm font-medium'>사용자</span>
               </button>
 
               {/* 프로필 드롭다운 */}
-              <div className='relative'>
-                <button
-                  onClick={() =>
-                    setIsProfileDropdownOpen(!isProfileDropdownOpen)
-                  }
-                  className='flex items-center gap-2 p-2 rounded-lg hover:bg-ecotrace-secondary/10'
-                >
-                  <div className='w-8 h-8 bg-ecotrace-accent rounded-full flex items-center justify-center'>
-                    <User className='w-4 h-4 text-white' />
-                  </div>
-                  <ChevronDown className='w-4 h-4' />
-                </button>
-
-                {isProfileDropdownOpen && (
-                  <div className='absolute right-0 mt-2 w-48 bg-ecotrace-secondary border border-ecotrace-border rounded-lg shadow-lg py-2'>
+              {isProfileDropdownOpen && (
+                <div className='absolute right-0 mt-2 w-48 bg-ecotrace-surface border border-ecotrace-border rounded-lg shadow-lg z-50'>
+                  <div className='py-1'>
                     <button
-                      onClick={() => handleNavigation('/settings')}
-                      className='w-full px-4 py-2 text-left hover:bg-ecotrace-secondary/50 flex items-center gap-2'
-                    >
-                      <Settings className='w-4 h-4' />
-                      설정
-                    </button>
-                    <button
-                      onClick={handleGoHome}
-                      className='w-full px-4 py-2 text-left hover:bg-ecotrace-secondary/50 flex items-center gap-2'
+                      onClick={() => {
+                        setIsProfileDropdownOpen(false);
+                        // 로그아웃 로직
+                      }}
+                      className='w-full text-left px-4 py-2 text-sm text-ecotrace-textSecondary hover:text-white hover:bg-ecotrace-secondary/50 transition-colors flex items-center gap-2'
                     >
                       <LogOut className='w-4 h-4' />
-                      홈으로
+                      로그아웃
                     </button>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      </header>
-
-      {/* 메인 컨테이너 - 헤더 아래 전체 높이 */}
-      <div className='flex flex-1 min-h-0'>
-        {/* 사이드바 */}
-        <div
-          className={cn(
-            'fixed inset-y-0 left-0 z-40 w-64 bg-ecotrace-secondary border-r border-ecotrace-border transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 sidebar',
-            isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-          )}
-        >
-          <div className='flex flex-col h-full'>
-            {/* 사이드바 헤더 */}
-            <div className='flex items-center justify-between p-4 border-b border-ecotrace-border flex-shrink-0'>
-              <h2 className='text-lg font-semibold text-white'>메뉴</h2>
-              <button
-                onClick={() => setIsSidebarOpen(false)}
-                className='lg:hidden p-1 rounded-lg hover:bg-ecotrace-secondary/50'
-              >
-                <X className='w-5 h-5' />
-              </button>
-            </div>
-
-            {/* 사이드바 네비게이션 */}
-            <nav className='flex-1 p-4 space-y-2 overflow-y-auto'>
-              {navigation.map(item => (
-                <button
-                  key={item.name}
-                  onClick={() => handleNavigation(item.href)}
-                  className={cn(
-                    'w-full text-left p-3 rounded-lg transition-all duration-200 flex items-center gap-3 group',
-                    item.current
-                      ? 'bg-ecotrace-accent text-white'
-                      : 'text-ecotrace-textSecondary hover:text-white hover:bg-ecotrace-secondary/50'
-                  )}
-                >
-                  <item.icon
-                    className={cn(
-                      'w-5 h-5',
-                      item.current
-                        ? 'text-white'
-                        : 'text-ecotrace-textSecondary group-hover:text-white'
-                    )}
-                  />
-                  <div className='flex-1'>
-                    <div className='font-medium'>{item.name}</div>
-                    <div className='text-xs opacity-75'>{item.description}</div>
-                  </div>
-                </button>
-              ))}
-            </nav>
-
-            {/* 사이드바 푸터 */}
-            <div className='p-4 border-t border-ecotrace-border flex-shrink-0'>
-              <div className='text-xs text-ecotrace-textSecondary text-center'>
-                GreenSteel v1.0.0
-              </div>
-            </div>
-          </div>
-        </div>
+        </header>
 
         {/* 메인 컨텐츠 - 전체 너비와 높이 사용 */}
         <main className='flex-1 min-w-0 overflow-auto'>
@@ -271,10 +278,103 @@ const CommonShell: React.FC<CommonShellProps> = ({ children }) => {
         </main>
       </div>
 
-      {/* 모바일 메뉴 오버레이 */}
+      {/* 모바일 사이드바 오버레이 */}
       {isSidebarOpen && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden' />
+        <div className='fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden' />
       )}
+
+      {/* 모바일 사이드바 */}
+      <div
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 w-64 bg-ecotrace-surface border-r border-ecotrace-border transform transition-transform duration-300 ease-in-out lg:hidden sidebar',
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        )}
+      >
+        <div className='flex items-center justify-between h-16 px-4 border-b border-ecotrace-border'>
+          <button
+            onClick={handleGoHome}
+            className='flex items-center space-x-2 text-xl font-bold text-ecotrace-accent'
+          >
+            <div className='w-8 h-8 bg-ecotrace-accent rounded-lg flex items-center justify-center'>
+              <span className='text-white font-bold text-sm'>G</span>
+            </div>
+            <span>GreenSteel</span>
+          </button>
+          <button
+            onClick={() => setIsSidebarOpen(false)}
+            className='p-2 rounded-md text-ecotrace-textSecondary hover:text-white hover:bg-ecotrace-secondary/50 transition-colors'
+          >
+            <X className='w-6 h-6' />
+          </button>
+        </div>
+
+        <div className='flex-1 overflow-y-auto'>
+          {/* 모바일 네비게이션 */}
+          <nav className='p-4 space-y-2'>
+            {navigation.map(item => (
+              <button
+                key={item.name}
+                onClick={() => handleNavigation(item.href)}
+                className={cn(
+                  'w-full text-left p-3 rounded-lg transition-all duration-200 flex items-center gap-3 group',
+                  item.current
+                    ? 'bg-ecotrace-accent text-white'
+                    : 'text-ecotrace-textSecondary hover:text-white hover:bg-ecotrace-secondary/50'
+                )}
+              >
+                <item.icon
+                  className={cn(
+                    'w-5 h-5',
+                    item.current
+                      ? 'text-white'
+                      : 'text-ecotrace-textSecondary group-hover:text-white'
+                  )}
+                />
+                <div className='flex-1'>
+                  <div className='font-medium'>{item.name}</div>
+                  <div className='text-xs opacity-75'>{item.description}</div>
+                </div>
+              </button>
+            ))}
+          </nav>
+
+          {/* 모바일 하위 페이지 네비게이션 */}
+          {currentSubPages && (
+            <div className='border-t border-ecotrace-border pt-4 px-4 pb-4'>
+              <h3 className='text-xs font-semibold text-ecotrace-textSecondary uppercase tracking-wider mb-3'>
+                하위 페이지
+              </h3>
+              <nav className='space-y-1'>
+                {currentSubPages.map((page, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleNavigation(page.href)}
+                    className={cn(
+                      'w-full text-left p-2 rounded-md transition-all duration-200 flex items-center gap-2 group text-sm',
+                      pathname === page.href
+                        ? 'bg-ecotrace-accent/20 text-ecotrace-accent border border-ecotrace-accent/30'
+                        : 'text-ecotrace-textSecondary hover:text-white hover:bg-ecotrace-secondary/30'
+                    )}
+                  >
+                    <ChevronRight className='w-3 h-3' />
+                    <div className='flex-1 text-left'>
+                      <div className='font-medium'>{page.name}</div>
+                      <div className='text-xs opacity-75'>{page.description}</div>
+                    </div>
+                  </button>
+                ))}
+              </nav>
+            </div>
+          )}
+        </div>
+
+        {/* 모바일 사이드바 푸터 */}
+        <div className='p-4 border-t border-ecotrace-border flex-shrink-0'>
+          <div className='text-xs text-ecotrace-textSecondary text-center'>
+            GreenSteel v1.0.0
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

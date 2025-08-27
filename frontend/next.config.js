@@ -5,7 +5,7 @@ const withPWA = require('next-pwa')({
   disable: process.env.NODE_ENV === 'development',
   buildExcludes: [
     /middleware-manifest\.json$/,
-    /app-build-manifest\.json$/,        // PWA에서 문제되는 파일 제외
+    /app-build-manifest\.json$/,
     /_buildManifest\.js$/,
     /_ssgManifest\.js$/
   ],
@@ -18,7 +18,7 @@ const withPWA = require('next-pwa')({
       urlPattern: /^https:\/\/gateway-production-da31\.up\.railway\.app/,
       handler: 'NetworkFirst',
       options: {
-        cacheName: 'gateway-api-cache-v2',  // 캐시 버전 업데이트
+        cacheName: 'gateway-api-cache-v2',
         expiration: {
           maxEntries: 100,
           maxAgeSeconds: 60 * 60 * 24, // 24시간
@@ -32,7 +32,7 @@ const withPWA = require('next-pwa')({
       urlPattern: /^https:\/\/www\.greensteel\.site/,
       handler: 'NetworkFirst',
       options: {
-        cacheName: 'greensteel-api-cache-v2',  // 캐시 버전 업데이트
+        cacheName: 'greensteel-api-cache-v2',
         expiration: {
           maxEntries: 100,
           maxAgeSeconds: 60 * 60 * 24, // 24시간

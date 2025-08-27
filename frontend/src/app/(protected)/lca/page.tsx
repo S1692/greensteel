@@ -1,20 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import CommonShell from '@/components/common/CommonShell';
 import LcaTabsNav from '@/components/atomic/molecules/LcaTabsNav';
-import LcaDataPanels from '@/components/atomic/organisms/LcaDataPanels';
-import InfoPanel from '@/components/atomic/molecules/InfoPanel';
 import { LcaTabKey, ManageSegment } from '@/lib';
 
-const LcaPage: React.FC = () => {
+export default function LcaPage() {
   const [activeTab, setActiveTab] = useState<LcaTabKey | 'manage'>('base');
   const [activeSegment, setActiveSegment] = useState<ManageSegment>('mat');
 
   const handleTabChange = (tab: LcaTabKey | 'manage') => {
     setActiveTab(tab);
-    // 데이터관리 탭으로 변경 시 기본 세그먼트로 설정
-    if (tab === 'manage') {
+    if (tab !== 'manage') {
       setActiveSegment('mat');
     }
   };
@@ -23,34 +20,102 @@ const LcaPage: React.FC = () => {
     setActiveSegment(segment);
   };
 
-  return (
-    <CommonShell>
-      <div className='w-full h-full p-4 lg:p-6 xl:p-8'>
-        <div className='flex gap-4 lg:gap-6 xl:gap-8'>
-          {/* 메인 컨텐츠 */}
-          <div className='flex-1 min-w-0'>
-            <LcaTabsNav
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              activeSegment={activeSegment}
-              onSegmentChange={setActiveSegment}
-            />
-            <div className='mt-4 lg:mt-6 xl:mt-8'>
-              <LcaDataPanels
-                activeTab={activeTab}
-                activeSegment={activeSegment}
-              />
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'base':
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-ecotrace-text">기준데이터</h2>
+            <p className="text-ecotrace-text-secondary">
+              LCA 분석을 위한 기준 데이터를 관리합니다.
+            </p>
+            <div className="bg-ecotrace-surface border border-ecotrace-border rounded-lg p-6">
+              <p className="text-center text-ecotrace-text-secondary">
+                기준데이터 관리 기능이 여기에 표시됩니다.
+              </p>
             </div>
           </div>
-
-          {/* 우측 정보 패널 */}
-          <div className='hidden xl:block'>
-            <InfoPanel tab={activeTab} />
+        );
+      case 'actual':
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-ecotrace-text">실적데이터</h2>
+            <p className="text-ecotrace-text-secondary">
+              실제 운영 데이터를 입력하고 관리합니다.
+            </p>
+            <div className="bg-ecotrace-surface border border-ecotrace-border rounded-lg p-6">
+              <p className="text-center text-ecotrace-text-secondary">
+                실적데이터 관리 기능이 여기에 표시됩니다.
+              </p>
+            </div>
           </div>
+        );
+      case 'manage':
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-ecotrace-text">데이터관리</h2>
+            <p className="text-ecotrace-text-secondary">
+              데이터를 분류별로 체계적으로 관리합니다.
+            </p>
+            <div className="bg-ecotrace-surface border border-ecotrace-border rounded-lg p-6">
+              <p className="text-center text-ecotrace-text-secondary">
+                데이터 분류 관리 기능이 여기에 표시됩니다.
+              </p>
+            </div>
+          </div>
+        );
+      case 'transport':
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-ecotrace-text">운송데이터</h2>
+            <p className="text-ecotrace-text-secondary">
+              운송 관련 데이터를 관리합니다.
+            </p>
+            <div className="bg-ecotrace-surface border border-ecotrace-border rounded-lg p-6">
+              <p className="text-center text-ecotrace-text-secondary">
+                운송데이터 관리 기능이 여기에 표시됩니다.
+              </p>
+            </div>
+          </div>
+        );
+      case 'process':
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-ecotrace-text">공정데이터</h2>
+            <p className="text-ecotrace-text-secondary">
+              공정 관련 데이터를 관리합니다.
+            </p>
+            <div className="bg-ecotrace-surface border border-ecotrace-border rounded-lg p-6">
+              <p className="text-center text-ecotrace-text-secondary">
+                공정데이터 관리 기능이 여기에 표시됩니다.
+              </p>
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <CommonShell>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-ecotrace-text">LCA 관리</h1>
+          <p className="text-ecotrace-text-secondary mt-2">
+            생명주기 평가(Life Cycle Assessment) 데이터를 관리합니다.
+          </p>
         </div>
+
+        <LcaTabsNav
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          activeSegment={activeSegment}
+          onSegmentChange={handleSegmentChange}
+        />
+
+        {renderTabContent()}
       </div>
     </CommonShell>
   );
-};
-
-export default LcaPage;
+}

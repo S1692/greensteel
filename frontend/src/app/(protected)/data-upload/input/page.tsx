@@ -1,0 +1,858 @@
+'use client';
+
+import React, { useState, useRef } from 'react';
+import CommonShell from '@/components/common/CommonShell';
+import {
+  Download, 
+  Upload,
+  FileSpreadsheet,
+  CheckCircle,
+  X,
+  Plus,
+  Trash2,
+  Edit3, 
+  Save, 
+  Table, 
+  Brain, 
+  AlertCircle,
+  ArrowLeft
+} from 'lucide-react';
+import { Button } from '@/components/atomic/atoms';
+import { Input } from '@/components/atomic/atoms';
+import Link from 'next/link';
+
+// 타입 정의
+interface DataPreview {
+  filename: string;
+  fileSize: string;
+  data: any[];
+  columns: string[];
+}
+
+interface AIProcessedData {
+  status: string;
+  message: string;
+  filename: string;
+  total_rows: number;
+  processed_rows: number;
+  data: any[];
+  columns: string[];
+  processed_count?: number;
+}
+
+interface EditableRow {
+  id: string;
+  originalData: any;
+  modifiedData: any;
+  isEditing: boolean;
+  editReason?: string;
+  isNewlyAdded?: boolean;
+}
+
+const InputDataPage: React.FC = () => {
+  // 상태 관리
+  const [inputFile, setInputFile] = useState<File | null>(null);
+  const [inputData, setInputData] = useState<DataPreview | null>(null);
+  const [isInputUploading, setIsInputUploading] = useState(false);
+  const [aiProcessedData, setAiProcessedData] = useState<AIProcessedData | null>(null);
+  const [isAiProcessing, setIsAiProcessing] = useState(false);
+  const [editableInputRows, setEditableInputRows] = useState<EditableRow[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [preparedDataForDB, setPreparedDataForDB] = useState<any>(null);
+  const [editReasons, setEditReasons] = useState<{ [key: string]: string }>({});
+  const inputFileRef = useRef<HTMLInputElement>(null);
+
+  // 템플릿 다운로드
+  const handleTemplateDownload = () => {
+    const link = document.createElement('a');
+    link.href = '/templates/실적_데이터_인풋.xlsx';
+    link.download = '실적_데이터_인풋.xlsx';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // 파일 선택 핸들러
+  const handleInputFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (selectedFile) {
+      if (!selectedFile.name.match(/\.(xlsx|xls)$/)) {
+        setError('엑셀 파일만 업로드 가능합니다 (.xlsx, .xls)');
+        setInputFile(null);
+        return;
+      }
+
+      setInputFile(selectedFile);
+      setError(null);
+      setInputData(null);
+      setEditableInputRows([]);
+      setAiProcessedData(null);
+    }
+  };
+
+  // 파일 업로드 처리
+  const handleInputUpload = async () => {
+    if (!inputFile) {
+      setError('업로드할 파일을 선택해주세요.');
+      return;
+    }
+
+    setIsInputUploading(true);
+    setError(null);
+
+    try {
+      // Excel 파일 읽기
+      const XLSX = await import('xlsx');
+      const arrayBuffer = await inputFile.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      
+      // 첫 번째 행에서 컬럼명 추출
+      const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
+      const columns = [];
+      for (let col = range.s.c; col <= range.e.c; col++) {
+        const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+        const cell = worksheet[cellAddress];
+        if (cell && cell.v) {
+          columns.push(cell.v.toString().trim());
+        }
+      }
+
+      // 컬럼 형식 검증
+      if (!validateTemplateFormat(columns)) {
+        setIsInputUploading(false);
+        return;
+      }
+
+      // 데이터 읽기 (첫 번째 행 제외)
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+        header: columns,
+        range: 1,
+        defval: ''
+      });
+
+      // AI추천답변 컬럼 추가
+      const dataWithAiColumn = jsonData.map((row: any) => ({
+        ...row,
+        'AI추천답변': ''
+      }));
+
+      // 편집 가능한 행 데이터 생성
+      const editableRows: EditableRow[] = dataWithAiColumn.map((row, index) => ({
+        id: `input-${index}`,
+        originalData: row,
+        modifiedData: { ...row },
+        isEditing: false
+      }));
+
+      const inputData: DataPreview = {
+        filename: inputFile.name,
+        fileSize: (inputFile.size / 1024 / 1024).toFixed(2),
+        data: dataWithAiColumn,
+        columns: [...columns, 'AI추천답변']
+      };
+
+      setInputData(inputData);
+      setEditableInputRows(editableRows);
+      setError(null);
+
+      // AI 처리 즉시 시작
+      await handleAIProcessImmediate(inputData);
+
+    } catch (err) {
+      console.error('파일 업로드 오류:', err);
+      setError('파일 업로드 중 오류가 발생했습니다.');
+    } finally {
+      setIsInputUploading(false);
+    }
+  };
+
+  // 템플릿 형식 검증
+  const validateTemplateFormat = (columns: string[]): boolean => {
+    const requiredColumns = [
+      '로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '투입물명', '수량', '단위'
+    ];
+    
+    const hasAllRequiredColumns = requiredColumns.every(col => {
+      const found = columns.some(uploadedCol => {
+        const cleanRequired = col.trim().toLowerCase().replace(' ', '').replace('_', '');
+        const cleanUploaded = uploadedCol.trim().toLowerCase().replace(' ', '').replace('_', '');
+        return cleanRequired === cleanUploaded;
+      });
+      return found;
+    });
+    
+    if (!hasAllRequiredColumns) {
+      const missingColumns = requiredColumns.filter(col => {
+        return !columns.some(uploadedCol => {
+          const cleanRequired = col.trim().toLowerCase().replace(' ', '').replace('_', '');
+          const cleanUploaded = uploadedCol.trim().toLowerCase().replace(' ', '').replace('_', '');
+          return cleanRequired === cleanUploaded;
+        });
+      });
+      setError(`템플릿을 확인해 주세요. 누락된 컬럼: ${missingColumns.join(', ')}`);
+      return false;
+    }
+    
+    return true;
+  };
+
+  // AI 처리 즉시 시작
+  const handleAIProcessImmediate = async (inputData: DataPreview) => {
+    if (!inputData || !inputData.data || inputData.data.length === 0) {
+      console.log('AI 처리할 데이터가 없습니다.');
+      return;
+    }
+
+    setIsAiProcessing(true);
+    setError(null);
+
+    try {
+      const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
+      
+      console.log('=== AI 처리 시작 ===');
+      console.log('게이트웨이 URL:', gatewayUrl);
+      console.log('전송할 데이터:', inputData);
+      
+      const response = await fetch(`${gatewayUrl}/ai-process-stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filename: inputData.filename,
+          data: inputData.data,
+          columns: inputData.columns
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`AI 처리 요청 실패: ${response.status}`);
+      }
+
+      console.log('AI 처리 응답 수신, 스트리밍 시작...');
+      
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('스트리밍 응답을 읽을 수 없습니다.');
+      }
+
+      let processedData: any[] = [];
+      let unifiedColumns: string[] = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          console.log('스트리밍 완료');
+          break;
+        }
+
+        const chunk = new TextDecoder().decode(value);
+        const lines = chunk.split('\n');
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              console.log('스트리밍 데이터 수신:', data);
+              
+              if (data.status === 'completed') {
+                processedData = data.data || [];
+                unifiedColumns = data.columns || [];
+                
+                console.log('AI 처리 완료:', {
+                  totalRows: data.total_rows,
+                  processedRows: data.processed_rows,
+                  data: processedData,
+                  columns: unifiedColumns
+                });
+                
+                // AI 처리된 데이터로 상태 업데이트
+                setAiProcessedData({
+                  status: 'completed',
+                  message: 'AI 처리가 완료되었습니다.',
+                  filename: inputData.filename,
+                  total_rows: data.total_rows || 0,
+                  processed_rows: data.processed_rows || 0,
+                  data: processedData,
+                  columns: unifiedColumns
+                });
+
+                // 편집 가능한 행 데이터 업데이트
+                const updatedEditableRows: EditableRow[] = processedData.map((row, index) => ({
+                  id: `input-${index}`,
+                  originalData: row,
+                  modifiedData: { ...row },
+                  isEditing: false
+                }));
+
+                setEditableInputRows(updatedEditableRows);
+                setError(null);
+                
+              } else if (data.status === 'processing') {
+                console.log('AI 처리 진행 중:', data.message);
+                // 진행 상태 업데이트 로직 추가 가능
+              }
+            } catch (parseError) {
+              console.error('JSON 파싱 오류:', parseError);
+            }
+          }
+        }
+      }
+
+    } catch (err) {
+      console.error('AI 처리 오류:', err);
+      setError(`AI 처리 중 오류가 발생했습니다: ${err}`);
+    } finally {
+      setIsAiProcessing(false);
+    }
+  };
+
+  // 입력 변경 핸들러
+  const handleInputChange = (rowId: string, column: string, value: string) => {
+    setEditableInputRows(prev => 
+      prev.map(row => 
+        row.id === rowId 
+          ? { ...row, modifiedData: { ...row.modifiedData, [column]: value } }
+          : row
+      )
+    );
+  };
+
+  // 행 편집 토글
+  const toggleRowEdit = (rowId: string) => {
+    setEditableInputRows(prev => 
+      prev.map(row => 
+        row.id === rowId 
+          ? { ...row, isEditing: !row.isEditing }
+          : row
+      )
+    );
+  };
+
+  // 행 저장
+  const saveRow = async (rowId: string) => {
+    const row = editableInputRows.find(r => r.id === rowId);
+    if (!row) return;
+
+    const reason = editReasons[rowId] || '';
+    if (!reason.trim()) {
+      setError('수정 사유를 입력해주세요.');
+      return;
+    }
+
+    try {
+      // 피드백 데이터 준비
+      const feedbackData = {
+        공정: row.modifiedData['공정'] || '',
+        투입물명: row.modifiedData['투입물명'] || '',
+        수정된결과: row.modifiedData['AI추천답변'] || '',
+        사유: reason,
+        생산품명: row.modifiedData['생산품명'] || ''
+      };
+
+      // 피드백 데이터를 AI 서비스로 전송
+      const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
+      const response = await fetch(`${gatewayUrl}/save-feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(feedbackData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`피드백 저장 실패: ${response.status}`);
+      }
+
+      // 성공적으로 저장된 경우
+      setEditableInputRows(prev => 
+        prev.map(r => 
+          r.id === rowId 
+            ? { 
+                ...r, 
+                isEditing: false,
+                originalData: { ...r.modifiedData }
+              }
+            : r
+        )
+      );
+
+      // 수정 사유 초기화
+      setEditReasons(prev => {
+        const newReasons = { ...prev };
+        delete newReasons[rowId];
+        return newReasons;
+      });
+
+      setError(null);
+      console.log('피드백 저장 성공:', feedbackData);
+
+    } catch (err) {
+      console.error('피드백 저장 오류:', err);
+      setError(`피드백 저장 중 오류가 발생했습니다: ${err}`);
+    }
+  };
+
+  // 입력 유효성 검사
+  const validateInput = (column: string, value: string): boolean => {
+    if (value.length > 20) {
+      console.log(`글자 수 초과: ${column} - ${value.length}글자`);
+      return false;
+    }
+    
+    switch (column) {
+      case '로트번호':
+      case '생산수량':
+      case '수량':
+        const isNumberValid = /^\d*$/.test(value);
+        if (!isNumberValid) {
+          console.log(`숫자만 입력 가능: ${column} - ${value}`);
+        }
+        return isNumberValid;
+      case '투입일':
+      case '종료일':
+        const isDateValid = /^\d{4}-\d{2}-\d{2}$/.test(value) || value === '';
+        if (!isDateValid) {
+          console.log(`날짜 형식 오류: ${column} - ${value}`);
+        }
+        return isDateValid;
+      case '생산품명':
+      case '공정':
+      case '투입물명':
+      case '단위':
+        const isTextValid = /^[가-힣a-zA-Z0-9\s\-_()]*$/.test(value);
+        if (!isTextValid) {
+          console.log(`텍스트 입력 오류: ${column} - ${value}`);
+        }
+        return isTextValid;
+      default:
+        return true;
+    }
+  };
+
+  // 입력 필드 렌더링
+  const renderInputField = (row: EditableRow, column: string) => {
+    const value = row.modifiedData[column] || '';
+    const isNewRow = !row.originalData || Object.keys(row.originalData).length === 0;
+    const isRequired = isNewRow && ['로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '투입물명', '수량', '단위'].includes(column);
+    const hasValue = value && value.toString().trim() !== '';
+    
+    const getInputClassName = () => {
+      let baseClass = 'w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+      
+      if (isNewRow) {
+        baseClass += ' border-green-300 bg-green-50';
+      } else if (row.isEditing) {
+        baseClass += ' border-blue-300 bg-blue-50';
+      } else {
+        baseClass += ' border-gray-300 bg-white';
+      }
+      
+      return baseClass;
+    };
+
+    switch (column) {
+      case '로트번호':
+      case '생산수량':
+      case '수량':
+        return (
+          <div className='relative'>
+            <input
+              type='text'
+              value={value}
+              maxLength={20}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                if (validateInput(column, newValue)) {
+                  handleInputChange(row.id, column, newValue);
+                } else {
+                  handleInputChange(row.id, column, newValue);
+                }
+              }}
+              placeholder={isRequired ? '숫자만 입력 *' : '숫자만 입력'}
+              className={getInputClassName()}
+            />
+            {isRequired && (
+              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+            )}
+          </div>
+        );
+      
+      case '투입일':
+      case '종료일':
+        return (
+          <div className='relative'>
+            <input
+              type='date'
+              value={value}
+              onChange={(e) => handleInputChange(row.id, column, e.target.value)}
+              className={getInputClassName()}
+            />
+            {isRequired && (
+              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+            )}
+          </div>
+        );
+      
+      case '생산품명':
+      case '공정':
+      case '투입물명':
+      case '단위':
+        return (
+          <div className='relative'>
+            <input
+              type='text'
+              value={value}
+              maxLength={20}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                if (validateInput(column, newValue)) {
+                  handleInputChange(row.id, column, newValue);
+                } else {
+                  handleInputChange(row.id, column, newValue);
+                }
+              }}
+              placeholder={isRequired ? '한글/영문/숫자 입력 *' : '한글/영문/숫자 입력'}
+              className={getInputClassName()}
+            />
+            {isRequired && (
+              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+            )}
+          </div>
+        );
+      
+      case 'AI추천답변':
+        return (
+          <div className='relative'>
+            <input
+              type='text'
+              value={value}
+              maxLength={20}
+              onChange={(e) => handleInputChange(row.id, column, e.target.value)}
+              placeholder={isNewRow ? 'AI 추천 답변을 입력하세요' : 'AI 추천 답변을 수정하거나 입력하세요'}
+              className={`w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                isNewRow ? 'border-green-300 bg-green-50' : 'border-blue-300 bg-blue-50'
+              }`}
+            />
+            <span className={`absolute -top-2 -right-2 text-xs ${
+              isNewRow ? 'text-green-500' : 'text-blue-500'
+            }`}>
+              {isNewRow ? '✏️' : '✏️'}
+            </span>
+          </div>
+        );
+      
+      default:
+        return (
+          <span>{value || '-'}</span>
+        );
+    }
+  };
+
+  // 드래그 앤 드롭 핸들러
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      const file = files[0];
+      if (file.name.match(/\.(xlsx|xls)$/)) {
+        setInputFile(file);
+        setError(null);
+      } else {
+        setError('엑셀 파일만 업로드 가능합니다 (.xlsx, .xls)');
+      }
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  return (
+    <CommonShell>
+      <div className='w-full h-full p-4 lg:p-6 xl:p-8 space-y-4 lg:space-y-6 xl:space-y-8'>
+        {/* 페이지 헤더 */}
+        <div className='flex items-center gap-4 mb-6'>
+          <Link href='/data-upload'>
+            <Button variant='outline' className='border-white/20 text-white/80 hover:bg-white/10'>
+              <ArrowLeft className='w-4 h-4 mr-2' />
+              뒤로가기
+            </Button>
+          </Link>
+          <div>
+            <h1 className='stitch-h1 text-xl lg:text-2xl xl:text-3xl font-bold'>실적정보(투입물)</h1>
+            <p className='stitch-caption text-white/60 text-xs lg:text-sm'>
+              생산 과정에서 투입되는 원재료, 부재료 등의 데이터를 업로드하고 AI로 표준화합니다.
+            </p>
+          </div>
+        </div>
+
+        {/* 메인 콘텐츠 */}
+        <div className='flex-1 min-h-0 space-y-6'>
+          {/* 1. 템플릿 다운로드 섹션 */}
+          <div className='stitch-card p-6'>
+            <div className='flex items-center gap-3 mb-4'>
+              <div className='w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center'>
+                <Download className='w-5 h-5 text-blue-600' />
+              </div>
+              <div>
+                <h2 className='text-lg font-semibold text-white'>템플릿 다운로드</h2>
+                <p className='text-sm text-white/60'>표준 형식의 템플릿을 다운로드하여 데이터 입력에 활용하세요</p>
+              </div>
+            </div>
+            <Button
+              onClick={handleTemplateDownload}
+              className='bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors'
+            >
+              <Download className='w-4 h-4 mr-2' />
+              템플릿 다운로드
+            </Button>
+          </div>
+          
+          {/* 2. Excel 업로드 섹션 */}
+          <div className='stitch-card p-6'>
+            <div className='flex items-center gap-3 mb-4'>
+              <div className='w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center'>
+                <Upload className='w-5 h-5 text-green-600' />
+              </div>
+              <div>
+                <h2 className='text-lg font-semibold text-white'>Excel 업로드</h2>
+                <p className='text-sm text-white/60'>템플릿 형식에 맞는 Excel 파일을 업로드하면 AI가 자동으로 투입물명을 표준화합니다</p>
+              </div>
+            </div>
+            
+            <div
+              className={`border-2 border-dashed rounded-xl p-12 text-center transition-all duration-200 ${
+                inputFile
+                  ? 'border-green-400 bg-green-50'
+                  : 'border-white/20 hover:border-primary hover:bg-white/5'
+              }`}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+            >
+              <input
+                ref={inputFileRef}
+                type='file'
+                accept='.xlsx,.xls'
+                onChange={handleInputFileSelect}
+                className='hidden'
+              />
+              
+              {!inputFile ? (
+                <div className='space-y-4'>
+                  <div className='w-16 h-16 mx-auto bg-white/10 rounded-full flex items-center justify-center'>
+                    <Upload className='w-8 h-8 text-white/60' />
+                  </div>
+                  <div>
+                    <p className='text-lg font-medium text-white mb-2'>
+                      파일을 드래그하여 업로드하거나 클릭하여 선택하세요
+                    </p>
+                    <p className='text-sm text-white/60 mb-4'>
+                      지원 형식: .xlsx, .xls
+                    </p>
+                    <Button
+                      onClick={() => inputFileRef.current?.click()}
+                      className='bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg transition-colors'
+                    >
+                      파일 선택
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className='space-y-4'>
+                  <div className='w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center'>
+                    <FileSpreadsheet className='w-8 h-8 text-green-600' />
+                  </div>
+                  <div>
+                    <p className='text-lg font-medium text-white mb-2'>
+                      선택된 파일: {inputFile.name}
+                    </p>
+                    <p className='text-sm text-white/60 mb-4'>
+                      파일 크기: {(inputFile.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                    <div className='flex gap-3 justify-center'>
+                      <Button
+                        onClick={handleInputUpload}
+                        disabled={isInputUploading}
+                        className='bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition-colors disabled:opacity-50'
+                      >
+                        {isInputUploading ? '업로드 중...' : '업로드 시작'}
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setInputFile(null);
+                          setInputData(null);
+                          setEditableInputRows([]);
+                          setAiProcessedData(null);
+                        }}
+                        className='bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg transition-colors'
+                      >
+                        파일 변경
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 3. AI 처리 상태 표시 */}
+          {isAiProcessing && (
+            <div className='stitch-card p-6'>
+              <div className='flex items-center gap-3'>
+                <div className='w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center'>
+                  <Brain className='w-5 h-5 text-blue-600' />
+                </div>
+                <div>
+                  <h3 className='text-lg font-semibold text-white'>AI 처리 중...</h3>
+                  <p className='text-sm text-white/60'>데이터를 분석하고 표준화하는 중입니다. 잠시만 기다려주세요.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 4. 데이터 미리보기 및 편집 */}
+          {inputData && editableInputRows.length > 0 && (
+            <div className='stitch-card p-6'>
+              <div className='flex items-center justify-between mb-4'>
+                <div>
+                  <h3 className='text-lg font-semibold text-white'>데이터 미리보기</h3>
+                  <p className='text-sm text-white/60'>
+                    파일: {inputData.filename} | 
+                    크기: {inputData.fileSize} MB | 
+                    행 수: {inputData.data.length}
+                  </p>
+                </div>
+              </div>
+
+              {/* 데이터 테이블 */}
+              <div className='overflow-x-auto'>
+                <table className='w-full border-collapse border border-white/20'>
+                  <thead>
+                    <tr className='bg-white/10'>
+                      {inputData.columns.map((column) => (
+                        <th key={column} className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>
+                          {column}
+                        </th>
+                      ))}
+                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>
+                        작업
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {editableInputRows.map((row) => (
+                      <tr key={row.id} className='border-b border-white/10 hover:bg-white/5'>
+                        {inputData.columns.map((column) => (
+                          <td key={column} className='border border-white/20 px-3 py-2 text-sm text-white'>
+                            {row.isEditing ? (
+                              renderInputField(row, column)
+                            ) : (
+                              <span>{row.modifiedData[column] || '-'}</span>
+                            )}
+                          </td>
+                        ))}
+                        <td className='border border-white/20 px-3 py-2 text-sm'>
+                          {row.isEditing ? (
+                            <div className='flex gap-2'>
+                              <Button
+                                onClick={() => saveRow(row.id)}
+                                className='bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs'
+                              >
+                                <Save className='w-3 h-3 mr-1' />
+                                저장
+                              </Button>
+                              <Button
+                                onClick={() => toggleRowEdit(row.id)}
+                                className='bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-xs'
+                              >
+                                <X className='w-3 h-3 mr-1' />
+                                취소
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              onClick={() => toggleRowEdit(row.id)}
+                              className='bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs'
+                            >
+                              <Edit3 className='w-3 h-3 mr-1' />
+                              편집
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* 수정 사유 입력 */}
+              {editableInputRows.some(row => row.isEditing) && (
+                <div className='mt-4 p-4 bg-white/5 rounded-lg'>
+                  <h4 className='text-sm font-medium text-white mb-2'>수정 사유 입력</h4>
+                  <div className='flex gap-4'>
+                    {editableInputRows
+                      .filter(row => row.isEditing)
+                      .map(row => (
+                        <div key={row.id} className='flex-1'>
+                          <label className='block text-xs text-white/60 mb-1'>
+                            행 {row.id} 수정 사유
+                          </label>
+                          <Input
+                            type='text'
+                            value={editReasons[row.id] || ''}
+                            onChange={(e) => setEditReasons(prev => ({
+                              ...prev,
+                              [row.id]: e.target.value
+                            }))}
+                            placeholder='수정 사유를 입력하세요'
+                            className='w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary'
+                          />
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 5. AI 처리 결과 */}
+          {aiProcessedData && (
+            <div className='stitch-card p-6'>
+              <div className='flex items-center gap-3 mb-4'>
+                <div className='w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center'>
+                  <CheckCircle className='w-5 h-5 text-green-600' />
+                </div>
+                <div>
+                  <h3 className='text-lg font-semibold text-white'>AI 처리 완료</h3>
+                  <p className='text-sm text-white/60'>
+                    총 {aiProcessedData.total_rows}행 중 {aiProcessedData.processed_rows}행이 처리되었습니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 6. 오류 메시지 */}
+          {error && (
+            <div className='stitch-card p-6 bg-red-500/10 border border-red-500/20'>
+              <div className='flex items-center gap-3'>
+                <div className='w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center'>
+                  <AlertCircle className='w-5 h-5 text-red-600' />
+                </div>
+                <div>
+                  <h3 className='text-lg font-semibold text-red-400'>오류 발생</h3>
+                  <p className='text-sm text-red-300'>{error}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </CommonShell>
+  );
+};
+
+export default InputDataPage;

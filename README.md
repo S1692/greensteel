@@ -8,6 +8,9 @@ ESG 관리 플랫폼 - 환경, 사회, 지배구조를 통합적으로 관리하
 - **Styling**: Tailwind CSS
 - **Package Manager**: pnpm
 - **PWA**: next-pwa
+- **Backend**: FastAPI, Python
+- **Database**: PostgreSQL
+- **Cache**: Redis
 - **Deployment**: Vercel
 
 ## 📋 주요 기능
@@ -19,99 +22,88 @@ ESG 관리 플랫폼 - 환경, 사회, 지배구조를 통합적으로 관리하
 - **설정**: 사용자 및 시스템 설정
 - **PWA**: Progressive Web App 지원
 
-## 🛠️ 설치 및 실행
+## 🐳 빠른 시작 (Docker)
 
-### 필수 요구사항
-
-- Node.js 18.0.0 이상
-- pnpm 10.0.0 이상
-
-### 설치
+### 백엔드 서비스 실행
 
 ```bash
+# 백엔드 서비스 시작 (Docker)
+docker-compose up -d
+
+# 서비스 상태 확인
+docker-compose ps
+
+# 로그 확인
+docker-compose logs -f
+```
+
+### 프론트엔드 실행
+
+```bash
+# 프론트엔드 디렉토리로 이동
+cd frontend
+
 # 의존성 설치
 pnpm install
 
 # 개발 서버 실행
 pnpm dev
-
-# 프로덕션 빌드
-pnpm build
-
-# 프로덕션 서버 실행
-pnpm start
 ```
 
-### 환경 변수 설정
+## 🖥️ 로컬 개발 환경
 
-`.env.local` 파일을 생성하고 다음 환경 변수들을 설정하세요:
+### 필수 요구사항
 
-```env
-# Next.js 설정
-NEXT_PUBLIC_APP_NAME=GreenSteel
-NEXT_PUBLIC_APP_VERSION=1.0.0
+- **Docker Desktop**: 백엔드 서비스 실행용
+- **Node.js 18.0.0 이상**: 프론트엔드 실행용
+- **pnpm 10.0.0 이상**: 패키지 관리자
 
-# API 설정
-NEXT_PUBLIC_API_BASE_URL=https://api.greensteel.site
-NEXT_PUBLIC_GATEWAY_URL=https://api.greensteel.site
+### Windows 사용자를 위한 간편 실행
 
-# 카카오 지도 API
-NEXT_PUBLIC_KAKAO_MAP_API_KEY=your_kakao_map_api_key_here
+1. **백엔드 시작**: `start-backend.bat` 더블클릭
+2. **프론트엔드 시작**: `start-frontend.bat` 더블클릭
 
-# Google Analytics (선택사항)
-NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+### 수동 실행
 
-# PWA 설정
-NEXT_PUBLIC_PWA_NAME=GreenSteel
-NEXT_PUBLIC_PWA_DESCRIPTION=ESG 관리 플랫폼
-NEXT_PUBLIC_PWA_THEME_COLOR=#10B981
-NEXT_PUBLIC_PWA_BACKGROUND_COLOR=#FFFFFF
+```bash
+# 1. 백엔드 서비스 시작
+docker-compose up -d
 
-# 환경 설정
-NODE_ENV=production
+# 2. 프론트엔드 의존성 설치 및 실행
+cd frontend
+pnpm install
+pnpm dev
 ```
+
+## 🌐 서비스 접속 정보
+
+| 서비스 | 포트 | URL | 설명 |
+|--------|------|-----|------|
+| Frontend | 3000 | http://localhost:3000 | Next.js 애플리케이션 |
+| Gateway | 8080 | http://localhost:8080 | API 게이트웨이 |
+| Auth Service | 8081 | http://localhost:8081 | 인증 서비스 |
+| CBAM Service | 8082 | http://localhost:8082 | CBAM 서비스 |
+| LCA Service | 8083 | http://localhost:8083 | LCA 서비스 |
+| Chatbot Service | 8084 | http://localhost:8084 | 챗봇 서비스 |
+| Data Gather Service | 8085 | http://localhost:8085 | 데이터 수집 서비스 |
 
 ## 📁 프로젝트 구조
 
 ```
-src/
-├── app/                    # Next.js App Router
-│   ├── (protected)/       # 인증이 필요한 페이지
-│   ├── (public)/          # 공개 페이지
-│   ├── api/               # API 라우트
-│   └── globals.css        # 전역 스타일
-├── components/            # React 컴포넌트
-│   ├── atoms/            # 기본 컴포넌트
-│   ├── molecules/        # 분자 컴포넌트
-│   └── ui/               # UI 컴포넌트
-└── lib/                  # 유틸리티 및 설정
-    ├── hooks/            # 커스텀 훅
-    └── utils.ts          # 유틸리티 함수
+greensteel/
+├── frontend/                 # Next.js 프론트엔드
+├── gateway/                  # API 게이트웨이
+├── service/                  # 마이크로서비스들
+│   ├── auth_service/        # 인증 서비스
+│   ├── cbam_service/        # CBAM 서비스
+│   ├── lca_service/         # LCA 서비스
+│   ├── chatbot_service/     # 챗봇 서비스
+│   └── datagather_service/  # 데이터 수집 서비스
+├── docker-compose.yml       # Docker Compose 설정
+├── start-backend.bat        # 백엔드 시작 스크립트
+├── start-frontend.bat       # 프론트엔드 시작 스크립트
+└── LOCAL_SETUP.md           # 상세 설정 가이드
 ```
-
-## 🌐 배포
-
-이 프로젝트는 Vercel을 통해 배포됩니다.
-
-### Vercel 배포
-
-```bash
-# Vercel CLI 설치
-npm install -g vercel
-
-# 로그인
-vercel login
-
-# 배포
-vercel --prod
-```
-
-## 📱 PWA 기능
-
-- 오프라인 지원
-- 홈 화면 설치 가능
-- 푸시 알림
-- 백그라운드 동기화
 
 ## 🔧 개발 도구
 
@@ -119,6 +111,31 @@ vercel --prod
 - **Prettier**: 코드 포맷팅
 - **TypeScript**: 타입 안정성
 - **Jest**: 테스트 프레임워크
+
+## 📚 상세 가이드
+
+- **로컬 개발 환경 설정**: [LOCAL_SETUP.md](./LOCAL_SETUP.md)
+- **프론트엔드 환경 설정**: [frontend/README_ENV.md](./frontend/README_ENV.md)
+- **게이트웨이 설정**: [gateway/README.md](./gateway/README.md)
+
+## 🚨 문제 해결
+
+### 일반적인 문제들
+
+1. **포트 충돌**: `netstat -ano | findstr :8080`으로 확인
+2. **Docker 컨테이너 문제**: `docker-compose restart` 또는 `docker-compose up -d --build`
+3. **의존성 문제**: `pnpm install` 재실행
+
+### 로그 확인
+
+```bash
+# 전체 로그
+docker-compose logs -f
+
+# 특정 서비스 로그
+docker-compose logs -f gateway
+docker-compose logs -f auth-service
+```
 
 ## 📄 라이선스
 

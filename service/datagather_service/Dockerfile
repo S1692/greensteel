@@ -1,7 +1,3 @@
-# ============================================================================
-# 🐳 DataGather 서비스 Docker 이미지 - Railway 배포용
-# ============================================================================
-
 FROM python:3.11-slim
 
 # 작업 디렉터리 설정
@@ -28,11 +24,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . /app/
 
 # 포트 노출
-EXPOSE 8083
+EXPOSE 8085
 
 # 헬스체크 설정
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8083/health || exit 1
+    CMD curl -f http://localhost:8085/health || exit 1
 
-# 애플리케이션 실행 (main:app)
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8083", "--proxy-headers"]
+# 애플리케이션 실행
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8085", "--reload"]

@@ -324,7 +324,17 @@ class ProxyController:
         method = request.method
         
         # 타겟 URL 구성
-        target_url = f"{target_service}{path}"
+        # 챗봇 서비스의 경우 특별한 경로 매핑
+        if path.startswith("/chatbot"):
+            if path == "/chatbot/chat":
+                target_url = f"{target_service}/api/v1/chatbot/chat"
+            elif path == "/chatbot/health":
+                target_url = f"{target_service}/health"
+            else:
+                target_url = f"{target_service}{path}"
+        else:
+            target_url = f"{target_service}{path}"
+            
         if request.url.query:
             target_url += f"?{request.url.query}"
         

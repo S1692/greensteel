@@ -93,79 +93,8 @@ async def robots():
         media_type="text/plain"
     )
 
-# Chatbot 서비스 연결 엔드포인트
-@app.post("/chatbot/chat")
-async def chatbot_chat(data: dict):
-    """Chatbot 서비스로 채팅 요청을 전달합니다."""
-    try:
-        gateway_logger.log_info(f"Chatbot 채팅 요청 받음: {data.get('message', 'unknown')}")
-        
-        # chatbot_service로 채팅 요청 전송 (포트 8084)
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                f"{CHATBOT_SERVICE_URL}/api/v1/chatbot/chat",
-                json=data
-            )
-            
-            if response.status_code == 200:
-                response_data = response.json()
-                gateway_logger.log_info(f"Chatbot 응답 성공: {response_data}")
-                
-                # 챗봇 서비스 응답을 그대로 전달
-                return response_data
-            else:
-                gateway_logger.log_error(f"Chatbot 서비스 응답 오류: {response.status_code}")
-                raise HTTPException(
-                    status_code=response.status_code,
-                    detail=f"Chatbot 서비스 오류: {response.text}"
-                )
-                
-    except httpx.TimeoutException:
-        gateway_logger.log_error("Chatbot 서비스 연결 시간 초과")
-        raise HTTPException(status_code=504, detail="Chatbot 서비스 연결 시간 초과")
-    except httpx.ConnectError:
-        gateway_logger.log_error("Chatbot 서비스 연결 실패")
-        raise HTTPException(status_code=503, detail="Chatbot 서비스에 연결할 수 없습니다")
-    except Exception as e:
-        gateway_logger.log_error(f"Chatbot 처리 중 오류 발생: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Chatbot 오류: {str(e)}")
-
-# Chatbot 서비스 상태 확인 엔드포인트
-@app.get("/chatbot/health")
-async def chatbot_health():
-    """Chatbot 서비스 상태를 확인합니다."""
-    try:
-        gateway_logger.log_info("Chatbot 서비스 상태 확인 요청")
-        
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(f"{CHATBOT_SERVICE_URL}/health")
-            
-            if response.status_code == 200:
-                health_data = response.json()
-                gateway_logger.log_info(f"Chatbot 서비스 상태: {health_data.get('status', 'unknown')}")
-                
-                return {
-                    "message": "Chatbot 서비스 상태 확인 성공",
-                    "status": "success",
-                    "chatbot_status": health_data.get('status', 'unknown'),
-                    "data": health_data
-                }
-            else:
-                gateway_logger.log_error(f"Chatbot 서비스 상태 확인 오류: {response.status_code}")
-                raise HTTPException(
-                    status_code=response.status_code,
-                    detail=f"Chatbot 서비스 상태 확인 오류: {response.text}"
-                )
-                
-    except httpx.TimeoutException:
-        gateway_logger.log_error("Chatbot 서비스 상태 확인 시간 초과")
-        raise HTTPException(status_code=504, detail="Chatbot 서비스 상태 확인 시간 초과")
-    except httpx.ConnectError:
-        gateway_logger.log_error("Chatbot 서비스 연결 실패")
-        raise HTTPException(status_code=503, detail="Chatbot 서비스에 연결할 수 없습니다")
-    except Exception as e:
-        gateway_logger.log_error(f"Chatbot 상태 확인 중 오류 발생: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Chatbot 상태 확인 오류: {str(e)}")
+# Chatbot 서비스는 프록시 컨트롤러를 통해 처리됩니다
+# /chatbot/* 경로의 모든 요청은 프록시 컨트롤러로 전달됩니다
 
 # JSON 데이터를 datagather_service로 전송하는 엔드포인트
 @app.post("/process-data")

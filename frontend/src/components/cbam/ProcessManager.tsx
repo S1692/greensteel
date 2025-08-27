@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { ReactFlow, Node, Edge, useReactFlow, Background, MiniMap, Controls, Connection, ReactFlowProvider } from '@xyflow/react';
+import { ReactFlow, Node, Edge, Background, MiniMap, Controls, Connection, ReactFlowProvider, addEdge, useNodesState, useEdgesState } from '@xyflow/react';
 import { Plus } from 'lucide-react';
 
 interface Product {
@@ -14,7 +14,8 @@ interface Product {
 }
 
 const ProcessManagerInner: React.FC = () => {
-  const { addNodes, addEdges } = useReactFlow();
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
@@ -61,10 +62,10 @@ const ProcessManagerInner: React.FC = () => {
       }
     };
 
-    addNodes(newNode);
+    setNodes(prevNodes => [...prevNodes, newNode]);
     setIsModalOpen(false);
     setSelectedProduct(null);
-  }, [addNodes]);
+  }, [setNodes]);
 
   const addGroupNode = useCallback(() => {
     const newNode: Node = {
@@ -75,8 +76,8 @@ const ProcessManagerInner: React.FC = () => {
       style: { width: 200, height: 100 }
     };
 
-    addNodes(newNode);
-  }, [addNodes]);
+    setNodes(prevNodes => [...prevNodes, newNode]);
+  }, [setNodes]);
 
   const onConnect = useCallback((connection: Connection) => {
     if (connection.source && connection.target) {
@@ -88,9 +89,9 @@ const ProcessManagerInner: React.FC = () => {
         targetHandle: connection.targetHandle
       };
 
-      addEdges(newEdge);
+      setEdges(prevEdges => addEdge(newEdge, prevEdges));
     }
-  }, [addEdges]);
+  }, [setEdges]);
 
   return (
     <div className="w-full h-full relative">
@@ -112,6 +113,10 @@ const ProcessManagerInner: React.FC = () => {
       </div>
 
       <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         fitView
         className="bg-slate-800"

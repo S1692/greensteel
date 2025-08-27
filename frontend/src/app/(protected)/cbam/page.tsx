@@ -7,10 +7,6 @@ import CommonShell from '@/components/common/CommonShell';
 import axiosClient from '@/lib/axiosClient';
 import { Plus, Download, Upload, FileText, Settings, BarChart3, Calculator, Database, Globe, Truck, Factory, Package, GitBranch, Building2, Network, RefreshCcw, ChevronDown, ArrowUp, Trash2 } from 'lucide-react';
 
-// ============================================================================
-// 🚀 CBAM 페이지 - 탄소국경조정메커니즘 통합 관리
-// ============================================================================
-
 export default function CBAMPage() {
   const [activeTab, setActiveTab] = useState<
     'overview' | 'install' | 'flow' | 'reports' | 'settings'
@@ -388,24 +384,6 @@ export default function CBAMPage() {
           )}
         </div>
       </div>
-
-      {/* 전체 제품 관리 섹션 */}
-      <div className='stitch-card p-6'>
-        <h3 className='stitch-h1 text-xl font-semibold mb-4 flex items-center gap-2'>
-          <Package className='w-5 h-5 text-green-400' />
-          전체 제품 관리
-        </h3>
-        <p className='stitch-caption text-white/60 mb-4'>
-          모든 사업장의 제품을 한 번에 관리할 수 있습니다.
-        </p>
-        <button
-          onClick={handleOverallProductManagement}
-          className='px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center gap-2'
-        >
-          <Package className='w-4 h-4' />
-          전체 제품 관리 페이지로 이동
-        </button>
-      </div>
     </div>
   );
 
@@ -420,32 +398,7 @@ export default function CBAMPage() {
           CBAM 배출량 산정을 위한 경계를 설정하고 노드를 생성합니다.
         </p>
         
-        <div className='mb-6'>
-          <a href='/facility-groups' className='inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'>
-            <Network className='w-4 h-4' />
-            시설군 설정 페이지로 이동
-          </a>
-        </div>
-        
-        <div className='grid grid-cols-1 md:grid-cols-2 gap-6 mb-6'>
-          <div className='p-6 bg-white/5 rounded-lg border border-white/20'>
-            <h4 className='text-lg font-semibold text-white mb-3'>노드 생성</h4>
-            <p className='text-white/60 text-sm mb-4'>배출량 산정을 위한 노드 및 엣지 생성</p>
-            <button className='px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors'>
-              생성하기
-            </button>
-          </div>
-          
-          <div className='p-6 bg-white/5 rounded-lg border border-white/20'>
-            <h4 className='text-lg font-semibold text-white mb-3'>경계 설정</h4>
-            <p className='text-white/60 text-sm mb-4'>배출량 산정 경계 및 범위 설정</p>
-            <button className='px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors'>
-              설정하기
-            </button>
-          </div>
-        </div>
-        
-        <div className='h-[600px]'>
+        <div className='h-[700px] w-full border border-white/20 rounded-lg overflow-hidden'>
           <ReactFlowProvider>
             <ProcessManager />
           </ReactFlowProvider>

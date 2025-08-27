@@ -1,243 +1,211 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
-import Button from '@/components/atomic/atoms/Button';
+import React, { useState, useCallback } from 'react';
+import { ReactFlow, Node, Edge, useReactFlow, Background, MiniMap, Controls, Connection, ReactFlowProvider } from '@xyflow/react';
 import { Plus } from 'lucide-react';
-import ProductNode from './ProductNode';
-import CustomEdge from './CustomEdge';
-import axiosClient from '@/lib/axiosClient';
-import {
-  ReactFlow,
-  ReactFlowProvider,
-  Background,
-  Controls,
-  MiniMap,
-  useNodesState,
-  useEdgesState,
-  addEdge,
-  Connection,
-  Edge,
-  Node,
-  NodeTypes,
-  EdgeTypes,
-  useReactFlow,
-  ConnectionMode,
-  MarkerType,
-} from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
-import './ProcessManager.css';
 
-// ============================================================================
-// 🎯 커스텀 Edge 타입 정의
-// ============================================================================
-const edgeTypes: EdgeTypes = { custom: CustomEdge };
+interface Product {
+  id: string;
+  name: string;
+  type: string;
+  carbonIntensity: number;
+  productionCapacity: number;
+  location: string;
+}
 
-// ============================================================================
-// 🎯 내부 컴포넌트
-// ============================================================================
-function ProcessManagerInner() {
-  // 상태 훅
-  const [nodes, , onNodesChange] = useNodesState<any>([]);
-  const [edges, , onEdgesChange] = useEdgesState<any>([]);
+const ProcessManagerInner: React.FC = () => {
   const { addNodes, addEdges } = useReactFlow();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  // 제품 목록 모달 상태
-  const [products, setProducts] = useState<any[]>([]);
-  const [showProductModal, setShowProductModal] = useState(false);
-
-  // 제품 불러오기
-  const fetchProducts = useCallback(async () => {
-    try {
-      const res = await axiosClient.get('/api/v1/boundary/product');
-      setProducts(res.data.products || []);
-    } catch {
-      setProducts([
-        { product_id: 'dummy-1', name: '테스트 제품 1', cn_code: '7208.51.00', production_qty: 1000, sales_qty: 800, export_qty: 200, inventory_qty: 150, defect_rate: 0.05, period_start: '2024-01-01', period_end: '2024-12-31' },
-        { product_id: 'dummy-2', name: '테스트 제품 2', cn_code: '7208.52.00', production_qty: 2000, sales_qty: 1800, export_qty: 400, inventory_qty: 300, defect_rate: 0.03, period_start: '2024-01-01', period_end: '2024-12-31' },
-        { product_id: 'dummy-3', name: '테스트 제품 3', cn_code: '7208.53.00', production_qty: 1500, sales_qty: 1200, export_qty: 300, inventory_qty: 200, defect_rate: 0.07, period_start: '2024-01-01', period_end: '2024-12-31' },
-      ]);
+  // 더미 제품 데이터
+  const dummyProducts: Product[] = [
+    {
+      id: '1',
+      name: '고품질 철강 제품',
+      type: 'Steel',
+      carbonIntensity: 1.8,
+      productionCapacity: 5000,
+      location: '포항제철소'
+    },
+    {
+      id: '2',
+      name: '알루미늄 합금',
+      type: 'Aluminum',
+      carbonIntensity: 2.1,
+      productionCapacity: 3000,
+      location: '울산공장'
+    },
+    {
+      id: '3',
+      name: '시멘트 제품',
+      type: 'Cement',
+      carbonIntensity: 0.9,
+      productionCapacity: 8000,
+      location: '강릉공장'
     }
+  ];
+
+  const addProductNode = useCallback(() => {
+    setIsModalOpen(true);
   }, []);
 
-  // 제품 노드 추가(모달 열기)
-  const addProductNode = useCallback(async () => {
-    await fetchProducts();
-    setShowProductModal(true);
-  }, [fetchProducts]);
-
-  // 제품 선택 → 노드 추가
-  const handleProductSelect = useCallback((product: any) => {
-    const newNode: Node<any> = {
-      id: `product-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      type: 'custom',
+  const handleProductSelect = useCallback((product: Product) => {
+    const newNode: Node = {
+      id: `product-${Date.now()}`,
+      type: 'default',
       position: { x: Math.random() * 400 + 100, y: Math.random() * 300 + 100 },
-      data: {
+      data: { 
         label: product.name,
-        description: `제품: ${product.name}`,
-        variant: 'product',
-        productData: product,
-        name: product.name,
-        type: 'output',
-        parameters: {
-          product_id: product.product_id,
-          cn_code: product.cn_code,
-          production_qty: product.production_qty,
-          sales_qty: product.sales_qty,
-          export_qty: product.export_qty,
-          inventory_qty: product.inventory_qty,
-          defect_rate: product.defect_rate,
-          period_start: product.period_start,
-          period_end: product.period_end,
-        },
-        status: 'active',
-      },
+        product: product
+      }
     };
+
     addNodes(newNode);
-    setShowProductModal(false);
+    setIsModalOpen(false);
+    setSelectedProduct(null);
   }, [addNodes]);
 
-  // 그룹 노드 추가(내장 group 타입 사용)
   const addGroupNode = useCallback(() => {
-    const id = `group-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    addNodes({
-      id,
-      type: 'group', // 내장 타입. 커스텀 컴포넌트 매핑 금지
+    const newNode: Node = {
+      id: `group-${Date.now()}`,
+      type: 'group',
       position: { x: Math.random() * 400 + 100, y: Math.random() * 300 + 100 },
-      data: { label: `그룹 ${id}`, description: '산정경계' },
-      style: {
-        width: 420,
-        height: 320,
-        border: '2px solid #a78bfa',
-        borderRadius: 12,
-        background: '#0b1220', // 다크 배경
-        pointerEvents: 'auto',
-      },
-      className: 'shadow-sm',
-    });
+      data: { label: '프로세스 그룹' },
+      style: { width: 200, height: 100 }
+    };
+
+    addNodes(newNode);
   }, [addNodes]);
 
-  // 커스텀 노드 매핑(제품만)
-  const nodeTypes: NodeTypes = { custom: ProductNode as any };
+  const onConnect = useCallback((connection: Connection) => {
+    if (connection.source && connection.target) {
+      const newEdge: Edge = {
+        id: `edge-${Date.now()}`,
+        source: connection.source,
+        target: connection.target,
+        sourceHandle: connection.sourceHandle,
+        targetHandle: connection.targetHandle
+      };
+
+      addEdges(newEdge);
+    }
+  }, [addEdges]);
 
   return (
-    <div className="w-full h-full flex flex-col">
-      {/* 헤더 */}
-      <div className="bg-gray-900 text-white p-4">
-        <h1 className="text-2xl font-bold">CBAM 프로세스 관리</h1>
-        <p className="text-gray-300">CBAM 관련 프로세스 플로우를 생성하고 관리합니다.</p>
-      </div>
-
-      {/* 버튼 */}
-      <div className="bg-gray-800 p-4 flex gap-2">
-        <Button onClick={addProductNode} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-          <Plus className="h-4 w-4" /> 제품 노드
-        </Button>
-        <Button onClick={addGroupNode} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-          <Plus className="h-4 w-4" /> 그룹 노드
-        </Button>
-      </div>
-
-      {/* ReactFlow 캔버스 */}
-      <div className="flex-1 min-h-0" style={{ height: '100%', minHeight: '500px' }}>
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={(params: Connection) =>
-            addEdges({
-              id: `e-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-              source: params.source!,
-              target: params.target!,
-              sourceHandle: params.sourceHandle ?? undefined,
-              targetHandle: params.targetHandle ?? undefined,
-              type: 'custom',
-            })
-          }
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          connectionMode={ConnectionMode.Loose}
-          defaultEdgeOptions={{ type: 'custom', markerEnd: { type: MarkerType.ArrowClosed } }}
-          deleteKeyCode="Delete"
-          className="bg-gray-900" // 다크 캔버스
-          fitView
-          fitViewOptions={{ padding: 0.2 }}
-          style={{ width: '100%', height: '100%' }}
-          snapToGrid={false}
-          snapGrid={[15, 15]}
-          preventScrolling={false}
-          zoomOnScroll={true}
-          panOnScroll={false}
-          zoomOnPinch={true}
-          panOnDrag={true}
+    <div className="w-full h-full relative">
+      <div className="absolute top-4 left-4 z-10 flex gap-2">
+        <button
+          onClick={addProductNode}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center gap-2 shadow-lg"
         >
-          <Background color="#334155" gap={24} size={1} />
-          
-          {/* 컨트롤 - 하얀 박스 형태로 강화 */}
-          <Controls 
-            className="!bg-white !border-2 !border-gray-300 !text-gray-800 !rounded-lg !shadow-lg !p-1" 
-            position="bottom-left"
-            showZoom={true}
-            showFitView={true}
-            showInteractive={true}
-            style={{
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-            }}
-          />
-          
-          {/* 미니맵 - ReactFlow 기본 설정으로 복원 */}
-          <MiniMap
-            position="bottom-right"
-            style={{ 
-              backgroundColor: '#1f2937',
-              border: '1px solid #9ca3af'
-            }}
-            maskColor="rgba(17,24,39,0.6)"
-            nodeColor={() => '#a78bfa'}
-            nodeStrokeColor={() => '#e5e7eb'}
-            pannable
-            zoomable
-          />
-        </ReactFlow>
+          <Plus className="w-4 h-4" />
+          제품 노드
+        </button>
+        <button
+          onClick={addGroupNode}
+          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200 flex items-center gap-2 shadow-lg"
+        >
+          <Plus className="w-4 h-4" />
+          그룹 노드
+        </button>
       </div>
+
+      <ReactFlow
+        onConnect={onConnect}
+        fitView
+        className="bg-slate-800"
+        style={{ width: '100%', height: '100%' }}
+        defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+        minZoom={0.1}
+        maxZoom={4}
+        zoomOnScroll={true}
+        panOnScroll={false}
+        zoomOnPinch={true}
+        panOnDrag={true}
+      >
+        <Background color="#475569" gap={20} size={1} />
+        <MiniMap 
+          className="bg-slate-700 border border-slate-600" 
+          position="bottom-right"
+          style={{ width: 200, height: 120 }}
+        />
+        <Controls 
+          className="bg-white border border-slate-300 rounded-lg shadow-lg" 
+          position="bottom-left"
+        />
+      </ReactFlow>
 
       {/* 제품 선택 모달 */}
-      {showProductModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">제품 선택</h3>
-              <button onClick={() => setShowProductModal(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-slate-800 rounded-xl p-6 w-full max-w-2xl mx-4 border border-slate-600 shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-white">제품 노드 추가</h3>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <div className="space-y-2">
-              {products.map((p) => (
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              {dummyProducts.map((product) => (
                 <div
-                  key={p.product_id}
-                  className="p-3 border rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors"
-                  onClick={() => handleProductSelect(p)}
+                  key={product.id}
+                  className={`p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
+                    selectedProduct?.id === product.id
+                      ? 'border-blue-500 bg-blue-500/10'
+                      : 'border-slate-600 bg-slate-700 hover:border-slate-500 hover:bg-slate-600'
+                  }`}
+                  onClick={() => setSelectedProduct(product)}
                 >
-                  <div className="font-medium">{p.name}</div>
-                  <div className="text-sm text-gray-600">CN: {p.cn_code}</div>
-                  <div className="text-sm text-gray-600">생산량: {p.production_qty}</div>
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-semibold text-white">{product.name}</h4>
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-slate-600 text-slate-300">
+                      {product.type}
+                    </span>
+                  </div>
+                  <div className="space-y-1 text-sm text-slate-300">
+                    <p>탄소집약도: {product.carbonIntensity} tCO2/t</p>
+                    <p>생산능력: {product.productionCapacity.toLocaleString()} t/년</p>
+                    <p>위치: {product.location}</p>
+                  </div>
                 </div>
               ))}
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors duration-200"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => selectedProduct && handleProductSelect(selectedProduct)}
+                disabled={!selectedProduct}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                노드 추가
+              </button>
             </div>
           </div>
         </div>
       )}
     </div>
   );
-}
+};
 
-// ============================================================================
-// 🎯 메인 컴포넌트
-// ============================================================================
-export default function ProcessManager() {
+const ProcessManager: React.FC = () => {
   return (
-    <div className="w-full h-full min-h-0">
-      <ReactFlowProvider>
-        <ProcessManagerInner />
-      </ReactFlowProvider>
-    </div>
+    <ReactFlowProvider>
+      <ProcessManagerInner />
+    </ReactFlowProvider>
   );
-}
+};
+
+export default ProcessManager;

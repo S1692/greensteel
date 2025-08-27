@@ -1,0 +1,46 @@
+# Filtering folder (AI service - exclude from frontend commit)
+service/datagather_service/app/filtering/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Virtual environment
+ai_env/
+venv/
+env/
+
+# Node modules (if any)
+node_modules/
+
+# Build outputs
+.next/
+dist/
+build/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp

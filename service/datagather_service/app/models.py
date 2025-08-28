@@ -1,50 +1,58 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Float, JSON, Boolean
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text
 from sqlalchemy.sql import func
-from datetime import datetime
+from .database import Base
 
-Base = declarative_base()
-
-class ProcessingResult(Base):
-    """AI 처리 결과를 저장하는 테이블"""
-    __tablename__ = "processing_results"
+class InputData(Base):
+    """입력 데이터 모델"""
+    __tablename__ = "input"
     
     id = Column(Integer, primary_key=True, index=True)
-    filename = Column(String(255), nullable=False, index=True)
-    original_material = Column(Text, nullable=False)
-    processed_material = Column(Text, nullable=False)
-    process_name = Column(String(255), nullable=True)
-    production_name = Column(String(255), nullable=True)
-    confidence_score = Column(Float, nullable=True)
-    ai_model_used = Column(String(100), nullable=True)
-    processing_time = Column(Float, nullable=True)  # 초 단위
-    status = Column(String(50), default="completed")  # completed, failed, pending
-    error_message = Column(Text, nullable=True)
-    metadata = Column(JSON, nullable=True)  # 추가 정보
+    name = Column(String(255), nullable=False, index=True)
+    type = Column(String(100))
+    category = Column(String(100))
+    unit = Column(String(50))
+    quantity = Column(Float)
+    source = Column(String(255))
+    description = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-class UserFeedback(Base):
-    """사용자 피드백을 저장하는 테이블"""
-    __tablename__ = "user_feedback"
+class OutputData(Base):
+    """출력 데이터 모델"""
+    __tablename__ = "output"
     
     id = Column(Integer, primary_key=True, index=True)
-    processing_result_id = Column(Integer, nullable=False, index=True)
-    original_material = Column(Text, nullable=False)
-    corrected_material = Column(Text, nullable=False)
-    feedback_type = Column(String(50), nullable=False)  # correction, approval, rejection
-    user_comment = Column(Text, nullable=True)
+    name = Column(String(255), nullable=False, index=True)
+    type = Column(String(100))
+    category = Column(String(100))
+    unit = Column(String(50))
+    quantity = Column(Float)
+    destination = Column(String(255))
+    description = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-class ProcessingLog(Base):
-    """처리 로그를 저장하는 테이블"""
-    __tablename__ = "processing_logs"
+class ProcessData(Base):
+    """공정 데이터 모델"""
+    __tablename__ = "process"
     
     id = Column(Integer, primary_key=True, index=True)
-    filename = Column(String(255), nullable=False, index=True)
-    total_records = Column(Integer, default=0)
-    processed_records = Column(Integer, default=0)
-    failed_records = Column(Integer, default=0)
-    processing_duration = Column(Float, nullable=True)  # 초 단위
-    ai_model_version = Column(String(100), nullable=True)
+    name = Column(String(255), nullable=False, index=True)
+    type = Column(String(100))
+    energy_consumption = Column(Float)
+    energy_unit = Column(String(50))
+    duration_hours = Column(Float)
+    description = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class TransportData(Base):
+    """운송 데이터 모델"""
+    __tablename__ = "transport"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    mode = Column(String(100), nullable=False)  # road, rail, sea, air
+    distance_km = Column(Float)
+    fuel_type = Column(String(100))
+    fuel_consumption = Column(Float)
+    fuel_unit = Column(String(50))
+    description = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -100,12 +100,7 @@ function ProcessManagerInner() {
       setInstalls(response.data);
     } catch (error) {
       console.error('사업장 목록 조회 실패:', error);
-      // 개발용 더미 데이터
-      setInstalls([
-        { id: 1, install_name: '포항제철소', reporting_year: 2025 },
-        { id: 2, install_name: '광양제철소', reporting_year: 2025 },
-        { id: 3, install_name: '당진제철소', reporting_year: 2025 }
-      ]);
+      setInstalls([]);
     }
   }, []);
 
@@ -118,12 +113,7 @@ function ProcessManagerInner() {
       setProducts(filteredProducts);
     } catch (error) {
       console.error('제품 목록 조회 실패:', error);
-      // 개발용 더미 데이터
-      setProducts([
-        { id: 1, product_name: '철강1', product_category: '철강', product_amount: 1000, install_id: installId },
-        { id: 2, product_name: '철강2', product_category: '철강', product_amount: 2000, install_id: installId },
-        { id: 3, product_name: '철강3', product_category: '철강', product_amount: 1500, install_id: installId }
-      ]);
+      setProducts([]);
     }
   }, []);
 
@@ -141,12 +131,7 @@ function ProcessManagerInner() {
       console.log('🔍 사업장의 공정들:', installProcesses);
     } catch (error) {
       console.error('공정 목록 조회 실패:', error);
-      // 개발용 더미 데이터
-      setProcesses([
-        { id: 1, process_name: '제철공정', start_period: '2025-01-01', end_period: '2025-12-31', products: [{ id: 1 }] },
-        { id: 2, process_name: '압연공정', start_period: '2025-01-01', end_period: '2025-12-31', products: [{ id: 2 }] },
-        { id: 3, process_name: '도금공정', start_period: '2025-01-01', end_period: '2025-12-31', products: [{ id: 3 }] }
-      ]);
+      setProcesses([]);
     }
   }, [products]);
 
@@ -164,12 +149,7 @@ function ProcessManagerInner() {
       console.log('🔍 사업장의 모든 공정들:', allProcesses);
     } catch (error) {
       console.error('전체 공정 목록 조회 실패:', error);
-      // 개발용 더미 데이터
-      setAllProcesses([
-        { id: 1, process_name: '제철공정', start_period: '2025-01-01', end_period: '2025-12-31', products: [{ id: 1 }] },
-        { id: 2, process_name: '압연공정', start_period: '2025-01-01', end_period: '2025-12-31', products: [{ id: 2 }] },
-        { id: 3, process_name: '도금공정', start_period: '2025-01-01', end_period: '2025-12-31', products: [{ id: 3 }] }
-      ]);
+      setAllProcesses([]);
     }
   }, [products]);
 
@@ -187,12 +167,7 @@ function ProcessManagerInner() {
       console.log('🔍 크로스 사업장 공정들:', allCrossProcesses);
     } catch (error) {
       console.error('크로스 사업장 공정 목록 조회 실패:', error);
-      // 개발용 더미 데이터
-      setCrossInstallProcesses([
-        { id: 1, process_name: '제철공정', start_period: '2025-01-01', end_period: '2025-12-31', products: [{ id: 1 }] },
-        { id: 2, process_name: '압연공정', start_period: '2025-01-01', end_period: '2025-12-31', products: [{ id: 2 }] },
-        { id: 3, process_name: '도금공정', start_period: '2025-01-01', end_period: '2025-12-31', products: [{ id: 3 }] }
-      ]);
+      setCrossInstallProcesses([]);
     }
   }, [products, selectedInstall]);
 
@@ -208,11 +183,7 @@ function ProcessManagerInner() {
       console.log('🔍 제품의 공정들:', productProcesses);
     } catch (error) {
       console.error('제품별 공정 목록 조회 실패:', error);
-      // 개발용 더미 데이터
-      setProcesses([
-        { id: 1, process_name: '제철공정', start_period: '2025-01-01', end_period: '2025-12-31', products: [{ id: productId }] },
-        { id: 2, process_name: '압연공정', start_period: '2025-01-01', end_period: '2025-12-31', products: [{ id: productId }] }
-      ]);
+      setProcesses([]);
     }
   }, []);
 

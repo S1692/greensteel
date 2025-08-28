@@ -15,15 +15,9 @@ const generateRequestKey = (config: AxiosRequestConfig): string => {
   return `${method?.toUpperCase() || 'GET'}:${url}:${JSON.stringify(data || {})}:${JSON.stringify(params || {})}`;
 };
 
-// Gateway 외 요청 차단을 위한 인터셉터
-const isGatewayRequest = (url: string): boolean => {
-  try {
-    const requestUrl = new URL(url);
-    const gatewayUrl = new URL(env.NEXT_PUBLIC_GATEWAY_URL);
-    return requestUrl.hostname === gatewayUrl.hostname;
-  } catch {
-    return false;
-  }
+// API 요청인지 확인하는 함수
+const isAPIRequest = (url: string): boolean => {
+  return url.startsWith('/api/') || url.startsWith('/health');
 };
 
 // CSRF 토큰 가져오기
@@ -59,7 +53,7 @@ const retryRequest = async (
 
 // axios 인스턴스 생성
 const axiosClient: AxiosInstance = axios.create({
-  baseURL: env.NEXT_PUBLIC_GATEWAY_URL,
+  baseURL: '', // 상대 경로 사용 (Next.js rewrites 활용)
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -85,10 +79,10 @@ axiosClient.interceptors.request.use(
     config.signal = controller.signal;
     pendingRequests.set(requestKey, controller);
 
-    // Gateway 외 요청 차단
-    if (config.url && !isGatewayRequest(config.baseURL + config.url)) {
+    // API 요청 검증
+    if (config.url && !isAPIRequest(config.baseURL + config.url)) {
       throw new Error(
-        'Direct service access is not allowed. Use Gateway only.'
+        'Direct service access is not allowed. Use API routes only.'
       );
     }
 
@@ -159,6 +153,7 @@ export const apiEndpoints = {
     status: '/status',
     routing: '/routing',
     architecture: '/architecture',
+    templates: '/api/cbam/templates',
   },
   // Auth Service (Gateway를 통해)
   auth: {
@@ -185,48 +180,79 @@ export const apiEndpoints = {
     reports: '/api/cbam/reports',
     calculations: '/api/cbam/calculations',
     templates: '/api/cbam/templates',
-    // 사업장 관리
     install: {
-      list: '/api/cbam/install',
-      create: '/api/cbam/install',
-      delete: (id: number) => `/api/cbam/install/${id}`,
-      update: (id: number) => `/api/cbam/install/${id}`,
+      create: '/api/v1/boundary/install',
+      list: '/api/v1/boundary/install',
+      names: '/api/v1/boundary/install/names',
+      get: (id: number) => `/api/v1/boundary/install/${id}`,
+      update: (id: number) => `/api/v1/boundary/install/${id}`,
+      delete: (id: number) => `/api/v1/boundary/install/${id}`
     },
-    // 제품 관리
     product: {
-      list: '/api/cbam/product',
-      create: '/api/cbam/product',
-      delete: (id: number) => `/api/cbam/product/${id}`,
-      update: (id: number) => `/api/cbam/product/${id}`,
+      create: '/api/v1/boundary/product',
+      list: '/api/v1/boundary/product',
+      names: '/api/v1/boundary/product/names',
+      get: (id: number) => `/api/v1/boundary/product/${id}`,
+      update: (id: number) => `/api/v1/boundary/product/${id}`,
+      delete: (id: number) => `/api/v1/boundary/product/${id}`
     },
-    // 공정 관리
     process: {
-      list: '/api/cbam/process',
-      create: '/api/cbam/process',
-      delete: (id: number) => `/api/cbam/process/${id}`,
-      update: (id: number) => `/api/cbam/process/${id}`,
+      create: '/api/v1/boundary/process',
+      list: '/api/v1/boundary/process',
+      get: (id: number) => `/api/v1/boundary/process/${id}`,
+      update: (id: number) => `/api/v1/boundary/process/${id}`,
+      delete: (id: number) => `/api/v1/boundary/process/${id}`
     },
-    // 공정 입력 관리
     processInput: {
-      list: '/api/cbam/process-input',
-      create: '/api/cbam/process-input',
-      delete: (id: number) => `/api/cbam/process-input/${id}`,
-      update: (id: number) => `/api/cbam/process-input/${id}`,
-    },
+      create: '/api/v1/boundary/process-input',
+      list: '/api/v1/boundary/process-input',
+      get: (id: number) => `/api/v1/boundary/process-input/${id}`,
+      update: (id: number) => `/api/v1/boundary/process-input/${id}`,
+      delete: (id: number) => `/api/v1/boundary/process-input/${id}`
+    }
   },
-  // Calculation Service (Gateway를 통해)
+  // Calculation Service (Gateway를 통해 boundary 서비스로)
   calculation: {
-    process: '/api/calculation/process',
-    fuel: '/api/calculation/fuel',
-    material: '/api/calculation/material',
-    electricity: '/api/calculation/electricity',
-    precursors: '/api/calculation/precursors',
-    precursorsBatch: '/api/calculation/precursors/batch',
-    cbam: '/api/calculation/cbam',
-    stats: '/api/calculation/stats',
-    history: '/api/calculation/history',
-    precursor: '/api/calculation/precursor',
-  },
+    fuel: '/api/v1/boundary/calc/fuel/calculate',
+    material: '/api/v1/boundary/calc/material/calculate',
+    precursor: '/api/v1/boundary/calc/precursor/calculate',
+    electricity: '/api/v1/boundary/calc/electricity/calculate',
+    process: '/api/v1/boundary/calc/process/calculate',
+    cbam: '/api/v1/boundary/calc/cbam',
+    precursors: '/api/v1/boundary/calc/precursor/user',
+    precursorsBatch: '/api/v1/boundary/calc/precursor/save-batch',
+    stats: '/api/v1/boundary/calc/stats',
+    history: '/api/v1/boundary/calc/history',
+    
+    // 새로운 테이블 API 엔드포인트들 (단수형으로 통일)
+    boundary: {
+        create: '/api/v1/boundary/boundary',
+        list: '/api/v1/boundary/boundary'
+    },
+    product: {
+        create: '/api/v1/boundary/product',
+        list: '/api/v1/boundary/product',
+        get: (id: number) => `/api/v1/boundary/product/${id}`,
+        update: (id: number) => `/api/v1/boundary/product/${id}`,
+        delete: (id: number) => `/api/v1/boundary/product/${id}`
+    },
+    operation: {
+        create: '/api/v1/boundary/operation',
+        list: '/api/v1/boundary/operation'
+    },
+    node: {
+        create: '/api/v1/boundary/node',
+        list: '/api/v1/boundary/node'
+    },
+    edge: {
+        create: '/api/v1/boundary/edge',
+        list: '/api/v1/boundary/edge'
+    },
+    productionEmission: {
+        create: '/api/v1/boundary/production-emission',
+        list: '/api/v1/boundary/production-emission'
+    }
+},
   // Data Upload (Gateway를 통해)
   upload: {
     data: '/api/datagather/upload',

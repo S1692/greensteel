@@ -66,15 +66,23 @@ class ChatbotService:
     async def _load_knowledge_base(self):
         """chatbot_training_data.jsonl 파일을 벡터 데이터베이스로 로드"""
         try:
-            # chatbot_training_data.jsonl 파일 경로
-            training_data_path = os.path.join(
-                os.path.dirname(__file__), 
-                "..", "..", "..", "..", 
+            # chatbot_training_data.jsonl 파일 경로 (Docker 컨테이너 내부 경로)
+            # 여러 가능한 경로 시도
+            possible_paths = [
+                os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "chatbot_training_data.jsonl"),
+                os.path.join("/app", "chatbot_training_data.jsonl"),
+                os.path.join(os.getcwd(), "chatbot_training_data.jsonl"),
                 "chatbot_training_data.jsonl"
-            )
+            ]
             
-            if not os.path.exists(training_data_path):
-                chatbot_logger.warning(f"지식 베이스 파일을 찾을 수 없습니다: {training_data_path}")
+            training_data_path = None
+            for path in possible_paths:
+                if os.path.exists(path):
+                    training_data_path = path
+                    break
+            
+            if not training_data_path:
+                chatbot_logger.error(f"지식 베이스 파일을 찾을 수 없습니다. 시도한 경로들: {possible_paths}")
                 return
             
             # JSONL 파일 읽기
@@ -148,6 +156,11 @@ class ChatbotService:
                 except Exception as e:
                     chatbot_logger.error(f"자동 초기화 실패: {str(e)}")
                     return []
+            
+            # 벡터스토어가 여전히 없으면 빈 리스트 반환
+            if not self.vectorstore:
+                chatbot_logger.warning("벡터스토어가 초기화되지 않았습니다.")
+                return []
             
             # 유사도 검색
             docs = self.vectorstore.similarity_search(query, k=top_k)
@@ -264,11 +277,8 @@ class ChatbotService:
             relevant_docs = await self._search_knowledge_base(message, top_k=3)
             
             if not relevant_docs:
-                return {
-                    "response": "죄송합니다. 해당 질문에 대한 정보를 찾을 수 없습니다. 다른 질문을 해주시거나 유사한 기능이 있는지 확인해보세요.",
-                    "tokens_used": 0,
-                    "sources": []
-                }
+                # 지식 베이스가 로드되지 않았을 때 간단한 키워드 기반 응답
+                return await self._generate_fallback_response(message)
             
             # 검색된 문서들을 프롬프트에 포함
             context_docs = "\n\n".join([
@@ -314,6 +324,41 @@ class ChatbotService:
             
         except Exception as e:
             chatbot_logger.error(f"RAG 응답 생성 실패: {str(e)}")
+            return await self._generate_fallback_response(message)
+    
+    async def _generate_fallback_response(self, message: str) -> Dict[str, Any]:
+        """지식 베이스가 로드되지 않았을 때의 fallback 응답"""
+        try:
+            # 간단한 키워드 매칭
+            message_lower = message.lower()
+            
+            if "greensteel" in message_lower or "esg" in message_lower or "플랫폼" in message_lower:
+                return {
+                    "response": "GreenSteel ESG 플랫폼은 철강 산업의 환경, 사회, 지배구조(ESG) 성과를 관리하고 개선하기 위한 종합적인 디지털 플랫폼입니다. 현재 지식 베이스가 로드되지 않아 상세한 정보를 제공할 수 없습니다. 잠시 후 다시 시도해주세요.",
+                    "tokens_used": 0,
+                    "sources": []
+                }
+            elif "cbam" in message_lower or "탄소국경" in message_lower:
+                return {
+                    "response": "CBAM(Carbon Border Adjustment Mechanism)은 탄소국경조정메커니즘으로, EU가 도입한 정책입니다. 현재 지식 베이스가 로드되지 않아 상세한 정보를 제공할 수 없습니다. 잠시 후 다시 시도해주세요.",
+                    "tokens_used": 0,
+                    "sources": []
+                }
+            elif "lca" in message_lower or "생명주기" in message_lower:
+                return {
+                    "response": "LCA(Life Cycle Assessment) 분석은 제품의 전체 생명주기 동안 환경에 미치는 영향을 체계적으로 평가하는 방법입니다. 현재 지식 베이스가 로드되지 않아 상세한 정보를 제공할 수 없습니다. 잠시 후 다시 시도해주세요.",
+                    "tokens_used": 0,
+                    "sources": []
+                }
+            else:
+                return {
+                    "response": "죄송합니다. 해당 질문에 대한 정보를 찾을 수 없습니다. 현재 지식 베이스가 로드되지 않아 상세한 답변을 제공할 수 없습니다. 잠시 후 다시 시도해주세요.",
+                    "tokens_used": 0,
+                    "sources": []
+                }
+                
+        except Exception as e:
+            chatbot_logger.error(f"Fallback 응답 생성 실패: {str(e)}")
             return {
                 "response": "죄송합니다. 응답을 생성하는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
                 "tokens_used": 0,
@@ -354,5 +399,19 @@ class ChatbotService:
             "loaded": self.knowledge_base_loaded,
             "vectorstore_type": "Chroma" if self.vectorstore else None,
             "collection_name": settings.CHROMA_COLLECTION_NAME if self.vectorstore else None,
-            "persist_directory": settings.CHROMA_PERSIST_DIRECTORY
+            "persist_directory": settings.CHROMA_PERSIST_DIRECTORY,
+            "llm_initialized": self.llm is not None,
+            "embeddings_initialized": self.embeddings is not None,
+            "openai_api_key_set": bool(settings.OPENAI_API_KEY),
+            "openai_api_key_length": len(settings.OPENAI_API_KEY) if settings.OPENAI_API_KEY else 0,
+            "training_data_path": os.path.join(
+                os.path.dirname(__file__), 
+                "..", "..", "..", "..", 
+                "chatbot_training_data.jsonl"
+            ),
+            "training_data_exists": os.path.exists(os.path.join(
+                os.path.dirname(__file__), 
+                "..", "..", "..", "..", 
+                "chatbot_training_data.jsonl"
+            ))
         }

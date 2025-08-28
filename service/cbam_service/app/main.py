@@ -330,10 +330,15 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 if __name__ == "__main__":
     import uvicorn
+    import os
+    
+    # 환경변수에서 포트 가져오기 (Railway 환경 대응)
+    port = int(os.getenv("PORT", 8082))
+    
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
-        port=8082,
+        port=port,
         reload=DEBUG_MODE,
         log_level="info"
     )

@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import Link from 'next/link';
 
 const NotFoundPage: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isTouch, setIsTouch] = useState(false);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -23,7 +22,6 @@ const NotFoundPage: React.FC = () => {
       neonGreen: '#25D366',
       neonGreenDark: '#1eaa53',
       text: '#0f172a',
-      dirt: '#9aa6ad',
     };
 
     const W = canvas.width;
@@ -35,8 +33,8 @@ const NotFoundPage: React.FC = () => {
     const JUMP_VY = -15.2;
     const BASE_SPEED = 6.1;
     const DUCK_SCALE = 0.62;
-    const COYOTE_MS = 90;   // 착지 후 약간의 유예로 점프 허용
-    const BUFFER_MS = 120;  // 점프키 미리 눌러도 일정 시간 내 착지하면 점프
+    const COYOTE_MS = 90;   // 착지 직후 점프 유예
+    const BUFFER_MS = 120;  // 점프 키 버퍼
 
     // ====== Game State ======
     let speed = BASE_SPEED;
@@ -47,9 +45,10 @@ const NotFoundPage: React.FC = () => {
     let startTime = Date.now();
     let spawnCooldown = 50;
 
-    // 점프 버퍼/코요테
+    // 점프 보조
     let coyoteUntil = 0;
     let jumpBufferedUntil = 0;
+    let jumpQueued = false; // ★ 프레임-안전 점프 큐
 
     // RNG
     const startMs = performance.now();
@@ -72,44 +71,44 @@ const NotFoundPage: React.FC = () => {
       h: 56,
       vy: 0,
       ducking: false,
-      onGround() { return this.y >= GROUND_Y - (this.ducking ? this.h * DUCK_SCALE : this.h); },
+      onGround() {
+        const h = this.ducking ? this.h * DUCK_SCALE : this.h;
+        return this.y >= GROUND_Y - h;
+      },
       hitbox() {
         const hh = this.ducking ? this.h * DUCK_SCALE : this.h;
         return { x: this.x, y: GROUND_Y - hh, w: this.w, h: hh };
       },
     };
 
-    type Obstacle = { type: 'pipe' | 'botdog' | 'drone'; x: number; y: number; w: number; h: number; vy?: number; phase?: number; };
+    type Obstacle = {
+      type: 'pipe' | 'botdog' | 'drone';
+      x: number; y: number; w: number; h: number;
+      vy?: number; phase?: number;
+    };
     const obstacles: Obstacle[] = [];
 
-    // 캔버스에 포커스 줘서 키가 바로 들어오게
+    // 캔버스에 포커스 → 스페이스/방향키 안정 수신
     canvas.focus();
 
-    // --- 점프/숙이기/리셋 ---
+    // ====== Controls ======
     function doJump() {
-      // 연속 입력으로 너무 높은 점프 방지
+      // 실제 점프는 update()에서만 호출
       if (player.vy >= -1) {
         player.vy = JUMP_VY;
         coyoteUntil = 0;
         jumpBufferedUntil = 0;
       }
     }
-
     function wantJump() {
-      // ★ 변경: 실행 중이 아니면 "재시작 후 바로 점프"가 되도록
+      // 어떤 입력이든 점프 의지만 큐에 쌓음
       if (!running) {
         restart();
-        // 재시작 직후 바닥 상태이므로 즉시 점프 가능
-        doJump();
-        return;
       }
-      const now = performance.now();
-      jumpBufferedUntil = now + BUFFER_MS;
-      if (player.onGround() || now < coyoteUntil) doJump();
+      jumpQueued = true;
+      jumpBufferedUntil = performance.now() + BUFFER_MS;
     }
-
     function setDuck(on: boolean) { player.ducking = on; }
-
     function restart() {
       speed = BASE_SPEED;
       score = 0;
@@ -123,24 +122,24 @@ const NotFoundPage: React.FC = () => {
       running = true;
       coyoteUntil = 0;
       jumpBufferedUntil = 0;
+      jumpQueued = false;
     }
 
-    // --- 키 매칭 (code + key 모두) ---
+    // 키 매칭
     const isJumpKey = (e: KeyboardEvent) => {
       const k = e.key;
       return e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW'
-          || k === ' ' || k === 'Spacebar' || k === 'ArrowUp' || k === 'Up' || k === 'w' || k === 'W';
+        || k === ' ' || k === 'Spacebar' || k === 'ArrowUp' || k === 'Up' || k === 'w' || k === 'W';
     };
     const isDuckKey = (e: KeyboardEvent) => {
       const k = e.key;
-      return e.code === 'ArrowDown' || e.code === 'KeyS' || k === 'ArrowDown' || k === 'Down' || k === 's' || k === 'S';
+      return e.code === 'ArrowDown' || e.code === 'KeyS'
+        || k === 'ArrowDown' || k === 'Down' || k === 's' || k === 'S';
     };
 
-    // --- 이벤트 옵션 ---
     const passiveFalse: AddEventListenerOptions = { passive: false };
-    const captureTrue: AddEventListenerOptions = { capture: true }; // ★ 중요: 캡처 단계에서 먼저 받음
+    const captureTrue: AddEventListenerOptions = { capture: true };
 
-    // --- 키보드 핸들러 ---
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
       if (isJumpKey(e)) { e.preventDefault(); wantJump(); return; }
@@ -151,19 +150,19 @@ const NotFoundPage: React.FC = () => {
       if (isDuckKey(e)) setDuck(false);
     };
 
-    // ★ window + document 양쪽에 등록 (일부 환경에서 document가 늦게 받거나 막히는 경우 방지)
+    // window + document (capture) 모두 등록
     window.addEventListener('keydown', onKeyDown, captureTrue);
     window.addEventListener('keyup', onKeyUp, captureTrue);
     document.addEventListener('keydown', onKeyDown, passiveFalse);
     document.addEventListener('keyup', onKeyUp);
 
-    // --- 캔버스 클릭/탭 = 점프 ---
+    // 캔버스 탭/클릭 = 점프
     const onCanvasTouchStart = (ev: TouchEvent) => { ev.preventDefault(); wantJump(); };
     const onCanvasMouseDown  = (ev: MouseEvent)  => { ev.preventDefault(); wantJump(); };
     canvas.addEventListener('touchstart', onCanvasTouchStart, passiveFalse);
     canvas.addEventListener('mousedown',  onCanvasMouseDown);
 
-    // --- 모바일 버튼 바인딩 (기존과 동일) ---
+    // 모바일 버튼 바인딩
     const bindHold = (id: string, press: () => void, release?: () => void) => {
       const el = document.getElementById(id);
       if (!el) return;
@@ -210,22 +209,39 @@ const NotFoundPage: React.FC = () => {
       speed = BASE_SPEED + 0.065 * t + 0.22 * Math.log1p(t) + wobble;
       if (speed > 17.5) speed = 17.5;
 
-      // 물리
+      // === Physics ===
       const prevOnGround = player.onGround();
+
+      // 프레임 시작: onGround/coyote면 점프 큐 소모
+      if (jumpQueued) {
+        const now = performance.now();
+        if (player.onGround() || now < coyoteUntil) {
+          doJump();
+          jumpQueued = false;
+        }
+      }
+
       player.vy += GRAVITY;
       player.y += player.vy;
 
       const targetH = player.ducking ? player.h * DUCK_SCALE : player.h;
       const targetY = GROUND_Y - targetH;
+
       if (player.y > targetY) {
-        player.y = targetY; player.vy = 0;
-        if (!prevOnGround) {
-          // 착지: 코요테 리셋, 버퍼 처리
-          coyoteUntil = performance.now() + COYOTE_MS;
-          if (performance.now() < jumpBufferedUntil) doJump();
+        // 착지
+        player.y = targetY;
+        player.vy = 0;
+
+        // 코요테 갱신
+        coyoteUntil = performance.now() + COYOTE_MS;
+
+        // 착지 직후: 버퍼/큐 살아있으면 즉시 점프
+        if (performance.now() < jumpBufferedUntil || jumpQueued) {
+          doJump();
+          jumpQueued = false;
         }
       } else if (prevOnGround && !player.onGround()) {
-        // 이륙: 코요테 활성
+        // 이륙: 코요테 유지
         coyoteUntil = performance.now() + COYOTE_MS;
       }
 
@@ -278,7 +294,10 @@ const NotFoundPage: React.FC = () => {
         if (aabb(pBox, box)) {
           running = false;
           const s = Math.floor(score);
-          if (s > highScore) { highScore = s; localStorage.setItem('greensteelRunnerHS', String(highScore)); }
+          if (s > highScore) {
+            highScore = s;
+            localStorage.setItem('greensteelRunnerHS', String(highScore));
+          }
         }
       }
     }
@@ -296,7 +315,6 @@ const NotFoundPage: React.FC = () => {
     }
 
     function drawBackground() {
-      if (!ctx) return;
       const g = ctx.createLinearGradient(0, 0, 0, H);
       g.addColorStop(0, COLORS.bgTop);
       g.addColorStop(1, COLORS.bgBottom);
@@ -305,12 +323,9 @@ const NotFoundPage: React.FC = () => {
     }
 
     function drawGround() {
-      if (!ctx) return;
-      // Steel beam
       const beamH = 10;
       ctx.fillStyle = COLORS.steel;
       ctx.fillRect(0, GROUND_Y, W, beamH);
-      // top edge + bolts
       ctx.fillStyle = COLORS.steelEdge;
       ctx.fillRect(0, GROUND_Y - 2, W, 2);
       ctx.fillStyle = COLORS.steelDark;
@@ -322,7 +337,6 @@ const NotFoundPage: React.FC = () => {
     }
 
     function drawLogo() {
-      if (!ctx) return;
       ctx.save();
       ctx.font = 'bold 18px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace';
       ctx.fillStyle = COLORS.steelDark;
@@ -334,26 +348,24 @@ const NotFoundPage: React.FC = () => {
     }
 
     function drawPlayer() {
-      if (!ctx) return;
       const hb = player.hitbox();
       const cx = hb.x + hb.w / 2;
       const baseY = hb.y + hb.h;
 
-      // Stem (steel-ish cylinder)
+      // stem
       const stemW = hb.w * 0.52;
       const stemH = hb.h * 0.6;
-      const stemX = cx - stemW / 2, stemY = baseY - stemH;
+      const stemX = cx - stemW / 2; const stemY = baseY - stemH;
       const sGrad = ctx.createLinearGradient(stemX, stemY, stemX + stemW, stemY);
       sGrad.addColorStop(0, '#E6ECEF');
       sGrad.addColorStop(0.5, '#C9D4D9');
       sGrad.addColorStop(1, '#F0F4F6');
       ctx.fillStyle = sGrad;
       rounded(ctx, stemX, stemY, stemW, stemH, 7); ctx.fill();
-      // steel band
       ctx.fillStyle = COLORS.steelDark;
       rounded(ctx, stemX - 2, stemY + stemH * 0.55, stemW + 4, 6, 3); ctx.fill();
 
-      // Cap (green energy cap)
+      // cap
       const capW = hb.w * 1.22;
       const capH = hb.h * 0.68;
       const capX = cx - capW / 2;
@@ -364,52 +376,45 @@ const NotFoundPage: React.FC = () => {
       ctx.fillStyle = capG;
       rounded(ctx, capX, capY, capW, capH, capH * 0.65); ctx.fill();
 
-      // energy dots
+      // dots
       ctx.fillStyle = 'rgba(255,255,255,0.9)';
       ctx.beginPath(); ctx.arc(cx - capW * 0.26, capY + capH * 0.38, 6, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath(); ctx.arc(cx + capW * 0.18, capY + capH * 0.25, 5, 0, Math.PI * 2); ctx.fill();
 
-      // Eyes
+      // eyes
       ctx.fillStyle = '#1f2937';
       const eyeY = stemY + stemH * 0.35;
       ctx.beginPath(); ctx.arc(cx - 6, eyeY, 2.3, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath(); ctx.arc(cx + 6, eyeY, 2.3, 0, Math.PI * 2); ctx.fill();
 
-      // LED cheek (green)
+      // cheeks
       ctx.fillStyle = 'rgba(37, 211, 102, 0.5)';
       ctx.beginPath(); ctx.arc(cx - 12, eyeY + 6, 3.5, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath(); ctx.arc(cx + 12, eyeY + 6, 3.5, 0, Math.PI * 2); ctx.fill();
     }
 
     function drawObstacle(o: Obstacle) {
-      if (!ctx) return;
       if (o.type === 'pipe') {
-        // Steel pipe
         ctx.fillStyle = COLORS.steel;
         rounded(ctx, o.x, o.y, o.w, o.h, 5); ctx.fill();
         ctx.fillStyle = COLORS.steelEdge;
         rounded(ctx, o.x - 6, o.y - 12, o.w + 12, 12, 4); ctx.fill();
       } else if (o.type === 'botdog') {
-        // Robot dog silhouette
         ctx.fillStyle = COLORS.steelDark;
         const bodyW = o.w, bodyH = o.h * 0.58;
         rounded(ctx, o.x, o.y + (o.h - bodyH), bodyW, bodyH, 4); ctx.fill();
         rounded(ctx, o.x - bodyW * 0.32, o.y + (o.h - bodyH) - bodyH * 0.12, bodyW * 0.48, bodyH * 0.52, 4); ctx.fill();
-        // legs
         ctx.fillStyle = COLORS.steel;
         ctx.fillRect(o.x + bodyW * 0.2, o.y + o.h - 6, 4, 6);
         ctx.fillRect(o.x + bodyW * 0.62, o.y + o.h - 6, 4, 6);
-        // eye led
         ctx.fillStyle = COLORS.neonGreen;
         ctx.fillRect(o.x - bodyW * 0.18, o.y + (o.h - bodyH) + 3, 3, 3);
       } else {
-        // Drone
         ctx.fillStyle = COLORS.steel;
         rounded(ctx, o.x, o.y, o.w, o.h, 6); ctx.fill();
         ctx.fillStyle = COLORS.steelDark;
         ctx.fillRect(o.x + o.w * 0.2, o.y + o.h * 0.35, o.w * 0.6, 4);
         ctx.fillRect(o.x - 6, o.y + o.h * 0.25, 6, o.h * 0.5);
-        // window + green led
         ctx.fillStyle = '#eaf6ff';
         ctx.fillRect(o.x + o.w * 0.66, o.y + 3, 9, 6);
         ctx.fillStyle = COLORS.neonGreen;
@@ -418,7 +423,6 @@ const NotFoundPage: React.FC = () => {
     }
 
     function drawHUD() {
-      if (!ctx) return;
       ctx.fillStyle = COLORS.text;
       ctx.font = '14px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace';
       ctx.textAlign = 'right';
@@ -434,7 +438,6 @@ const NotFoundPage: React.FC = () => {
     }
 
     function drawGameOver() {
-      if (!ctx) return;
       ctx.textAlign = 'center';
       ctx.font = '16px ui-monospace, monospace';
       ctx.fillStyle = COLORS.steelDark;
@@ -462,16 +465,17 @@ const NotFoundPage: React.FC = () => {
     player.y = GROUND_Y - player.h;
     loop();
 
+    // cleanup
     return () => {
-      window.removeEventListener('keydown', onKeyDown, captureTrue);
-      window.removeEventListener('keyup', onKeyUp, captureTrue);
+      window.removeEventListener('keydown', onKeyDown, true); // capture: true
+      window.removeEventListener('keyup', onKeyUp, true);
       document.removeEventListener('keydown', onKeyDown);
       document.removeEventListener('keyup', onKeyUp);
       canvas.removeEventListener('touchstart', onCanvasTouchStart);
-      canvas.removeEventListener('mousedown',  onCanvasMouseDown);
-      unbindJump && unbindJump();
-      unbindDuck && unbindDuck();
-      unbindReset && unbindReset();
+      canvas.removeEventListener('mousedown', onCanvasMouseDown);
+      if (unbindJump) unbindJump();
+      if (unbindDuck) unbindDuck();
+      if (unbindReset) unbindReset();
     };
   }, []);
 
@@ -482,7 +486,9 @@ const NotFoundPage: React.FC = () => {
         <div className="text-center mb-8">
           <h1 className="text-4xl font-extrabold text-gray-900 mb-4">404 - 페이지를 찾을 수 없습니다</h1>
           <p className="text-lg text-gray-600 mb-2">요청하신 페이지가 존재하지 않거나 이동되었습니다.</p>
-          <p className="text-sm text-gray-500">아래 <span className="font-semibold text-emerald-600">GREENSTEEL</span> 미니게임을 잠깐 즐겨보세요!</p>
+          <p className="text-sm text-gray-500">
+            아래 <span className="font-semibold text-emerald-600">GREENSTEEL</span> 미니게임을 잠깐 즐겨보세요!
+          </p>
         </div>
 
         {/* GreenSteel Runner */}
@@ -490,8 +496,11 @@ const NotFoundPage: React.FC = () => {
           <div className="text-center mb-4">
             <h2 className="text-2xl font-bold text-gray-800 mb-2">GREENSTEEL MINI RUNNER</h2>
             <div className="text-sm text-gray-600">
-              점프: <kbd className="bg-gray-100 border border-gray-300 px-2 py-1 rounded">Space</kbd>/<kbd className="bg-gray-100 border border-gray-300 px-2 py-1 rounded">↑</kbd>/<kbd className="bg-gray-100 border border-gray-300 px-2 py-1 rounded">W</kbd> ·{' '}
-              숙이기: <kbd className="bg-gray-100 border border-gray-300 px-2 py-1 rounded">↓</kbd>/<kbd className="bg-gray-100 border border-gray-300 px-2 py-1 rounded">S</kbd> ·{' '}
+              점프: <kbd className="bg-gray-100 border border-gray-300 px-2 py-1 rounded">Space</kbd> /
+              <kbd className="bg-gray-100 border border-gray-300 px-2 py-1 rounded">↑</kbd> /
+              <kbd className="bg-gray-100 border border-gray-300 px-2 py-1 rounded">W</kbd> ·{' '}
+              숙이기: <kbd className="bg-gray-100 border border-gray-300 px-2 py-1 rounded">↓</kbd> /
+              <kbd className="bg-gray-100 border border-gray-300 px-2 py-1 rounded">S</kbd> ·{' '}
               재시작: <kbd className="bg-gray-100 border border-gray-300 px-2 py-1 rounded">R</kbd>
             </div>
           </div>
@@ -500,8 +509,8 @@ const NotFoundPage: React.FC = () => {
             ref={canvasRef}
             width={900}
             height={280}
-            tabIndex={0}
-            className="w-full h-auto border border-gray-200 rounded-lg bg-white mx-auto block"
+            tabIndex={0} /* 키 입력 안정화를 위해 포커스 가능 */
+            className="w-full h-auto border border-gray-200 rounded-lg bg-white mx-auto block outline-none focus:ring-2 focus:ring-emerald-300"
             aria-label="GreenSteel Runner"
           />
 

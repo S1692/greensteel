@@ -48,7 +48,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-
 lib64/
 parts/
 sdist/
@@ -97,6 +96,18 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+
+# Project specific
+*.db
+*.sqlite
+temp/
+logs/
+uploads/
+models/
+ai_env/
+test_*.py
+create_*.py
+check_*.py
 
 # PyBuilder
 target/

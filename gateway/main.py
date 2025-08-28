@@ -757,29 +757,7 @@ async def upload_output_data(data: dict):
         gateway_logger.log_error(f"Output 데이터 업로드 중 오류 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Output 데이터 업로드 오류: {str(e)}")
 
-# 모든 HTTP 메서드에 대한 프록시 라우팅
-@app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"])
-async def proxy_route(request: Request, path: str):
-    """모든 경로에 대한 프록시 라우팅 - DDD 도메인 서비스 라우팅"""
-    # 루트 경로는 헬스체크로 리다이렉트
-    if path == "" or path == "/":
-        return {"message": "Gateway is running", "health_check": "/health"}
-    
-    # 프록시 요청 처리
-    try:
-        return await proxy_controller.proxy_request(request)
-    except Exception as e:
-        from fastapi.responses import JSONResponse
-        return JSONResponse(
-            status_code=404,
-            content={
-                "message": "Proxy route not found",
-                "path": path,
-                "supported_methods": ["GET","POST","PUT","DELETE","PATCH","HEAD","OPTIONS"]
-            }
-        )
-
-# AI 처리 스트리밍 엔드포인트 추가
+# AI 처리 스트리밍 엔드포인트 (catch-all 라우트 이전에 배치)
 @app.api_route("/ai-process-stream", methods=["POST", "OPTIONS"])
 async def ai_process_stream(request: Request):
     """AI 처리 스트리밍 엔드포인트 - DataGather 서비스로 프록시"""
@@ -833,7 +811,29 @@ async def ai_process_stream(request: Request):
         raise HTTPException(status_code=503, detail="DataGather 서비스에 연결할 수 없습니다")
     except Exception as e:
         gateway_logger.log_error(f"AI 처리 스트리밍 중 오류 발생: {str(e)}")
-        raise HTTPException(status_code=500, detail="AI 처리 스트리밍 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"AI 처리 스트리밍 오류: {str(e)}")
+
+# 모든 HTTP 메서드에 대한 프록시 라우팅 (catch-all 라우트는 마지막에 배치)
+@app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"])
+async def proxy_route(request: Request, path: str):
+    """모든 경로에 대한 프록시 라우팅 - DDD 도메인 서비스 라우팅"""
+    # 루트 경로는 헬스체크로 리다이렉트
+    if path == "" or path == "/":
+        return {"message": "Gateway is running", "health_check": "/health"}
+    
+    # 프록시 요청 처리
+    try:
+        return await proxy_controller.proxy_request(request)
+    except Exception as e:
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=404,
+            content={
+                "message": "Proxy route not found",
+                "path": path,
+                "supported_methods": ["GET","POST","PUT","DELETE","PATCH","HEAD","OPTIONS"]
+            }
+        )
 
 # 예외 처리
 @app.exception_handler(404)

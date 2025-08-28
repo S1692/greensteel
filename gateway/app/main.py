@@ -198,7 +198,7 @@ async def process_feedback(feedback_data: dict):
         # 피드백 데이터 로깅
         gateway_logger.log_info(f"피드백 데이터: {feedback_data}")
         
-        # datagather_service로 피드백 데이터 전송 (포트 8083)
+        # datagather_service로 피드백 전송
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 "http://localhost:8083/feedback",
@@ -210,8 +210,8 @@ async def process_feedback(feedback_data: dict):
                 gateway_logger.log_info(f"피드백 처리 성공: {response_data}")
                 
                 return {
-                    "message": "피드백이 성공적으로 처리되었습니다. AI 모델이 이 정보를 학습합니다.",
-                    "status": "feedback_processed",
+                    "message": "피드백이 성공적으로 처리되었습니다",
+                    "status": "success",
                     "data": response_data
                 }
             else:
@@ -230,6 +230,56 @@ async def process_feedback(feedback_data: dict):
     except Exception as e:
         gateway_logger.log_error(f"피드백 처리 중 오류 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=f"피드백 처리 오류: {str(e)}")
+
+# 챗봇 서비스 명시적 프록시 엔드포인트
+@app.post("/chatbot/chat")
+async def chatbot_chat_proxy(request: Request):
+    """챗봇 채팅 프록시 - 명시적 라우팅"""
+    gateway_logger.log_info("=== EXPLICIT CHATBOT CHAT PROXY ===")
+    gateway_logger.log_info(f"Request method: {request.method}")
+    gateway_logger.log_info(f"Request path: /chatbot/chat")
+    gateway_logger.log_info(f"Proxy Controller: {proxy_controller}")
+    gateway_logger.log_info(f"Service Map: {proxy_controller.service_map}")
+    
+    try:
+        result = await proxy_controller.proxy_request(request)
+        gateway_logger.log_info(f"Explicit chatbot proxy completed: {result.status_code}")
+        return result
+    except Exception as e:
+        gateway_logger.log_error(f"Explicit chatbot proxy failed: {str(e)}")
+        raise
+
+@app.get("/chatbot/health")
+async def chatbot_health_proxy(request: Request):
+    """챗봇 헬스체크 프록시 - 명시적 라우팅"""
+    gateway_logger.log_info("=== EXPLICIT CHATBOT HEALTH PROXY ===")
+    gateway_logger.log_info(f"Request method: {request.method}")
+    gateway_logger.log_info(f"Request path: /chatbot/health")
+    
+    try:
+        result = await proxy_controller.proxy_request(request)
+        gateway_logger.log_info(f"Explicit chatbot health proxy completed: {result.status_code}")
+        return result
+    except Exception as e:
+        gateway_logger.log_error(f"Explicit chatbot health proxy failed: {str(e)}")
+        raise
+
+# 챗봇 서비스 일반 프록시 (다른 경로들)
+@app.api_route("/chatbot/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"])
+async def chatbot_general_proxy(request: Request, path: str):
+    """챗봇 서비스 일반 프록시 - /chatbot/* 경로"""
+    full_path = f"chatbot/{path}"
+    gateway_logger.log_info(f"=== CHATBOT GENERAL PROXY ===")
+    gateway_logger.log_info(f"Full path: {full_path}")
+    gateway_logger.log_info(f"Request method: {request.method}")
+    
+    try:
+        result = await proxy_controller.proxy_request(request)
+        gateway_logger.log_info(f"Chatbot general proxy completed: {full_path} → {result.status_code}")
+        return result
+    except Exception as e:
+        gateway_logger.log_error(f"Chatbot general proxy failed: {full_path} - {str(e)}")
+        raise
 
 # Input 데이터 업로드 엔드포인트
 @app.post("/input-data")

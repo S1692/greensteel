@@ -236,6 +236,7 @@ const NotFoundPage: React.FC = () => {
     }
 
     function drawBackground() {
+      if (!ctx) return;
       const g = ctx.createLinearGradient(0, 0, 0, H);
       g.addColorStop(0, COLORS.bgTop);
       g.addColorStop(1, COLORS.bgBottom);
@@ -244,6 +245,7 @@ const NotFoundPage: React.FC = () => {
     }
 
     function drawGround() {
+      if (!ctx) return;
       // Steel beam
       const beamH = 10;
       ctx.fillStyle = COLORS.steel;
@@ -260,6 +262,7 @@ const NotFoundPage: React.FC = () => {
     }
 
     function drawLogo() {
+      if (!ctx) return;
       ctx.save();
       ctx.font = 'bold 18px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace';
       ctx.fillStyle = COLORS.steelDark;
@@ -271,6 +274,7 @@ const NotFoundPage: React.FC = () => {
     }
 
     function drawPlayer() {
+      if (!ctx) return;
       const hb = player.hitbox();
       const cx = hb.x + hb.w / 2;
       const baseY = hb.y + hb.h;
@@ -318,6 +322,7 @@ const NotFoundPage: React.FC = () => {
     }
 
     function drawObstacle(o: Obstacle) {
+      if (!ctx) return;
       if (o.type === 'pipe') {
         // Steel pipe
         ctx.fillStyle = COLORS.steel;
@@ -353,6 +358,7 @@ const NotFoundPage: React.FC = () => {
     }
 
     function drawHUD() {
+      if (!ctx) return;
       ctx.fillStyle = COLORS.text;
       ctx.font = '14px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace';
       ctx.textAlign = 'right';
@@ -368,6 +374,7 @@ const NotFoundPage: React.FC = () => {
     }
 
     function drawGameOver() {
+      if (!ctx) return;
       ctx.textAlign = 'center';
       ctx.font = '16px ui-monospace, monospace';
       ctx.fillStyle = COLORS.steelDark;

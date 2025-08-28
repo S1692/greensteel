@@ -10,7 +10,7 @@ import time
 from .calculation_service import CalculationService
 from .calculation_schema import ProductCreateRequest, ProductResponse, ProductUpdateRequest, ProcessCreateRequest, ProcessResponse, ProcessUpdateRequest, ProductNameResponse, InstallCreateRequest, InstallResponse, InstallUpdateRequest, InstallNameResponse, ProcessInputResponse, ProcessInputCreateRequest, ProcessInputUpdateRequest, EmissionCalculationResponse, ProductEmissionResponse
 
-router = APIRouter(prefix="", tags=["Product"])
+router = APIRouter(prefix="/api", tags=["Product"])
 
 # 서비스 인스턴스 생성
 calculation_service = CalculationService()

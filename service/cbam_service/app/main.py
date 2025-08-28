@@ -141,20 +141,12 @@ def initialize_database():
 async def lifespan(app: FastAPI):
     """애플리케이션 생명주기 관리"""
     # 시작 시
-    logger.info(f"🚀 {APP_NAME} 시작 중...")
-    logger.info(f"📊 버전: {APP_VERSION}")
-    logger.info(f"🔧 디버그 모드: {DEBUG_MODE}")
+    logger.info(f"🚀 {APP_NAME} v{APP_VERSION} 시작 중...")
     
-    try:
-        # 데이터베이스 초기화
-        initialize_database()
-        logger.info("✅ 데이터베이스 초기화 완료")
-    except Exception as e:
-        logger.error(f"❌ 데이터베이스 초기화 실패: {str(e)}")
-        # 데이터베이스 초기화 실패해도 서비스는 시작
-        logger.warning("⚠️ 데이터베이스 없이 서비스 시작")
+    # 데이터베이스 초기화
+    initialize_database()
     
-    logger.info(f"✅ {APP_NAME} 시작 완료")
+    logger.info(f"✅ {APP_NAME} 시작 완료!")
     
     yield
     
@@ -167,24 +159,20 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=APP_NAME,
-    description=APP_DESCRIPTION,
     version=APP_VERSION,
+    description=APP_DESCRIPTION,
     debug=DEBUG_MODE,
-    docs_url="/docs" if DEBUG_MODE else None,
-    redoc_url="/redoc" if DEBUG_MODE else None,
-    openapi_url="/openapi.json" if DEBUG_MODE else None,
     lifespan=lifespan
 )
 
 # ============================================================================
-# 🌐 CORS 미들웨어 설정
+# 🔧 미들웨어 설정
 # ============================================================================
 
-from fastapi.middleware.cors import CORSMiddleware
-
+# CORS 설정
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 프로덕션에서는 특정 도메인만 허용
+    allow_origins=["*"],  # 프로덕션에서는 특정 도메인으로 제한
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -222,8 +210,8 @@ async def log_requests(request: Request, call_next):
 # app.include_router(handle_router, prefix="/api")
 # app.include_router(viewport_router, prefix="/api")
 
-# CBAM 도메인 라우터들 등록
-app.include_router(calculation_router, prefix="/api")
+# CBAM 계산 관련 라우터 포함
+app.include_router(calculation_router, prefix="")
 
 # ============================================================================
 # 🏥 헬스체크 엔드포인트

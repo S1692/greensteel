@@ -354,16 +354,44 @@ class CalculationRepository:
     # ============================================================================
     
     async def _create_product_db(self, product_data: Dict[str, Any]) -> Dict[str, Any]:
-        """데이터베이스에 제품 생성"""
+        """데이터베이스에 제품 저장"""
         import psycopg2
         from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        # 상세 로깅 추가
+        logger.info(f"💾 데이터베이스에 제품 저장 시작...")
+        logger.info(f"📊 받은 데이터: {product_data}")
+        
+        # 데이터 정리 및 검증
+        cleaned_data = {
+            'install_id': product_data.get('install_id'),
+            'product_name': product_data.get('product_name'),
+            'product_category': product_data.get('product_category'),
+            'prostart_period': product_data.get('prostart_period'),
+            'proend_period': product_data.get('proend_period'),
+            'product_amount': product_data.get('product_amount', 0),
+            'product_cncode': product_data.get('product_cncode', ''),
+            'goods_name': product_data.get('goods_name', ''),
+            'aggrgoods_name': product_data.get('aggrgoods_name', ''),
+            'product_sell': product_data.get('product_sell', 0),
+            'product_eusell': product_data.get('product_eusell', 0)
+        }
+        
+        logger.info(f"✅ 제품 데이터 정리 완료: {cleaned_data}")
+        
+        # 필수 필드 검증
+        required_fields = ['install_id', 'product_name', 'product_category', 'prostart_period', 'proend_period']
+        for field in required_fields:
+            if not cleaned_data.get(field):
+                raise ValueError(f"필수 필드 '{field}'가 누락되었습니다.")
         
         conn = psycopg2.connect(self.database_url)
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                cursor.execute("""
+                # 실행할 SQL 쿼리 로깅
+                sql_query = """
                     INSERT INTO product (
                         install_id, product_name, product_category, 
                         prostart_period, proend_period, product_amount,
@@ -375,7 +403,13 @@ class CalculationRepository:
                         %(product_cncode)s, %(goods_name)s, %(aggrgoods_name)s,
                         %(product_sell)s, %(product_eusell)s
                     ) RETURNING *
-                """, product_data)
+                """
+                
+                logger.info(f"🔍 실행할 SQL 쿼리:")
+                logger.info(f"SQL: {sql_query}")
+                logger.info(f"파라미터: {cleaned_data}")
+                
+                cursor.execute(sql_query, cleaned_data)
                 
                 result = cursor.fetchone()
                 conn.commit()
@@ -387,12 +421,15 @@ class CalculationRepository:
                         product_dict['prostart_period'] = product_dict['prostart_period'].isoformat()
                     if 'proend_period' in product_dict and product_dict['proend_period']:
                         product_dict['proend_period'] = product_dict['proend_period'].isoformat()
+                    
+                    logger.info(f"✅ 제품 생성 성공: {product_dict}")
                     return product_dict
                 else:
                     raise Exception("제품 생성에 실패했습니다.")
                     
         except Exception as e:
             conn.rollback()
+            logger.error(f"❌ PostgreSQL 제품 저장 실패: {e}")
             raise e
         finally:
             conn.close()

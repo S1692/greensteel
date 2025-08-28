@@ -319,7 +319,13 @@ async def root():
 async def favicon():
     """Favicon 요청 처리 - 404 방지"""
     gateway_logger.log_info("Favicon request handled")
-    return Response(status_code=204)
+    # 빈 favicon 응답 (204 No Content 대신 200 OK로 변경)
+    return Response(
+        status_code=200,
+        content=b"",
+        media_type="image/x-icon",
+        headers={"Cache-Control": "public, max-age=86400"}
+    )
 
 # robots.txt 핸들러 (선택적)
 @app.get("/robots.txt")

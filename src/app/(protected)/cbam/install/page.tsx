@@ -12,12 +12,12 @@ import { useRouter } from 'next/navigation';
 
 interface Install {
   id: number;
-  name: string;
+  install_name: string;
   reporting_year: number;
 }
 
 interface InstallForm {
-  name: string;
+  install_name: string;
   reporting_year: number;
 }
 
@@ -27,10 +27,10 @@ export default function InstallPage() {
   const [installs, setInstalls] = useState<any[]>([]);
   const [isLoadingInstalls, setIsLoadingInstalls] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-  const [sortBy, setSortBy] = useState<'name' | 'id'>('name');
+  const [sortBy, setSortBy] = useState<'install_name' | 'id'>('install_name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [installForm, setInstallForm] = useState<InstallForm>({
-    name: '',
+    install_name: '',
     reporting_year: new Date().getFullYear() // 현재 년도로 기본값 설정
   });
 
@@ -61,9 +61,9 @@ export default function InstallPage() {
     let aValue, bValue;
     
     switch (sortBy) {
-      case 'name':
-        aValue = a.name.toLowerCase();
-        bValue = b.name.toLowerCase();
+      case 'install_name':
+        aValue = a.install_name.toLowerCase();
+        bValue = b.install_name.toLowerCase();
         break;
       case 'id':
         aValue = a.id;
@@ -90,18 +90,13 @@ export default function InstallPage() {
     router.push(`/cbam/install/${installId}/products`);
   };
 
-  // 제품 관리 페이지로 이동
-  const handleProductManagement = () => {
-    router.push('/cbam/calculation');
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       // 데이터 검증
-      if (!installForm.name.trim()) {
+      if (!installForm.install_name.trim()) {
         setToast({
           message: '사업장명을 입력해주세요.',
           type: 'error'
@@ -123,7 +118,7 @@ export default function InstallPage() {
 
       // 폼 초기화
       setInstallForm({
-        name: '',
+        install_name: '',
         reporting_year: new Date().getFullYear()
       });
 
@@ -143,8 +138,8 @@ export default function InstallPage() {
   };
 
   // 사업장 삭제
-  const handleDeleteInstall = async (id: number, name: string) => {
-    if (!confirm(`"${name}" 사업장을 삭제하시겠습니까?\n\n⚠️ 주의: 이 사업장과 연결된 모든 제품, 프로세스, 입력 데이터가 함께 삭제됩니다.`)) {
+  const handleDeleteInstall = async (id: number, install_name: string) => {
+    if (!confirm(`"${install_name}" 사업장을 삭제하시겠습니까?\n\n⚠️ 주의: 이 사업장과 연결된 모든 제품, 프로세스, 입력 데이터가 함께 삭제됩니다.`)) {
       return;
     }
 
@@ -154,7 +149,7 @@ export default function InstallPage() {
       console.log('✅ 사업장 삭제 성공');
       
       setToast({
-        message: `"${name}" 사업장이 성공적으로 삭제되었습니다.`,
+        message: `"${install_name}" 사업장이 성공적으로 삭제되었습니다.`,
         type: 'success'
       });
 
@@ -208,8 +203,8 @@ export default function InstallPage() {
                 <Input
                   type="text"
                   placeholder="예: 포항제철소"
-                  value={installForm.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  value={installForm.install_name}
+                  onChange={(e) => handleInputChange('install_name', e.target.value)}
                   required
                 />
               </div>
@@ -251,10 +246,10 @@ export default function InstallPage() {
               {/* 정렬 옵션 */}
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as 'name' | 'id')}
+                onChange={(e) => setSortBy(e.target.value as 'install_name' | 'id')}
                 className="px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="name">이름순</option>
+                <option value="install_name">이름순</option>
                 <option value="id">ID순</option>
               </select>
               <button
@@ -289,7 +284,7 @@ export default function InstallPage() {
                   className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 hover:bg-white/20 transition-all duration-200"
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <h4 className="text-white font-semibold text-lg">{install.name}</h4>
+                    <h4 className="text-white font-semibold text-lg">{install.install_name}</h4>
                     <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300">
                       ID: {install.id}
                     </span>
@@ -305,7 +300,7 @@ export default function InstallPage() {
                       제품 관리
                     </button>
                     <button
-                      onClick={() => handleDeleteInstall(install.id, install.name)}
+                      onClick={() => handleDeleteInstall(install.id, install.install_name)}
                       disabled={loading}
                       className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors duration-200 disabled:opacity-50"
                     >
@@ -321,30 +316,6 @@ export default function InstallPage() {
               <p className="text-gray-400 text-sm mt-1">위에서 사업장을 등록해보세요.</p>
             </div>
           )}
-        </div>
-
-        {/* 전체 제품 관리 버튼 */}
-        <div className="mt-6 bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-          <h3 className="text-lg font-semibold text-white mb-4">📦 전체 제품 관리</h3>
-          <p className="text-gray-300 mb-4">
-            모든 사업장의 제품을 한 번에 관리할 수 있습니다.
-          </p>
-          <button
-            onClick={handleProductManagement}
-            className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-200"
-          >
-            📦 전체 제품 관리 페이지로 이동
-          </button>
-        </div>
-
-        {/* 디버그 정보 */}
-        <div className="mt-8 bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-          <h3 className="text-lg font-semibold text-white mb-4">🔍 디버그 정보</h3>
-          <div className="bg-black/20 p-4 rounded-lg">
-            <pre className="text-sm text-gray-300 overflow-auto">
-              {JSON.stringify(installForm, null, 2)}
-            </pre>
-          </div>
         </div>
       </div>
     </div>

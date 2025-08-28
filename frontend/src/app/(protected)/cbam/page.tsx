@@ -99,42 +99,71 @@ export default function CBAMPage() {
 
   // 사업장별 제품 목록 조회
   const fetchProductsByInstall = useCallback(async (installId: number) => {
-    try {
-      const response = await axiosClient.get(apiEndpoints.cbam.product.list);
-      // 현재 사업장의 제품들만 필터링
-      const filteredProducts = response.data.filter((product: any) => product.install_id === installId);
-      setProducts(filteredProducts);
-    } catch (error: any) {
-      console.error('❌ 제품 목록 조회 실패:', error);
-      // 개발용 더미 데이터
-      setProducts([
-        { 
-          id: 1, 
-          install_id: installId, 
-          product_name: '철강1', 
-          product_category: '단순제품',
-          prostart_period: '1995-03-04',
-          proend_period: '2000-03-04',
-          product_amount: 0,
-          product_cncode: '',
-          goods_name: '',
-          aggrgoods_name: '',
-          product_sell: 0,
-          product_eusell: 0
-        }
-      ]);
-    }
+    // 목업 데이터 사용
+    const mockProducts = [
+      { 
+        id: 1, 
+        install_id: installId, 
+        product_name: '철강 제품 A', 
+        product_category: '단순제품',
+        prostart_period: '2024-01-01',
+        proend_period: '2024-12-31',
+        product_amount: 1000,
+        product_cncode: 'HS7208',
+        goods_name: '철강판',
+        aggrgoods_name: '열간압연철강판',
+        product_sell: 800,
+        product_eusell: 200
+      },
+      { 
+        id: 2, 
+        install_id: installId, 
+        product_name: '알루미늄 제품 B', 
+        product_category: '복합제품',
+        prostart_period: '2024-01-01',
+        proend_period: '2024-12-31',
+        product_amount: 500,
+        product_cncode: 'HS7606',
+        goods_name: '알루미늄판',
+        aggrgoods_name: '압연알루미늄판',
+        product_sell: 400,
+        product_eusell: 100
+      }
+    ];
+    
+    console.log('🔍 목업 제품 데이터:', mockProducts);
+    setProducts(mockProducts);
   }, []);
 
   // 사업장별 공정 목록 조회
   const fetchProcessesByInstall = useCallback(async (installId: number) => {
-    try {
-      const response = await axiosClient.get(apiEndpoints.cbam.process.list);
-      setProcesses(response.data);
-    } catch (error: any) {
-      console.error('❌ 공정 목록 조회 실패:', error);
-      setProcesses([]);
-    }
+    // 목업 데이터 사용
+    const mockProcesses = [
+      {
+        id: 1,
+        process_name: '압연 공정',
+        start_period: '2024-01-01',
+        end_period: '2024-12-31',
+        products: [{ id: 1 }, { id: 2 }] // 제품 1, 2와 연결
+      },
+      {
+        id: 2,
+        process_name: '용해 공정',
+        start_period: '2024-01-01',
+        end_period: '2024-12-31',
+        products: [{ id: 1 }] // 제품 1과만 연결
+      },
+      {
+        id: 3,
+        process_name: '주조 공정',
+        start_period: '2024-01-01',
+        end_period: '2024-12-31',
+        products: [{ id: 2 }] // 제품 2와만 연결
+      }
+    ];
+    
+    console.log('🔍 목업 공정 데이터:', mockProcesses);
+    setProcesses(mockProcesses);
   }, []);
 
   // 제품 입력 변경 핸들러
@@ -164,13 +193,18 @@ export default function CBAMPage() {
     }
 
     try {
-      const productData = {
+      // 목업 데이터로 제품 생성
+      const newProduct = {
+        id: products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1,
+        install_id: selectedInstallForProducts?.id,
         ...productForm,
-        install_id: selectedInstallForProducts?.id
+        created_at: new Date().toISOString()
       };
-
-      const response = await axiosClient.post(apiEndpoints.cbam.product.create, productData);
-      console.log('✅ 제품 생성 성공:', response.data);
+      
+      console.log('✅ 목업 제품 생성:', newProduct);
+      
+      // 로컬 상태에 추가
+      setProducts(prev => [...prev, newProduct]);
       
       setToast({
         message: '제품이 성공적으로 생성되었습니다.',
@@ -191,17 +225,14 @@ export default function CBAMPage() {
         product_eusell: 0
       });
       setShowProductForm(false);
-
-      // 목록 새로고침
-      fetchProductsByInstall(selectedInstallForProducts?.id);
     } catch (error: any) {
       console.error('❌ 제품 생성 실패:', error);
       setToast({
-        message: `제품 생성에 실패했습니다: ${error.response?.data?.detail || error.message}`,
+        message: `제품 생성에 실패했습니다: ${error.message}`,
         type: 'error'
       });
     }
-  }, [productForm, selectedInstallForProducts, fetchProductsByInstall]);
+  }, [productForm, selectedInstallForProducts, products]);
 
   // 공정 추가 함수
   const handleAddProcess = useCallback(async (productId: number) => {
@@ -214,13 +245,20 @@ export default function CBAMPage() {
     }
 
     try {
-      const processData = {
+      // 목업 데이터로 공정 생성
+      const newProcess = {
+        id: processes.length > 0 ? Math.max(...processes.map(p => p.id)) + 1 : 1,
         process_name: processForm.process_name,
-        product_ids: [productId]
+        start_period: new Date().toISOString().split('T')[0],
+        end_period: new Date().toISOString().split('T')[0],
+        products: [{ id: productId }],
+        created_at: new Date().toISOString()
       };
-
-      const response = await axiosClient.post(apiEndpoints.cbam.process.create, processData);
-      console.log('✅ 공정 생성 성공:', response.data);
+      
+      console.log('✅ 목업 공정 생성:', newProcess);
+      
+      // 로컬 상태에 추가
+      setProcesses(prev => [...prev, newProcess]);
       
       setToast({
         message: '공정이 성공적으로 생성되었습니다.',
@@ -232,17 +270,14 @@ export default function CBAMPage() {
         process_name: ''
       });
       setShowProcessFormForProduct(null);
-
-      // 목록 새로고침
-      fetchProcessesByInstall(selectedInstallForProducts?.id);
     } catch (error: any) {
       console.error('❌ 공정 생성 실패:', error);
       setToast({
-        message: `공정 생성에 실패했습니다: ${error.response?.data?.detail || error.message}`,
+        message: `공정 생성에 실패했습니다: ${error.message}`,
         type: 'error'
       });
     }
-  }, [processForm, selectedInstallForProducts, fetchProcessesByInstall]);
+  }, [processForm, processes]);
 
   // 제품 삭제 함수
   const handleDeleteProduct = useCallback(async (productId: number, productName: string) => {
@@ -251,24 +286,26 @@ export default function CBAMPage() {
     }
 
     try {
-      await axiosClient.delete(apiEndpoints.cbam.product.delete(productId));
-      console.log('✅ 제품 삭제 성공');
+      // 로컬 상태에서 제품 삭제
+      setProducts(prev => prev.filter(p => p.id !== productId));
+      
+      // 연결된 공정도 삭제
+      setProcesses(prev => prev.filter(p => !p.products?.some((prod: any) => prod.id === productId)));
+      
+      console.log('✅ 목업 제품 삭제 완료');
       
       setToast({
         message: `"${productName}" 제품이 성공적으로 삭제되었습니다.`,
         type: 'success'
       });
-
-      fetchProductsByInstall(selectedInstallForProducts?.id);
-      fetchProcessesByInstall(selectedInstallForProducts?.id);
     } catch (error: any) {
       console.error('❌ 제품 삭제 실패:', error);
       setToast({
-        message: `제품 삭제에 실패했습니다: ${error.response?.data?.detail || error.message}`,
+        message: `제품 삭제에 실패했습니다: ${error.message}`,
         type: 'error'
       });
     }
-  }, [selectedInstallForProducts, fetchProductsByInstall, fetchProcessesByInstall]);
+  }, []);
 
   // 공정 삭제 함수
   const handleDeleteProcess = useCallback(async (processId: number, processName: string) => {
@@ -277,23 +314,23 @@ export default function CBAMPage() {
     }
 
     try {
-      await axiosClient.delete(apiEndpoints.cbam.process.delete(processId));
-      console.log('✅ 공정 삭제 성공');
+      // 로컬 상태에서 공정 삭제
+      setProcesses(prev => prev.filter(p => p.id !== processId));
+      
+      console.log('✅ 목업 공정 삭제 완료');
       
       setToast({
         message: `"${processName}" 공정이 성공적으로 삭제되었습니다.`,
         type: 'success'
       });
-
-      fetchProcessesByInstall(selectedInstallForProducts?.id);
     } catch (error: any) {
       console.error('❌ 공정 삭제 실패:', error);
       setToast({
-        message: `공정 삭제에 실패했습니다: ${error.response?.data?.detail || error.message}`,
+        message: `공정 삭제에 실패했습니다: ${error.message}`,
         type: 'error'
       });
     }
-  }, [selectedInstallForProducts, fetchProcessesByInstall]);
+  }, []);
 
   // 제품 관리 페이지로 이동 (모의 함수)
   const handleManageProducts = useCallback((siteId: number) => {

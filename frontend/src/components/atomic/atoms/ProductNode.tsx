@@ -17,7 +17,7 @@ interface ProductNodeProps {
   variant?: 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'product';
   size?: 'sm' | 'md' | 'lg';
   showHandles?: boolean;
-  onClick?: (node: any) => void;
+  // onClick prop 제거 - React Flow의 onNodeClick 사용
   onDoubleClick?: (node: any) => void;
   selected?: boolean;
 }
@@ -45,7 +45,6 @@ function ProductNode({
   variant,
   size,
   showHandles,
-  onClick,
   onDoubleClick,
   selected,
 }: ProductNodeProps) {
@@ -65,10 +64,6 @@ function ProductNode({
     hover:scale-105 cursor-pointer
   `.trim();
 
-  const handleClick = () => {
-    if (onClick) onClick({ data, selected });
-  };
-
   const handleDoubleClick = () => {
     if (onDoubleClick) onDoubleClick({ data, selected });
   };
@@ -76,7 +71,6 @@ function ProductNode({
   return (
     <div 
       className={`${nodeClasses} ${selected ? 'border-2 border-opacity-100 shadow-lg' : ''}`}
-      onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       style={{ 
         cursor: data.productData ? 'pointer' : 'default',

@@ -52,6 +52,19 @@ class ProxyController:
             gateway_logger.log_info(f"{prefix}: {url}")
         gateway_logger.log_info("=== END SERVICE MAP ===")
         
+        # 챗봇 서비스 URL 특별 검증
+        chatbot_url = self.service_map.get("/chatbot")
+        if chatbot_url:
+            gateway_logger.log_info(f"✓ CHATBOT_SERVICE_URL configured: {chatbot_url}")
+            if "railway" in chatbot_url.lower():
+                gateway_logger.log_info("✓ Railway 환경 감지됨")
+            elif "localhost" in chatbot_url.lower():
+                gateway_logger.log_warning("⚠️ Localhost 환경 - Railway 배포 시 문제 가능성")
+            else:
+                gateway_logger.log_info(f"✓ 다른 환경: {chatbot_url}")
+        else:
+            gateway_logger.log_error("❌ CHATBOT_SERVICE_URL not configured!")
+        
         # HTTP 클라이언트 설정 - DDD 패턴에 맞는 타임아웃 설정
         self.timeout = httpx.Timeout(
             connect=15.0,      # 연결 타임아웃

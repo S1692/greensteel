@@ -548,8 +548,8 @@ async def process_data_to_datagather(data: dict):
     try:
         gateway_logger.log_info(f"JSON 데이터 처리 요청 받음: {data.get('filename', 'unknown')}")
         
-        # datagather_service로 JSON 데이터 전송 (환경변수 사용)
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")
+        # DataGather 서비스로 JSON 데이터 전송 (환경변수 사용)
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 f"{datagather_service_url.rstrip('/')}/process-data",
@@ -590,7 +590,7 @@ async def ai_process_data(data: dict):
         gateway_logger.log_info(f"AI 모델 처리 요청 받음: {data.get('filename', 'unknown')}")
         
         # datagather_service로 AI 처리 요청 전송 (환경변수 사용)
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
                 f"{datagather_service_url.rstrip('/')}/ai-process",
@@ -639,8 +639,8 @@ async def process_feedback(feedback_data: dict):
         # 피드백 데이터 로깅
         gateway_logger.log_info(f"피드백 데이터: {feedback_data}")
         
-        # datagather_service로 피드백 전송 (환경변수 사용)
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")
+        # DataGather 서비스로 피드백 전송 (환경변수 사용)
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 f"{datagather_service_url.rstrip('/')}/feedback",
@@ -682,8 +682,8 @@ async def upload_input_data(data: dict):
     try:
         gateway_logger.log_info(f"Input 데이터 업로드 요청 받음: {data.get('filename', 'unknown')}")
         
-        # datagather_service로 Input 데이터 전송 (환경변수 사용)
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")
+        # DataGather 서비스로 Input 데이터 전송 (환경변수 사용)
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 f"{datagather_service_url.rstrip('/')}/input-data",
@@ -723,8 +723,8 @@ async def upload_output_data(data: dict):
     try:
         gateway_logger.log_info(f"Output 데이터 업로드 요청 받음: {data.get('filename', 'unknown')}")
         
-        # datagather_service로 Output 데이터 전송 (환경변수 사용)
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")
+        # DataGather 서비스로 Output 데이터 전송 (환경변수 사용)
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 f"{datagather_service_url.rstrip('/')}/output-data",
@@ -766,7 +766,7 @@ async def ai_process_stream(request: Request):
         
         # DataGather 서비스로 스트리밍 요청 전송
         # 환경변수에서 DataGather 서비스 URL 가져오기
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
         
         # 요청 헤더 준비 (host 제거)
         headers = dict(request.headers)

@@ -12,6 +12,15 @@ class ProxyController:
     def __init__(self):
         self.gateway_name = os.getenv("GATEWAY_NAME", "greensteel-gateway")
         
+        # 환경 변수 로깅
+        gateway_logger.log_info("=== PROXY CONTROLLER INITIALIZATION ===")
+        gateway_logger.log_info(f"GATEWAY_NAME: {self.gateway_name}")
+        gateway_logger.log_info(f"CHATBOT_SERVICE_URL (raw): {os.getenv('CHATBOT_SERVICE_URL', 'NOT_SET')}")
+        gateway_logger.log_info(f"AUTH_SERVICE_URL (raw): {os.getenv('AUTH_SERVICE_URL', 'NOT_SET')}")
+        gateway_logger.log_info(f"CBAM_SERVICE_URL (raw): {os.getenv('CBAM_SERVICE_URL', 'NOT_SET')}")
+        gateway_logger.log_info(f"DATAGATHER_SERVICE_URL (raw): {os.getenv('DATAGATHER_SERVICE_URL', 'NOT_SET')}")
+        gateway_logger.log_info(f"LCI_SERVICE_URL (raw): {os.getenv('LCI_SERVICE_URL', 'NOT_SET')}")
+        
         # 서비스 매핑 - DDD 도메인별 서비스 분리
         self.service_map = {
             # 인증 및 사용자 관리 도메인
@@ -21,7 +30,7 @@ class ProxyController:
             "/user": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")),
             
             # 지리 정보 도메인 - 국가/지역 데이터
-            
+            "/geo": self._clean_service_url(os.getenv("GEO_SERVICE_URL", os.getenv("AUTH_SERVICE_URL", "http://localhost:8081"))),
             
             # 기존 API 호환성 (새 클라이언트는 /geo 사용 권장)
             "/countries": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")),
@@ -37,6 +46,12 @@ class ProxyController:
             "/chatbot": self._clean_service_url(os.getenv("CHATBOT_SERVICE_URL", "http://localhost:8084")),
         }
         
+        # 서비스 맵 로깅
+        gateway_logger.log_info("=== SERVICE MAP AFTER CLEANING ===")
+        for prefix, url in self.service_map.items():
+            gateway_logger.log_info(f"{prefix}: {url}")
+        gateway_logger.log_info("=== END SERVICE MAP ===")
+        
         # HTTP 클라이언트 설정 - DDD 패턴에 맞는 타임아웃 설정
         self.timeout = httpx.Timeout(
             connect=15.0,      # 연결 타임아웃
@@ -47,6 +62,7 @@ class ProxyController:
         
         gateway_logger.log_info(f"Gateway initialized: {self.gateway_name}")
         gateway_logger.log_info(f"Service map: {self.service_map}")
+        gateway_logger.log_info("=== END INITIALIZATION ===")
     
     def _clean_service_url(self, url: str) -> str:
         """서비스 URL 정리 (공백, 세미콜론, 따옴표 제거)"""
@@ -67,17 +83,31 @@ class ProxyController:
     
     def get_target_service(self, path: str) -> Optional[str]:
         """경로에 따른 타겟 서비스 URL 반환 - DDD 도메인 기반 라우팅"""
+        gateway_logger.log_info(f"=== TARGET SERVICE LOOKUP ===")
+        gateway_logger.log_info(f"Looking for service for path: '{path}'")
+        gateway_logger.log_info(f"Available prefixes: {list(self.service_map.keys())}")
+        
         # 더 구체적인 경로부터 매칭 (긴 경로 우선)
         sorted_prefixes = sorted(self.service_map.keys(), key=len, reverse=True)
+        gateway_logger.log_info(f"Sorted prefixes (longest first): {sorted_prefixes}")
         
         for prefix in sorted_prefixes:
+            gateway_logger.log_info(f"Checking prefix: '{prefix}' against path: '{path}'")
+            gateway_logger.log_info(f"path.startswith('{prefix}'): {path.startswith(prefix)}")
             if path.startswith(prefix):
                 service_url = self.service_map[prefix]
+                gateway_logger.log_info(f"✓ MATCH FOUND: '{prefix}' → '{service_url}'")
                 if not service_url:
                     gateway_logger.log_warning(f"Service URL not configured for prefix: {prefix}")
+                    gateway_logger.log_info("=== END TARGET SERVICE LOOKUP (NO URL) ===")
                     return None
+                gateway_logger.log_info("=== END TARGET SERVICE LOOKUP (SUCCESS) ===")
                 return service_url
+            else:
+                gateway_logger.log_info(f"✗ No match: '{prefix}' does not match '{path}'")
         
+        gateway_logger.log_warning(f"No matching service found for path: '{path}'")
+        gateway_logger.log_info("=== END TARGET SERVICE LOOKUP (NO MATCH) ===")
         return None
     
     def validate_request_data(self, path: str, method: str, data: dict) -> bool:
@@ -341,7 +371,12 @@ class ProxyController:
         
         # 타겟 URL 구성
         # 챗봇 서비스의 경우 특별한 경로 매핑
+        gateway_logger.log_info(f"=== PATH MAPPING DEBUG ===")
+        gateway_logger.log_info(f"Original path: '{path}'")
+        gateway_logger.log_info(f"Target service: '{target_service}'")
+        
         if path.startswith("/chatbot"):
+            gateway_logger.log_info(f"✓ Path '{path}' starts with '/chatbot'")
             if path == "/chatbot/chat":
                 target_url = f"{target_service}/chat"  # 올바른 경로로 수정
                 gateway_logger.log_info(f"CHATBOT CHAT: {path} → {target_url}")
@@ -352,12 +387,14 @@ class ProxyController:
                 target_url = f"{target_service}{path}"
                 gateway_logger.log_info(f"CHATBOT OTHER: {path} → {target_url}")
         else:
+            gateway_logger.log_info(f"✗ Path '{path}' does NOT start with '/chatbot'")
             target_url = f"{target_service}{path}"
             
         if request.url.query:
             target_url += f"?{request.url.query}"
         
         gateway_logger.log_info(f"Final target URL: {target_url}")
+        gateway_logger.log_info("=== END PATH MAPPING DEBUG ===")
         
         # 프리픽스 매칭 로깅
         matched_prefix = None

@@ -210,8 +210,8 @@ async def log_requests(request: Request, call_next):
 # app.include_router(handle_router, prefix="/api")
 # app.include_router(viewport_router, prefix="/api")
 
-# CBAM 계산 라우터 등록 (calculation_controller.py에서 이미 /api prefix 사용)
-app.include_router(calculation_router, prefix="")
+# CBAM 계산 라우터 등록 (calculation_controller.py에서 prefix 제거됨)
+app.include_router(calculation_router, prefix="/api")
 
 # ============================================================================
 # 🏥 헬스체크 엔드포인트

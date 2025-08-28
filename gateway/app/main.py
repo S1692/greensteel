@@ -29,6 +29,11 @@ async def lifespan(app: FastAPI):
     gateway_logger.log_info("Architecture: DDD (Domain-Driven Design)")
     gateway_logger.log_info("Domain Services: Identity-Access, Carbon-Border, Data-Collection, Lifecycle-Inventory, AI-Assistant")
     gateway_logger.log_info(f"Chatbot Service URL: {CHATBOT_SERVICE_URL}")
+    
+    # 프록시 컨트롤러 서비스 맵 로깅
+    proxy_controller = ProxyController()
+    gateway_logger.log_info(f"Proxy Controller Service Map: {proxy_controller.service_map}")
+    
     yield
     # 종료 시
     gateway_logger.log_info(f"Gateway {GATEWAY_NAME} shutting down...")

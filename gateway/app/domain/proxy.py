@@ -274,9 +274,13 @@ class ProxyController:
             
             # 챗봇 서비스 디버깅 로깅 추가
             if path.startswith("/chatbot"):
-                gateway_logger.log_info(f"Chatbot request detected: {path}")
+                gateway_logger.log_info(f"=== CHATBOT REQUEST DEBUG ===")
+                gateway_logger.log_info(f"Path: {path}")
+                gateway_logger.log_info(f"Method: {method}")
                 gateway_logger.log_info(f"Target service URL: {target_service}")
                 gateway_logger.log_info(f"Service map for /chatbot: {self.service_map.get('/chatbot')}")
+                gateway_logger.log_info(f"All service prefixes: {list(self.service_map.keys())}")
+                gateway_logger.log_info(f"=== END DEBUG ===")
             
             if not target_service:
                 gateway_logger.log_error(f"No service configured for path: {path}")
@@ -335,10 +339,13 @@ class ProxyController:
         if path.startswith("/chatbot"):
             if path == "/chatbot/chat":
                 target_url = f"{target_service}/chat"  # 올바른 경로로 수정
+                gateway_logger.log_info(f"CHATBOT CHAT: {path} → {target_url}")
             elif path == "/chatbot/health":
                 target_url = f"{target_service}/health"
+                gateway_logger.log_info(f"CHATBOT HEALTH: {path} → {target_url}")
             else:
                 target_url = f"{target_service}{path}"
+                gateway_logger.log_info(f"CHATBOT OTHER: {path} → {target_url}")
         else:
             target_url = f"{target_service}{path}"
             
@@ -365,6 +372,7 @@ class ProxyController:
         try:
             # httpx.AsyncClient로 프록시 요청 실행
             async with httpx.AsyncClient(timeout=self.timeout) as client:
+                gateway_logger.log_info(f"Making request to: {target_url}")
                 response = await client.request(
                     method=method,
                     url=target_url,

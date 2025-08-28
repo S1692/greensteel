@@ -381,13 +381,14 @@ class ProxyController:
         if path.startswith("/chatbot"):
             gateway_logger.log_info(f"✓ Path '{path}' starts with '/chatbot'")
             if path == "/chatbot/chat":
-                target_url = f"{target_service}/chat"  # 올바른 경로로 수정
+                target_url = f"{target_service}/api/v1/chatbot/chat"  # 올바른 경로로 수정
                 gateway_logger.log_info(f"CHATBOT CHAT: {path} → {target_url}")
             elif path == "/chatbot/health":
-                target_url = f"{target_service}/health"
+                target_url = f"{target_service}/api/v1/chatbot/health"  # 올바른 경로로 수정
                 gateway_logger.log_info(f"CHATBOT HEALTH: {path} → {target_url}")
             else:
-                target_url = f"{target_service}{path}"
+                # /chatbot으로 시작하는 다른 경로들도 /api/v1/chatbot으로 매핑
+                target_url = f"{target_service}/api/v1{path}"
                 gateway_logger.log_info(f"CHATBOT OTHER: {path} → {target_url}")
         else:
             gateway_logger.log_info(f"✗ Path '{path}' does NOT start with '/chatbot'")

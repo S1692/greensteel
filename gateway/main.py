@@ -26,7 +26,7 @@ def _validate_upstream(name: str, url: str):
         raise RuntimeError(f"{name} must be a public URL, not localhost: {url}")
 
 # 챗봇 업스트림 경로 설정
-CHATBOT_UPSTREAM_PATH = os.getenv("CHATBOT_UPSTREAM_PATH", "/chat")
+CHATBOT_UPSTREAM_PATH = os.getenv("CHATBOT_UPSTREAM_PATH", "/api/v1/chatbot/chat")
 
 # CORS 허용 오리진 파싱
 allowed_origins = [origin.strip() for origin in ALLOWED_ORIGINS.split(",") if origin.strip()]
@@ -192,11 +192,11 @@ async def chatbot_chat_get_info():
 
 @app.api_route("/chatbot/health", methods=["GET","OPTIONS"])
 async def proxy_chatbot_health(request: Request):
-    return await _forward(CHATBOT_SERVICE_URL, "/health", request)
+    return await _forward(CHATBOT_SERVICE_URL, "/api/v1/chatbot/health", request)
 
 @app.api_route("/chatbot/{path:path}", methods=["GET","POST","PUT","DELETE","PATCH","HEAD","OPTIONS"])
 async def proxy_chatbot_general(request: Request, path: str):
-    return await _forward(CHATBOT_SERVICE_URL, f"/{path}", request)
+    return await _forward(CHATBOT_SERVICE_URL, f"/api/v1/chatbot/{path}", request)
 
 # Chatbot 서비스는 프록시 컨트롤러를 통해 처리됩니다
 # /chatbot/* 경로의 모든 요청은 프록시 컨트롤러로 전달됩니다

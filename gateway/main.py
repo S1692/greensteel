@@ -28,6 +28,9 @@ def _validate_upstream(name: str, url: str):
 # 챗봇 업스트림 경로 설정
 CHATBOT_UPSTREAM_PATH = os.getenv("CHATBOT_UPSTREAM_PATH", "/api/v1/chatbot/chat")
 
+# CBAM 서비스 URL 환경 변수
+CBAM_SERVICE_URL = os.getenv("CBAM_SERVICE_URL", "").strip()
+
 # CORS 허용 오리진 파싱
 allowed_origins = [origin.strip() for origin in ALLOWED_ORIGINS.split(",") if origin.strip()]
 
@@ -197,6 +200,74 @@ async def proxy_chatbot_health(request: Request):
 @app.api_route("/chatbot/{path:path}", methods=["GET","POST","PUT","DELETE","PATCH","HEAD","OPTIONS"])
 async def proxy_chatbot_general(request: Request, path: str):
     return await _forward(CHATBOT_SERVICE_URL, f"/api/v1/chatbot/{path}", request)
+
+# ============================================================================
+# 🏭 CBAM 서비스 프록시 라우트
+# ============================================================================
+
+@app.api_route("/api/cbam/{path:path}", methods=["GET","POST","PUT","DELETE","PATCH","HEAD","OPTIONS"])
+async def proxy_cbam_service(request: Request, path: str):
+    """CBAM 서비스로 요청을 프록시"""
+    if not CBAM_SERVICE_URL:
+        raise HTTPException(status_code=503, detail="CBAM service not configured")
+    
+    # CBAM 서비스의 실제 엔드포인트로 전달
+    # 프론트엔드: /api/cbam/install → CBAM 서비스: /api/install
+    target_path = f"/api/{path}"
+    
+    gateway_logger.log_info(f"CBAM proxy: {request.method} /api/cbam/{path} → {CBAM_SERVICE_URL}{target_path}")
+    return await _forward(CBAM_SERVICE_URL, target_path, request)
+
+@app.api_route("/cbam/{path:path}", methods=["GET","POST","PUT","DELETE","PATCH","HEAD","OPTIONS"])
+async def proxy_cbam_service_legacy(request: Request, path: str):
+    """CBAM 서비스로 요청을 프록시 (레거시 경로 지원)"""
+    if not CBAM_SERVICE_URL:
+        raise HTTPException(status_code=503, detail="CBAM service not configured")
+    
+    # CBAM 서비스의 실제 엔드포인트로 전달
+    target_path = f"/api/{path}"
+    
+    gateway_logger.log_info(f"CBAM legacy proxy: {request.method} /cbam/{path} → {CBAM_SERVICE_URL}{target_path}")
+    return await _forward(CBAM_SERVICE_URL, target_path, request)
+
+@app.get("/cbam/health")
+async def cbam_health_check():
+    """CBAM 서비스 헬스체크"""
+    if not CBAM_SERVICE_URL:
+        return {
+            "status": "unhealthy",
+            "service": "CBAM",
+            "message": "CBAM_SERVICE_URL not configured",
+            "timestamp": time.time()
+        }
+    
+    try:
+        # CBAM 서비스 헬스체크 요청
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(f"{CBAM_SERVICE_URL}/health")
+            if response.status_code == 200:
+                return {
+                    "status": "healthy",
+                    "service": "CBAM",
+                    "upstream": CBAM_SERVICE_URL,
+                    "timestamp": time.time()
+                }
+            else:
+                return {
+                    "status": "unhealthy",
+                    "service": "CBAM",
+                    "upstream": CBAM_SERVICE_URL,
+                    "status_code": response.status_code,
+                    "timestamp": time.time()
+                }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "service": "CBAM",
+            "upstream": CBAM_SERVICE_URL,
+            "error": str(e),
+            "timestamp": time.time()
+        }
 
 # Chatbot 서비스는 프록시 컨트롤러를 통해 처리됩니다
 # /chatbot/* 경로의 모든 요청은 프록시 컨트롤러로 전달됩니다

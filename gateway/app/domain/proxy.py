@@ -21,7 +21,7 @@ class ProxyController:
             "/user": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")),
             
             # 지리 정보 도메인 - 국가/지역 데이터
-            "/geo": self._clean_service_url(os.getenv("GEO_SERVICE_URL", os.getenv("AUTH_SERVICE_URL", "http://localhost:8081"))),
+            
             
             # 기존 API 호환성 (새 클라이언트는 /geo 사용 권장)
             "/countries": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")),
@@ -334,6 +334,11 @@ class ProxyController:
         start_time = time.time()
         method = request.method
         
+        gateway_logger.log_info(f"=== EXECUTE PROXY REQUEST ===")
+        gateway_logger.log_info(f"Method: {method}")
+        gateway_logger.log_info(f"Path: {path}")
+        gateway_logger.log_info(f"Target service: {target_service}")
+        
         # 타겟 URL 구성
         # 챗봇 서비스의 경우 특별한 경로 매핑
         if path.startswith("/chatbot"):
@@ -352,6 +357,8 @@ class ProxyController:
         if request.url.query:
             target_url += f"?{request.url.query}"
         
+        gateway_logger.log_info(f"Final target URL: {target_url}")
+        
         # 프리픽스 매칭 로깅
         matched_prefix = None
         for prefix in sorted(self.service_map.keys(), key=len, reverse=True):
@@ -365,14 +372,35 @@ class ProxyController:
         
         # 헤더 준비
         headers = self.prepare_headers(request)
+        gateway_logger.log_info(f"Request headers: {dict(headers)}")
         
         # 요청 바디 읽기
         body = await request.body()
+        gateway_logger.log_info(f"Request body length: {len(body)} bytes")
+        if body:
+            try:
+                body_text = body.decode('utf-8')
+                gateway_logger.log_info(f"Request body content: {body_text[:200]}...")
+            except:
+                gateway_logger.log_info("Request body is binary or cannot be decoded")
         
         try:
             # httpx.AsyncClient로 프록시 요청 실행
             async with httpx.AsyncClient(timeout=self.timeout) as client:
+                gateway_logger.log_info(f"=== GATEWAY TO CHATBOT REQUEST ===")
                 gateway_logger.log_info(f"Making request to: {target_url}")
+                gateway_logger.log_info(f"Request method: {method}")
+                gateway_logger.log_info(f"Request headers: {dict(headers)}")
+                gateway_logger.log_info(f"Request body length: {len(body)} bytes")
+                if body:
+                    try:
+                        body_text = body.decode('utf-8')
+                        gateway_logger.log_info(f"Request body content: {body_text}")
+                    except:
+                        gateway_logger.log_info("Request body is binary or cannot be decoded")
+                gateway_logger.log_info(f"Timeout settings: {self.timeout}")
+                gateway_logger.log_info("=== END GATEWAY TO CHATBOT REQUEST ===")
+                
                 response = await client.request(
                     method=method,
                     url=target_url,
@@ -383,6 +411,21 @@ class ProxyController:
                 
                 # 응답 로깅
                 response_time = time.time() - start_time
+                gateway_logger.log_info(f"=== CHATBOT SERVICE RESPONSE ===")
+                gateway_logger.log_info(f"Response status: {response.status_code}")
+                gateway_logger.log_info(f"Response time: {response_time:.3f}s")
+                gateway_logger.log_info(f"Response headers: {dict(response.headers)}")
+                gateway_logger.log_info(f"Response content length: {len(response.content)} bytes")
+                
+                # 응답 내용 로깅 (짧게)
+                try:
+                    response_text = response.content.decode('utf-8')
+                    gateway_logger.log_info(f"Response content: {response_text[:200]}...")
+                except:
+                    gateway_logger.log_info("Response content is binary or cannot be decoded")
+                
+                gateway_logger.log_info("=== END CHATBOT SERVICE RESPONSE ===")
+                
                 gateway_logger.log_info(f"RESPONSE: {method} {path} → status: {response.status_code}, time: {response_time:.3f}s")
                 gateway_logger.log_response(method, path, response.status_code, response_time)
                 
@@ -404,11 +447,14 @@ class ProxyController:
             
         except httpx.HTTPStatusError as e:
             gateway_logger.log_error(f"HTTP error for {method} {path}: {e.response.status_code}")
+            gateway_logger.log_error(f"HTTP error response: {e.response.text}")
             raise HTTPException(status_code=e.response.status_code, detail="Service error")
             
         except Exception as e:
             gateway_logger.log_error(f"Unexpected error for {method} {path} to {target_url}: {str(e)}")
             raise HTTPException(status_code=500, detail="Internal gateway error")
+        finally:
+            gateway_logger.log_info("=== END EXECUTE PROXY REQUEST ===")
     
     def health_check(self) -> Dict[str, Any]:
         """헬스 체크 - DDD 도메인 서비스 상태 확인"""

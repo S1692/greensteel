@@ -66,27 +66,47 @@ const DashboardPage: React.FC = () => {
           return;
         }
         
-        console.log('챗봇 API 호출 URL:', `${gatewayUrl}/chatbot/chat`); // 디버깅용
+        console.log('=== FRONTEND CHATBOT REQUEST DEBUG ===');
+        console.log('챗봇 API 호출 URL:', `${gatewayUrl}/chatbot/chat`);
+        console.log('Gateway URL 환경변수:', process.env.NEXT_PUBLIC_GATEWAY_URL);
+        console.log('API Base 환경변수:', process.env.NEXT_PUBLIC_API_BASE);
+        console.log('최종 사용 Gateway URL:', gatewayUrl);
+        
+        // 요청 데이터 로깅
+        const requestData = {
+          message: userMessage.content,
+          context: 'dashboard',
+          session_id: 'dashboard_session',
+          user_id: 'dashboard_user'
+        };
+        console.log('요청 데이터:', requestData);
+        console.log('요청 메서드: POST');
+        console.log('요청 헤더: Content-Type: application/json');
+        console.log('=== END FRONTEND DEBUG ===');
         
         const response = await fetch(`${gatewayUrl}/chatbot/chat`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            message: userMessage.content,
-            context: 'dashboard',
-            session_id: 'dashboard_session',
-            user_id: 'dashboard_user'
-          })
+          body: JSON.stringify(requestData)
         });
 
         if (response.ok) {
           const data = await response.json();
-          console.log('Gateway 응답:', data); // 디버깅용
+          console.log('=== FRONTEND RESPONSE DEBUG ===');
+          console.log('Gateway 응답 상태:', response.status, response.statusText);
+          console.log('Gateway 응답 헤더:', Object.fromEntries(response.headers.entries()));
+          console.log('Gateway 응답 데이터 (raw):', data);
+          console.log('응답 데이터 타입:', typeof data);
+          console.log('응답 데이터 키들:', Object.keys(data));
           
           // 챗봇 응답 구조: data.data.response 또는 data.response
           const responseContent = data.data?.response || data.response || '죄송합니다. 응답을 생성할 수 없습니다.';
+          
+          console.log('추출된 응답 내용:', responseContent);
+          console.log('응답 내용 타입:', typeof responseContent);
+          console.log('=== END FRONTEND RESPONSE DEBUG ===');
           
           const assistantMessage: ChatMessage = {
             id: (Date.now() + 1).toString(),
@@ -96,7 +116,15 @@ const DashboardPage: React.FC = () => {
           };
           setMessages(prev => [...prev, assistantMessage]);
         } else {
-          throw new Error('API 응답 오류');
+          console.log('=== FRONTEND ERROR RESPONSE DEBUG ===');
+          console.log('에러 응답 상태:', response.status, response.statusText);
+          console.log('에러 응답 헤더:', Object.fromEntries(response.headers.entries()));
+          
+          const errorData = await response.json().catch(() => ({}));
+          console.log('에러 응답 데이터:', errorData);
+          console.log('=== END FRONTEND ERROR DEBUG ===');
+          
+          throw new Error(`API 응답 오류: ${response.status}`);
         }
       } catch (error) {
         console.error('챗봇 API 호출 실패:', error);

@@ -9,8 +9,8 @@ const NotFoundPage: React.FC = () => {
   useEffect(() => {
     if (!canvasRef.current) return;
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    // 정확한 타입 단언으로 ctx 고정 (TS 에러 해결)
+    const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
 
     // ====== Palette (Green + Steel) ======
     const COLORS = {
@@ -48,7 +48,7 @@ const NotFoundPage: React.FC = () => {
     // 점프 보조
     let coyoteUntil = 0;
     let jumpBufferedUntil = 0;
-    let jumpQueued = false; // ★ 프레임-안전 점프 큐
+    let jumpQueued = false; // 프레임-안전 점프 큐
 
     // RNG
     const startMs = performance.now();

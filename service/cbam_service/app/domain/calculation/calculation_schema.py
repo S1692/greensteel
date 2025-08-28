@@ -24,7 +24,7 @@ class InstallResponse(BaseModel):
     """사업장 응답"""
     id: int = Field(..., description="사업장 ID")
     name: str = Field(..., description="사업장명")
-    reporting_year: int = Field(..., description="보고기간 (년도)")
+    reporting_year: Optional[int] = Field(None, description="보고기간 (년도)")
     created_at: Optional[datetime] = Field(None, description="생성일")
     updated_at: Optional[datetime] = Field(None, description="수정일")
 

@@ -165,6 +165,154 @@ async def health_check():
     """게이트웨이 헬스체크 - DDD 도메인 서비스 상태"""
     return proxy_controller.health_check()
 
+# ============================================================================
+# 🛣️ 라우팅 정보 엔드포인트
+# ============================================================================
+
+@app.get("/routing")
+async def routing_info():
+    """라우팅 규칙 및 설정 정보 - DDD 도메인 구조 기반"""
+    return proxy_controller.get_routing_info()
+
+@app.get("/status")
+async def service_status():
+    """서비스 상태 정보 - DDD 도메인별 상태"""
+    return await proxy_controller.get_service_status()
+
+@app.get("/architecture")
+async def architecture_info():
+    """DDD 아키텍처 정보"""
+    return {
+        "gateway": GATEWAY_NAME,
+        "architecture": "DDD (Domain-Driven Design)",
+        "version": "2.0.0",
+        "description": "도메인 주도 설계를 적용한 마이크로서비스 API Gateway",
+        "domains": {
+            "identity-access": {
+                "description": "사용자 인증, 권한 관리, 이벤트 스트림",
+                "service": "Authentication Service",
+                "port": "8081",
+                "paths": ["/auth/*", "/stream/*", "/company/*", "/user/*"]
+            },
+            "carbon-border": {
+                "description": "탄소국경조정메커니즘 관리",
+                "service": "CBAM Service",
+                "port": "8082",
+                "paths": ["/cbam/*"]
+            },
+            "data-collection": {
+                "description": "ESG 데이터 수집 및 관리",
+                "service": "Data Gathering Service",
+                "port": "8083",
+                "paths": ["/datagather/*", "/ai-process", "/feedback", "/input-data", "/output-data"]
+            },
+            "lifecycle-inventory": {
+                "description": "생명주기 평가 및 인벤토리",
+                "service": "Life Cycle Inventory Service",
+                "port": "8084",
+                "paths": ["/lci/*"]
+            },
+            "ai-assistant": {
+                "description": "AI 어시스턴트 서비스",
+                "service": "AI Assistant Service",
+                "port": "8084",
+                "paths": ["/chatbot/*"]
+            }
+        },
+        "features": {
+            "domain_events": "스트림 기반 이벤트 소싱",
+            "aggregate_roots": "Company, User, Stream, CBAM, LCI",
+            "value_objects": "Address, BusinessNumber, ContactInfo",
+            "domain_services": "Authentication, StreamProcessing, Validation, AIProcessing",
+            "ai_integration": "AI 모델을 통한 데이터 자동 수정 및 피드백 학습"
+        },
+        "layers": {
+            "gateway": "API Gateway (프록시, 라우팅, 검증, AI 처리)",
+            "application": "Application Services (유스케이스, 워크플로우)",
+            "domain": "Domain Services (비즈니스 로직, 규칙)",
+            "infrastructure": "Infrastructure (데이터베이스, 외부 서비스, AI 모델)"
+        }
+    }
+
+# ============================================================================
+# 🔍 디버깅 엔드포인트 (catch-all 라우트보다 먼저 정의)
+# ============================================================================
+
+@app.get("/_debug/routes")
+async def debug_routes():
+    """등록된 라우트 정보 확인"""
+    from fastapi.routing import APIRoute
+    return {
+        "routes": [
+            {"path": r.path, "methods": list(getattr(r, "methods", []))}
+            for r in app.router.routes if isinstance(r, APIRoute)
+        ],
+        "chatbot_service_url": CHATBOT_SERVICE_URL,
+        "chatbot_upstream_path": CHATBOT_UPSTREAM_PATH,
+        "cbam_service_url": CBAM_SERVICE_URL
+    }
+
+@app.get("/_debug/ping-chatbot")
+async def ping_chatbot():
+    """챗봇 서비스 연결 상태 확인"""
+    if not CHATBOT_SERVICE_URL:
+        return {"error": "CHATBOT_SERVICE_URL not configured"}
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(f"{CHATBOT_SERVICE_URL.rstrip('/')}/health")
+        return {"status": resp.status_code, "body": resp.text[:300]}
+    except Exception as e:
+        return {"error": f"Failed to ping chatbot: {str(e)}"}
+
+@app.get("/_debug/ping-cbam")
+async def ping_cbam():
+    """CBAM 서비스 연결 상태 확인"""
+    if not CBAM_SERVICE_URL:
+        return {"error": "CBAM_SERVICE_URL not configured"}
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(f"{CBAM_SERVICE_URL.rstrip('/')}/health")
+        return {"status": resp.status_code, "body": resp.text[:300]}
+    except Exception as e:
+        return {"error": f"Failed to ping CBAM: {str(e)}"}
+
+# ============================================================================
+# 🏠 루트 경로
+# ============================================================================
+
+@app.get("/")
+async def root():
+    """루트 경로 - DDD 아키텍처 정보"""
+    return {
+        "message": f"{GATEWAY_NAME} - DDD API Gateway",
+        "version": "2.0.0",
+        "architecture": "DDD (Domain-Driven Design)",
+        "endpoints": {
+            "health_check": "/health",
+            "status": "/status",
+            "routing": "/routing",
+            "architecture": "/architecture",
+            "documentation": "/docs",
+            "ai_processing": "/datagather/ai-process",
+            "feedback": "/datagather/feedback",
+            "data_upload": "/input-data, /output-data",
+            "chatbot_chat": "/chatbot/chat",
+            "chatbot_health": "/chatbot/health",
+            "debug_routes": "/_debug/routes",
+            "debug_ping_chatbot": "/_debug/ping-chatbot",
+            "debug_ping_cbam": "/_debug/ping-cbam"
+        },
+        "domains": [
+            "identity-access (포트 8081)",
+            "carbon-border (포트 8082)",
+            "data-collection (포트 8083) - AI 처리 포함",
+            "lifecycle-inventory (포트 8084)",
+            "ai-assistant (포트 8084)"
+        ]
+    }
+
 # favicon.ico 핸들러 (404 방지)
 @app.get("/favicon.ico")
 async def favicon():
@@ -263,6 +411,48 @@ async def cbam_health_check():
     except Exception as e:
         return {
             "status": "unhealthy",
+            "service": "CBAM",
+            "upstream": CBAM_SERVICE_URL,
+            "error": str(e),
+            "timestamp": time.time()
+        }
+
+@app.get("/cbam/db/status")
+async def cbam_database_status():
+    """CBAM 서비스 데이터베이스 상태 확인"""
+    if not CBAM_SERVICE_URL:
+        return {
+            "status": "unhealthy",
+            "service": "CBAM",
+            "message": "CBAM_SERVICE_URL not configured",
+            "timestamp": time.time()
+        }
+    
+    try:
+        # CBAM 서비스 데이터베이스 상태 확인 요청
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.get(f"{CBAM_SERVICE_URL}/db/status")
+            if response.status_code == 200:
+                db_data = response.json()
+                return {
+                    "status": "success",
+                    "service": "CBAM",
+                    "upstream": CBAM_SERVICE_URL,
+                    "database_status": db_data,
+                    "timestamp": time.time()
+                }
+            else:
+                return {
+                    "status": "error",
+                    "service": "CBAM",
+                    "upstream": CBAM_SERVICE_URL,
+                    "status_code": response.status_code,
+                    "message": "Failed to get database status",
+                    "timestamp": time.time()
+                }
+    except Exception as e:
+        return {
+            "status": "error",
             "service": "CBAM",
             "upstream": CBAM_SERVICE_URL,
             "error": str(e),
@@ -483,74 +673,6 @@ async def upload_output_data(data: dict):
         gateway_logger.log_error(f"Output 데이터 업로드 중 오류 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Output 데이터 업로드 오류: {str(e)}")
 
-# 서비스 상태 확인 엔드포인트
-@app.get("/status")
-async def service_status():
-    """서비스 상태 정보 - DDD 도메인별 상태"""
-    return await proxy_controller.get_service_status()
-
-# 라우팅 정보 엔드포인트
-@app.get("/routing")
-async def routing_info():
-    """라우팅 규칙 및 설정 정보 - DDD 도메인 구조 기반"""
-    return proxy_controller.get_routing_info()
-
-# 아키텍처 정보 엔드포인트
-@app.get("/architecture")
-async def architecture_info():
-    """DDD 아키텍처 정보"""
-    return {
-        "gateway": GATEWAY_NAME,
-        "architecture": "DDD (Domain-Driven Design)",
-        "version": "2.0.0",
-        "description": "도메인 주도 설계를 적용한 마이크로서비스 API Gateway",
-        "domains": {
-            "identity-access": {
-                "description": "사용자 인증, 권한 관리, 이벤트 스트림",
-                "service": "Authentication Service",
-                "port": "8081",
-                "paths": ["/auth/*", "/stream/*", "/company/*", "/user/*"]
-            },
-            "carbon-border": {
-                "description": "탄소국경조정메커니즘 관리",
-                "service": "CBAM Service",
-                "port": "8082",
-                "paths": ["/cbam/*"]
-            },
-            "data-collection": {
-                "description": "ESG 데이터 수집 및 관리",
-                "service": "Data Gathering Service",
-                "port": "8083",
-                "paths": ["/datagather/*", "/ai-process", "/feedback", "/input-data", "/output-data"]
-            },
-            "lifecycle-inventory": {
-                "description": "생명주기 평가 및 인벤토리",
-                "service": "Life Cycle Inventory Service",
-                "port": "8084",
-                "paths": ["/lci/*"]
-            },
-            "ai-assistant": {
-                "description": "AI 어시스턴트 서비스",
-                "service": "AI Assistant Service",
-                "port": "8084",
-                "paths": ["/chatbot/*"]
-            }
-        },
-        "features": {
-            "domain_events": "스트림 기반 이벤트 소싱",
-            "aggregate_roots": "Company, User, Stream, CBAM, LCI",
-            "value_objects": "Address, BusinessNumber, ContactInfo",
-            "domain_services": "Authentication, StreamProcessing, Validation, AIProcessing",
-            "ai_integration": "AI 모델을 통한 데이터 자동 수정 및 피드백 학습"
-        },
-        "layers": {
-            "gateway": "API Gateway (프록시, 라우팅, 검증, AI 처리)",
-            "application": "Application Services (유스케이스, 워크플로우)",
-            "domain": "Domain Services (비즈니스 로직, 규칙)",
-            "infrastructure": "Infrastructure (데이터베이스, 외부 서비스, AI 모델)"
-        }
-    }
-
 # 모든 HTTP 메서드에 대한 프록시 라우팅
 @app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"])
 async def proxy_route(request: Request, path: str):
@@ -572,55 +694,6 @@ async def proxy_route(request: Request, path: str):
                 "supported_methods": ["GET","POST","PUT","DELETE","PATCH","HEAD","OPTIONS"]
             }
         )
-
-# 루트 경로
-@app.get("/")
-async def root():
-    """루트 경로 - DDD 아키텍처 정보"""
-    return {
-        "message": f"{GATEWAY_NAME} - DDD API Gateway",
-        "version": "2.0.0",
-        "architecture": "DDD (Domain-Driven Design)",
-                    "endpoints": {
-            "health_check": "/health",
-            "status": "/status",
-            "routing": "/routing",
-            "architecture": "/architecture",
-            "documentation": "/docs",
-            "ai_processing": "/datagather/ai-process",
-            "feedback": "/datagather/feedback",
-            "data_upload": "/input-data, /output-data",
-            "chatbot_chat": "/chatbot/chat",
-            "chatbot_health": "/chatbot/health"
-        },
-        "domains": [
-            "identity-access (포트 8081)",
-            "carbon-border (포트 8082)",
-            "data-collection (포트 8083) - AI 처리 포함",
-            "lifecycle-inventory (포트 8084)",
-            "ai-assistant (포트 8084)"
-        ]
-    }
-
-# 디버깅 엔드포인트
-@app.get("/_debug/routes")
-async def debug_routes():
-    from fastapi.routing import APIRoute
-    return {
-        "routes": [
-            {"path": r.path, "methods": list(getattr(r, "methods", []))}
-            for r in app.router.routes if isinstance(r, APIRoute)
-        ],
-        "chatbot_service_url": CHATBOT_SERVICE_URL,
-        "chatbot_upstream_path": CHATBOT_UPSTREAM_PATH
-    }
-
-@app.get("/_debug/ping-chatbot")
-async def ping_chatbot():
-    _validate_upstream("CHATBOT_SERVICE_URL", CHATBOT_SERVICE_URL)
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        resp = await client.get(f"{CHATBOT_SERVICE_URL.rstrip('/')}/health")
-    return {"status": resp.status_code, "body": resp.text[:300]}
 
 # 예외 처리
 @app.exception_handler(404)

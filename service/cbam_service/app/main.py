@@ -98,66 +98,68 @@ def initialize_database():
             'connect_args': {
                 'connect_timeout': 30,
                 'application_name': 'cbam-service',
-                'options': '-c timezone=utc -c client_encoding=utf8'
             }
         }
         
-        # SSL 모드 설정
-        if 'postgresql' in clean_url.lower():
-            if '?' in clean_url:
-                clean_url += "&sslmode=require"
-            else:
-                clean_url += "?sslmode=require"
-        
-        logger.info(f"데이터베이스 연결 시도: {clean_url.split('@')[1] if '@' in clean_url else clean_url}")
-        
+        # 엔진 생성 및 연결 테스트
         engine = create_engine(clean_url, **engine_params)
         
-        # 연결 테스트 및 테이블 생성
         with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
+            # 데이터베이스 연결 테스트
+            result = conn.execute(text("SELECT 1"))
             logger.info("✅ 데이터베이스 연결 성공")
             
-            # 제품 테이블 존재 확인 (실제 스키마는 별도로 생성됨)
-            conn.execute(text("""
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_name = 'product'
-                );
+            # 테이블 존재 여부 확인
+            tables_result = conn.execute(text("""
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name IN ('install', 'product', 'process', 'product_process', 'process_input', 'edge', 'emission_factors', 'emission_attribution', 'product_emissions')
+                ORDER BY table_name
             """))
             
-            table_exists = conn.fetchone()[0]
-            if table_exists:
-                logger.info("✅ product 테이블이 이미 존재합니다")
+            existing_tables = [row[0] for row in tables_result]
+            logger.info(f"📋 기존 CBAM 테이블: {existing_tables}")
+            
+            # 필요한 테이블이 없으면 경고
+            required_tables = ['install', 'product', 'process']
+            missing_tables = [table for table in required_tables if table not in existing_tables]
+            
+            if missing_tables:
+                logger.warning(f"⚠️ 누락된 필수 테이블: {missing_tables}")
+                logger.warning("데이터베이스 스키마를 먼저 생성해주세요.")
             else:
-                logger.warning("⚠️ product 테이블이 존재하지 않습니다. 수동으로 생성해주세요.")
-            
-            logger.info("✅ 데이터베이스 연결 확인 완료")
-            
-            conn.commit()
-            logger.info("✅ 데이터베이스 마이그레이션 완료")
+                logger.info("✅ 필수 CBAM 테이블이 모두 존재합니다")
+        
+        engine.dispose()
         
     except Exception as e:
-        logger.error(f"❌ 데이터베이스 마이그레이션 실패: {str(e)}")
-        # 치명적 오류가 아니므로 계속 진행
+        logger.error(f"❌ 데이터베이스 초기화 실패: {str(e)}")
+        raise
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """애플리케이션 시작/종료 시 실행되는 함수"""
-    logger.info("🚀 Cal_boundary 서비스 시작 중...")
+    """애플리케이션 생명주기 관리"""
+    # 시작 시
+    logger.info(f"🚀 {APP_NAME} 시작 중...")
+    logger.info(f"📊 버전: {APP_VERSION}")
+    logger.info(f"🔧 디버그 모드: {DEBUG_MODE}")
     
-    # 데이터베이스 초기화 및 마이그레이션
-    initialize_database()
+    try:
+        # 데이터베이스 초기화
+        initialize_database()
+        logger.info("✅ 데이터베이스 초기화 완료")
+    except Exception as e:
+        logger.error(f"❌ 데이터베이스 초기화 실패: {str(e)}")
+        # 데이터베이스 초기화 실패해도 서비스는 시작
+        logger.warning("⚠️ 데이터베이스 없이 서비스 시작")
     
-    # ReactFlow 기반 서비스 초기화
-    logger.info("✅ ReactFlow 기반 서비스 초기화")
+    logger.info(f"✅ {APP_NAME} 시작 완료")
     
     yield
     
-    # 서비스 종료 시 정리 작업
-    logger.info("✅ ReactFlow 기반 서비스 정리 완료")
-    
-    logger.info("🛑 Cal_boundary 서비스 종료 중...")
+    # 종료 시
+    logger.info(f"🛑 {APP_NAME} 종료 중...")
 
 # ============================================================================
 # 🚀 FastAPI 애플리케이션 생성
@@ -237,6 +239,79 @@ async def health_check():
         "timestamp": time.time()
     }
 
+@app.get("/db/status", tags=["database"])
+async def database_status():
+    """데이터베이스 연결 상태 확인"""
+    try:
+        database_url = get_database_url()
+        if not database_url:
+            return {
+                "status": "unhealthy",
+                "database": "not_configured",
+                "message": "DATABASE_URL not configured",
+                "timestamp": time.time()
+            }
+        
+        clean_url = clean_database_url(database_url)
+        engine = create_engine(clean_url, pool_pre_ping=True)
+        
+        with engine.connect() as conn:
+            # 연결 테스트
+            result = conn.execute(text("SELECT 1"))
+            
+            # 테이블 존재 여부 확인
+            tables_result = conn.execute(text("""
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name IN ('install', 'product', 'process', 'product_process', 'process_input', 'edge', 'emission_factors', 'emission_attribution', 'product_emissions')
+                ORDER BY table_name
+            """))
+            
+            existing_tables = [row[0] for row in tables_result]
+            
+            # 테이블별 행 수 확인
+            table_counts = {}
+            for table in existing_tables:
+                try:
+                    count_result = conn.execute(text(f"SELECT COUNT(*) FROM {table}"))
+                    count = count_result.fetchone()[0]
+                    table_counts[table] = count
+                except Exception:
+                    table_counts[table] = "error"
+        
+        engine.dispose()
+        
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "tables": {
+                "existing": existing_tables,
+                "counts": table_counts
+            },
+            "timestamp": time.time()
+        }
+        
+    except Exception as e:
+        logger.error(f"데이터베이스 상태 확인 실패: {str(e)}")
+        return {
+            "status": "unhealthy",
+            "database": "connection_failed",
+            "error": str(e),
+            "timestamp": time.time()
+        }
+
+@app.get("/", tags=["root"])
+async def root():
+    """루트 경로"""
+    return {
+        "message": f"{APP_NAME} is running",
+        "version": APP_VERSION,
+        "health_check": "/health",
+        "database_status": "/db/status",
+        "api_docs": "/docs" if DEBUG_MODE else "disabled in production"
+    }
+
 # ============================================================================
 # 📦 제품 데이터 엔드포인트는 calculation_controller.py에서 관리
 # ============================================================================
@@ -259,4 +334,18 @@ async def global_exception_handler(request: Request, exc: Exception):
             "message": "서버 내부 오류가 발생했습니다",
             "detail": str(exc) if DEBUG_MODE else "오류 세부 정보는 숨겨집니다"
         }
+    )
+
+# ============================================================================
+# 🚀 서버 실행
+# ============================================================================
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=8082,
+        reload=DEBUG_MODE,
+        log_level="info"
     )

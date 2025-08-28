@@ -570,6 +570,16 @@ class ProxyController:
         
         return status_info
     
+    async def _check_service_health(self, service_url: str) -> bool:
+        """서비스 헬스체크 수행"""
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(f"{service_url.rstrip('/')}/health")
+                return response.status_code == 200
+        except Exception as e:
+            gateway_logger.log_warning(f"Health check failed for {service_url}: {str(e)}")
+            return False
+    
     def get_routing_info(self) -> Dict[str, Any]:
         """라우팅 정보 반환 - DDD 도메인 구조 기반"""
         return {

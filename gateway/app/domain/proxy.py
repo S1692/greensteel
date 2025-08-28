@@ -320,13 +320,16 @@ class ProxyController:
                     detail=f"Service not available for path: {path}. Please check service configuration."
                 )
             
-            # 서비스 연결 상태 확인
-            if not await self._check_service_health(target_service):
-                gateway_logger.log_error(f"Service {target_service} is not responding")
-                raise HTTPException(
-                    status_code=503,
-                    detail=f"Service {target_service} is not available. Please try again later."
-                )
+            # 서비스 연결 상태 확인 (챗봇 서비스는 헬스체크 건너뛰기)
+            if not path.startswith("/chatbot"):
+                if not await self._check_service_health(target_service):
+                    gateway_logger.log_error(f"Service {target_service} is not responding")
+                    raise HTTPException(
+                        status_code=503,
+                        detail=f"Service {target_service} is not available. Please try again later."
+                    )
+            else:
+                gateway_logger.log_info(f"챗봇 서비스 헬스체크 건너뛰기: {path}")
             
             # 요청 데이터 검증
             if method in ["POST", "PUT", "PATCH"]:

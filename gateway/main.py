@@ -1,43 +1,114 @@
 import os
-from fastapi import FastAPI, Request, Response, HTTPException
+from fastapi import FastAPI, Request, Response, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from contextlib import asynccontextmanager
 import time
 import httpx
-import logging
 
-# 로깅 설정
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from app.domain.proxy import ProxyController
+from app.common.utility.logger import gateway_logger
 
 # 환경변수에서 설정 가져오기 (기본값 포함)
 GATEWAY_NAME = os.getenv("GATEWAY_NAME", "greensteel-gateway")
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "https://greensteel.site,https://www.greensteel.site,http://localhost:3000")
 ALLOWED_ORIGIN_REGEX = os.getenv("ALLOWED_ORIGIN_REGEX", "^https://.*\\.vercel\\.app$|^https://.*\\.up\\.railway\\.app$")
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
-# Railway 환경 서비스 URL 설정
-CBAM_SERVICE_URL = os.getenv("CBAM_SERVICE_URL", "http://localhost:8082")
-DATAGATHER_SERVICE_URL = os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")
-AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")
-LCI_SERVICE_URL = os.getenv("LCI_SERVICE_URL", "http://localhost:8084")
+# 서비스 URL 환경 변수
+CHATBOT_SERVICE_URL = os.getenv("CHATBOT_SERVICE_URL", "").strip()
+
+def _validate_upstream(name: str, url: str):
+    if not url:
+        raise RuntimeError(f"{name} is not set")
+    # If running on Railway, do not allow localhost upstreams
+    if os.getenv("RAILWAY_ENVIRONMENT") and "localhost" in url:
+        raise RuntimeError(f"{name} must be a public URL, not localhost: {url}")
+
+# 챗봇 업스트림 경로 설정
+CHATBOT_UPSTREAM_PATH = os.getenv("CHATBOT_UPSTREAM_PATH", "/chat")
 
 # CORS 허용 오리진 파싱
 allowed_origins = [origin.strip() for origin in ALLOWED_ORIGINS.split(",") if origin.strip()]
+
+async def _forward(target_service_url: str, target_path: str, request: Request) -> Response:
+    """요청을 타겟 서비스로 전달하는 헬퍼 함수"""
+    _validate_upstream("CHATBOT_SERVICE_URL", target_service_url)
+    
+    try:
+        # 타겟 URL 구성
+        target_url = f"{target_service_url.rstrip('/')}/{target_path.lstrip('/')}"
+        if request.url.query:
+            target_url += f"?{request.url.query}"
+        
+        gateway_logger.log_info(f"Forwarding request: {request.method} {request.url.path} → {target_url}")
+        
+        # 요청 헤더 준비 (host 제거)
+        headers = dict(request.headers)
+        headers.pop("host", None)
+        headers["X-Forwarded-By"] = GATEWAY_NAME
+        
+        # 요청 바디 읽기
+        body = await request.body()
+        
+        # httpx로 프록시 요청 실행
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.request(
+                method=request.method,
+                url=target_url,
+                headers=headers,
+                content=body,
+                follow_redirects=False
+            )
+            
+            gateway_logger.log_info(f"Forward response: {response.status_code}")
+            
+            # hop-by-hop 헤더 제거
+            for h in ["content-length", "transfer-encoding", "connection"]:
+                try:
+                    response.headers.pop(h, None)
+                except Exception:
+                    pass
+            
+            # 응답 반환
+            return Response(
+                content=response.content,
+                status_code=response.status_code,
+                headers=dict(response.headers),
+                media_type=response.headers.get("content-type")
+            )
+            
+    except httpx.TimeoutException:
+        gateway_logger.log_error(f"Forward timeout: {target_url}")
+        raise HTTPException(status_code=504, detail="Service timeout")
+    except httpx.ConnectError:
+        gateway_logger.log_error(f"Forward connection error: {target_url}")
+        raise HTTPException(status_code=502, detail="Service connection failed")
+    except Exception as e:
+        gateway_logger.log_error(f"Forward error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal gateway error")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """애플리케이션 생명주기 관리 - DDD Architecture"""
     # 시작 시
-    logger.info(f"Gateway {GATEWAY_NAME} starting up...")
-    logger.info("Architecture: DDD (Domain-Driven Design)")
+    gateway_logger.log_info(f"Gateway {GATEWAY_NAME} starting up...")
+    gateway_logger.log_info("Architecture: DDD (Domain-Driven Design)")
+    gateway_logger.log_info("Domain Services: Identity-Access, Carbon-Border, Data-Collection, Lifecycle-Inventory, AI-Assistant")
+    gateway_logger.log_info(f"Chatbot Service URL: {CHATBOT_SERVICE_URL}")
+    
+    # 프록시 컨트롤러 서비스 맵 로깅
+    proxy_controller = ProxyController()
+    gateway_logger.log_info(f"Proxy Controller Service Map: {proxy_controller.service_map}")
+    
     yield
     # 종료 시
-    logger.info(f"Gateway {GATEWAY_NAME} shutting down...")
+    gateway_logger.log_info(f"Gateway {GATEWAY_NAME} shutting down...")
 
 # FastAPI 애플리케이션 생성
 app = FastAPI(
     title=f"{GATEWAY_NAME} - DDD API Gateway",
-    description="도메인 주도 설계(DDD)를 적용한 마이크로서비스 API Gateway",
+    description="도메인 주도 설계(DDD)를 적용한 마이크로서비스 API Gateway - 프록시 라우팅 및 CORS 지원",
     version="2.0.0",
     lifespan=lifespan
 )
@@ -54,6 +125,15 @@ app.add_middleware(
     max_age=3600
 )
 
+# 신뢰할 수 있는 호스트 미들웨어 (보안 강화)
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=["*"]  # 프로덕션에서는 특정 도메인만 허용하도록 설정
+)
+
+# 프록시 컨트롤러 인스턴스
+proxy_controller = ProxyController()
+
 # 요청 시간 측정 미들웨어
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
@@ -63,50 +143,81 @@ async def add_process_time_header(request: Request, call_next):
     response.headers["X-Process-Time"] = str(process_time)
     return response
 
+# 라우트 매칭 로거 미들웨어
+@app.middleware("http")
+async def log_matched_route(request: Request, call_next):
+    response = await call_next(request)
+    try:
+        route = request.scope.get("route")
+        route_path = getattr(route, "path", "(no route)")
+        route_methods = list(getattr(route, "methods", []))
+        gateway_logger.log_info(f"ROUTE_MATCH method={request.method} path={request.url.path} -> {route_path} {route_methods} status={response.status_code}")
+    except Exception:
+        pass
+    return response
+
 # 헬스체크 엔드포인트
 @app.get("/health")
 async def health_check():
-    """게이트웨이 헬스체크"""
-    return {
-        "status": "healthy",
-        "service": GATEWAY_NAME,
-        "timestamp": time.time()
-    }
+    """게이트웨이 헬스체크 - DDD 도메인 서비스 상태"""
+    return proxy_controller.health_check()
 
 # favicon.ico 핸들러 (404 방지)
 @app.get("/favicon.ico")
 async def favicon():
     """Favicon 요청 처리 - 404 방지"""
-    logger.info("Favicon request handled")
+    gateway_logger.log_info("Favicon request handled")
     return Response(status_code=204)
 
 # robots.txt 핸들러 (선택적)
 @app.get("/robots.txt")
 async def robots():
     """Robots.txt 요청 처리"""
-    logger.info("Robots.txt request handled")
+    gateway_logger.log_info("Robots.txt request handled")
     return Response(
         content="User-agent: *\nDisallow: /api/\nDisallow: /auth/\nDisallow: /geo/", 
         media_type="text/plain"
     )
+
+# 챗봇 프록시 라우트
+@app.api_route("/chatbot/chat", methods=["POST","OPTIONS"])
+async def proxy_chatbot_chat(request: Request):
+    # use configurable upstream path
+    return await _forward(CHATBOT_SERVICE_URL, CHATBOT_UPSTREAM_PATH, request)
+
+# Helpful GET handler for human testing to avoid falling into catch-all
+@app.get("/chatbot/chat")
+async def chatbot_chat_get_info():
+    return {"error":"Method Not Allowed","hint":"Use POST to /chatbot/chat","upstream": CHATBOT_SERVICE_URL, "path": CHATBOT_UPSTREAM_PATH}
+
+@app.api_route("/chatbot/health", methods=["GET","OPTIONS"])
+async def proxy_chatbot_health(request: Request):
+    return await _forward(CHATBOT_SERVICE_URL, "/health", request)
+
+@app.api_route("/chatbot/{path:path}", methods=["GET","POST","PUT","DELETE","PATCH","HEAD","OPTIONS"])
+async def proxy_chatbot_general(request: Request, path: str):
+    return await _forward(CHATBOT_SERVICE_URL, f"/{path}", request)
+
+# Chatbot 서비스는 프록시 컨트롤러를 통해 처리됩니다
+# /chatbot/* 경로의 모든 요청은 프록시 컨트롤러로 전달됩니다
 
 # JSON 데이터를 datagather_service로 전송하는 엔드포인트
 @app.post("/process-data")
 async def process_data_to_datagather(data: dict):
     """프론트엔드에서 받은 JSON 데이터를 datagather_service로 전달합니다."""
     try:
-        logger.info(f"JSON 데이터 처리 요청 받음: {data.get('filename', 'unknown')}")
+        gateway_logger.log_info(f"JSON 데이터 처리 요청 받음: {data.get('filename', 'unknown')}")
         
-        # datagather_service로 JSON 데이터 전송 (Railway 환경)
+        # datagather_service로 JSON 데이터 전송 (포트 8083)
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
-                f"{DATAGATHER_SERVICE_URL}/process-data",
+                "http://localhost:8083/process-data",
                 json=data
             )
             
             if response.status_code == 200:
                 response_data = response.json()
-                logger.info(f"datagather_service로 데이터 전송 성공: {data.get('filename', 'unknown')}")
+                gateway_logger.log_info(f"datagather_service로 데이터 전송 성공: {data.get('filename', 'unknown')}")
                 
                 return {
                     "message": "게이트웨이를 통해 datagather_service로 전송 성공",
@@ -114,39 +225,39 @@ async def process_data_to_datagather(data: dict):
                     "data": response_data
                 }
             else:
-                logger.error(f"datagather_service 응답 오류: {response.status_code}")
+                gateway_logger.log_error(f"datagather_service 응답 오류: {response.status_code}")
                 raise HTTPException(
                     status_code=response.status_code,
                     detail=f"datagather_service 오류: {response.text}"
                 )
                 
     except httpx.TimeoutException:
-        logger.error("datagather_service 연결 시간 초과")
+        gateway_logger.log_error("datagather_service 연결 시간 초과")
         raise HTTPException(status_code=504, detail="서비스 연결 시간 초과")
     except httpx.ConnectError:
-        logger.error("datagather_service 연결 실패")
+        gateway_logger.log_error("datagather_service 연결 실패")
         raise HTTPException(status_code=503, detail="datagather_service에 연결할 수 없습니다")
     except Exception as e:
-        logger.error(f"게이트웨이 처리 중 오류 발생: {str(e)}")
+        gateway_logger.log_error(f"게이트웨이 처리 중 오류 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=f"게이트웨이 오류: {str(e)}")
 
-# AI 모델을 활용한 데이터 처리 엔드포인트
-@app.post("/ai-process")
+# AI 모델을 활용한 데이터 처리 엔드포인트 (datagather 하위로 이동)
+@app.post("/datagather/ai-process")
 async def ai_process_data(data: dict):
     """AI 모델을 활용하여 투입물명을 자동으로 수정합니다."""
     try:
-        logger.info(f"AI 모델 처리 요청 받음: {data.get('filename', 'unknown')}")
+        gateway_logger.log_info(f"AI 모델 처리 요청 받음: {data.get('filename', 'unknown')}")
         
-        # datagather_service로 AI 처리 요청 전송 (Railway 환경)
+        # datagather_service로 AI 처리 요청 전송 (포트 8083)
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
-                f"{DATAGATHER_SERVICE_URL}/ai-process",
+                "http://localhost:8083/ai-process",
                 json=data
             )
             
             if response.status_code == 200:
                 response_data = response.json()
-                logger.info(f"AI 모델 처리 성공: {data.get('filename', 'unknown')}")
+                gateway_logger.log_info(f"AI 모델 처리 성공: {data.get('filename', 'unknown')}")
                 
                 return {
                     "message": "AI 모델을 통해 투입물명이 성공적으로 수정되었습니다",
@@ -160,82 +271,84 @@ async def ai_process_data(data: dict):
                     "timestamp": response_data.get('timestamp', time.time())
                 }
             else:
-                logger.error(f"AI 모델 처리 오류: {response.status_code}")
+                gateway_logger.log_error(f"AI 모델 처리 오류: {response.status_code}")
                 raise HTTPException(
                     status_code=response.status_code,
                     detail=f"AI 모델 처리 오류: {response.text}"
                 )
                 
     except httpx.TimeoutException:
-        logger.error("AI 모델 처리 시간 초과")
+        gateway_logger.log_error("AI 모델 처리 시간 초과")
         raise HTTPException(status_code=504, detail="AI 모델 처리 시간 초과")
     except httpx.ConnectError:
-        logger.error("datagather_service 연결 실패")
+        gateway_logger.log_error("datagather_service 연결 실패")
         raise HTTPException(status_code=503, detail="datagather_service에 연결할 수 없습니다")
     except Exception as e:
-        logger.error(f"AI 모델 처리 중 오류 발생: {str(e)}")
+        gateway_logger.log_error(f"AI 모델 처리 중 오류 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=f"AI 모델 처리 오류: {str(e)}")
 
-# 사용자 피드백 처리 엔드포인트
-@app.post("/feedback")
+# 사용자 피드백 처리 엔드포인트 (datagather 하위로 이동)
+@app.post("/datagather/feedback")
 async def process_feedback(feedback_data: dict):
     """사용자 피드백을 받아 AI 모델을 재학습시킵니다."""
     try:
-        logger.info(f"사용자 피드백 처리 요청 받음")
+        gateway_logger.log_info(f"사용자 피드백 처리 요청 받음")
         
         # 피드백 데이터 로깅
-        logger.info(f"피드백 데이터: {feedback_data}")
+        gateway_logger.log_info(f"피드백 데이터: {feedback_data}")
         
-        # datagather_service로 피드백 데이터 전송 (Railway 환경)
+        # datagather_service로 피드백 전송
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
-                f"{DATAGATHER_SERVICE_URL}/feedback",
+                "http://localhost:8083/feedback",
                 json=feedback_data
             )
             
             if response.status_code == 200:
                 response_data = response.json()
-                logger.info(f"피드백 처리 성공: {response_data}")
+                gateway_logger.log_info(f"피드백 처리 성공: {response_data}")
                 
                 return {
-                    "message": "피드백이 성공적으로 처리되었습니다. AI 모델이 이 정보를 학습합니다.",
-                    "status": "feedback_processed",
+                    "message": "피드백이 성공적으로 처리되었습니다",
+                    "status": "success",
                     "data": response_data
                 }
             else:
-                logger.error(f"피드백 처리 오류: {response.status_code}")
+                gateway_logger.log_error(f"피드백 처리 오류: {response.status_code}")
                 raise HTTPException(
                     status_code=response.status_code,
                     detail=f"피드백 처리 오류: {response.text}"
                 )
                 
     except httpx.TimeoutException:
-        logger.error("피드백 처리 시간 초과")
+        gateway_logger.log_error("피드백 처리 시간 초과")
         raise HTTPException(status_code=504, detail="피드백 처리 시간 초과")
     except httpx.ConnectError:
-        logger.error("datagather_service 연결 실패")
+        gateway_logger.log_error("datagather_service 연결 실패")
         raise HTTPException(status_code=503, detail="datagather_service에 연결할 수 없습니다")
     except Exception as e:
-        logger.error(f"피드백 처리 중 오류 발생: {str(e)}")
+        gateway_logger.log_error(f"피드백 처리 중 오류 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=f"피드백 처리 오류: {str(e)}")
+
+# 중복된 챗봇 라우트 제거됨 - 위의 챗봇 프록시 라우트 사용
 
 # Input 데이터 업로드 엔드포인트
 @app.post("/input-data")
 async def upload_input_data(data: dict):
     """Input 데이터를 datagather_service로 업로드합니다."""
     try:
-        logger.info(f"Input 데이터 업로드 요청 받음: {data.get('filename', 'unknown')}")
+        gateway_logger.log_info(f"Input 데이터 업로드 요청 받음: {data.get('filename', 'unknown')}")
         
-        # datagather_service로 Input 데이터 전송 (Railway 환경)
+        # datagather_service로 Input 데이터 전송
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
-                f"{DATAGATHER_SERVICE_URL}/input-data",
+                "http://localhost:8083/input-data",
                 json=data
             )
             
             if response.status_code == 200:
                 response_data = response.json()
-                logger.info(f"Input 데이터 업로드 성공: {data.get('filename', 'unknown')}")
+                gateway_logger.log_info(f"Input 데이터 업로드 성공: {data.get('filename', 'unknown')}")
                 
                 return {
                     "message": "Input 데이터가 성공적으로 업로드되었습니다",
@@ -243,20 +356,20 @@ async def upload_input_data(data: dict):
                     "data": response_data
                 }
             else:
-                logger.error(f"Input 데이터 업로드 오류: {response.status_code}")
+                gateway_logger.log_error(f"Input 데이터 업로드 오류: {response.status_code}")
                 raise HTTPException(
                     status_code=response.status_code,
                     detail=f"Input 데이터 업로드 오류: {response.text}"
                 )
                 
     except httpx.TimeoutException:
-        logger.error("Input 데이터 업로드 시간 초과")
+        gateway_logger.log_error("Input 데이터 업로드 시간 초과")
         raise HTTPException(status_code=504, detail="Input 데이터 업로드 시간 초과")
     except httpx.ConnectError:
-        logger.error("datagather_service 연결 실패")
+        gateway_logger.log_error("datagather_service 연결 실패")
         raise HTTPException(status_code=503, detail="datagather_service에 연결할 수 없습니다")
     except Exception as e:
-        logger.error(f"Input 데이터 업로드 중 오류 발생: {str(e)}")
+        gateway_logger.log_error(f"Input 데이터 업로드 중 오류 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Input 데이터 업로드 오류: {str(e)}")
 
 # Output 데이터 업로드 엔드포인트
@@ -264,18 +377,18 @@ async def upload_input_data(data: dict):
 async def upload_output_data(data: dict):
     """Output 데이터를 datagather_service로 업로드합니다."""
     try:
-        logger.info(f"Output 데이터 업로드 요청 받음: {data.get('filename', 'unknown')}")
+        gateway_logger.log_info(f"Output 데이터 업로드 요청 받음: {data.get('filename', 'unknown')}")
         
-        # datagather_service로 Output 데이터 전송 (Railway 환경)
+        # datagather_service로 Output 데이터 전송
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
-                f"{DATAGATHER_SERVICE_URL}/output-data",
+                "http://localhost:8083/output-data",
                 json=data
             )
             
             if response.status_code == 200:
                 response_data = response.json()
-                logger.info(f"Output 데이터 업로드 성공: {data.get('filename', 'unknown')}")
+                gateway_logger.log_info(f"Output 데이터 업로드 성공: {data.get('filename', 'unknown')}")
                 
                 return {
                     "message": "Output 데이터가 성공적으로 업로드되었습니다",
@@ -283,196 +396,38 @@ async def upload_output_data(data: dict):
                     "data": response_data
                 }
             else:
-                logger.error(f"Output 데이터 업로드 오류: {response.status_code}")
+                gateway_logger.log_error(f"Output 데이터 업로드 오류: {response.status_code}")
                 raise HTTPException(
                     status_code=response.status_code,
                     detail=f"Output 데이터 업로드 오류: {response.text}"
                 )
                 
     except httpx.TimeoutException:
-        logger.error("Output 데이터 업로드 시간 초과")
+        gateway_logger.log_error("Output 데이터 업로드 시간 초과")
         raise HTTPException(status_code=504, detail="Output 데이터 업로드 시간 초과")
     except httpx.ConnectError:
-        logger.error("datagather_service 연결 실패")
+        gateway_logger.log_error("datagather_service 연결 실패")
         raise HTTPException(status_code=503, detail="datagather_service에 연결할 수 없습니다")
     except Exception as e:
-        logger.error(f"Output 데이터 업로드 중 오류 발생: {str(e)}")
+        gateway_logger.log_error(f"Output 데이터 업로드 중 오류 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Output 데이터 업로드 오류: {str(e)}")
-
-# CBAM 제품 생성 엔드포인트
-@app.post("/cbam/product")
-async def create_cbam_product(product_data: dict):
-    """CBAM 제품을 생성합니다."""
-    try:
-        logger.info(f"CBAM 제품 생성 요청 받음: {product_data.get('name', 'unknown')}")
-        
-        # cbam_service로 제품 데이터 전송 (Railway 환경)
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                f"{CBAM_SERVICE_URL}/api/product",
-                json=product_data
-            )
-            
-            if response.status_code == 200:
-                response_data = response.json()
-                logger.info(f"CBAM 제품 생성 성공: {product_data.get('name', 'unknown')}")
-                
-                return {
-                    "message": "CBAM 제품이 성공적으로 생성되었습니다",
-                    "status": "success",
-                    "data": response_data
-                }
-            else:
-                logger.error(f"CBAM 제품 생성 오류: {response.status_code}")
-                raise HTTPException(
-                    status_code=response.status_code,
-                    detail=f"CBAM 제품 생성 오류: {response.text}"
-                )
-                
-    except httpx.TimeoutException:
-        logger.error("CBAM 서비스 연결 시간 초과")
-        raise HTTPException(status_code=504, detail="CBAM 서비스 연결 시간 초과")
-    except httpx.ConnectError:
-        logger.error("CBAM 서비스 연결 실패")
-        raise HTTPException(status_code=503, detail="CBAM 서비스에 연결할 수 없습니다")
-    except Exception as e:
-        logger.error(f"CBAM 제품 생성 중 오류 발생: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"CBAM 제품 생성 오류: {str(e)}")
-
-# CBAM 제품 목록 조회 엔드포인트
-@app.get("/cbam/products")
-async def get_cbam_products():
-    """CBAM 제품 목록을 조회합니다."""
-    try:
-        logger.info("CBAM 제품 목록 조회 요청 받음")
-        
-        # cbam_service로 제품 목록 조회 요청 (Railway 환경)
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.get(
-                f"{CBAM_SERVICE_URL}/api/products"
-            )
-            
-            if response.status_code == 200:
-                products = response.json()
-                logger.info(f"CBAM 제품 목록 조회 성공: {len(products)}개")
-                
-                return {
-                    "message": "CBAM 제품 목록 조회 성공",
-                    "status": "success",
-                    "data": products,
-                    "count": len(products)
-                }
-            else:
-                logger.error(f"CBAM 제품 목록 조회 오류: {response.status_code}")
-                raise HTTPException(
-                    status_code=response.status_code,
-                    detail=f"CBAM 제품 목록 조회 오류: {response.text}"
-                )
-                
-    except httpx.TimeoutException:
-        logger.error("CBAM 서비스 연결 시간 초과")
-        raise HTTPException(status_code=504, detail="CBAM 서비스 연결 시간 초과")
-    except httpx.ConnectError:
-        logger.error("CBAM 서비스 연결 실패")
-        raise HTTPException(status_code=503, detail="CBAM 서비스에 연결할 수 없습니다")
-    except Exception as e:
-        logger.error(f"CBAM 제품 목록 조회 중 오류 발생: {str(e)}")
-        raise HTTPException(status_code=500, detail="CBAM 제품 목록 조회 오류: {str(e)}")
-
-# DataGather AI 처리 엔드포인트
-@app.post("/ai-process")
-async def ai_process_data(data: dict):
-    """DataGather 서비스로 AI 처리 요청을 전달합니다."""
-    try:
-        logger.info(f"AI 처리 요청 받음: {data.get('filename', 'unknown')}")
-        
-        # datagather_service로 AI 처리 요청 전송 (Railway 환경)
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                f"{DATAGATHER_SERVICE_URL}/filtering/ai-process",
-                json=data
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                logger.info("AI 처리 성공")
-                
-                return {
-                    "message": "AI 처리가 완료되었습니다",
-                    "status": "success",
-                    "data": result
-                }
-            else:
-                logger.error(f"AI 처리 오류: {response.status_code}")
-                raise HTTPException(
-                    status_code=response.status_code,
-                    detail=f"AI 처리 오류: {response.text}"
-                )
-                
-    except httpx.TimeoutException:
-        logger.error("DataGather 서비스 연결 시간 초과")
-        raise HTTPException(status_code=504, detail="DataGather 서비스 연결 시간 초과")
-    except httpx.ConnectError:
-        logger.error("DataGather 서비스 연결 실패")
-        raise HTTPException(status_code=503, detail="DataGather 서비스에 연결할 수 없습니다")
-    except Exception as e:
-        logger.error(f"AI 처리 중 오류 발생: {str(e)}")
-        raise HTTPException(status_code=500, detail="AI 처리 오류: {str(e)}")
-
-# DataGather 피드백 엔드포인트
-@app.post("/feedback")
-async def submit_feedback(feedback_data: dict):
-    """DataGather 서비스로 피드백을 전달합니다."""
-    try:
-        logger.info("피드백 제출 요청 받음")
-        
-        # datagather_service로 피드백 전송 (Railway 환경)
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                f"{DATAGATHER_SERVICE_URL}/filtering/feedback",
-                json=feedback_data
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                logger.info("피드백 제출 성공")
-                
-                return {
-                    "message": "피드백이 성공적으로 제출되었습니다",
-                    "status": "success",
-                    "data": result
-                }
-            else:
-                logger.error(f"피드백 제출 오류: {response.status_code}")
-                raise HTTPException(
-                    status_code=response.status_code,
-                    detail=f"피드백 제출 오류: {response.text}"
-                )
-                
-    except httpx.TimeoutException:
-        logger.error("DataGather 서비스 연결 시간 초과")
-        raise HTTPException(status_code=504, detail="DataGather 서비스 연결 시간 초과")
-    except httpx.ConnectError:
-        logger.error("DataGather 서비스 연결 실패")
-        raise HTTPException(status_code=503, detail="DataGather 서비스에 연결할 수 없습니다")
-    except Exception as e:
-        logger.error(f"피드백 제출 중 오류 발생: {str(e)}")
-        raise HTTPException(status_code=500, detail="피드백 제출 오류: {str(e)}")
 
 # 서비스 상태 확인 엔드포인트
 @app.get("/status")
 async def service_status():
     """서비스 상태 정보 - DDD 도메인별 상태"""
-    return {
-        "status": "healthy",
-        "service": GATEWAY_NAME,
-        "timestamp": time.time()
-    }
+    return await proxy_controller.get_service_status()
 
 # 라우팅 정보 엔드포인트
 @app.get("/routing")
 async def routing_info():
     """라우팅 규칙 및 설정 정보 - DDD 도메인 구조 기반"""
+    return proxy_controller.get_routing_info()
+
+# 아키텍처 정보 엔드포인트
+@app.get("/architecture")
+async def architecture_info():
+    """DDD 아키텍처 정보"""
     return {
         "gateway": GATEWAY_NAME,
         "architecture": "DDD (Domain-Driven Design)",
@@ -502,6 +457,12 @@ async def routing_info():
                 "service": "Life Cycle Inventory Service",
                 "port": "8084",
                 "paths": ["/lci/*"]
+            },
+            "ai-assistant": {
+                "description": "AI 어시스턴트 서비스",
+                "service": "AI Assistant Service",
+                "port": "8084",
+                "paths": ["/chatbot/*"]
             }
         },
         "features": {
@@ -528,39 +489,85 @@ async def proxy_route(request: Request, path: str):
         return {"message": "Gateway is running", "health_check": "/health"}
     
     # 프록시 요청 처리
-    return {
-        "message": "Proxy route not found",
-        "path": path,
-        "supported_methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]
-    }
+    try:
+        return await proxy_controller.proxy_request(request)
+    except Exception as e:
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=404,
+            content={
+                "message": "Proxy route not found",
+                "path": path,
+                "supported_methods": ["GET","POST","PUT","DELETE","PATCH","HEAD","OPTIONS"]
+            }
+        )
 
 # 루트 경로
 @app.get("/")
 async def root():
-    """루트 경로"""
+    """루트 경로 - DDD 아키텍처 정보"""
     return {
         "message": f"{GATEWAY_NAME} - DDD API Gateway",
         "version": "2.0.0",
-        "status": "running"
+        "architecture": "DDD (Domain-Driven Design)",
+                    "endpoints": {
+            "health_check": "/health",
+            "status": "/status",
+            "routing": "/routing",
+            "architecture": "/architecture",
+            "documentation": "/docs",
+            "ai_processing": "/datagather/ai-process",
+            "feedback": "/datagather/feedback",
+            "data_upload": "/input-data, /output-data",
+            "chatbot_chat": "/chatbot/chat",
+            "chatbot_health": "/chatbot/health"
+        },
+        "domains": [
+            "identity-access (포트 8081)",
+            "carbon-border (포트 8082)",
+            "data-collection (포트 8083) - AI 처리 포함",
+            "lifecycle-inventory (포트 8084)",
+            "ai-assistant (포트 8084)"
+        ]
     }
+
+# 디버깅 엔드포인트
+@app.get("/_debug/routes")
+async def debug_routes():
+    from fastapi.routing import APIRoute
+    return {
+        "routes": [
+            {"path": r.path, "methods": list(getattr(r, "methods", []))}
+            for r in app.router.routes if isinstance(r, APIRoute)
+        ],
+        "chatbot_service_url": CHATBOT_SERVICE_URL,
+        "chatbot_upstream_path": CHATBOT_UPSTREAM_PATH
+    }
+
+@app.get("/_debug/ping-chatbot")
+async def ping_chatbot():
+    _validate_upstream("CHATBOT_SERVICE_URL", CHATBOT_SERVICE_URL)
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.get(f"{CHATBOT_SERVICE_URL.rstrip('/')}/health")
+    return {"status": resp.status_code, "body": resp.text[:300]}
 
 # 예외 처리
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc):
     """404 에러 처리"""
-    logger.warning(f"404 Not Found: {request.url.path}")
+    gateway_logger.log_warning(f"404 Not Found: {request.url.path}")
     return {"error": "Not Found", "path": request.url.path}
 
 @app.exception_handler(400)
 async def bad_request_handler(request: Request, exc):
     """400 에러 처리"""
-    logger.warning(f"400 Bad Request: {request.url.path}")
+    gateway_logger.log_warning(f"400 Bad Request: {request.url.path}")
     return {"error": "Bad Request", "detail": str(exc.detail) if hasattr(exc, 'detail') else "Invalid request"}
 
 @app.exception_handler(500)
 async def internal_error_handler(request: Request, exc):
     """500 에러 처리"""
-    logger.error(f"Internal Server Error: {request.url.path}")
+    gateway_logger.log_error(f"Internal Server Error: {request.url.path}")
     return {"error": "Internal Server Error"}
 
 if __name__ == "__main__":
@@ -572,3 +579,8 @@ if __name__ == "__main__":
         reload=False,
         proxy_headers=True
     )
+
+# Verification steps:
+# curl -sS https://<gateway>/_debug/routes | jq
+# curl -sS https://<gateway>/_debug/ping-chatbot | jq
+# curl -sS -H 'Content-Type: application/json' -d '{"message":"ping","context":"dashboard","session_id":"s1","user_id":"u1"}' https://<gateway>/chatbot/chat | jq

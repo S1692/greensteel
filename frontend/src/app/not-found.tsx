@@ -82,28 +82,50 @@ const NotFoundPage: React.FC = () => {
     type Obstacle = { type: 'pipe' | 'botdog' | 'drone'; x: number; y: number; w: number; h: number; vy?: number; phase?: number; };
     const obstacles: Obstacle[] = [];
 
-    // ====== Controls (jump/duck/restart) ======
-    function wantJump() {
-      if (!running) { restart(); return; }
-      const now = performance.now();
-      jumpBufferedUntil = now + BUFFER_MS;
-      if (player.onGround() || now < coyoteUntil) doJump();
-    }
+    // 캔버스에 포커스 줘서 키가 바로 들어오게
+    canvas.focus();
+
+    // --- 점프/숙이기/리셋 ---
     function doJump() {
+      // 연속 입력으로 너무 높은 점프 방지
       if (player.vy >= -1) {
         player.vy = JUMP_VY;
         coyoteUntil = 0;
         jumpBufferedUntil = 0;
       }
     }
-    function setDuck(on: boolean) { player.ducking = on; }
-    function restart() {
-      speed = BASE_SPEED; score = 0; obstacles.length = 0; frame = 0; startTime = Date.now(); spawnCooldown = 42;
-      player.y = GROUND_Y - player.h; player.vy = 0; player.ducking = false;
-      running = true; coyoteUntil = 0; jumpBufferedUntil = 0;
+
+    function wantJump() {
+      // ★ 변경: 실행 중이 아니면 "재시작 후 바로 점프"가 되도록
+      if (!running) {
+        restart();
+        // 재시작 직후 바닥 상태이므로 즉시 점프 가능
+        doJump();
+        return;
+      }
+      const now = performance.now();
+      jumpBufferedUntil = now + BUFFER_MS;
+      if (player.onGround() || now < coyoteUntil) doJump();
     }
 
-    // 키 매칭 유틸 (code + key 모두 지원)
+    function setDuck(on: boolean) { player.ducking = on; }
+
+    function restart() {
+      speed = BASE_SPEED;
+      score = 0;
+      obstacles.length = 0;
+      frame = 0;
+      startTime = Date.now();
+      spawnCooldown = 42;
+      player.y = GROUND_Y - player.h;
+      player.vy = 0;
+      player.ducking = false;
+      running = true;
+      coyoteUntil = 0;
+      jumpBufferedUntil = 0;
+    }
+
+    // --- 키 매칭 (code + key 모두) ---
     const isJumpKey = (e: KeyboardEvent) => {
       const k = e.key;
       return e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW'
@@ -111,14 +133,14 @@ const NotFoundPage: React.FC = () => {
     };
     const isDuckKey = (e: KeyboardEvent) => {
       const k = e.key;
-      return e.code === 'ArrowDown' || e.code === 'KeyS'
-          || k === 'ArrowDown' || k === 'Down' || k === 's' || k === 'S';
+      return e.code === 'ArrowDown' || e.code === 'KeyS' || k === 'ArrowDown' || k === 'Down' || k === 's' || k === 'S';
     };
 
-    // 옵션도 정확한 타입으로
+    // --- 이벤트 옵션 ---
     const passiveFalse: AddEventListenerOptions = { passive: false };
+    const captureTrue: AddEventListenerOptions = { capture: true }; // ★ 중요: 캡처 단계에서 먼저 받음
 
-    // --- Keyboard handlers (타입 명시) ---
+    // --- 키보드 핸들러 ---
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
       if (isJumpKey(e)) { e.preventDefault(); wantJump(); return; }
@@ -129,17 +151,19 @@ const NotFoundPage: React.FC = () => {
       if (isDuckKey(e)) setDuck(false);
     };
 
+    // ★ window + document 양쪽에 등록 (일부 환경에서 document가 늦게 받거나 막히는 경우 방지)
+    window.addEventListener('keydown', onKeyDown, captureTrue);
+    window.addEventListener('keyup', onKeyUp, captureTrue);
     document.addEventListener('keydown', onKeyDown, passiveFalse);
     document.addEventListener('keyup', onKeyUp);
 
-    // --- Canvas pointer handlers (터치/마우스 각각 타입 분리) ---
+    // --- 캔버스 클릭/탭 = 점프 ---
     const onCanvasTouchStart = (ev: TouchEvent) => { ev.preventDefault(); wantJump(); };
-    const onCanvasMouseDown  = (ev: MouseEvent) => { ev.preventDefault(); wantJump(); };
-
+    const onCanvasMouseDown  = (ev: MouseEvent)  => { ev.preventDefault(); wantJump(); };
     canvas.addEventListener('touchstart', onCanvasTouchStart, passiveFalse);
     canvas.addEventListener('mousedown',  onCanvasMouseDown);
 
-    // --- Mobile buttons (각 이벤트 타입 분리) ---
+    // --- 모바일 버튼 바인딩 (기존과 동일) ---
     const bindHold = (id: string, press: () => void, release?: () => void) => {
       const el = document.getElementById(id);
       if (!el) return;
@@ -157,7 +181,6 @@ const NotFoundPage: React.FC = () => {
       el.addEventListener('mouseup',    onMouseUp);
       el.addEventListener('mouseleave', onMouseLeave);
 
-      // 언바인드용 반환 (cleanup에서 호출)
       return () => {
         el.removeEventListener('touchstart', onTouchStart);
         el.removeEventListener('touchend',   onTouchEnd);
@@ -168,8 +191,8 @@ const NotFoundPage: React.FC = () => {
       };
     };
 
-    const unbindJump = bindHold('btn-jump', () => wantJump());
-    const unbindDuck = bindHold('btn-duck', () => setDuck(true), () => setDuck(false));
+    const unbindJump  = bindHold('btn-jump', () => wantJump());
+    const unbindDuck  = bindHold('btn-duck', () => setDuck(true), () => setDuck(false));
     const unbindReset = bindHold('btn-reset', () => restart());
 
     // ====== Utils ======
@@ -440,6 +463,8 @@ const NotFoundPage: React.FC = () => {
     loop();
 
     return () => {
+      window.removeEventListener('keydown', onKeyDown, captureTrue);
+      window.removeEventListener('keyup', onKeyUp, captureTrue);
       document.removeEventListener('keydown', onKeyDown);
       document.removeEventListener('keyup', onKeyUp);
       canvas.removeEventListener('touchstart', onCanvasTouchStart);
@@ -475,6 +500,7 @@ const NotFoundPage: React.FC = () => {
             ref={canvasRef}
             width={900}
             height={280}
+            tabIndex={0}
             className="w-full h-auto border border-gray-200 rounded-lg bg-white mx-auto block"
             aria-label="GreenSteel Runner"
           />

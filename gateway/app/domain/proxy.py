@@ -451,20 +451,20 @@ class ProxyController:
                 
                 # 응답 로깅
                 response_time = time.time() - start_time
-                gateway_logger.log_info(f"=== CHATBOT SERVICE RESPONSE ===")
+                gateway_logger.log_info(f"=== CHATBOT RESPONSE DEBUG ===")
                 gateway_logger.log_info(f"Response status: {response.status_code}")
-                gateway_logger.log_info(f"Response time: {response_time:.3f}s")
                 gateway_logger.log_info(f"Response headers: {dict(response.headers)}")
-                gateway_logger.log_info(f"Response content length: {len(response.content)} bytes")
+                gateway_logger.log_info(f"Response time: {response_time:.3f}s")
                 
-                # 응답 내용 로깅 (짧게)
+                # 응답 본문 로깅
                 try:
-                    response_text = response.content.decode('utf-8')
-                    gateway_logger.log_info(f"Response content: {response_text[:200]}...")
-                except:
-                    gateway_logger.log_info("Response content is binary or cannot be decoded")
+                    response_body = response.text
+                    gateway_logger.log_info(f"Response body: {response_body}")
+                    gateway_logger.log_info(f"Response body length: {len(response_body)} bytes")
+                except Exception as e:
+                    gateway_logger.log_info(f"Response body logging failed: {str(e)}")
                 
-                gateway_logger.log_info("=== END CHATBOT SERVICE RESPONSE ===")
+                gateway_logger.log_info("=== END CHATBOT RESPONSE DEBUG ===")
                 
                 gateway_logger.log_info(f"RESPONSE: {method} {path} → status: {response.status_code}, time: {response_time:.3f}s")
                 gateway_logger.log_response(method, path, response.status_code, response_time)

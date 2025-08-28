@@ -69,7 +69,7 @@ class ChatbotService:
             # chatbot_training_data.jsonl 파일 경로
             training_data_path = os.path.join(
                 os.path.dirname(__file__), 
-                "..", "..", "..", 
+                "..", "..", "..", "..", 
                 "chatbot_training_data.jsonl"
             )
             

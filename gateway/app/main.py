@@ -21,6 +21,54 @@ CHATBOT_SERVICE_URL = os.getenv("CHATBOT_SERVICE_URL", "http://localhost:8084")
 # CORS 허용 오리진 파싱
 allowed_origins = [origin.strip() for origin in ALLOWED_ORIGINS.split(",") if origin.strip()]
 
+async def _forward(target_service_url: str, target_path: str, request: Request) -> Response:
+    """요청을 타겟 서비스로 전달하는 헬퍼 함수"""
+    try:
+        # 타겟 URL 구성
+        target_url = f"{target_service_url.rstrip('/')}/{target_path.lstrip('/')}"
+        if request.url.query:
+            target_url += f"?{request.url.query}"
+        
+        gateway_logger.log_info(f"Forwarding request: {request.method} {request.url.path} → {target_url}")
+        
+        # 요청 헤더 준비 (host 제거)
+        headers = dict(request.headers)
+        headers.pop("host", None)
+        headers["X-Forwarded-By"] = GATEWAY_NAME
+        
+        # 요청 바디 읽기
+        body = await request.body()
+        
+        # httpx로 프록시 요청 실행
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.request(
+                method=request.method,
+                url=target_url,
+                headers=headers,
+                content=body,
+                follow_redirects=False
+            )
+            
+            gateway_logger.log_info(f"Forward response: {response.status_code}")
+            
+            # 응답 반환
+            return Response(
+                content=response.content,
+                status_code=response.status_code,
+                headers=dict(response.headers),
+                media_type=response.headers.get("content-type")
+            )
+            
+    except httpx.TimeoutException:
+        gateway_logger.log_error(f"Forward timeout: {target_url}")
+        raise HTTPException(status_code=504, detail="Service timeout")
+    except httpx.ConnectError:
+        gateway_logger.log_error(f"Forward connection error: {target_url}")
+        raise HTTPException(status_code=502, detail="Service connection failed")
+    except Exception as e:
+        gateway_logger.log_error(f"Forward error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal gateway error")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """애플리케이션 생명주기 관리 - DDD Architecture"""
@@ -99,6 +147,22 @@ async def robots():
         media_type="text/plain"
     )
 
+# 챗봇 프록시 라우트
+@app.api_route("/chatbot/chat", methods=["POST", "OPTIONS"])
+async def proxy_chatbot_chat(request: Request):
+    """챗봇 채팅 프록시 - /chatbot/chat → /chat"""
+    return await _forward(CHATBOT_SERVICE_URL, "/chat", request)
+
+@app.api_route("/chatbot/health", methods=["GET", "OPTIONS"])
+async def proxy_chatbot_health(request: Request):
+    """챗봇 헬스체크 프록시 - /chatbot/health → /health"""
+    return await _forward(CHATBOT_SERVICE_URL, "/health", request)
+
+@app.api_route("/chatbot/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"])
+async def proxy_chatbot_general(request: Request, path: str):
+    """챗봇 일반 프록시 - /chatbot/* → /*"""
+    return await _forward(CHATBOT_SERVICE_URL, f"/{path}", request)
+
 # Chatbot 서비스는 프록시 컨트롤러를 통해 처리됩니다
 # /chatbot/* 경로의 모든 요청은 프록시 컨트롤러로 전달됩니다
 
@@ -142,8 +206,8 @@ async def process_data_to_datagather(data: dict):
         gateway_logger.log_error(f"게이트웨이 처리 중 오류 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=f"게이트웨이 오류: {str(e)}")
 
-# AI 모델을 활용한 데이터 처리 엔드포인트 (기존 datagather용)
-@app.post("/ai-process")
+# AI 모델을 활용한 데이터 처리 엔드포인트 (datagather 하위로 이동)
+@app.post("/datagather/ai-process")
 async def ai_process_data(data: dict):
     """AI 모델을 활용하여 투입물명을 자동으로 수정합니다."""
     try:
@@ -188,8 +252,8 @@ async def ai_process_data(data: dict):
         gateway_logger.log_error(f"AI 모델 처리 중 오류 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=f"AI 모델 처리 오류: {str(e)}")
 
-# 사용자 피드백 처리 엔드포인트
-@app.post("/feedback")
+# 사용자 피드백 처리 엔드포인트 (datagather 하위로 이동)
+@app.post("/datagather/feedback")
 async def process_feedback(feedback_data: dict):
     """사용자 피드백을 받아 AI 모델을 재학습시킵니다."""
     try:
@@ -231,55 +295,7 @@ async def process_feedback(feedback_data: dict):
         gateway_logger.log_error(f"피드백 처리 중 오류 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=f"피드백 처리 오류: {str(e)}")
 
-# 챗봇 서비스 명시적 프록시 엔드포인트
-@app.post("/chatbot/chat")
-async def chatbot_chat_proxy(request: Request):
-    """챗봇 채팅 프록시 - 명시적 라우팅"""
-    gateway_logger.log_info("=== EXPLICIT CHATBOT CHAT PROXY ===")
-    gateway_logger.log_info(f"Request method: {request.method}")
-    gateway_logger.log_info(f"Request path: /chatbot/chat")
-    gateway_logger.log_info(f"Proxy Controller: {proxy_controller}")
-    gateway_logger.log_info(f"Service Map: {proxy_controller.service_map}")
-    
-    try:
-        result = await proxy_controller.proxy_request(request)
-        gateway_logger.log_info(f"Explicit chatbot proxy completed: {result.status_code}")
-        return result
-    except Exception as e:
-        gateway_logger.log_error(f"Explicit chatbot proxy failed: {str(e)}")
-        raise
-
-@app.get("/chatbot/health")
-async def chatbot_health_proxy(request: Request):
-    """챗봇 헬스체크 프록시 - 명시적 라우팅"""
-    gateway_logger.log_info("=== EXPLICIT CHATBOT HEALTH PROXY ===")
-    gateway_logger.log_info(f"Request method: {request.method}")
-    gateway_logger.log_info(f"Request path: /chatbot/health")
-    
-    try:
-        result = await proxy_controller.proxy_request(request)
-        gateway_logger.log_info(f"Explicit chatbot health proxy completed: {result.status_code}")
-        return result
-    except Exception as e:
-        gateway_logger.log_error(f"Explicit chatbot health proxy failed: {str(e)}")
-        raise
-
-# 챗봇 서비스 일반 프록시 (다른 경로들)
-@app.api_route("/chatbot/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"])
-async def chatbot_general_proxy(request: Request, path: str):
-    """챗봇 서비스 일반 프록시 - /chatbot/* 경로"""
-    full_path = f"chatbot/{path}"
-    gateway_logger.log_info(f"=== CHATBOT GENERAL PROXY ===")
-    gateway_logger.log_info(f"Full path: {full_path}")
-    gateway_logger.log_info(f"Request method: {request.method}")
-    
-    try:
-        result = await proxy_controller.proxy_request(request)
-        gateway_logger.log_info(f"Chatbot general proxy completed: {full_path} → {result.status_code}")
-        return result
-    except Exception as e:
-        gateway_logger.log_error(f"Chatbot general proxy failed: {full_path} - {str(e)}")
-        raise
+# 중복된 챗봇 라우트 제거됨 - 위의 챗봇 프록시 라우트 사용
 
 # Input 데이터 업로드 엔드포인트
 @app.post("/input-data")
@@ -437,6 +453,19 @@ async def proxy_route(request: Request, path: str):
     if path == "" or path == "/":
         return {"message": "Gateway is running", "health_check": "/health"}
     
+    # 챗봇 경로는 이미 위에서 처리됨
+    if path.startswith("chatbot"):
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=404,
+            content={
+                "message": "Proxy route not found",
+                "path": path,
+                "supported_methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
+                "note": "Chatbot routes are handled by dedicated endpoints above"
+            }
+        )
+    
     # 프록시 요청 처리
     return await proxy_controller.proxy_request(request)
 
@@ -454,8 +483,8 @@ async def root():
             "routing": "/routing",
             "architecture": "/architecture",
             "documentation": "/docs",
-            "ai_processing": "/ai-process",
-            "feedback": "/feedback",
+            "ai_processing": "/datagather/ai-process",
+            "feedback": "/datagather/feedback",
             "data_upload": "/input-data, /output-data",
             "chatbot_chat": "/chatbot/chat",
             "chatbot_health": "/chatbot/health"

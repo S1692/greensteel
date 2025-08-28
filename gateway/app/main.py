@@ -16,13 +16,25 @@ ALLOWED_ORIGIN_REGEX = os.getenv("ALLOWED_ORIGIN_REGEX", "^https://.*\\.vercel\\
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
 # 서비스 URL 환경 변수
-CHATBOT_SERVICE_URL = os.getenv("CHATBOT_SERVICE_URL", "http://localhost:8084")
+CHATBOT_SERVICE_URL = os.getenv("CHATBOT_SERVICE_URL", "").strip()
+
+def _validate_upstream(name: str, url: str):
+    if not url:
+        raise RuntimeError(f"{name} is not set")
+    # If running on Railway, do not allow localhost upstreams
+    if os.getenv("RAILWAY_ENVIRONMENT") and "localhost" in url:
+        raise RuntimeError(f"{name} must be a public URL, not localhost: {url}")
+
+# 챗봇 업스트림 경로 설정
+CHATBOT_UPSTREAM_PATH = os.getenv("CHATBOT_UPSTREAM_PATH", "/chat")
 
 # CORS 허용 오리진 파싱
 allowed_origins = [origin.strip() for origin in ALLOWED_ORIGINS.split(",") if origin.strip()]
 
 async def _forward(target_service_url: str, target_path: str, request: Request) -> Response:
     """요청을 타겟 서비스로 전달하는 헬퍼 함수"""
+    _validate_upstream("CHATBOT_SERVICE_URL", target_service_url)
+    
     try:
         # 타겟 URL 구성
         target_url = f"{target_service_url.rstrip('/')}/{target_path.lstrip('/')}"
@@ -50,6 +62,13 @@ async def _forward(target_service_url: str, target_path: str, request: Request) 
             )
             
             gateway_logger.log_info(f"Forward response: {response.status_code}")
+            
+            # hop-by-hop 헤더 제거
+            for h in ["content-length", "transfer-encoding", "connection"]:
+                try:
+                    response.headers.pop(h, None)
+                except Exception:
+                    pass
             
             # 응답 반환
             return Response(
@@ -124,6 +143,19 @@ async def add_process_time_header(request: Request, call_next):
     response.headers["X-Process-Time"] = str(process_time)
     return response
 
+# 라우트 매칭 로거 미들웨어
+@app.middleware("http")
+async def log_matched_route(request: Request, call_next):
+    response = await call_next(request)
+    try:
+        route = request.scope.get("route")
+        route_path = getattr(route, "path", "(no route)")
+        route_methods = list(getattr(route, "methods", []))
+        gateway_logger.log_info(f"ROUTE_MATCH method={request.method} path={request.url.path} -> {route_path} {route_methods} status={response.status_code}")
+    except Exception:
+        pass
+    return response
+
 # 헬스체크 엔드포인트
 @app.get("/health")
 async def health_check():
@@ -148,19 +180,22 @@ async def robots():
     )
 
 # 챗봇 프록시 라우트
-@app.api_route("/chatbot/chat", methods=["POST", "OPTIONS"])
+@app.api_route("/chatbot/chat", methods=["POST","OPTIONS"])
 async def proxy_chatbot_chat(request: Request):
-    """챗봇 채팅 프록시 - /chatbot/chat → /chat"""
-    return await _forward(CHATBOT_SERVICE_URL, "/chat", request)
+    # use configurable upstream path
+    return await _forward(CHATBOT_SERVICE_URL, CHATBOT_UPSTREAM_PATH, request)
 
-@app.api_route("/chatbot/health", methods=["GET", "OPTIONS"])
+# Helpful GET handler for human testing to avoid falling into catch-all
+@app.get("/chatbot/chat")
+async def chatbot_chat_get_info():
+    return {"error":"Method Not Allowed","hint":"Use POST to /chatbot/chat","upstream": CHATBOT_SERVICE_URL, "path": CHATBOT_UPSTREAM_PATH}
+
+@app.api_route("/chatbot/health", methods=["GET","OPTIONS"])
 async def proxy_chatbot_health(request: Request):
-    """챗봇 헬스체크 프록시 - /chatbot/health → /health"""
     return await _forward(CHATBOT_SERVICE_URL, "/health", request)
 
-@app.api_route("/chatbot/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"])
+@app.api_route("/chatbot/{path:path}", methods=["GET","POST","PUT","DELETE","PATCH","HEAD","OPTIONS"])
 async def proxy_chatbot_general(request: Request, path: str):
-    """챗봇 일반 프록시 - /chatbot/* → /*"""
     return await _forward(CHATBOT_SERVICE_URL, f"/{path}", request)
 
 # Chatbot 서비스는 프록시 컨트롤러를 통해 처리됩니다
@@ -453,21 +488,19 @@ async def proxy_route(request: Request, path: str):
     if path == "" or path == "/":
         return {"message": "Gateway is running", "health_check": "/health"}
     
-    # 챗봇 경로는 이미 위에서 처리됨
-    if path.startswith("chatbot"):
+    # 프록시 요청 처리
+    try:
+        return await proxy_controller.proxy_request(request)
+    except Exception as e:
         from fastapi.responses import JSONResponse
         return JSONResponse(
             status_code=404,
             content={
                 "message": "Proxy route not found",
                 "path": path,
-                "supported_methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
-                "note": "Chatbot routes are handled by dedicated endpoints above"
+                "supported_methods": ["GET","POST","PUT","DELETE","PATCH","HEAD","OPTIONS"]
             }
         )
-    
-    # 프록시 요청 처리
-    return await proxy_controller.proxy_request(request)
 
 # 루트 경로
 @app.get("/")
@@ -498,6 +531,26 @@ async def root():
         ]
     }
 
+# 디버깅 엔드포인트
+@app.get("/_debug/routes")
+async def debug_routes():
+    from fastapi.routing import APIRoute
+    return {
+        "routes": [
+            {"path": r.path, "methods": list(getattr(r, "methods", []))}
+            for r in app.router.routes if isinstance(r, APIRoute)
+        ],
+        "chatbot_service_url": CHATBOT_SERVICE_URL,
+        "chatbot_upstream_path": CHATBOT_UPSTREAM_PATH
+    }
+
+@app.get("/_debug/ping-chatbot")
+async def ping_chatbot():
+    _validate_upstream("CHATBOT_SERVICE_URL", CHATBOT_SERVICE_URL)
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.get(f"{CHATBOT_SERVICE_URL.rstrip('/')}/health")
+    return {"status": resp.status_code, "body": resp.text[:300]}
+
 # 예외 처리
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc):
@@ -526,3 +579,8 @@ if __name__ == "__main__":
         reload=False,
         proxy_headers=True
     )
+
+# Verification steps:
+# curl -sS https://<gateway>/_debug/routes | jq
+# curl -sS https://<gateway>/_debug/ping-chatbot | jq
+# curl -sS -H 'Content-Type: application/json' -d '{"message":"ping","context":"dashboard","session_id":"s1","user_id":"u1"}' https://<gateway>/chatbot/chat | jq

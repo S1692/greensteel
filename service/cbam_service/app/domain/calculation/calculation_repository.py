@@ -1,73 +1,97 @@
 # ============================================================================
-# 🧮 Calculation Repository - Product 데이터 접근
+# 📦 Calculation Repository - Product 데이터 접근
 # ============================================================================
 
 import logging
-from typing import Optional, List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime
-from sqlalchemy import text
-from app.common.database_base import create_database_engine, get_db_session
+import psycopg2
+from psycopg2.extras import RealDictCursor
+import os
 
 logger = logging.getLogger(__name__)
 
 class CalculationRepository:
     """Product 데이터 접근 클래스"""
     
-    def __init__(self, use_database: bool = True):
-        self.use_database = use_database
-        self._memory_products: Dict[int, Dict[str, Any]] = {}
+    def __init__(self):
+        self.database_url = os.getenv('DATABASE_URL')
+        if not self.database_url:
+            logger.warning("DATABASE_URL 환경변수가 설정되지 않았습니다. 데이터베이스 기능이 제한됩니다.")
+            # 데이터베이스 URL이 없어도 서비스는 계속 실행
+            return
         
-        if self.use_database:
-            logger.info("✅ PostgreSQL Product 저장소 사용")
+        try:
             self._initialize_database()
-        else:
-            logger.info("✅ 메모리 Product 저장소 사용")
-            self._initialize_memory_data()
+        except Exception as e:
+            logger.error(f"데이터베이스 초기화 실패: {e}")
+            # 초기화 실패해도 서비스는 계속 실행
     
+    def _check_database_connection(self) -> bool:
+        """데이터베이스 연결 상태 확인"""
+        if not self.database_url:
+            logger.error("DATABASE_URL이 설정되지 않았습니다.")
+            return False
+            
+        try:
+            import psycopg2
+            conn = psycopg2.connect(self.database_url)
+            conn.close()
+            return True
+        except Exception as e:
+            logger.error(f"데이터베이스 연결 실패: {e}")
+            return False
+
     def _initialize_database(self):
         """데이터베이스 초기화"""
+        if not self.database_url:
+            logger.warning("DATABASE_URL이 없어 데이터베이스 초기화를 건너뜁니다.")
+            return
+            
         try:
-            self.engine = create_database_engine()
+            import psycopg2
+            from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+            
+            # 데이터베이스 연결 테스트
+            conn = psycopg2.connect(self.database_url)
+            conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+            conn.close()
+            
+            logger.info("✅ 데이터베이스 연결 성공")
             self._create_tables()
-            logger.info("✅ Product 저장소 데이터베이스 엔진 초기화 완료")
+            
         except Exception as e:
-            logger.error(f"❌ 데이터베이스 초기화 실패: {str(e)}")
-            logger.info("메모리 저장소로 폴백")
-            self.use_database = False
-            self._initialize_memory_data()
+            logger.error(f"❌ 데이터베이스 연결 실패: {str(e)}")
+            # 연결 실패해도 서비스는 계속 실행
+            logger.warning("데이터베이스 연결 실패로 인해 일부 기능이 제한됩니다.")
     
     def _create_tables(self):
         """필요한 테이블들을 생성합니다"""
         try:
-            with self.engine.connect() as conn:
-                # 제품 테이블 생성 (create_all_tables.py와 정확히 동일한 스키마)
-                conn.execute(text("""
-                    CREATE TABLE IF NOT EXISTS product (
-                        id SERIAL PRIMARY KEY,
-                        name VARCHAR(255) NOT NULL,
-                        cn_code VARCHAR(50),
-                        period_start DATE,
-                        period_end DATE,
-                        production_qty DECIMAL(10,2) DEFAULT 0,
-                        sales_qty DECIMAL(10,2) DEFAULT 0,
-                        export_qty DECIMAL(10,2) DEFAULT 0,
-                        inventory_qty DECIMAL(10,2) DEFAULT 0,
-                        defect_rate DECIMAL(5,4) DEFAULT 0,
-                        node_id VARCHAR(255) NULL,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                """))
+            import psycopg2
+            from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+            
+            conn = psycopg2.connect(self.database_url)
+            conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+            
+            with conn.cursor() as cursor:
+                # product 테이블이 이미 존재하는지 확인
+                cursor.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_name = 'product'
+                    );
+                """)
+                
+                if not cursor.fetchone()[0]:
+                    logger.info("⚠️ product 테이블이 존재하지 않습니다. 수동으로 생성해주세요.")
                 
                 conn.commit()
-                logger.info("✅ 데이터베이스 테이블 생성 완료")
+                logger.info("✅ 데이터베이스 테이블 확인 완료")
                 
         except Exception as e:
             logger.error(f"❌ 테이블 생성 실패: {str(e)}")
             raise
-    
-    def _initialize_memory_data(self):
-        """메모리 데이터 초기화"""
-        logger.info("✅ 메모리 Product 저장소 초기화 완료")
     
     # ============================================================================
     # 📦 Product 관련 메서드
@@ -75,208 +99,1092 @@ class CalculationRepository:
     
     async def create_product(self, product_data: Dict[str, Any]) -> Dict[str, Any]:
         """제품 생성"""
+        if not self.database_url:
+            raise Exception("데이터베이스가 연결되지 않았습니다.")
         try:
-            if self.use_database:
-                return await self._create_product_db(product_data)
-            else:
-                return self._create_product_memory(product_data)
+            return await self._create_product_db(product_data)
         except Exception as e:
             logger.error(f"❌ 제품 생성 실패: {str(e)}")
             raise
     
     async def get_products(self) -> List[Dict[str, Any]]:
         """제품 목록 조회"""
+        if not self.database_url:
+            raise Exception("데이터베이스가 연결되지 않았습니다.")
         try:
-            if self.use_database:
-                return await self._get_products_db()
-            else:
-                return self._get_products_memory()
+            return await self._get_products_db()
         except Exception as e:
             logger.error(f"❌ 제품 목록 조회 실패: {str(e)}")
-            return []
-    
-    async def _create_product_db(self, product_data: Dict[str, Any]) -> Dict[str, Any]:
-        """PostgreSQL에 제품 저장"""
-        try:
-            with self.engine.connect() as conn:
-                # 날짜 검증 및 정리
-                cleaned_data = self._clean_product_data(product_data)
-                
-                # 먼저 테이블 구조 확인
-                result = conn.execute(text("""
-                    SELECT column_name 
-                    FROM information_schema.columns 
-                    WHERE table_name = 'product'
-                """))
-                columns = [row[0] for row in result.fetchall()]
-                
-                # created_at 컬럼이 있는지 확인
-                has_created_at = 'created_at' in columns
-                
-                if has_created_at:
-                    query = text("""
-                        INSERT INTO product (name, cn_code, period_start, period_end, production_qty, sales_qty, export_qty, inventory_qty, defect_rate, node_id)
-                        VALUES (:name, :cn_code, :period_start, :period_end, :production_qty, :sales_qty, :export_qty, :inventory_qty, :defect_rate, :node_id)
-                        RETURNING id, name, cn_code, period_start, period_end, production_qty, sales_qty, export_qty, inventory_qty, defect_rate, node_id, created_at
-                    """)
-                else:
-                    query = text("""
-                        INSERT INTO product (name, cn_code, period_start, period_end, production_qty, sales_qty, export_qty, inventory_qty, defect_rate, node_id)
-                        VALUES (:name, :cn_code, :period_start, :period_end, :production_qty, :sales_qty, :export_qty, :inventory_qty, :defect_rate, :node_id)
-                        RETURNING id, name, cn_code, period_start, period_end, production_qty, sales_qty, export_qty, inventory_qty, defect_rate, node_id
-                    """)
-                
-                result = conn.execute(query, cleaned_data)
-                row = result.fetchone()
-                conn.commit()
-                
-                if row:
-                    response_data = {
-                        "id": row[0],
-                        "name": row[1],
-                        "cn_code": row[2],
-                        "period_start": row[3].isoformat() if row[3] else None,
-                        "period_end": row[4].isoformat() if row[4] else None,
-                        "production_qty": float(row[5]) if row[5] else 0,
-                        "sales_qty": float(row[6]) if row[6] else 0,
-                        "export_qty": float(row[7]) if row[7] else 0,
-                        "inventory_qty": float(row[8]) if row[8] else 0,
-                        "defect_rate": float(row[9]) if row[9] else 0,
-                        "node_id": row[10],
-                    }
-                    
-                    # created_at 컬럼이 있으면 추가
-                    if has_created_at and len(row) > 11:
-                        response_data["created_at"] = row[11].isoformat() if row[11] else None
-                    else:
-                        response_data["created_at"] = datetime.utcnow().isoformat()
-                    
-                    return response_data
-                return None
-        except Exception as e:
-            logger.error(f"❌ PostgreSQL 제품 저장 실패: {str(e)}")
             raise
     
-    def _clean_product_data(self, product_data: Dict[str, Any]) -> Dict[str, Any]:
-        """제품 데이터 정리 및 검증"""
-        cleaned_data = product_data.copy()
-        
-        # node_id가 없으면 기본값 설정
-        if 'node_id' not in cleaned_data or cleaned_data['node_id'] is None:
-            cleaned_data['node_id'] = 'default'
-        
-        # 날짜 검증 및 정리
+    async def get_product_names(self) -> List[Dict[str, Any]]:
+        """제품명 목록 조회 (드롭다운용)"""
+        if not self.database_url:
+            raise Exception("데이터베이스가 연결되지 않았습니다.")
         try:
-            # period_start 검증
-            if cleaned_data.get('period_start'):
-                start_date = str(cleaned_data['period_start'])
-                # 잘못된 날짜 형식 수정 (예: 200003-03-04 → 2000-03-04)
-                if len(start_date) > 10:
-                    start_date = start_date[:10]
-                if start_date.count('-') == 2:
-                    parts = start_date.split('-')
-                    if len(parts[0]) > 4:  # 연도가 4자리보다 큰 경우
-                        parts[0] = parts[0][:4]
-                    cleaned_data['period_start'] = '-'.join(parts)
-            
-            # period_end 검증
-            if cleaned_data.get('period_end'):
-                end_date = str(cleaned_data['period_end'])
-                # 잘못된 날짜 형식 수정
-                if len(end_date) > 10:
-                    end_date = end_date[:10]
-                if end_date.count('-') == 2:
-                    parts = end_date.split('-')
-                    if len(parts[0]) > 4:  # 연도가 4자리보다 큰 경우
-                        parts[0] = parts[0][:4]
-                    cleaned_data['period_end'] = '-'.join(parts)
-            
-            # 숫자 필드 검증
-            numeric_fields = ['production_qty', 'sales_qty', 'export_qty', 'inventory_qty', 'defect_rate']
-            for field in numeric_fields:
-                if field in cleaned_data and cleaned_data[field] is not None:
-                    try:
-                        cleaned_data[field] = float(cleaned_data[field])
-                    except (ValueError, TypeError):
-                        cleaned_data[field] = 0.0
-            
-            logger.info(f"✅ 제품 데이터 정리 완료: {cleaned_data}")
-            
+            return await self._get_product_names_db()
         except Exception as e:
-            logger.warning(f"⚠️ 제품 데이터 정리 중 경고: {str(e)}")
+            logger.error(f"❌ 제품명 목록 조회 실패: {str(e)}")
+            raise
+    
+    async def get_product(self, product_id: int) -> Optional[Dict[str, Any]]:
+        """특정 제품 조회"""
+        if not self.database_url:
+            raise Exception("데이터베이스가 연결되지 않았습니다.")
+        try:
+            return await self._get_product_db(product_id)
+        except Exception as e:
+            logger.error(f"❌ 제품 조회 실패: {str(e)}")
+            raise
+    
+    async def update_product(self, product_id: int, update_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """제품 수정"""
+        if not self.database_url:
+            raise Exception("데이터베이스가 연결되지 않았습니다.")
+        try:
+            return await self._update_product_db(product_id, update_data)
+        except Exception as e:
+            logger.error(f"❌ 제품 수정 실패: {str(e)}")
+            raise
+    
+    async def delete_product(self, product_id: int) -> bool:
+        """제품 삭제"""
+        if not self.database_url:
+            raise Exception("데이터베이스가 연결되지 않았습니다.")
         
-        return cleaned_data
+        if not self._check_database_connection():
+            raise Exception("데이터베이스 연결에 실패했습니다.")
+            
+        try:
+            return await self._delete_product_db(product_id)
+        except Exception as e:
+            logger.error(f"❌ 제품 삭제 실패: {str(e)}")
+            raise
+
+    # ============================================================================
+    # 🏭 Install 관련 메서드
+    # ============================================================================
+    
+    async def create_install(self, install_data: Dict[str, Any]) -> Dict[str, Any]:
+        """사업장 생성"""
+        if not self.database_url:
+            raise Exception("데이터베이스가 연결되지 않았습니다.")
+        try:
+            return await self._create_install_db(install_data)
+        except Exception as e:
+            logger.error(f"❌ 사업장 생성 실패: {str(e)}")
+            raise
+    
+    async def get_installs(self) -> List[Dict[str, Any]]:
+        """사업장 목록 조회"""
+        if not self.database_url:
+            raise Exception("데이터베이스가 연결되지 않았습니다.")
+        try:
+            return await self._get_installs_db()
+        except Exception as e:
+            logger.error(f"❌ 사업장 목록 조회 실패: {str(e)}")
+            raise
+    
+    async def get_install_names(self) -> List[Dict[str, Any]]:
+        """사업장명 목록 조회 (드롭다운용)"""
+        if not self.database_url:
+            raise Exception("데이터베이스가 연결되지 않았습니다.")
+        try:
+            return await self._get_install_names_db()
+        except Exception as e:
+            logger.error(f"❌ 사업장명 목록 조회 실패: {str(e)}")
+            raise
+    
+    async def get_install(self, install_id: int) -> Optional[Dict[str, Any]]:
+        """특정 사업장 조회"""
+        if not self.database_url:
+            raise Exception("데이터베이스가 연결되지 않았습니다.")
+        try:
+            return await self._get_install_db(install_id)
+        except Exception as e:
+            logger.error(f"❌ 사업장 조회 실패: {str(e)}")
+            raise
+    
+    async def update_install(self, install_id: int, update_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """사업장 수정"""
+        if not self.database_url:
+            raise Exception("데이터베이스가 연결되지 않았습니다.")
+        try:
+            return await self._update_install_db(install_id, update_data)
+        except Exception as e:
+            logger.error(f"❌ 사업장 수정 실패: {str(e)}")
+            raise
+    
+    async def delete_install(self, install_id: int) -> bool:
+        """사업장 삭제"""
+        try:
+            return await self._delete_install_db(install_id)
+        except Exception as e:
+            logger.error(f"❌ 사업장 삭제 실패: {str(e)}")
+            raise
+
+    # ============================================================================
+    # 🔄 Process 관련 메서드
+    # ============================================================================
+    
+    async def create_process(self, process_data: Dict[str, Any]) -> Dict[str, Any]:
+        """프로세스 생성"""
+        try:
+            return await self._create_process_db(process_data)
+        except Exception as e:
+            logger.error(f"❌ 프로세스 생성 실패: {str(e)}")
+            raise
+    
+    async def get_processes(self) -> List[Dict[str, Any]]:
+        """프로세스 목록 조회"""
+        try:
+            return await self._get_processes_db()
+        except Exception as e:
+            logger.error(f"❌ 프로세스 목록 조회 실패: {str(e)}")
+            raise
+    
+    async def get_process(self, process_id: int) -> Optional[Dict[str, Any]]:
+        """특정 프로세스 조회"""
+        try:
+            return await self._get_process_db(process_id)
+        except Exception as e:
+            logger.error(f"❌ 프로세스 조회 실패: {str(e)}")
+            raise
+    
+    async def update_process(self, process_id: int, update_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """프로세스 수정"""
+        try:
+            return await self._update_process_db(process_id, update_data)
+        except Exception as e:
+            logger.error(f"❌ 프로세스 수정 실패: {str(e)}")
+            raise
+    
+    async def delete_process(self, process_id: int) -> bool:
+        """프로세스 삭제"""
+        try:
+            return await self._delete_process_db(process_id)
+        except Exception as e:
+            logger.error(f"❌ 프로세스 삭제 실패: {str(e)}")
+            raise
+    
+    # ============================================================================
+    # 📥 ProcessInput 관련 메서드
+    # ============================================================================
+
+    async def create_process_input(self, process_input_data: Dict[str, Any]) -> Dict[str, Any]:
+        """프로세스 입력 생성"""
+        if not self.database_url:
+            raise Exception("데이터베이스가 연결되지 않았습니다.")
+        try:
+            return await self._create_process_input_db(process_input_data)
+        except Exception as e:
+            logger.error(f"❌ 프로세스 입력 생성 실패: {str(e)}")
+            raise
+
+    async def get_process_inputs(self) -> List[Dict[str, Any]]:
+        """프로세스 입력 목록 조회"""
+        if not self.database_url:
+            raise Exception("데이터베이스가 연결되지 않았습니다.")
+        try:
+            return await self._get_process_inputs_db()
+        except Exception as e:
+            logger.error(f"❌ 프로세스 입력 목록 조회 실패: {str(e)}")
+            raise
+
+    async def get_process_inputs_by_process(self, process_id: int) -> List[Dict[str, Any]]:
+        """특정 프로세스의 입력 목록 조회"""
+        if not self.database_url:
+            raise Exception("데이터베이스가 연결되지 않았습니다.")
+        try:
+            return await self._get_process_inputs_by_process_db(process_id)
+        except Exception as e:
+            logger.error(f"❌ 프로세스 입력 조회 실패: {str(e)}")
+            raise
+
+    async def get_process_input(self, process_input_id: int) -> Optional[Dict[str, Any]]:
+        """특정 프로세스 입력 조회"""
+        if not self.database_url:
+            raise Exception("데이터베이스가 연결되지 않았습니다.")
+        try:
+            return await self._get_process_input_db(process_input_id)
+        except Exception as e:
+            logger.error(f"❌ 프로세스 입력 조회 실패: {str(e)}")
+            raise
+
+    async def update_process_input(self, process_input_id: int, update_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """프로세스 입력 수정"""
+        if not self.database_url:
+            raise Exception("데이터베이스가 연결되지 않았습니다.")
+        try:
+            return await self._update_process_input_db(process_input_id, update_data)
+        except Exception as e:
+            logger.error(f"❌ 프로세스 입력 수정 실패: {str(e)}")
+            raise
+
+    async def update_process_input_emission(self, process_input_id: int, direct_emission: Optional[float] = None, indirect_emission: Optional[float] = None) -> bool:
+        """프로세스 입력 배출량 업데이트"""
+        if not self.database_url:
+            raise Exception("데이터베이스가 연결되지 않았습니다.")
+        try:
+            return await self._update_process_input_emission_db(process_input_id, direct_emission, indirect_emission)
+        except Exception as e:
+            logger.error(f"❌ 프로세스 입력 배출량 업데이트 실패: {str(e)}")
+            raise
+
+    async def delete_process_input(self, process_input_id: int) -> bool:
+        """프로세스 입력 삭제"""
+        try:
+            return await self._delete_process_input_db(process_input_id)
+        except Exception as e:
+            logger.error(f"❌ 프로세스 입력 삭제 실패: {str(e)}")
+            raise
+
+    async def get_processes_by_product(self, product_id: int) -> List[Dict[str, Any]]:
+        """제품별 프로세스 목록 조회"""
+        if not self.database_url:
+            raise Exception("데이터베이스가 연결되지 않았습니다.")
+        try:
+            return await self._get_processes_by_product_db(product_id)
+        except Exception as e:
+            logger.error(f"❌ 제품별 프로세스 조회 실패: {str(e)}")
+            raise
+
+    # ============================================================================
+    # 🗄️ Database 메서드들
+    # ============================================================================
+    
+    async def _create_product_db(self, product_data: Dict[str, Any]) -> Dict[str, Any]:
+        """데이터베이스에 제품 생성"""
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        conn = psycopg2.connect(self.database_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    INSERT INTO product (
+                        install_id, product_name, product_category, 
+                        prostart_period, proend_period, product_amount,
+                        product_cncode, goods_name, aggrgoods_name,
+                        product_sell, product_eusell
+                    ) VALUES (
+                        %(install_id)s, %(product_name)s, %(product_category)s,
+                        %(prostart_period)s, %(proend_period)s, %(product_amount)s,
+                        %(product_cncode)s, %(goods_name)s, %(aggrgoods_name)s,
+                        %(product_sell)s, %(product_eusell)s
+                    ) RETURNING *
+                """, product_data)
+                
+                result = cursor.fetchone()
+                conn.commit()
+                
+                if result:
+                    product_dict = dict(result)
+                    # datetime.date 객체를 문자열로 변환
+                    if 'prostart_period' in product_dict and product_dict['prostart_period']:
+                        product_dict['prostart_period'] = product_dict['prostart_period'].isoformat()
+                    if 'proend_period' in product_dict and product_dict['proend_period']:
+                        product_dict['proend_period'] = product_dict['proend_period'].isoformat()
+                    return product_dict
+                else:
+                    raise Exception("제품 생성에 실패했습니다.")
+                    
+        except Exception as e:
+            conn.rollback()
+            raise e
+        finally:
+            conn.close()
+
+    async def _create_install_db(self, install_data: Dict[str, Any]) -> Dict[str, Any]:
+        """데이터베이스에 사업장 생성"""
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        conn = psycopg2.connect(self.database_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    INSERT INTO install (
+                        name
+                    ) VALUES (
+                        %(name)s
+                    ) RETURNING *
+                """, install_data)
+                
+                result = cursor.fetchone()
+                conn.commit()
+                
+                if result:
+                    install_dict = dict(result)
+                    return install_dict
+                else:
+                    raise Exception("사업장 생성에 실패했습니다.")
+                    
+        except Exception as e:
+            conn.rollback()
+            raise e
+        finally:
+            conn.close()
+
+    async def _get_installs_db(self) -> List[Dict[str, Any]]:
+        """데이터베이스에서 사업장 목록 조회"""
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        conn = psycopg2.connect(self.database_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT * FROM install ORDER BY id
+                """)
+                
+                results = cursor.fetchall()
+                installs = []
+                for row in results:
+                    install_dict = dict(row)
+                    installs.append(install_dict)
+                
+                return installs
+                
+        except Exception as e:
+            raise e
+        finally:
+            conn.close()
+    
+    async def _get_install_names_db(self) -> List[Dict[str, Any]]:
+        """데이터베이스에서 사업장명 목록 조회 (드롭다운용)"""
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        conn = psycopg2.connect(self.database_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT id, name FROM install ORDER BY name
+                """)
+                
+                results = cursor.fetchall()
+                install_names = []
+                for row in results:
+                    install_names.append(dict(row))
+                
+                return install_names
+                
+        except Exception as e:
+            raise e
+        finally:
+            conn.close()
+    
+    async def _get_install_db(self, install_id: int) -> Optional[Dict[str, Any]]:
+        """데이터베이스에서 특정 사업장 조회"""
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        conn = psycopg2.connect(self.database_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT * FROM install WHERE id = %s
+                """, (install_id,))
+                
+                result = cursor.fetchone()
+                if result:
+                    install_dict = dict(result)
+                    return install_dict
+                return None
+                
+        except Exception as e:
+            raise e
+        finally:
+            conn.close()
+    
+    async def _update_install_db(self, install_id: int, update_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """데이터베이스에서 사업장 수정"""
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        conn = psycopg2.connect(self.database_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                # 동적으로 SET 절 생성
+                set_clause = ", ".join([f"{key} = %s" for key in update_data.keys()])
+                values = list(update_data.values()) + [install_id]
+                
+                cursor.execute(f"""
+                    UPDATE install SET {set_clause} 
+                    WHERE id = %s RETURNING *
+                """, values)
+                
+                result = cursor.fetchone()
+                conn.commit()
+                
+                if result:
+                    install_dict = dict(result)
+                    return install_dict
+                return None
+                
+        except Exception as e:
+            conn.rollback()
+            raise e
+        finally:
+            conn.close()
+    
+    async def _delete_install_db(self, install_id: int) -> bool:
+        """데이터베이스에서 사업장 삭제 (연결된 제품들도 함께 삭제)"""
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+
+        conn = psycopg2.connect(self.database_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+
+        try:
+            with conn.cursor() as cursor:
+                # 1. 해당 사업장의 제품들의 프로세스 입력 데이터 삭제
+                cursor.execute("""
+                    DELETE FROM process_input 
+                    WHERE process_id IN (
+                        SELECT p.id FROM process p 
+                        JOIN product pr ON p.product_id = pr.id 
+                        WHERE pr.install_id = %s
+                    )
+                """, (install_id,))
+                logger.info(f"🗑️ 사업장 {install_id}의 프로세스 입력 데이터 삭제 완료")
+
+                # 2. 해당 사업장의 프로세스들 삭제
+                cursor.execute("""
+                    DELETE FROM process 
+                    WHERE product_id IN (
+                        SELECT id FROM product WHERE install_id = %s
+                    )
+                """, (install_id,))
+                logger.info(f"🗑️ 사업장 {install_id}의 프로세스들 삭제 완료")
+
+                # 3. 해당 사업장의 제품들 삭제
+                cursor.execute("""
+                    DELETE FROM product WHERE install_id = %s
+                """, (install_id,))
+                logger.info(f"🗑️ 사업장 {install_id}의 제품들 삭제 완료")
+
+                # 4. 마지막으로 사업장 삭제
+                cursor.execute("""
+                    DELETE FROM install WHERE id = %s
+                """, (install_id,))
+
+                conn.commit()
+                deleted = cursor.rowcount > 0
+                
+                if deleted:
+                    logger.info(f"✅ 사업장 {install_id} 삭제 성공")
+                else:
+                    logger.warning(f"⚠️ 사업장 {install_id}를 찾을 수 없음")
+                
+                return deleted
+
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"❌ 사업장 삭제 중 오류 발생: {str(e)}")
+            raise e
+        finally:
+            conn.close()
+
+    # ============================================================================
+    # 🔄 Process Database 메서드들
+    # ============================================================================
+    
+    async def _create_process_db(self, process_data: Dict[str, Any]) -> Dict[str, Any]:
+        """데이터베이스에 프로세스 생성"""
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        conn = psycopg2.connect(self.database_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    INSERT INTO process (
+                        product_id, process_name, start_period, end_period
+                    ) VALUES (
+                        %(product_id)s, %(process_name)s, %(start_period)s, %(end_period)s
+                    ) RETURNING *
+                """, process_data)
+                
+                result = cursor.fetchone()
+                conn.commit()
+                
+                if result:
+                    process_dict = dict(result)
+                    # datetime.date 객체를 문자열로 변환
+                    if 'start_period' in process_dict and process_dict['start_period']:
+                        process_dict['start_period'] = process_dict['start_period'].isoformat()
+                    if 'end_period' in process_dict and process_dict['end_period']:
+                        process_dict['end_period'] = process_dict['end_period'].isoformat()
+                    return process_dict
+                else:
+                    raise Exception("프로세스 생성에 실패했습니다.")
+                    
+        except Exception as e:
+            conn.rollback()
+            raise e
+        finally:
+            conn.close()
+    
+    async def _get_processes_db(self) -> List[Dict[str, Any]]:
+        """데이터베이스에서 프로세스 목록 조회"""
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        conn = psycopg2.connect(self.database_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT * FROM process ORDER BY id
+                """)
+                
+                results = cursor.fetchall()
+                processes = []
+                for row in results:
+                    process_dict = dict(row)
+                    # datetime.date 객체를 문자열로 변환
+                    if 'start_period' in process_dict and process_dict['start_period']:
+                        process_dict['start_period'] = process_dict['start_period'].isoformat()
+                    if 'end_period' in process_dict and process_dict['end_period']:
+                        process_dict['end_period'] = process_dict['end_period'].isoformat()
+                    processes.append(process_dict)
+                
+                return processes
+                
+        except Exception as e:
+            raise e
+        finally:
+            conn.close()
+    
+    async def _get_process_db(self, process_id: int) -> Optional[Dict[str, Any]]:
+        """데이터베이스에서 특정 프로세스 조회"""
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        conn = psycopg2.connect(self.database_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT * FROM process WHERE id = %s
+                """, (process_id,))
+                
+                result = cursor.fetchone()
+                if result:
+                    process_dict = dict(result)
+                    # datetime.date 객체를 문자열로 변환
+                    if 'start_period' in process_dict and process_dict['start_period']:
+                        process_dict['start_period'] = process_dict['start_period'].isoformat()
+                    if 'end_period' in process_dict and process_dict['end_period']:
+                        process_dict['end_period'] = process_dict['end_period'].isoformat()
+                    return process_dict
+                return None
+                
+        except Exception as e:
+            raise e
+        finally:
+            conn.close()
+    
+    async def _update_process_db(self, process_id: int, update_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """데이터베이스에서 프로세스 수정"""
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        conn = psycopg2.connect(self.database_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                # 동적으로 SET 절 생성
+                set_clause = ", ".join([f"{key} = %s" for key in update_data.keys()])
+                values = list(update_data.values()) + [process_id]
+                
+                cursor.execute(f"""
+                    UPDATE process SET {set_clause} 
+                    WHERE id = %s RETURNING *
+                """, values)
+                
+                result = cursor.fetchone()
+                conn.commit()
+                
+                if result:
+                    process_dict = dict(result)
+                    # datetime.date 객체를 문자열로 변환
+                    if 'start_period' in process_dict and process_dict['start_period']:
+                        process_dict['start_period'] = process_dict['start_period'].isoformat()
+                    if 'end_period' in process_dict and process_dict['end_period']:
+                        process_dict['end_period'] = process_dict['end_period'].isoformat()
+                    return process_dict
+                return None
+                
+        except Exception as e:
+            conn.rollback()
+            raise e
+        finally:
+            conn.close()
+    
+    async def _delete_process_db(self, process_id: int) -> bool:
+        """데이터베이스에서 프로세스 삭제"""
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        conn = psycopg2.connect(self.database_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    DELETE FROM process WHERE id = %s
+                """, (process_id,))
+                
+                conn.commit()
+                return cursor.rowcount > 0
+                
+        except Exception as e:
+            conn.rollback()
+            raise e
+        finally:
+            conn.close()
     
     async def _get_products_db(self) -> List[Dict[str, Any]]:
-        """PostgreSQL에서 제품 목록 조회"""
+        """데이터베이스에서 제품 목록 조회"""
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        conn = psycopg2.connect(self.database_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        
         try:
-            with self.engine.connect() as conn:
-                # 먼저 테이블 구조 확인
-                result = conn.execute(text("""
-                    SELECT column_name 
-                    FROM information_schema.columns 
-                    WHERE table_name = 'product'
-                """))
-                columns = [row[0] for row in result.fetchall()]
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT * FROM product ORDER BY id
+                """)
                 
-                # created_at 컬럼이 있는지 확인
-                has_created_at = 'created_at' in columns
-                
-                if has_created_at:
-                    query = text("""
-                        SELECT id, name, cn_code, period_start, period_end, production_qty, sales_qty, export_qty, inventory_qty, defect_rate, node_id, created_at
-                        FROM product
-                        ORDER BY created_at DESC
-                    """)
-                else:
-                    query = text("""
-                        SELECT id, name, cn_code, period_start, period_end, production_qty, sales_qty, export_qty, inventory_qty, defect_rate, node_id
-                        FROM product
-                        ORDER BY id DESC
-                    """)
-                
-                result = conn.execute(query)
+                results = cursor.fetchall()
                 products = []
-                
-                for row in result:
-                    product_data = {
-                        "id": row[0],
-                        "name": row[1],
-                        "cn_code": row[2],
-                        "period_start": row[3].isoformat() if row[3] else None,
-                        "period_end": row[4].isoformat() if row[4] else None,
-                        "production_qty": float(row[5]) if row[5] else 0,
-                        "sales_qty": float(row[6]) if row[6] else 0,
-                        "export_qty": float(row[7]) if row[7] else 0,
-                        "inventory_qty": float(row[8]) if row[8] else 0,
-                        "defect_rate": float(row[9]) if row[9] else 0,
-                        "node_id": row[10],
-                    }
-                    
-                    # created_at 컬럼이 있으면 추가
-                    if has_created_at and len(row) > 11:
-                        product_data["created_at"] = row[11].isoformat() if row[11] else None
-                    else:
-                        product_data["created_at"] = datetime.utcnow().isoformat()
-                    
-                    products.append(product_data)
+                for row in results:
+                    product_dict = dict(row)
+                    # datetime.date 객체를 문자열로 변환
+                    if 'prostart_period' in product_dict and product_dict['prostart_period']:
+                        product_dict['prostart_period'] = product_dict['prostart_period'].isoformat()
+                    if 'proend_period' in product_dict and product_dict['proend_period']:
+                        product_dict['proend_period'] = product_dict['proend_period'].isoformat()
+                    products.append(product_dict)
                 
                 return products
+                
         except Exception as e:
-            logger.error(f"❌ PostgreSQL 제품 목록 조회 실패: {str(e)}")
-            return []
+            raise e
+        finally:
+            conn.close()
     
-    def _create_product_memory(self, product_data: Dict[str, Any]) -> Dict[str, Any]:
-        """메모리에 제품 저장"""
-        product_id = len(self._memory_products) + 1
-        product = {
-            **product_data,
-            "id": product_id,
-            "created_at": datetime.utcnow().isoformat()
-        }
-        self._memory_products[product_id] = product
-        return product
+    async def _get_product_names_db(self) -> List[Dict[str, Any]]:
+        """데이터베이스에서 제품명 목록 조회 (드롭다운용)"""
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        conn = psycopg2.connect(self.database_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT id, product_name FROM product ORDER BY product_name
+                """)
+                
+                results = cursor.fetchall()
+                product_names = []
+                for row in results:
+                    product_names.append(dict(row))
+                
+                return product_names
+                
+        except Exception as e:
+            raise e
+        finally:
+            conn.close()
     
-    def _get_products_memory(self) -> List[Dict[str, Any]]:
-        """메모리에서 제품 목록 조회"""
-        return list(self._memory_products.values())
+    async def _get_product_db(self, product_id: int) -> Optional[Dict[str, Any]]:
+        """데이터베이스에서 특정 제품 조회"""
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        conn = psycopg2.connect(self.database_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT * FROM product WHERE id = %s
+                """, (product_id,))
+                
+                result = cursor.fetchone()
+                if result:
+                    product_dict = dict(result)
+                    # datetime.date 객체를 문자열로 변환
+                    if 'prostart_period' in product_dict and product_dict['prostart_period']:
+                        product_dict['prostart_period'] = product_dict['prostart_period'].isoformat()
+                    if 'proend_period' in product_dict and product_dict['proend_period']:
+                        product_dict['proend_period'] = product_dict['proend_period'].isoformat()
+                    return product_dict
+                return None
+                
+        except Exception as e:
+            raise e
+        finally:
+            conn.close()
+    
+    async def _update_product_db(self, product_id: int, update_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """데이터베이스에서 제품 수정"""
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        conn = psycopg2.connect(self.database_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                # 동적으로 SET 절 생성
+                set_clause = ", ".join([f"{key} = %s" for key in update_data.keys()])
+                values = list(update_data.values()) + [product_id]
+                
+                cursor.execute(f"""
+                    UPDATE product SET {set_clause} 
+                    WHERE id = %s RETURNING *
+                """, values)
+                
+                result = cursor.fetchone()
+                conn.commit()
+                
+                if result:
+                    product_dict = dict(result)
+                    # datetime.date 객체를 문자열로 변환
+                    if 'prostart_period' in product_dict and product_dict['prostart_period']:
+                        product_dict['prostart_period'] = product_dict['prostart_period'].isoformat()
+                    if 'proend_period' in product_dict and product_dict['proend_period']:
+                        product_dict['proend_period'] = product_dict['proend_period'].isoformat()
+                    return product_dict
+                return None
+                
+        except Exception as e:
+            conn.rollback()
+            raise e
+        finally:
+            conn.close()
+    
+    async def _delete_product_db(self, product_id: int) -> bool:
+        """데이터베이스에서 제품 삭제"""
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        conn = psycopg2.connect(self.database_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        
+        try:
+            with conn.cursor() as cursor:
+                # 먼저 해당 제품이 존재하는지 확인
+                cursor.execute("""
+                    SELECT id, product_name FROM product WHERE id = %s
+                """, (product_id,))
+                
+                product = cursor.fetchone()
+                if not product:
+                    logger.warning(f"⚠️ 제품 ID {product_id}를 찾을 수 없습니다.")
+                    return False
+                
+                logger.info(f"🗑️ 제품 삭제 시작: ID {product_id}, 이름: {product[1]}")
+                
+                # 먼저 해당 제품과 연결된 프로세스들을 삭제
+                cursor.execute("""
+                    DELETE FROM process WHERE product_id = %s
+                """, (product_id,))
+                
+                deleted_processes = cursor.rowcount
+                logger.info(f"🗑️ 연결된 프로세스 {deleted_processes}개 삭제 완료")
+                
+                # 그 다음 제품 삭제
+                cursor.execute("""
+                    DELETE FROM product WHERE id = %s
+                """, (product_id,))
+                
+                deleted_products = cursor.rowcount
+                logger.info(f"🗑️ 제품 {deleted_products}개 삭제 완료")
+                
+                conn.commit()
+                return deleted_products > 0
+                
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"❌ 제품 삭제 중 오류 발생: {str(e)}")
+            raise e
+        finally:
+            conn.close()
+
+    # ============================================================================
+    # 📥 ProcessInput Database 메서드들
+    # ============================================================================
+
+    async def _create_process_input_db(self, process_input_data: Dict[str, Any]) -> Dict[str, Any]:
+        """데이터베이스에 프로세스 입력 생성"""
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        conn = psycopg2.connect(self.database_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    INSERT INTO process_input (
+                        process_id, input_name, input_value, direct_emission, indirect_emission
+                    ) VALUES (
+                        %(process_id)s, %(input_name)s, %(input_value)s, %(direct_emission)s, %(indirect_emission)s
+                    ) RETURNING *
+                """, process_input_data)
+                
+                result = cursor.fetchone()
+                conn.commit()
+                
+                if result:
+                    process_input_dict = dict(result)
+                    return process_input_dict
+                else:
+                    raise Exception("프로세스 입력 생성에 실패했습니다.")
+                    
+        except Exception as e:
+            conn.rollback()
+            raise e
+        finally:
+            conn.close()
+
+    async def _get_process_inputs_db(self) -> List[Dict[str, Any]]:
+        """데이터베이스에서 프로세스 입력 목록 조회"""
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        conn = psycopg2.connect(self.database_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT * FROM process_input ORDER BY id
+                """)
+                
+                results = cursor.fetchall()
+                process_inputs = []
+                for row in results:
+                    process_input_dict = dict(row)
+                    process_inputs.append(process_input_dict)
+                
+                return process_inputs
+                
+        except Exception as e:
+            raise e
+        finally:
+            conn.close()
+
+    async def _get_process_inputs_by_process_db(self, process_id: int) -> List[Dict[str, Any]]:
+        """데이터베이스에서 특정 프로세스의 입력 목록 조회"""
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        conn = psycopg2.connect(self.database_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT * FROM process_input WHERE process_id = %s ORDER BY id
+                """, (process_id,))
+                
+                results = cursor.fetchall()
+                process_inputs = []
+                for row in results:
+                    process_input_dict = dict(row)
+                    process_inputs.append(process_input_dict)
+                
+                return process_inputs
+                
+        except Exception as e:
+            raise e
+        finally:
+            conn.close()
+
+    async def _get_process_input_db(self, process_input_id: int) -> Optional[Dict[str, Any]]:
+        """데이터베이스에서 특정 프로세스 입력 조회"""
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        conn = psycopg2.connect(self.database_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT * FROM process_input WHERE id = %s
+                """, (process_input_id,))
+                
+                result = cursor.fetchone()
+                if result:
+                    process_input_dict = dict(result)
+                    return process_input_dict
+                return None
+                
+        except Exception as e:
+            raise e
+        finally:
+            conn.close()
+
+    async def _update_process_input_db(self, process_input_id: int, update_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """데이터베이스에서 프로세스 입력 수정"""
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        conn = psycopg2.connect(self.database_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                # 동적으로 SET 절 생성
+                set_clause = ", ".join([f"{key} = %s" for key in update_data.keys()])
+                values = list(update_data.values()) + [process_input_id]
+                
+                cursor.execute(f"""
+                    UPDATE process_input SET {set_clause} 
+                    WHERE id = %s RETURNING *
+                """, values)
+                
+                result = cursor.fetchone()
+                conn.commit()
+                
+                if result:
+                    process_input_dict = dict(result)
+                    return process_input_dict
+                return None
+                
+        except Exception as e:
+            conn.rollback()
+            raise e
+        finally:
+            conn.close()
+
+    async def _update_process_input_emission_db(self, process_input_id: int, direct_emission: Optional[float] = None, indirect_emission: Optional[float] = None) -> bool:
+        """데이터베이스에서 프로세스 입력 배출량 업데이트"""
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        conn = psycopg2.connect(self.database_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        
+        try:
+            with conn.cursor() as cursor:
+                update_clause = []
+                if direct_emission is not None:
+                    update_clause.append(f"direct_emission = {direct_emission}")
+                if indirect_emission is not None:
+                    update_clause.append(f"indirect_emission = {indirect_emission}")
+                
+                if not update_clause:
+                    return False # 변경된 내용이 없으면 False 반환
+                
+                set_clause = ", ".join(update_clause)
+                
+                cursor.execute(f"""
+                    UPDATE process_input SET {set_clause} 
+                    WHERE id = %s RETURNING *
+                """, (process_input_id,))
+                
+                result = cursor.fetchone()
+                conn.commit()
+                
+                if result:
+                    process_input_dict = dict(result)
+                    return True
+                return False
+                
+        except Exception as e:
+            conn.rollback()
+            raise e
+        finally:
+            conn.close()
+
+    async def _delete_process_input_db(self, process_input_id: int) -> bool:
+        """데이터베이스에서 프로세스 입력 삭제"""
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        conn = psycopg2.connect(self.database_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    DELETE FROM process_input WHERE id = %s
+                """, (process_input_id,))
+                
+                conn.commit()
+                return cursor.rowcount > 0
+                
+        except Exception as e:
+            conn.rollback()
+            raise e
+        finally:
+            conn.close()
+
+    async def _get_processes_by_product_db(self, product_id: int) -> List[Dict[str, Any]]:
+        """데이터베이스에서 제품별 프로세스 목록 조회"""
+        import psycopg2
+        from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+        
+        conn = psycopg2.connect(self.database_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT p.id, p.process_name, p.start_period, p.end_period,
+                           SUM(CASE WHEN pi.direct_emission IS NOT NULL THEN pi.direct_emission ELSE 0 END) AS total_direct_emission,
+                           SUM(CASE WHEN pi.indirect_emission IS NOT NULL THEN pi.indirect_emission ELSE 0 END) AS total_indirect_emission
+                    FROM process p
+                    LEFT JOIN process_input pi ON p.id = pi.process_id
+                    WHERE p.product_id = %s
+                    GROUP BY p.id, p.process_name, p.start_period, p.end_period
+                    ORDER BY p.id
+                """, (product_id,))
+                
+                results = cursor.fetchall()
+                processes = []
+                for row in results:
+                    process_dict = dict(row)
+                    # datetime.date 객체를 문자열로 변환
+                    if 'start_period' in process_dict and process_dict['start_period']:
+                        process_dict['start_period'] = process_dict['start_period'].isoformat()
+                    if 'end_period' in process_dict and process_dict['end_period']:
+                        process_dict['end_period'] = process_dict['end_period'].isoformat()
+                    processes.append(process_dict)
+                
+                return processes
+                
+        except Exception as e:
+            raise e
+        finally:
+            conn.close()

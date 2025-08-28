@@ -142,8 +142,12 @@ class ChatbotService:
         """지식 베이스에서 관련 정보 검색"""
         try:
             if not self.vectorstore or not self.knowledge_base_loaded:
-                chatbot_logger.warning("지식 베이스가 로드되지 않았습니다.")
-                return []
+                # 자동 초기화 시도
+                try:
+                    await self.initialize()
+                except Exception as e:
+                    chatbot_logger.error(f"자동 초기화 실패: {str(e)}")
+                    return []
             
             # 유사도 검색
             docs = self.vectorstore.similarity_search(query, k=top_k)
@@ -182,11 +186,9 @@ class ChatbotService:
                            user_id: Optional[str] = None) -> Dict[str, Any]:
         """사용자 메시지 처리 및 RAG 기반 AI 응답 생성"""
         try:
-            if not self.llm:
-                raise RuntimeError("ChatbotService가 초기화되지 않았습니다.")
-            
-            if not self.knowledge_base_loaded:
-                raise RuntimeError("지식 베이스가 로드되지 않았습니다.")
+            # 자동 초기화 (아직 초기화되지 않은 경우)
+            if not self.llm or not self.knowledge_base_loaded:
+                await self.initialize()
             
             # 세션 관리
             if not session_id:

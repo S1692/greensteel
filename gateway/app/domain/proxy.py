@@ -272,8 +272,15 @@ class ProxyController:
             method = request.method
             target_service = self.get_target_service(path)
             
+            # 챗봇 서비스 디버깅 로깅 추가
+            if path.startswith("/chatbot"):
+                gateway_logger.log_info(f"Chatbot request detected: {path}")
+                gateway_logger.log_info(f"Target service URL: {target_service}")
+                gateway_logger.log_info(f"Service map for /chatbot: {self.service_map.get('/chatbot')}")
+            
             if not target_service:
                 gateway_logger.log_error(f"No service configured for path: {path}")
+                gateway_logger.log_error(f"Available service prefixes: {list(self.service_map.keys())}")
                 raise HTTPException(
                     status_code=503, 
                     detail=f"Service not available for path: {path}. Please check service configuration."
@@ -327,7 +334,7 @@ class ProxyController:
         # 챗봇 서비스의 경우 특별한 경로 매핑
         if path.startswith("/chatbot"):
             if path == "/chatbot/chat":
-                target_url = f"{target_service}/api/v1/chatbot/chat"
+                target_url = f"{target_service}/chat"  # 올바른 경로로 수정
             elif path == "/chatbot/health":
                 target_url = f"{target_service}/health"
             else:

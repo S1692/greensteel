@@ -28,6 +28,7 @@ async def lifespan(app: FastAPI):
     gateway_logger.log_info(f"Gateway {GATEWAY_NAME} starting up...")
     gateway_logger.log_info("Architecture: DDD (Domain-Driven Design)")
     gateway_logger.log_info("Domain Services: Identity-Access, Carbon-Border, Data-Collection, Lifecycle-Inventory, AI-Assistant")
+    gateway_logger.log_info(f"Chatbot Service URL: {CHATBOT_SERVICE_URL}")
     yield
     # 종료 시
     gateway_logger.log_info(f"Gateway {GATEWAY_NAME} shutting down...")

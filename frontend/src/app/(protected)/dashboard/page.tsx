@@ -65,6 +65,9 @@ const DashboardPage: React.FC = () => {
           console.error('Gateway URL 환경변수가 설정되지 않았습니다.');
           return;
         }
+        
+        console.log('챗봇 API 호출 URL:', `${gatewayUrl}/chatbot/chat`); // 디버깅용
+        
         const response = await fetch(`${gatewayUrl}/chatbot/chat`, {
           method: 'POST',
           headers: {

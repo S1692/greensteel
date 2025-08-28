@@ -174,12 +174,6 @@ export const apiEndpoints = {
     byCode: '/api/v1/countries/code',
     byUnlocode: '/api/v1/countries/unlocode',
   },
-  // LCA Service (Gateway를 통해)
-  lca: {
-    projects: '/api/lci/projects',
-    calculations: '/api/lci/calculations',
-    templates: '/api/lci/templates',
-  },
   // CBAM Service (Gateway를 통해)
   cbam: {
     reports: '/api/cbam/reports',
@@ -243,6 +237,27 @@ export const apiEndpoints = {
     organization: '/api/settings/organization',
     users: '/api/settings/users',
     apiKeys: '/api/settings/api-keys',
+  },
+  // DataGather Service (Gateway를 통해)
+  datagather: {
+    aiProcess: '/datagather/ai-process',
+    feedback: '/datagather/feedback',
+    inputData: '/input-data',
+    outputData: '/output-data',
+    processData: '/process-data',
+    aiProcessStream: '/ai-process-stream',
+  },
+  // Chatbot Service (Gateway를 통해)
+  chatbot: {
+    chat: '/chatbot/chat',
+    health: '/chatbot/health',
+  },
+  // LCA Service (Gateway를 통해)
+  lca: {
+    health: '/lca/health',
+    projects: '/api/lci/projects',
+    calculations: '/api/lci/calculations',
+    templates: '/api/lci/templates',
   },
 } as const;
 

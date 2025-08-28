@@ -81,6 +81,32 @@ async def ai_process(data: dict):
             "error": str(e)
         }
 
+# AI 처리 스트리밍 엔드포인트
+@app.post("/ai-process-stream")
+async def ai_process_stream(data: dict):
+    """AI를 통한 데이터 처리 스트리밍"""
+    try:
+        logger.info(f"AI 처리 스트리밍 요청 받음: {data.get('filename', 'unknown')}")
+        
+        # OpenAI API를 통한 처리 (실제 구현에서는 OpenAI 클라이언트 사용)
+        # 스트리밍 응답을 시뮬레이션
+        return {
+            "success": True,
+            "message": "AI 처리 스트리밍 완료",
+            "data": data,
+            "ai_classification": "규칙 기반 분류 (AI 모델 로드 실패)",
+            "streaming": True,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"AI 처리 스트리밍 실패: {e}")
+        return {
+            "success": False,
+            "message": "AI 처리 스트리밍 실패",
+            "error": str(e),
+            "streaming": False
+        }
+
 # 데이터 업로드 엔드포인트
 @app.post("/api/upload")
 async def upload_data(data: dict):

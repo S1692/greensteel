@@ -37,6 +37,9 @@ export default function CBAMPage() {
   const [showProductForm, setShowProductForm] = useState(false);
   const [showProcessFormForProduct, setShowProcessFormForProduct] = useState<number | null>(null);
 
+  // 로딩 상태 표시
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // 제품 폼 상태
   const [productForm, setProductForm] = useState({
     product_name: '',
@@ -57,39 +60,75 @@ export default function CBAMPage() {
   });
 
   // 사업장 추가 함수
-  const handleAddBusinessSite = useCallback(() => {
+  const handleAddBusinessSite = useCallback(async () => {
     if (businessSiteName && reportingYear) {
-      const newSite = {
-        id: registeredSites.length > 0 ? Math.max(...registeredSites.map(site => site.id)) + 1 : 1,
-        name: businessSiteName,
-        reportingYear: reportingYear,
-      };
-      setRegisteredSites(prev => [...prev, newSite]);
-      setBusinessSiteName(''); // 입력 필드 초기화
-      setToast({
-        message: '사업장이 성공적으로 생성되었습니다!',
-        type: 'success'
-      });
-      setShowInstallModal(false); // 모달 닫기
+              try {
+          setIsSubmitting(true);
+          
+          const response = await axiosClient.post(apiEndpoints.cbam.install.create, {
+            name: businessSiteName,
+            reporting_year: parseInt(reportingYear)
+          });
+        
+        console.log('✅ 사업장 생성 성공:', response.data);
+        
+        // 새로 생성된 사업장을 목록에 추가
+        setRegisteredSites(prev => [...prev, response.data]);
+        setBusinessSiteName(''); // 입력 필드 초기화
+        setToast({
+          message: '사업장이 성공적으로 생성되었습니다!',
+          type: 'success'
+        });
+        setShowInstallModal(false); // 모달 닫기
+      } catch (error: any) {
+        console.error('❌ 사업장 생성 실패:', error);
+        setToast({
+          message: `사업장 생성에 실패했습니다: ${error.response?.data?.detail || error.message}`,
+          type: 'error'
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
     } else {
       setToast({
         message: '사업장명과 보고기간을 입력해주세요.',
         type: 'error'
       });
     }
-  }, [businessSiteName, reportingYear, registeredSites]);
+  }, [businessSiteName, reportingYear]);
 
   // 사업장 삭제 함수
-  const handleDeleteBusinessSite = useCallback((id: number) => {
-    setRegisteredSites(prev => prev.filter(site => site.id !== id));
-    setToast({
-      message: '사업장이 삭제되었습니다.',
-      type: 'info'
-    });
-  }, []);
-
-  // 제품 관리 모달 열기
-  const handleOpenProductModal = useCallback((install: any) => {
+  const handleDeleteBusinessSite = useCallback(async (id: number) => {
+    if (!confirm('정말로 이 사업장을 삭제하시겠습니까?')) {
+      return;
+    }
+    
+          try {
+        setIsSubmitting(true);
+        
+        await axiosClient.delete(apiEndpoints.cbam.install.delete(id));
+      
+      console.log('✅ 사업장 삭제 성공:', id);
+      
+      // 로컬 상태에서 제거
+      setRegisteredSites(prev => prev.filter(site => site.id !== id));
+      setToast({
+        message: '사업장이 삭제되었습니다.',
+        type: 'info'
+      });
+    } catch (error: any) {
+      console.error('❌ 사업장 삭제 실패:', error);
+      setToast({
+        message: `사업장 삭제에 실패했습니다: ${error.response?.data?.detail || error.message}`,
+        type: 'error'
+      });
+          } finally {
+        setIsSubmitting(false);
+      }
+    }, []);
+    
+    // 제품 관리 모달 열기
+    const handleOpenProductModal = useCallback((install: any) => {
     setSelectedInstallForProducts(install);
     setShowProductModal(true);
     // 해당 사업장의 제품과 공정 목록 불러오기
@@ -99,71 +138,74 @@ export default function CBAMPage() {
 
   // 사업장별 제품 목록 조회
   const fetchProductsByInstall = useCallback(async (installId: number) => {
-    // 목업 데이터 사용
-    const mockProducts = [
-      { 
-        id: 1, 
-        install_id: installId, 
-        product_name: '철강 제품 A', 
-        product_category: '단순제품',
-        prostart_period: '2024-01-01',
-        proend_period: '2024-12-31',
-        product_amount: 1000,
-        product_cncode: 'HS7208',
-        goods_name: '철강판',
-        aggrgoods_name: '열간압연철강판',
-        product_sell: 800,
-        product_eusell: 200
-      },
-      { 
-        id: 2, 
-        install_id: installId, 
-        product_name: '알루미늄 제품 B', 
-        product_category: '복합제품',
-        prostart_period: '2024-01-01',
-        proend_period: '2024-12-31',
-        product_amount: 500,
-        product_cncode: 'HS7606',
-        goods_name: '알루미늄판',
-        aggrgoods_name: '압연알루미늄판',
-        product_sell: 400,
-        product_eusell: 100
-      }
-    ];
-    
-    console.log('🔍 목업 제품 데이터:', mockProducts);
-    setProducts(mockProducts);
+    try {
+      setLoading(true);
+      
+      // 해당 사업장의 제품 목록 조회
+      const response = await axiosClient.get(apiEndpoints.cbam.product.list, {
+        params: { install_id: installId }
+      });
+      
+      console.log('✅ 제품 목록 조회 성공:', response.data);
+      setProducts(response.data);
+    } catch (error: any) {
+      console.error('❌ 제품 목록 조회 실패:', error);
+      setToast({
+        message: `제품 목록 조회에 실패했습니다: ${error.response?.data?.detail || error.message}`,
+        type: 'error'
+      });
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   // 사업장별 공정 목록 조회
   const fetchProcessesByInstall = useCallback(async (installId: number) => {
-    // 목업 데이터 사용
-    const mockProcesses = [
-      {
-        id: 1,
-        process_name: '압연 공정',
-        start_period: '2024-01-01',
-        end_period: '2024-12-31',
-        products: [{ id: 1 }, { id: 2 }] // 제품 1, 2와 연결
-      },
-      {
-        id: 2,
-        process_name: '용해 공정',
-        start_period: '2024-01-01',
-        end_period: '2024-12-31',
-        products: [{ id: 1 }] // 제품 1과만 연결
-      },
-      {
-        id: 3,
-        process_name: '주조 공정',
-        start_period: '2024-01-01',
-        end_period: '2024-12-31',
-        products: [{ id: 2 }] // 제품 2와만 연결
-      }
-    ];
-    
-    console.log('🔍 목업 공정 데이터:', mockProcesses);
-    setProcesses(mockProcesses);
+    try {
+      setLoading(true);
+      
+      // 해당 사업장의 공정 목록 조회
+      const response = await axiosClient.get(apiEndpoints.cbam.process.list, {
+        params: { install_id: installId }
+      });
+      
+      console.log('✅ 공정 목록 조회 성공:', response.data);
+      setProcesses(response.data);
+    } catch (error: any) {
+      console.error('❌ 공정 목록 조회 실패:', error);
+      setToast({
+        message: `공정 목록 조회에 실패했습니다: ${error.response?.data?.detail || error.message}`,
+        type: 'error'
+      });
+      setProcesses([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // 초기 사업장 목록 로딩
+  const fetchInstalls = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      const response = await axiosClient.get(apiEndpoints.cbam.install.list);
+      
+      console.log('✅ 사업장 목록 조회 성공:', response.data);
+      setRegisteredSites(response.data.map((install: any) => ({
+        id: install.id,
+        name: install.name,
+        reportingYear: install.reporting_year.toString()
+      })));
+    } catch (error: any) {
+      console.error('❌ 사업장 목록 조회 실패:', error);
+      setToast({
+        message: `사업장 목록 조회에 실패했습니다: ${error.response?.data?.detail || error.message}`,
+        type: 'error'
+      });
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   // 제품 입력 변경 핸들러
@@ -173,6 +215,11 @@ export default function CBAMPage() {
       [field]: value
     }));
   };
+
+  // 컴포넌트 마운트 시 초기 데이터 로딩
+  useEffect(() => {
+    fetchInstalls();
+  }, [fetchInstalls]);
 
   // 공정 입력 변경 핸들러
   const handleProcessInputChange = (field: string, value: string) => {
@@ -193,18 +240,16 @@ export default function CBAMPage() {
     }
 
     try {
-      // 목업 데이터로 제품 생성
-      const newProduct = {
-        id: products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1,
+      // API로 제품 생성
+      const response = await axiosClient.post(apiEndpoints.cbam.product.create, {
         install_id: selectedInstallForProducts?.id,
-        ...productForm,
-        created_at: new Date().toISOString()
-      };
+        ...productForm
+      });
       
-      console.log('✅ 목업 제품 생성:', newProduct);
+      console.log('✅ 제품 생성 성공:', response.data);
       
-      // 로컬 상태에 추가
-      setProducts(prev => [...prev, newProduct]);
+      // 새로 생성된 제품을 목록에 추가
+      setProducts(prev => [...prev, response.data]);
       
       setToast({
         message: '제품이 성공적으로 생성되었습니다.',
@@ -245,20 +290,20 @@ export default function CBAMPage() {
     }
 
     try {
-      // 목업 데이터로 공정 생성
-      const newProcess = {
-        id: processes.length > 0 ? Math.max(...processes.map(p => p.id)) + 1 : 1,
+      setLoading(true);
+      
+      // API로 공정 생성
+      const response = await axiosClient.post(apiEndpoints.cbam.process.create, {
+        product_id: productId,
         process_name: processForm.process_name,
         start_period: new Date().toISOString().split('T')[0],
-        end_period: new Date().toISOString().split('T')[0],
-        products: [{ id: productId }],
-        created_at: new Date().toISOString()
-      };
+        end_period: new Date().toISOString().split('T')[0]
+      });
       
-      console.log('✅ 목업 공정 생성:', newProcess);
+      console.log('✅ 공정 생성 성공:', response.data);
       
-      // 로컬 상태에 추가
-      setProcesses(prev => [...prev, newProcess]);
+      // 새로 생성된 공정을 목록에 추가
+      setProcesses(prev => [...prev, response.data]);
       
       setToast({
         message: '공정이 성공적으로 생성되었습니다.',
@@ -273,11 +318,13 @@ export default function CBAMPage() {
     } catch (error: any) {
       console.error('❌ 공정 생성 실패:', error);
       setToast({
-        message: `공정 생성에 실패했습니다: ${error.message}`,
+        message: `공정 생성에 실패했습니다: ${error.response?.data?.detail || error.message}`,
         type: 'error'
       });
+    } finally {
+      setLoading(false);
     }
-  }, [processForm, processes]);
+  }, [processForm]);
 
   // 제품 삭제 함수
   const handleDeleteProduct = useCallback(async (productId: number, productName: string) => {
@@ -286,13 +333,18 @@ export default function CBAMPage() {
     }
 
     try {
+      setLoading(true);
+      
+      // API로 제품 삭제
+      await axiosClient.delete(apiEndpoints.cbam.product.delete(productId));
+      
+      console.log('✅ 제품 삭제 성공:', productId);
+      
       // 로컬 상태에서 제품 삭제
       setProducts(prev => prev.filter(p => p.id !== productId));
       
       // 연결된 공정도 삭제
       setProcesses(prev => prev.filter(p => !p.products?.some((prod: any) => prod.id === productId)));
-      
-      console.log('✅ 목업 제품 삭제 완료');
       
       setToast({
         message: `"${productName}" 제품이 성공적으로 삭제되었습니다.`,
@@ -314,10 +366,15 @@ export default function CBAMPage() {
     }
 
     try {
+      setLoading(true);
+      
+      // API로 공정 삭제
+      await axiosClient.delete(apiEndpoints.cbam.process.delete(processId));
+      
+      console.log('✅ 공정 삭제 성공:', processId);
+      
       // 로컬 상태에서 공정 삭제
       setProcesses(prev => prev.filter(p => p.id !== processId));
-      
-      console.log('✅ 목업 공정 삭제 완료');
       
       setToast({
         message: `"${processName}" 공정이 성공적으로 삭제되었습니다.`,
@@ -326,9 +383,11 @@ export default function CBAMPage() {
     } catch (error: any) {
       console.error('❌ 공정 삭제 실패:', error);
       setToast({
-        message: `공정 삭제에 실패했습니다: ${error.message}`,
+        message: `공정 삭제에 실패했습니다: ${error.response?.data?.detail || error.message}`,
         type: 'error'
       });
+    } finally {
+      setLoading(false);
     }
   }, []);
 

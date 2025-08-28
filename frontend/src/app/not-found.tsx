@@ -82,7 +82,7 @@ const NotFoundPage: React.FC = () => {
     type Obstacle = { type: 'pipe' | 'botdog' | 'drone'; x: number; y: number; w: number; h: number; vy?: number; phase?: number; };
     const obstacles: Obstacle[] = [];
 
-    // ====== Controls ======
+    // ====== Controls (jump/duck/restart) ======
     function wantJump() {
       if (!running) { restart(); return; }
       const now = performance.now();
@@ -90,50 +90,87 @@ const NotFoundPage: React.FC = () => {
       if (player.onGround() || now < coyoteUntil) doJump();
     }
     function doJump() {
-      if (player.vy >= -1) { // 과도한 연속 점프 방지
+      if (player.vy >= -1) {
         player.vy = JUMP_VY;
         coyoteUntil = 0;
         jumpBufferedUntil = 0;
       }
     }
     function setDuck(on: boolean) { player.ducking = on; }
-
     function restart() {
       speed = BASE_SPEED; score = 0; obstacles.length = 0; frame = 0; startTime = Date.now(); spawnCooldown = 42;
       player.y = GROUND_Y - player.h; player.vy = 0; player.ducking = false;
       running = true; coyoteUntil = 0; jumpBufferedUntil = 0;
     }
 
+    // 키 매칭 유틸 (code + key 모두 지원)
+    const isJumpKey = (e: KeyboardEvent) => {
+      const k = e.key;
+      return e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW'
+          || k === ' ' || k === 'Spacebar' || k === 'ArrowUp' || k === 'Up' || k === 'w' || k === 'W';
+    };
+    const isDuckKey = (e: KeyboardEvent) => {
+      const k = e.key;
+      return e.code === 'ArrowDown' || e.code === 'KeyS'
+          || k === 'ArrowDown' || k === 'Down' || k === 's' || k === 'S';
+    };
+
+    // 옵션도 정확한 타입으로
+    const passiveFalse: AddEventListenerOptions = { passive: false };
+
+    // --- Keyboard handlers (타입 명시) ---
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
-      if (['Space', 'ArrowUp', 'KeyW'].includes(e.code)) { e.preventDefault(); wantJump(); }
-      else if (['ArrowDown', 'KeyS'].includes(e.code)) { e.preventDefault(); setDuck(true); }
-      else if (e.code === 'KeyR') { e.preventDefault(); restart(); }
+      if (isJumpKey(e)) { e.preventDefault(); wantJump(); return; }
+      if (isDuckKey(e)) { e.preventDefault(); setDuck(true); return; }
+      if (e.code === 'KeyR' || e.key === 'r' || e.key === 'R') { e.preventDefault(); restart(); }
     };
     const onKeyUp = (e: KeyboardEvent) => {
-      if (['ArrowDown', 'KeyS'].includes(e.code)) setDuck(false);
+      if (isDuckKey(e)) setDuck(false);
     };
-    document.addEventListener('keydown', onKeyDown);
+
+    document.addEventListener('keydown', onKeyDown, passiveFalse);
     document.addEventListener('keyup', onKeyUp);
 
-    setIsTouch(('ontouchstart' in window) || navigator.maxTouchPoints > 0);
+    // --- Canvas pointer handlers (터치/마우스 각각 타입 분리) ---
+    const onCanvasTouchStart = (ev: TouchEvent) => { ev.preventDefault(); wantJump(); };
+    const onCanvasMouseDown  = (ev: MouseEvent) => { ev.preventDefault(); wantJump(); };
 
+    canvas.addEventListener('touchstart', onCanvasTouchStart, passiveFalse);
+    canvas.addEventListener('mousedown',  onCanvasMouseDown);
+
+    // --- Mobile buttons (각 이벤트 타입 분리) ---
     const bindHold = (id: string, press: () => void, release?: () => void) => {
       const el = document.getElementById(id);
       if (!el) return;
-      const down = (ev: Event) => { ev.preventDefault(); press(); };
-      const up = (ev: Event) => { ev.preventDefault(); release && release(); };
 
-      el.addEventListener('touchstart', down, { passive: false });
-      el.addEventListener('touchend', up, { passive: false });
-      el.addEventListener('touchcancel', up, { passive: false });
-      el.addEventListener('mousedown', down);
-      el.addEventListener('mouseup', up);
-      el.addEventListener('mouseleave', up);
+      const onTouchStart = (ev: TouchEvent) => { ev.preventDefault(); press(); };
+      const onTouchEnd   = (ev: TouchEvent) => { ev.preventDefault(); release?.(); };
+      const onMouseDown  = (ev: MouseEvent)  => { ev.preventDefault(); press(); };
+      const onMouseUp    = (ev: MouseEvent)  => { ev.preventDefault(); release?.(); };
+      const onMouseLeave = (ev: MouseEvent)  => { ev.preventDefault(); release?.(); };
+
+      el.addEventListener('touchstart', onTouchStart, passiveFalse);
+      el.addEventListener('touchend',   onTouchEnd,   passiveFalse);
+      el.addEventListener('touchcancel',onTouchEnd,   passiveFalse);
+      el.addEventListener('mousedown',  onMouseDown);
+      el.addEventListener('mouseup',    onMouseUp);
+      el.addEventListener('mouseleave', onMouseLeave);
+
+      // 언바인드용 반환 (cleanup에서 호출)
+      return () => {
+        el.removeEventListener('touchstart', onTouchStart);
+        el.removeEventListener('touchend',   onTouchEnd);
+        el.removeEventListener('touchcancel',onTouchEnd);
+        el.removeEventListener('mousedown',  onMouseDown);
+        el.removeEventListener('mouseup',    onMouseUp);
+        el.removeEventListener('mouseleave', onMouseLeave);
+      };
     };
-    bindHold('btn-jump', () => wantJump());
-    bindHold('btn-duck', () => setDuck(true), () => setDuck(false));
-    bindHold('btn-reset', () => restart());
+
+    const unbindJump = bindHold('btn-jump', () => wantJump());
+    const unbindDuck = bindHold('btn-duck', () => setDuck(true), () => setDuck(false));
+    const unbindReset = bindHold('btn-reset', () => restart());
 
     // ====== Utils ======
     const aabb = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) =>
@@ -405,6 +442,11 @@ const NotFoundPage: React.FC = () => {
     return () => {
       document.removeEventListener('keydown', onKeyDown);
       document.removeEventListener('keyup', onKeyUp);
+      canvas.removeEventListener('touchstart', onCanvasTouchStart);
+      canvas.removeEventListener('mousedown',  onCanvasMouseDown);
+      unbindJump && unbindJump();
+      unbindDuck && unbindDuck();
+      unbindReset && unbindReset();
     };
   }, []);
 

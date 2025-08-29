@@ -120,8 +120,8 @@ const InputDataPage: React.FC = () => {
   const [preparedDataForDB, setPreparedDataForDB] = useState<any>(null);
   const [editReasons, setEditReasons] = useState<{ [key: string]: string }>({});
   const inputFileRef = useRef<HTMLInputElement>(null);
-  const [isSavingToDB, setIsSavingToDB] = useState(false);
-  const [dbSaveStatus, setDbSaveStatus] = useState<string>('');
+     const [isValidatingData, setIsValidatingData] = useState(false);
+   const [validationStatus, setValidationStatus] = useState<string>('');
 
   // 행별 오류 상태 관리
   const [rowErrors, setRowErrors] = useState<{ [key: string]: { [column: string]: string } }>({});
@@ -622,38 +622,37 @@ const InputDataPage: React.FC = () => {
     }
   };
 
-  // 입력 필드 렌더링
-  const renderInputField = (row: EditableRow, column: string) => {
-    const value = row.modifiedData[column] || '';
-    const isNewRow = !row.originalData || Object.keys(row.originalData).length === 0 || 
-                     Object.values(row.originalData).every(val => val === '' || val === null || val === undefined);
-    const isExcelData = !isNewRow; // Excel에서 업로드된 기존 데이터
-    const isRequired = isNewRow && ['로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '투입물명', '수량', '단위'].includes(column);
-    const hasValue = value && value.toString().trim() !== '';
+     // 입력 필드 렌더링
+   const renderInputField = (row: EditableRow, column: string) => {
+     const value = row.modifiedData[column] || '';
+     const isNewRowData = isNewRow(row);
+     const isExcelData = !isNewRowData; // Excel에서 업로드된 기존 데이터
+     const isRequired = isNewRowData && ['로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '투입물명', '수량', '단위'].includes(column);
+     const hasValue = value && value.toString().trim() !== '';
     
     // Excel 데이터인 경우 AI 추천답변만 편집 가능
     if (isExcelData && column !== 'AI추천답변') {
       return <span className='text-white/60'>{value || '-'}</span>;
     }
     
-    // 수동으로 추가된 데이터인 경우 모든 필드 편집 가능
-    if (isNewRow) {
-      // 모든 필드를 편집 가능하게 렌더링
-    }
+         // 수동으로 추가된 데이터인 경우 모든 필드 편집 가능
+     if (isNewRowData) {
+       // 모든 필드를 편집 가능하게 렌더링
+     }
     
-    const getInputClassName = () => {
-      let baseClass = 'w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
-      
-      if (isNewRow) {
-        baseClass += ' border-green-300 bg-green-50 text-black';
-      } else if (row.isEditing) {
-        baseClass += ' border-blue-300 bg-blue-50 text-black';
-      } else {
-        baseClass += ' border-gray-300 bg-white text-black';
-      }
-      
-      return baseClass;
-    };
+         const getInputClassName = () => {
+       let baseClass = 'w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+       
+       if (isNewRowData) {
+         baseClass += ' border-green-300 bg-green-50 text-black';
+       } else if (row.isEditing) {
+         baseClass += ' border-blue-300 bg-blue-50 text-black';
+       } else {
+         baseClass += ' border-gray-300 bg-white text-black';
+       }
+       
+       return baseClass;
+     };
 
     switch (column) {
       case '로트번호':
@@ -813,47 +812,40 @@ const InputDataPage: React.FC = () => {
           </div>
         );
       
-      case '단위':
-        return (
-          <div className='relative'>
-            <select
-              value={value}
-              onChange={(e) => {
-                const newValue = e.target.value;
-                const { isValid, errorMessage } = validateInput(column, newValue);
-                if (isValid) {
-                  handleInputChange(row.id, column, newValue);
-                  clearRowError(row.id, column);
-                } else {
-                  handleInputChange(row.id, column, newValue);
-                  updateRowError(row.id, column, errorMessage);
-                }
-              }}
-              className={getInputClassName()}
-            >
-              <option value=''>단위를 선택하세요</option>
-              <option value='t'>톤</option>
-              <option value='kg'>킬로그램</option>
-              <option value='개수'>개수</option>
-              <option value='kg/h'>킬로그램/시간</option>
-              <option value='kg/m'>킬로그램/미터</option>
-              <option value='kg/m2'>킬로그램/제곱미터</option>
-              <option value='kg/m3'>킬로그램/세제곱미터</option>
-              <option value='kg/L'>킬로그램/리터</option>
-              <option value='kg/m2/h'>킬로그램/제곱미터/시간</option>
-              <option value='kg/m3/h'>킬로그램/세제곱미터/시간</option>
-              <option value='kg/L/h'>킬로그램/리터/시간</option>
-              <option value='kg/m2/m'>킬로그램/제곱미터/미터</option>
-              <option value='kg/m3/m'>킬로그램/세제곱미터/미터</option>
-              <option value='kg/L/m'>킬로그램/리터/미터</option>
-              <option value='kg/m2/m2'>킬로그램/제곱미터/제곱미터</option>
-              <option value='kg/m3/m2'>킬로그램/세제곱미터/제곱미터</option>
-              <option value='kg/L/m2'>킬로그램/리터/제곱미터</option>
-              <option value='kg/m3/m3'>킬로그램/세제곱미터/세제곱미터</option>
-              <option value='kg/L/m3'>킬로그램/리터/세제곱미터</option>
-              <option value='kg/m2/m3'>킬로그램/제곱미터/세제곱미터</option>
-              <option value='kg/L/m3'>킬로그램/리터/세제곱미터</option>
-            </select>
+             case '단위':
+         return (
+           <div className='relative'>
+             <select
+               value={value}
+               onChange={(e) => {
+                 const newValue = e.target.value;
+                 handleInputChange(row.id, column, newValue);
+                 clearRowError(row.id, column);
+               }}
+               className={getInputClassName()}
+             >
+               <option value=''>단위를 선택하세요</option>
+               <option value='t'>톤</option>
+               <option value='kg'>킬로그램</option>
+               <option value='개수'>개수</option>
+               <option value='kg/h'>킬로그램/시간</option>
+               <option value='kg/m'>킬로그램/미터</option>
+               <option value='kg/m2'>킬로그램/제곱미터</option>
+               <option value='kg/m3'>킬로그램/세제곱미터</option>
+               <option value='kg/L'>킬로그램/리터</option>
+               <option value='kg/m2/h'>킬로그램/제곱미터/시간</option>
+               <option value='kg/m3/h'>킬로그램/세제곱미터/시간</option>
+               <option value='kg/L/h'>킬로그램/리터/시간</option>
+               <option value='kg/m2/m'>킬로그램/제곱미터/미터</option>
+               <option value='kg/m3/m'>킬로그램/세제곱미터/미터</option>
+               <option value='kg/L/m'>킬로그램/리터/미터</option>
+               <option value='kg/m2/m2'>킬로그램/제곱미터/제곱미터</option>
+               <option value='kg/m3/m2'>킬로그램/세제곱미터/제곱미터</option>
+               <option value='kg/L/m2'>킬로그램/리터/제곱미터</option>
+               <option value='kg/m3/m3'>킬로그램/세제곱미터/세제곱미터</option>
+               <option value='kg/L/m3'>킬로그램/리터/세제곱미터</option>
+               <option value='kg/m2/m3'>킬로그램/제곱미터/세제곱미터</option>
+             </select>
             {isRequired && (
               <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
             )}
@@ -863,26 +855,31 @@ const InputDataPage: React.FC = () => {
           </div>
         );
       
-      case 'AI추천답변':
-        return (
-          <div className='relative'>
-            <input
-              type='text'
-              value={value}
-              maxLength={20}
-              onChange={(e) => handleInputChange(row.id, column, e.target.value)}
-              placeholder={isNewRow ? 'AI 추천 답변을 입력하세요' : 'AI 추천 답변을 수정하거나 입력하세요'}
-              className={`w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                isNewRow ? 'border-green-300 bg-green-50 text-black' : 'border-blue-300 bg-blue-50 text-black'
-              }`}
-            />
-            <span className={`absolute -top-2 -right-2 text-xs ${
-              isNewRow ? 'text-green-500' : 'text-blue-500'
-            }`}>
-              {isNewRow ? '✏️' : '✏️'}
-            </span>
-          </div>
-        );
+             case 'AI추천답변':
+         return (
+           <div className='relative'>
+             <input
+               type='text'
+               value={value}
+               maxLength={20}
+               onChange={(e) => {
+                 const newValue = e.target.value;
+                 // AI 추천 답변을 입력하면 투입물명에도 바로 적용
+                 handleInputChange(row.id, column, newValue);
+                 handleInputChange(row.id, '투입물명', newValue);
+               }}
+               placeholder={isNewRowData ? 'AI 추천 답변을 입력하세요' : 'AI 추천 답변을 수정하거나 입력하세요'}
+               className={`w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                 isNewRowData ? 'border-green-300 bg-green-50 text-black' : 'border-blue-300 bg-blue-50 text-black'
+               }`}
+             />
+             <span className={`absolute -top-2 -right-2 text-xs ${
+               isNewRowData ? 'text-green-500' : 'text-blue-500'
+             }`}>
+               {isNewRowData ? '✏️' : '✏️'}
+             </span>
+           </div>
+         );
       
       default:
         return (
@@ -910,16 +907,16 @@ const InputDataPage: React.FC = () => {
     e.preventDefault();
   };
 
-  // DB 저장 핸들러
-  const handleSaveToDatabase = async () => {
-    if (!editableInputRows || editableInputRows.length === 0) {
-      setError('저장할 데이터가 없습니다.');
-      return;
-    }
+     // 데이터 확인 핸들러
+   const handleDataValidation = async () => {
+     if (!editableInputRows || editableInputRows.length === 0) {
+       setError('확인할 데이터가 없습니다.');
+       return;
+     }
 
-    setIsSavingToDB(true);
-    setDbSaveStatus('데이터베이스에 저장 중...');
-    setError(null);
+     setIsValidatingData(true);
+     setValidationStatus('데이터 확인 중...');
+     setError(null);
 
     try {
       // Excel 날짜를 PostgreSQL date 형식으로 변환하는 함수
@@ -990,43 +987,49 @@ const InputDataPage: React.FC = () => {
       }
 
       const responseData = await response.json();
-      if (responseData.success) {
-        setDbSaveStatus('✅ 데이터베이스에 성공적으로 저장되었습니다.');
-        console.log('데이터베이스 저장 성공:', responseData);
-        
-        // 저장 성공 후 편집 가능한 행 데이터 업데이트 (AI 추천 답변 적용된 상태로)
-        const updatedRows = editableInputRows.map(row => {
-          const aiRecommendation = row.modifiedData['AI추천답변'] || '';
-          return {
-            ...row,
-            originalData: {
-              ...row.modifiedData,
-              '투입물명': aiRecommendation || row.modifiedData['투입물명'] || ''
-            },
-            modifiedData: {
-              ...row.modifiedData,
-              '투입물명': aiRecommendation || row.modifiedData['투입물명'] || ''
-            }
-          };
-        });
-        
-        setEditableInputRows(updatedRows);
-        console.log('AI 추천 답변이 투입물명 컬럼에 성공적으로 적용되었습니다.');
-        
-      } else {
-        throw new Error(responseData.message || '데이터베이스 저장 실패');
-      }
-    } catch (err) {
-      console.error('데이터베이스 저장 오류:', err);
-      setError(`데이터베이스 저장 중 오류가 발생했습니다: ${err}`);
-      setDbSaveStatus(`❌ 데이터베이스 저장 실패: ${err}`);
-    } finally {
-      setIsSavingToDB(false);
-    }
+             if (responseData.success) {
+         setDbSaveStatus('✅ 데이터 확인이 완료되었습니다.');
+         console.log('데이터 확인 성공:', responseData);
+         
+         // 확인 완료 후 편집 가능한 행 데이터 업데이트 (AI 추천 답변 적용된 상태로)
+         const updatedRows = editableInputRows.map(row => {
+           const aiRecommendation = row.modifiedData['AI추천답변'] || '';
+           return {
+             ...row,
+             originalData: {
+               ...row.modifiedData,
+               '투입물명': aiRecommendation || row.modifiedData['투입물명'] || ''
+             },
+             modifiedData: {
+               ...row.modifiedData,
+               '투입물명': aiRecommendation || row.modifiedData['투입물명'] || ''
+             }
+           };
+         });
+         
+         setEditableInputRows(updatedRows);
+         console.log('AI 추천 답변이 투입물명 컬럼에 성공적으로 적용되었습니다.');
+         
+       } else {
+         throw new Error(responseData.message || '데이터 확인 실패');
+       }
+     } catch (err) {
+       console.error('데이터 확인 오류:', err);
+       setError(`데이터 확인 중 오류가 발생했습니다: ${err}`);
+       setDbSaveStatus(`❌ 데이터 확인 실패: ${err}`);
+     } finally {
+       setIsSavingToDB(false);
+     }
   };
 
-  // 새로운 행 추가 핸들러
-  const addNewRow = () => {
+     // 새로운 행인지 확인하는 함수
+   const isNewRow = (row: EditableRow): boolean => {
+     return !row.originalData || Object.keys(row.originalData).length === 0 || 
+            Object.values(row.originalData).every(val => val === '' || val === null || val === undefined);
+   };
+
+   // 새로운 행 추가 핸들러
+   const addNewRow = () => {
     const newRow: EditableRow = {
       id: `input-${editableInputRows.length}`,
       originalData: {
@@ -1302,33 +1305,33 @@ const InputDataPage: React.FC = () => {
                 </Button>
               </div>
 
-              {/* 수정 사유 입력 */}
-              {editableInputRows.some(row => row.isEditing) && (
-                <div className='mt-4 p-4 bg-white/5 rounded-lg'>
-                  <h4 className='text-sm font-medium text-white mb-2'>수정 사유 입력</h4>
-                  <div className='flex gap-4'>
-                    {editableInputRows
-                      .filter(row => row.isEditing)
-                      .map(row => (
-                        <div key={row.id} className='flex-1'>
-                          <label className='block text-xs text-white/60 mb-1'>
-                            행 {row.id} 수정 사유
-                          </label>
-                          <Input
-                            type='text'
-                            value={editReasons[row.id] || ''}
-                            onChange={(e) => setEditReasons(prev => ({
-                              ...prev,
-                              [row.id]: e.target.value
-                            }))}
-                            placeholder='수정 사유를 입력하세요'
-                            className='w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary'
-                          />
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              )}
+                             {/* 수정 사유 입력 (Excel 데이터만) */}
+               {editableInputRows.some(row => row.isEditing && !isNewRow(row)) && (
+                 <div className='mt-4 p-4 bg-white/5 rounded-lg'>
+                   <h4 className='text-sm font-medium text-white mb-2'>수정 사유 입력 (Excel 데이터)</h4>
+                   <div className='flex gap-4'>
+                     {editableInputRows
+                       .filter(row => row.isEditing && !isNewRow(row))
+                       .map(row => (
+                         <div key={row.id} className='flex-1'>
+                           <label className='block text-xs text-white/60 mb-1'>
+                             행 {row.id} 수정 사유
+                           </label>
+                           <Input
+                             type='text'
+                             value={editReasons[row.id] || ''}
+                             onChange={(e) => setEditReasons(prev => ({
+                               ...prev,
+                               [row.id]: e.target.value
+                             }))}
+                             placeholder='수정 사유를 입력하세요'
+                             className='w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary'
+                           />
+                         </div>
+                       ))}
+                   </div>
+                 </div>
+               )}
             </div>
           )}
 
@@ -1364,35 +1367,35 @@ const InputDataPage: React.FC = () => {
             </div>
           )}
 
-          {/* DB 저장 버튼 */}
-          <div className='mt-4 flex items-center gap-4'>
-            <Button
-              onClick={handleSaveToDatabase}
-              disabled={isSavingToDB}
-              className='bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-6 py-2 rounded-lg flex items-center gap-2'
-            >
-              {isSavingToDB ? (
-                <>
-                  <div className='w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin'></div>
-                  저장 중...
-                </>
-              ) : (
-                <>
-                  <Save className='w-4 h-4' />
-                  데이터베이스에 저장
-                </>
-              )}
-            </Button>
-            
-            {dbSaveStatus && (
-              <div className={`text-sm px-3 py-2 rounded-lg ${
-                dbSaveStatus.includes('✅') 
-                  ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                  : 'bg-red-500/20 text-red-400 border border-red-500/30'
-              }`}>
-                {dbSaveStatus}
-              </div>
-            )}
+                     {/* 데이터 확인 버튼 */}
+           <div className='mt-4 flex items-center gap-4'>
+                          <Button
+               onClick={handleDataValidation}
+               disabled={isValidatingData}
+               className='bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white px-6 py-2 rounded-lg flex items-center gap-2'
+             >
+               {isValidatingData ? (
+                 <>
+                   <div className='w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin'></div>
+                   확인 중...
+                 </>
+               ) : (
+                 <>
+                   <CheckCircle className='w-4 h-4' />
+                   데이터 확인
+                 </>
+               )}
+             </Button>
+             
+             {validationStatus && (
+               <div className={`text-sm px-3 py-2 rounded-lg ${
+                 validationStatus.includes('✅') 
+                   ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                   : 'bg-red-500/20 text-red-400 border border-red-500/30'
+               }`}>
+                 {validationStatus}
+               </div>
+             )}
           </div>
         </div>
       </div>

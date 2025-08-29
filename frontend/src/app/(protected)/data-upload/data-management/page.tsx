@@ -293,7 +293,7 @@ export default function DataManagementPage() {
 
              const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
         
-              const response = await fetch(`${gatewayUrl}/api/datagather/delete-classification`, {
+              const response = await fetch(`${gatewayUrl}/delete-classification`, {
          method: 'DELETE',
          headers: {
            'Content-Type': 'application/json',

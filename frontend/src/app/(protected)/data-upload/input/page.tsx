@@ -319,8 +319,18 @@ const InputDataPage: React.FC = () => {
           columns: unifiedColumns
         });
 
+        // AI 추천 답변을 투입물명 컬럼에 적용
+        const processedDataWithAppliedRecommendations = processedData.map((row: DataRow) => {
+          const aiRecommendation = row['AI추천답변'] || '';
+          return {
+            ...row,
+            // AI 추천 답변이 있으면 투입물명에 적용
+            '투입물명': aiRecommendation || row['투입물명'] || ''
+          };
+        });
+
         // 편집 가능한 행 데이터 업데이트
-        const updatedEditableRows: EditableRow[] = processedData.map((row, index) => ({
+        const updatedEditableRows: EditableRow[] = processedDataWithAppliedRecommendations.map((row, index) => ({
           id: `input-${index}`,
           originalData: row,
           modifiedData: { ...row },
@@ -331,7 +341,7 @@ const InputDataPage: React.FC = () => {
         setError(null);
         
         // 성공 메시지 표시
-        console.log('AI 추천 답변이 성공적으로 생성되었습니다.');
+        console.log('AI 추천 답변이 투입물명 컬럼에 성공적으로 적용되었습니다.');
         
       } else {
         throw new Error(responseData.message || 'AI 처리 실패');

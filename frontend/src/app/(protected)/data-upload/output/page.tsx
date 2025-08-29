@@ -277,7 +277,8 @@ const OutputDataPage: React.FC = () => {
         '종료일': convertExcelDate(row['종료일'])
       }));
 
-      const response = await fetch('/api/save-output-data', {
+      const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:3000'; // 환경 변수에서 게이트웨이 URL 가져오기
+      const response = await fetch(`${gatewayUrl}/save-output-data`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

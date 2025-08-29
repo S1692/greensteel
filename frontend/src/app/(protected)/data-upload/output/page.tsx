@@ -74,7 +74,6 @@ const OutputDataPage: React.FC = () => {
   const [isInputUploading, setIsInputUploading] = useState(false);
   const [aiProcessedData, setAiProcessedData] = useState<AIProcessedData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [editReasons, setEditReasons] = useState<{ [key: string]: string }>({});
   const inputFileRef = useRef<HTMLInputElement>(null);
   const [isSavingToDB, setIsSavingToDB] = useState(false);
   const [dbSaveStatus, setDbSaveStatus] = useState<string>('');
@@ -110,12 +109,6 @@ const OutputDataPage: React.FC = () => {
   // 행 삭제 핸들러
   const deleteRow = (rowId: string) => {
     setEditableInputRows(prev => prev.filter(row => row.id !== rowId));
-    // 수정 사유도 함께 제거
-    setEditReasons(prev => {
-      const newReasons = { ...prev };
-      delete newReasons[rowId];
-      return newReasons;
-    });
     // 행별 오류도 제거
     setRowErrors(prev => {
       const newErrors = { ...prev };
@@ -258,6 +251,29 @@ const OutputDataPage: React.FC = () => {
       isNewlyAdded: true
     };
     setEditableInputRows(prev => [...prev, newRow]);
+  };
+
+  // 행 편집 취소 (이전 상태로 복원)
+  const cancelRowEdit = (rowId: string) => {
+    const row = editableInputRows.find(r => r.id === rowId);
+    if (!row) return;
+
+    if (row.isNewlyAdded) {
+      // 새로 추가된 행인 경우 완전히 제거
+      setEditableInputRows(prev => prev.filter(r => r.id !== rowId));
+    } else {
+      // 기존 행 편집 취소인 경우 원본 데이터로 복원
+      setEditableInputRows(prev => 
+        prev.map(r => 
+          r.id === rowId 
+            ? { ...r, isEditing: false, modifiedData: { ...r.originalData } }
+            : r
+        )
+      );
+    }
+
+    // 행별 오류도 제거
+    clearRowError(rowId, '');
   };
 
   // 입력 필드 렌더링
@@ -443,14 +459,8 @@ const OutputDataPage: React.FC = () => {
               value={value}
               onChange={(e) => {
                 const newValue = e.target.value;
-                const { isValid, errorMessage } = validateInput(column, newValue);
-                if (isValid) {
-                  handleInputChange(row.id, column, newValue);
-                  clearRowError(row.id, column);
-                } else {
-                  handleInputChange(row.id, column, newValue);
-                  updateRowError(row.id, column, errorMessage);
-                }
+                handleInputChange(row.id, column, newValue);
+                clearRowError(row.id, column);
               }}
               className={getInputClassName()}
             >
@@ -681,45 +691,29 @@ const OutputDataPage: React.FC = () => {
     );
   };
 
-  // 행 저장
-  const saveRow = async (rowId: string) => {
+  // 행 확인 (DB 저장 없이 편집 완료)
+  const confirmRow = (rowId: string) => {
     const row = editableInputRows.find(r => r.id === rowId);
     if (!row) return;
 
-    const reason = editReasons[rowId] || '';
-    if (!reason.trim()) {
-      setError('수정 사유를 입력해주세요.');
-      return;
-    }
+    // 편집 완료 상태로 변경
+    setEditableInputRows(prev => 
+      prev.map(r => 
+        r.id === rowId 
+          ? { 
+              ...r, 
+              isEditing: false,
+              originalData: { ...r.modifiedData },
+              isNewlyAdded: false // 새로 추가된 행도 이제 기존 행으로 처리
+            }
+          : r
+      )
+    );
 
-    try {
-      // 성공적으로 저장된 경우
-      setEditableInputRows(prev => 
-        prev.map(r => 
-          r.id === rowId 
-            ? { 
-                ...r, 
-                isEditing: false,
-                originalData: { ...r.modifiedData }
-              }
-            : r
-        )
-      );
-
-      // 수정 사유 초기화
-      setEditReasons(prev => {
-        const newReasons = { ...prev };
-        delete newReasons[rowId];
-        return newReasons;
-      });
-
-      setError(null);
-      console.log('행 저장 성공:', row.modifiedData);
-
-    } catch (err) {
-      console.error('행 저장 오류:', err);
-      setError(`행 저장 중 오류가 발생했습니다: ${err}`);
-    }
+    // 행별 오류 제거
+    clearRowError(rowId, '');
+    setError(null);
+    console.log('행 확인 완료:', row.modifiedData);
   };
 
   // 드래그 앤 드롭 핸들러
@@ -949,14 +943,14 @@ const OutputDataPage: React.FC = () => {
                           {row.isEditing ? (
                             <div className='flex gap-2'>
                               <Button
-                                onClick={() => saveRow(row.id)}
+                                onClick={() => confirmRow(row.id)}
                                 className='bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs'
                               >
-                                <Save className='w-3 h-3 mr-1' />
-                                저장
+                                <CheckCircle className='w-3 h-3 mr-1' />
+                                확인
                               </Button>
                               <Button
-                                onClick={() => toggleRowEdit(row.id)}
+                                onClick={() => cancelRowEdit(row.id)}
                                 className='bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-xs'
                               >
                                 <X className='w-3 h-3 mr-1' />
@@ -1001,33 +995,7 @@ const OutputDataPage: React.FC = () => {
                 </Button>
               </div>
 
-              {/* 수정 사유 입력 */}
-              {editableInputRows.some(row => row.isEditing) && (
-                <div className='mt-4 p-4 bg-white/5 rounded-lg'>
-                  <h4 className='text-sm font-medium text-white mb-2'>수정 사유 입력</h4>
-                  <div className='flex gap-4'>
-                    {editableInputRows
-                      .filter(row => row.isEditing)
-                      .map(row => (
-                        <div key={row.id} className='flex-1'>
-                          <label className='block text-xs text-white/60 mb-1'>
-                            행 {row.id} 수정 사유
-                          </label>
-                          <Input
-                            type='text'
-                            value={editReasons[row.id] || ''}
-                            onChange={(e) => setEditReasons(prev => ({
-                              ...prev,
-                              [row.id]: e.target.value
-                            }))}
-                            placeholder='수정 사유를 입력하세요'
-                            className='w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary'
-                          />
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              )}
+              {/* 수정 사유 입력 제거 - 수기 입력 데이터만 있으므로 불필요 */}
             </div>
           )}
 

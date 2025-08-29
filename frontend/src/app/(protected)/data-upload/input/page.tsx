@@ -119,6 +119,7 @@ const InputDataPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [preparedDataForDB, setPreparedDataForDB] = useState<any>(null);
   const [editReasons, setEditReasons] = useState<{ [key: string]: string }>({});
+
   const inputFileRef = useRef<HTMLInputElement>(null);
      const [isValidatingData, setIsValidatingData] = useState(false);
    const [validationStatus, setValidationStatus] = useState<string>('');
@@ -163,7 +164,9 @@ const InputDataPage: React.FC = () => {
     // 행별 오류도 제거
     setRowErrors(prev => {
       const newErrors = { ...prev };
-      delete newErrors[rowId];
+      if (newErrors[rowId]) {
+        delete newErrors[rowId];
+      }
       return newErrors;
     });
     setError(null);
@@ -455,68 +458,67 @@ const InputDataPage: React.FC = () => {
     );
   };
 
-  // 행 저장
-  const saveRow = async (rowId: string) => {
+  // 행 편집 취소 (이전 상태로 복원)
+  const cancelRowEdit = (rowId: string) => {
     const row = editableInputRows.find(r => r.id === rowId);
     if (!row) return;
 
-    const reason = editReasons[rowId] || '';
-    if (!reason.trim()) {
-      setError('수정 사유를 입력해주세요.');
-      return;
-    }
-
-    try {
-      // 피드백 데이터 준비
-      const feedbackData = {
-        공정: row.modifiedData['공정'] || '',
-        투입물명: row.modifiedData['투입물명'] || '',
-        수정된결과: row.modifiedData['AI추천답변'] || '',
-        사유: reason,
-        생산품명: row.modifiedData['생산품명'] || ''
-      };
-
-      // 피드백 데이터를 AI 서비스로 전송
-      const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
-      const response = await fetch(`${gatewayUrl}/save-feedback`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(feedbackData)
-      });
-
-      if (!response.ok) {
-        throw new Error(`피드백 저장 실패: ${response.status}`);
-      }
-
-      // 성공적으로 저장된 경우
+    if (isNewRow(row)) {
+      // 새로 추가된 행인 경우 완전히 제거
+      setEditableInputRows(prev => prev.filter(r => r.id !== rowId));
+    } else {
+      // 기존 행 편집 취소인 경우 원본 데이터로 복원
       setEditableInputRows(prev => 
         prev.map(r => 
           r.id === rowId 
-            ? { 
-                ...r, 
-                isEditing: false,
-                originalData: { ...r.modifiedData }
-              }
+            ? { ...r, isEditing: false, modifiedData: { ...r.originalData } }
             : r
         )
       );
-
-      // 수정 사유 초기화
-      setEditReasons(prev => {
-        const newReasons = { ...prev };
-        delete newReasons[rowId];
-        return newReasons;
-      });
-
-      setError(null);
-      console.log('피드백 저장 성공:', feedbackData);
-
-    } catch (err) {
-      console.error('피드백 저장 오류:', err);
-      setError(`피드백 저장 중 오류가 발생했습니다: ${err}`);
     }
+
+    // 행별 오류도 제거
+    clearRowError(rowId, '');
+  };
+
+  // 행 확인 (DB 저장 없이 편집 완료)
+  const confirmRow = async (rowId: string) => {
+    const row = editableInputRows.find(r => r.id === rowId);
+    if (!row) return;
+
+    // AI 추천 답변을 편집한 경우 수정 사유 확인
+    if (row.modifiedData['AI추천답변'] !== row.originalData['AI추천답변']) {
+      const reason = editReasons[rowId] || '';
+      if (!reason.trim()) {
+        setError('AI 추천 답변을 수정한 경우 수정 사유를 입력해주세요.');
+        return;
+      }
+    }
+
+    // 편집 완료 상태로 변경
+    setEditableInputRows(prev => 
+      prev.map(r => 
+        r.id === rowId 
+          ? { 
+              ...r, 
+              isEditing: false,
+              originalData: { ...r.modifiedData }
+            }
+          : r
+      )
+    );
+
+    // 수정 사유 초기화
+    setEditReasons(prev => {
+      const newReasons = { ...prev };
+      delete newReasons[rowId];
+      return newReasons;
+    });
+
+    // 행별 오류 제거
+    clearRowError(rowId, '');
+    setError(null);
+    console.log('행 확인 완료:', row.modifiedData);
   };
 
   // 날짜 비교 검증 함수
@@ -988,7 +990,7 @@ const InputDataPage: React.FC = () => {
 
       const responseData = await response.json();
              if (responseData.success) {
-         setDbSaveStatus('✅ 데이터 확인이 완료되었습니다.');
+         setValidationStatus('✅ 데이터 확인이 완료되었습니다.');
          console.log('데이터 확인 성공:', responseData);
          
          // 확인 완료 후 편집 가능한 행 데이터 업데이트 (AI 추천 답변 적용된 상태로)
@@ -1016,9 +1018,9 @@ const InputDataPage: React.FC = () => {
      } catch (err) {
        console.error('데이터 확인 오류:', err);
        setError(`데이터 확인 중 오류가 발생했습니다: ${err}`);
-       setDbSaveStatus(`❌ 데이터 확인 실패: ${err}`);
+       setValidationStatus(`❌ 데이터 확인 실패: ${err}`);
      } finally {
-       setIsSavingToDB(false);
+       setIsValidatingData(false);
      }
   };
 
@@ -1249,14 +1251,14 @@ const InputDataPage: React.FC = () => {
                           {row.isEditing ? (
                             <div className='flex gap-2'>
                               <Button
-                                onClick={() => saveRow(row.id)}
+                                onClick={() => confirmRow(row.id)}
                                 className='bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs'
                               >
-                                <Save className='w-3 h-3 mr-1' />
-                                저장
+                                <CheckCircle className='w-3 h-3 mr-1' />
+                                확인
                               </Button>
                               <Button
-                                onClick={() => toggleRowEdit(row.id)}
+                                onClick={() => cancelRowEdit(row.id)}
                                 className='bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-xs'
                               >
                                 <X className='w-3 h-3 mr-1' />
@@ -1305,33 +1307,37 @@ const InputDataPage: React.FC = () => {
                 </Button>
               </div>
 
-                             {/* 수정 사유 입력 (Excel 데이터만) */}
-               {editableInputRows.some(row => row.isEditing && !isNewRow(row)) && (
-                 <div className='mt-4 p-4 bg-white/5 rounded-lg'>
-                   <h4 className='text-sm font-medium text-white mb-2'>수정 사유 입력 (Excel 데이터)</h4>
-                   <div className='flex gap-4'>
-                     {editableInputRows
-                       .filter(row => row.isEditing && !isNewRow(row))
-                       .map(row => (
-                         <div key={row.id} className='flex-1'>
-                           <label className='block text-xs text-white/60 mb-1'>
-                             행 {row.id} 수정 사유
-                           </label>
-                           <Input
-                             type='text'
-                             value={editReasons[row.id] || ''}
-                             onChange={(e) => setEditReasons(prev => ({
-                               ...prev,
-                               [row.id]: e.target.value
-                             }))}
-                             placeholder='수정 사유를 입력하세요'
-                             className='w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary'
-                           />
-                         </div>
-                       ))}
-                   </div>
-                 </div>
-               )}
+              {/* 수정 사유 입력 (AI 추천 답변 편집 시에만) */}
+              {editableInputRows.some(row => row.isEditing && 
+                row.modifiedData['AI추천답변'] !== row.originalData['AI추천답변']) && (
+                <div className='mt-4 p-4 bg-white/5 rounded-lg'>
+                  <h4 className='text-sm font-medium text-white mb-2'>AI 추천 답변 수정 사유 입력</h4>
+                  <div className='flex gap-4'>
+                    {editableInputRows
+                      .filter(row => row.isEditing && 
+                        row.modifiedData['AI추천답변'] !== row.originalData['AI추천답변'])
+                      .map(row => (
+                        <div key={row.id} className='flex-1'>
+                          <label className='block text-xs text-white/60 mb-1'>
+                            행 {row.id} 수정 사유
+                          </label>
+                          <Input
+                            type='text'
+                            value={editReasons[row.id] || ''}
+                            onChange={(e) => setEditReasons(prev => ({
+                              ...prev,
+                              [row.id]: e.target.value
+                            }))}
+                            placeholder='AI 추천 답변 수정 사유를 입력하세요'
+                            className='w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary'
+                          />
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+                                           
             </div>
           )}
 

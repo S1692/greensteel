@@ -181,8 +181,9 @@ const OutputDataPage: React.FC = () => {
         return { isValid: true, errorMessage: '' };
       case '투입일':
       case '종료일':
+        // 빈 값 체크 - 날짜는 필수 입력 항목
         if (!value || value === '') {
-          return { isValid: true, errorMessage: '' };
+          return { isValid: false, errorMessage: '필수 입력 항목입니다.' };
         }
         
         // YYYY-MM-DD 형식 검증
@@ -230,10 +231,10 @@ const OutputDataPage: React.FC = () => {
         }
         return { isValid: true, errorMessage: '' };
       case '단위':
-        const isUnitValid = /^[가-힣a-zA-Z0-9\s\-_()]*$/.test(value);
+        const isUnitValid = /^[가-힣a-zA-Z0-9\s\-_()\/]*$/.test(value);
         if (!isUnitValid) {
           console.log(`텍스트 입력 오류: ${column} - ${value}`);
-          return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자만 입력 가능합니다.' };
+          return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자, /만 입력 가능합니다.' };
         }
         return { isValid: true, errorMessage: '' };
       default:
@@ -244,13 +245,14 @@ const OutputDataPage: React.FC = () => {
   // 새로운 행 추가 핸들러
   const addNewRow = () => {
     const newRow: EditableRow = {
-      id: `output-${editableInputRows.length}`,
+      id: `output-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       originalData: {},
       modifiedData: {},
       isEditing: true,
       isNewlyAdded: true
     };
     setEditableInputRows(prev => [...prev, newRow]);
+    setError(null); // 새 행 추가 시 오류 메시지 제거
   };
 
   // 행 편집 취소 (이전 상태로 복원)
@@ -274,6 +276,7 @@ const OutputDataPage: React.FC = () => {
 
     // 행별 오류도 제거
     clearRowError(rowId, '');
+    setError(null); // 편집 취소 시 오류 메시지 제거
   };
 
   // 입력 필드 렌더링
@@ -698,6 +701,7 @@ const OutputDataPage: React.FC = () => {
           : row
       )
     );
+    setError(null); // 편집 시작 시 오류 메시지 제거
   };
 
   // 행 확인 (DB 저장 없이 편집 완료)
@@ -705,7 +709,46 @@ const OutputDataPage: React.FC = () => {
     const row = editableInputRows.find(r => r.id === rowId);
     if (!row) return;
 
-    // 편집 완료 상태로 변경
+    // 수동으로 추가된 데이터인 경우 모든 필수 필드 검증
+    if (row.isNewlyAdded) {
+      const requiredFields = ['로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '산출물명', '수량', '단위'];
+      const missingFields = [];
+      const invalidFields = [];
+
+      for (const field of requiredFields) {
+        const value = row.modifiedData[field];
+        
+        // 빈 값 체크 (빈 문자열, null, undefined 모두 체크)
+        if (!value || value.toString().trim() === '') {
+          missingFields.push(field);
+          continue;
+        }
+
+        // 유효성 검사
+        const { isValid, errorMessage } = validateInput(field, value.toString());
+        if (!isValid) {
+          invalidFields.push(field);
+          updateRowError(rowId, field, errorMessage);
+        } else {
+          clearRowError(rowId, field);
+        }
+      }
+
+      // 오류가 있으면 확인 거부
+      if (missingFields.length > 0 || invalidFields.length > 0) {
+        let errorMsg = '';
+        if (missingFields.length > 0) {
+          errorMsg += `필수 입력 항목: ${missingFields.join(', ')}`;
+        }
+        if (invalidFields.length > 0) {
+          errorMsg += `${missingFields.length > 0 ? ' | ' : ''}유효하지 않은 항목: ${invalidFields.join(', ')}`;
+        }
+        setError(`데이터 확인 실패: ${errorMsg}`);
+        return; // 여기서 함수 종료하여 확인 차단
+      }
+    }
+
+    // 모든 검증을 통과한 경우에만 편집 완료 상태로 변경
     setEditableInputRows(prev => 
       prev.map(r => 
         r.id === rowId 
@@ -713,7 +756,7 @@ const OutputDataPage: React.FC = () => {
               ...r, 
               isEditing: false,
               originalData: { ...r.modifiedData },
-              isNewlyAdded: false // 새로 추가된 행도 이제 기존 행으로 처리
+              isNewlyAdded: true
             }
           : r
       )

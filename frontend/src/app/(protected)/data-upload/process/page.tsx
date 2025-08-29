@@ -53,7 +53,6 @@ interface EditableRow {
   originalData: DataRow;
   modifiedData: DataRow;
   isEditing: boolean;
-  editReason?: string;
   isNewlyAdded?: boolean;
 }
 
@@ -71,7 +70,6 @@ const ProcessDataPage: React.FC = () => {
   const [isSavingToDB, setIsSavingToDB] = useState(false);
   const [dbSaveStatus, setDbSaveStatus] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
-  const [editReasons, setEditReasons] = useState<{ [key: string]: string }>({});
   const inputFileRef = useRef<HTMLInputElement>(null);
   const [aiProcessedData, setAiProcessedData] = useState<AIProcessedData | null>(null);
   
@@ -106,12 +104,6 @@ const ProcessDataPage: React.FC = () => {
   // 행 삭제 핸들러
   const deleteRow = (rowId: string) => {
     setEditableInputRows(prev => prev.filter(row => row.id !== rowId));
-    // 수정 사유도 함께 제거
-    setEditReasons(prev => {
-      const newReasons = { ...prev };
-      delete newReasons[rowId];
-      return newReasons;
-    });
     // 행별 오류도 제거
     setRowErrors(prev => {
       const newErrors = { ...prev };
@@ -516,12 +508,6 @@ const ProcessDataPage: React.FC = () => {
     const row = editableInputRows.find(r => r.id === rowId);
     if (!row) return;
 
-    const reason = editReasons[rowId] || '';
-    if (!reason.trim()) {
-      setError('수정 사유를 입력해주세요.');
-      return;
-    }
-
     try {
       // 성공적으로 저장된 경우
       setEditableInputRows(prev => 
@@ -535,13 +521,6 @@ const ProcessDataPage: React.FC = () => {
             : r
         )
       );
-
-      // 수정 사유 초기화
-      setEditReasons(prev => {
-        const newReasons = { ...prev };
-        delete newReasons[rowId];
-        return newReasons;
-      });
 
       setError(null);
       console.log('행 저장 성공:', row.modifiedData);
@@ -850,33 +829,7 @@ const ProcessDataPage: React.FC = () => {
                 </div>
               )}
 
-              {/* 수정 사유 입력 */}
-              {editableInputRows.some(row => row.isEditing) && (
-                <div className='mt-4 p-4 bg-white/5 rounded-lg'>
-                  <h4 className='text-sm font-medium text-white mb-2'>수정 사유 입력</h4>
-                  <div className='flex gap-4'>
-                    {editableInputRows
-                      .filter(row => row.isEditing)
-                      .map(row => (
-                        <div key={row.id} className='flex-1'>
-                          <label className='block text-xs text-white/60 mb-1'>
-                            행 {row.id} 수정 사유
-                          </label>
-                          <Input
-                            type='text'
-                            value={editReasons[row.id] || ''}
-                            onChange={(e) => setEditReasons(prev => ({
-                              ...prev,
-                              [row.id]: e.target.value
-                            }))}
-                            placeholder='수정 사유를 입력하세요'
-                            className='w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary'
-                          />
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              )}
+
             </div>
           )}
 

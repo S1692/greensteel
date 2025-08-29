@@ -665,10 +665,10 @@ const InputDataPage: React.FC = () => {
         }
         return { isValid: true, errorMessage: '' };
       case '단위':
-        const isUnitValid = /^[가-힣a-zA-Z0-9\s\-_()]*$/.test(value);
+        const isUnitValid = /^[가-힣a-zA-Z0-9\s\-_()\/]*$/.test(value);
         if (!isUnitValid) {
           console.log(`텍스트 입력 오류: ${column} - ${value}`);
-          return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자만 입력 가능합니다.' };
+          return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자, /만 입력 가능합니다.' };
         }
         return { isValid: true, errorMessage: '' };
       default:

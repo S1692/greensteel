@@ -84,7 +84,7 @@ export default function DataManagementPage() {
     setStatus({ type: null, message: '' });
     
     try {
-      const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:3000';
+      const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
       
       // input_data, output_data, 분류 데이터를 병렬로 로드
       const [inputResponse, outputResponse, fuelResponse, utilityResponse, wasteResponse, processProductResponse] = await Promise.all([
@@ -238,9 +238,9 @@ export default function DataManagementPage() {
         분류: selectedClassification
       }));
 
-      const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:3000';
-      
-      const response = await fetch(`${gatewayUrl}/classify-data`, {
+             const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
+        
+       const response = await fetch(`${gatewayUrl}/api/datagather/classify-data`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -291,9 +291,9 @@ export default function DataManagementPage() {
         throw new Error('삭제할 분류 데이터가 없습니다.');
       }
 
-      const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:3000';
-      
-      const response = await fetch(`${gatewayUrl}/delete-classification`, {
+             const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
+        
+       const response = await fetch(`${gatewayUrl}/api/datagather/delete-classification`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -360,7 +360,15 @@ export default function DataManagementPage() {
 
   // 분류별 통계 카드 클릭 핸들러
   const handleClassificationCardClick = (classification: ClassificationType) => {
-    setViewMode(classification === '공정 생산품' ? 'process_product' : classification as ViewMode);
+    if (classification === '공정 생산품') {
+      setViewMode('process_product');
+    } else if (classification === '연료') {
+      setViewMode('fuel');
+    } else if (classification === '유틸리티') {
+      setViewMode('utility');
+    } else if (classification === '폐기물') {
+      setViewMode('waste');
+    }
   };
 
   // 뒤로가기 핸들러
@@ -541,24 +549,15 @@ export default function DataManagementPage() {
                                 </span>
                               </td>
                               <td className="px-4 py-3 text-sm">
-                                <div className="flex gap-2">
+                                {isManualData && (
                                   <Button
-                                    onClick={() => handleEditRow(row.id)}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs flex items-center gap-1"
+                                    onClick={() => handleDeleteRow(row.id)}
+                                    className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs flex items-center gap-1"
                                   >
-                                    <Edit3 className="w-3 h-3" />
-                                    편집
+                                    <Trash2 className="w-3 h-3" />
+                                    삭제
                                   </Button>
-                                  {isManualData && (
-                                    <Button
-                                      onClick={() => handleDeleteRow(row.id)}
-                                      className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs flex items-center gap-1"
-                                    >
-                                      <Trash2 className="w-3 h-3" />
-                                      삭제
-                                    </Button>
-                                  )}
-                                </div>
+                                )}
                               </td>
                             </tr>
                           );
@@ -636,24 +635,15 @@ export default function DataManagementPage() {
                                 </span>
                               </td>
                               <td className="px-4 py-3 text-sm">
-                                <div className="flex gap-2">
+                                {isManualData && (
                                   <Button
-                                    onClick={() => handleEditRow(row.id)}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs flex items-center gap-1"
+                                    onClick={() => handleDeleteRow(row.id)}
+                                    className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs flex items-center gap-1"
                                   >
-                                    <Edit3 className="w-3 h-3" />
-                                    편집
+                                    <Trash2 className="w-3 h-3" />
+                                    삭제
                                   </Button>
-                                  {isManualData && (
-                                    <Button
-                                      onClick={() => handleDeleteRow(row.id)}
-                                      className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs flex items-center gap-1"
-                                    >
-                                      <Trash2 className="w-3 h-3" />
-                                      삭제
-                                    </Button>
-                                  )}
-                                </div>
+                                )}
                               </td>
                             </tr>
                           );
@@ -773,11 +763,13 @@ export default function DataManagementPage() {
                       {viewMode === 'process_product' && '공정 생산품 데이터'}
                     </h3>
                     <p className="text-sm text-ecotrace-textSecondary">
-                      총 {getFilteredDataByClassification(
-                        viewMode === 'fuel' ? '연료' :
-                        viewMode === 'utility' ? '유틸리티' :
-                        viewMode === 'waste' ? '폐기물' : '공정 생산품'
-                      ).length}개 데이터
+                      총 {(() => {
+                        if (viewMode === 'fuel') return getFilteredDataByClassification('연료').length;
+                        if (viewMode === 'utility') return getFilteredDataByClassification('유틸리티').length;
+                        if (viewMode === 'waste') return getFilteredDataByClassification('폐기물').length;
+                        if (viewMode === 'process_product') return getFilteredDataByClassification('공정 생산품').length;
+                        return 0;
+                      })()}개 데이터
                     </p>
                   </div>
                 </div>
@@ -799,42 +791,50 @@ export default function DataManagementPage() {
                           <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">작업</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-ecotrace-border">
-                        {getFilteredDataByClassification(
-                          viewMode === 'fuel' ? '연료' :
-                          viewMode === 'utility' ? '유틸리티' :
-                          viewMode === 'waste' ? '폐기물' : '공정 생산품'
-                        ).map((row) => (
-                          <tr key={row.id} className="hover:bg-ecotrace-secondary/30 transition-colors">
-                            <td className="px-4 py-3 text-sm text-ecotrace-text">{row.로트번호}</td>
-                            <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산수량}</td>
-                            <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입일}</td>
-                            <td className="px-4 py-3 text-sm text-ecotrace-text">{row.종료일}</td>
-                            <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정}</td>
-                            <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입물명}</td>
-                            <td className="px-4 py-3 text-sm text-ecotrace-text">{row.수량}</td>
-                            <td className="px-4 py-3 text-sm text-ecotrace-text">{row.단위}</td>
-                                                       <td className="px-4 py-3 text-sm">
-                             <Button
-                               onClick={() => deleteClassification(row.id)}
-                               disabled={isDeleting}
-                               className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs flex items-center gap-1"
-                             >
-                               <Trash2 className="w-3 h-3" />
-                               분류 삭제
-                             </Button>
-                           </td>
-                         </tr>
-                       ))}
-                     </tbody>
+                                            <tbody className="divide-y divide-ecotrace-border">
+                        {(() => {
+                          let filteredData: DataRow[] = [];
+                          if (viewMode === 'fuel') filteredData = getFilteredDataByClassification('연료');
+                          else if (viewMode === 'utility') filteredData = getFilteredDataByClassification('유틸리티');
+                          else if (viewMode === 'waste') filteredData = getFilteredDataByClassification('폐기물');
+                          else if (viewMode === 'process_product') filteredData = getFilteredDataByClassification('공정 생산품');
+                          
+                          return filteredData.map((row) => (
+                            <tr key={row.id} className="hover:bg-ecotrace-secondary/30 transition-colors">
+                              <td className="px-4 py-3 text-sm text-ecotrace-text">{row.로트번호}</td>
+                              <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산수량}</td>
+                              <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입일}</td>
+                              <td className="px-4 py-3 text-sm text-ecotrace-text">{row.종료일}</td>
+                              <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정}</td>
+                              <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입물명}</td>
+                              <td className="px-4 py-3 text-sm text-ecotrace-text">{row.수량}</td>
+                              <td className="px-4 py-3 text-sm text-ecotrace-text">{row.단위}</td>
+                              <td className="px-4 py-3 text-sm">
+                                <Button
+                                  onClick={() => deleteClassification(row.id)}
+                                  disabled={isDeleting}
+                                  className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs flex items-center gap-1"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  분류 삭제
+                                </Button>
+                              </td>
+                            </tr>
+                          ));
+                        })()}
+                      </tbody>
                     </table>
                   </div>
                   
-                  {getFilteredDataByClassification(
-                    viewMode === 'fuel' ? '연료' :
-                    viewMode === 'utility' ? '유틸리티' :
-                    viewMode === 'waste' ? '폐기물' : '공정 생산품'
-                  ).length === 0 && (
+                                     {(() => {
+                     let filteredData: DataRow[] = [];
+                     if (viewMode === 'fuel') filteredData = getFilteredDataByClassification('연료');
+                     else if (viewMode === 'utility') filteredData = getFilteredDataByClassification('유틸리티');
+                     else if (viewMode === 'waste') filteredData = getFilteredDataByClassification('폐기물');
+                     else if (viewMode === 'process_product') filteredData = getFilteredDataByClassification('공정 생산품');
+                     
+                     return filteredData.length === 0;
+                   })() && (
                     <div className="text-center py-8 text-ecotrace-textSecondary">
                       <p>해당 분류의 데이터가 없습니다.</p>
                     </div>

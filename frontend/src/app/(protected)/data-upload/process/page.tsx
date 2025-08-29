@@ -45,6 +45,8 @@ const ProcessDataPage: React.FC = () => {
   const [inputData, setInputData] = useState<DataPreview | null>(null);
   const [editableInputRows, setEditableInputRows] = useState<EditableRow[]>([]);
   const [isInputUploading, setIsInputUploading] = useState(false);
+  const [isSavingToDB, setIsSavingToDB] = useState(false);
+  const [dbSaveStatus, setDbSaveStatus] = useState<{ success: boolean; message: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editReasons, setEditReasons] = useState<{ [key: string]: string }>({});
   const inputFileRef = useRef<HTMLInputElement>(null);
@@ -426,6 +428,39 @@ const ProcessDataPage: React.FC = () => {
                   </tbody>
                 </table>
               </div>
+
+              {/* DB 저장 버튼 */}
+              {inputData && inputData.data.length > 0 && (
+                <div className='mt-4 flex items-center gap-4'>
+                  <Button
+                    onClick={handleSaveToDatabase}
+                    disabled={isSavingToDB}
+                    className='bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-6 py-2 rounded-lg flex items-center gap-2'
+                  >
+                    {isSavingToDB ? (
+                      <>
+                        <div className='w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin'></div>
+                        저장 중...
+                      </>
+                    ) : (
+                      <>
+                        <Save className='w-4 h-4' />
+                        데이터베이스에 저장
+                      </>
+                    )}
+                  </Button>
+                  
+                  {dbSaveStatus && (
+                    <div className={`text-sm px-3 py-2 rounded-lg ${
+                      dbSaveStatus.success 
+                        ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                        : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                    }`}>
+                      {dbSaveStatus.message}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* 수정 사유 입력 */}
               {editableInputRows.some(row => row.isEditing) && (

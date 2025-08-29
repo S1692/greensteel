@@ -80,14 +80,10 @@ export default function DataManagementPage() {
     try {
       const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:3000';
       
-      // input_data, output_data, 분류 데이터를 병렬로 로드
-      const [inputResponse, outputResponse, fuelResponse, utilityResponse, wasteResponse, processProductResponse] = await Promise.all([
+      // input_data와 output_data만 로드 (분류 정보는 이미 포함되어 있음)
+      const [inputResponse, outputResponse] = await Promise.all([
         fetch(`${gatewayUrl}/api/datagather/input-data`),
-        fetch(`${gatewayUrl}/api/datagather/output-data`),
-        fetch(`${gatewayUrl}/api/datagather/classified-data/연료`),
-        fetch(`${gatewayUrl}/api/datagather/classified-data/유틸리티`),
-        fetch(`${gatewayUrl}/api/datagather/classified-data/폐기물`),
-        fetch(`${gatewayUrl}/api/datagather/classified-data/공정 생산품`)
+        fetch(`${gatewayUrl}/api/datagather/output-data`)
       ]);
 
       if (!inputResponse.ok || !outputResponse.ok) {
@@ -96,45 +92,10 @@ export default function DataManagementPage() {
 
       const inputData = await inputResponse.json();
       const outputData = await outputResponse.json();
-      const fuelData = await fuelResponse.json();
-      const utilityData = await utilityResponse.json();
-      const wasteData = await wasteResponse.json();
-      const processProductData = await processProductResponse.json();
 
       // 백엔드 응답 구조에서 data 배열 추출
       const inputDataArray = inputData.success ? inputData.data : [];
       const outputDataArray = outputData.success ? outputData.data : [];
-      const fuelDataArray = fuelData.success ? fuelData.data : [];
-      const utilityDataArray = utilityData.success ? utilityData.data : [];
-      const wasteDataArray = wasteData.success ? wasteData.data : [];
-      const processProductDataArray = processProductData.success ? processProductData.data : [];
-
-      // 분류 데이터를 원본 테이블과 매핑하여 분류 정보 업데이트
-      const updateClassificationInfo = (dataArray: any[], classification: ClassificationType) => {
-        dataArray.forEach((item: any) => {
-          const sourceTable = item.source_table;
-          const sourceId = item.source_id;
-          
-          // input_data 또는 output_data에서 해당 항목을 찾아 분류 정보 업데이트
-          if (sourceTable === 'input_data') {
-            const inputItem = inputDataArray.find((input: any) => input.id === sourceId);
-            if (inputItem) {
-              inputItem.분류 = classification;
-            }
-          } else if (sourceTable === 'output_data') {
-            const outputItem = outputDataArray.find((output: any) => output.id === sourceId);
-            if (outputItem) {
-              outputItem.분류 = classification;
-            }
-          }
-        });
-      };
-
-      // 각 분류별로 분류 정보 업데이트
-      updateClassificationInfo(fuelDataArray, '연료');
-      updateClassificationInfo(utilityDataArray, '유틸리티');
-      updateClassificationInfo(wasteDataArray, '폐기물');
-      updateClassificationInfo(processProductDataArray, '공정 생산품');
 
       // 데이터 통합 및 형식 변환
       const combinedData: DataRow[] = [

@@ -56,13 +56,19 @@ async def _forward(target_service_url: str, target_path: str, request: Request) 
         
         # httpx로 프록시 요청 실행
         async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.request(
-                method=request.method,
-                url=target_url,
-                headers=headers,
-                content=body,
-                follow_redirects=False
-            )
+            # DELETE 요청이 아닌 경우에만 content 전달
+            request_kwargs = {
+                "method": request.method,
+                "url": target_url,
+                "headers": headers,
+                "follow_redirects": False
+            }
+            
+            # DELETE 요청이 아닌 경우에만 body 전달
+            if request.method != "DELETE" and body:
+                request_kwargs["content"] = body
+            
+            response = await client.request(**request_kwargs)
             
             gateway_logger.log_info(f"Forward response: {response.status_code}")
             

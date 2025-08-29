@@ -945,6 +945,47 @@ async def classify_data_proxy(request: Request):
         gateway_logger.log_error(f"DataGather 서비스 데이터 분류 중 오류 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=f"DataGather 서비스 데이터 분류 오류: {str(e)}")
 
+# 데이터 분류 삭제 엔드포인트 - DataGather 서비스로 프록시
+@app.delete("/delete-classification")
+async def delete_classification_proxy(request: Request):
+    """데이터 분류를 삭제하는 엔드포인트 - DataGather 서비스로 프록시"""
+    try:
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
+        if not datagather_service_url:
+            raise HTTPException(status_code=503, detail="DataGather 서비스 URL이 설정되지 않았습니다")
+        
+        gateway_logger.log_info(f"데이터 분류 삭제 요청을 DataGather 서비스로 프록시: {datagather_service_url}")
+        target_url = f"{datagather_service_url.rstrip('/')}/delete-classification"
+        
+        body = await request.body()
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.delete(
+                url=target_url,
+                content=body,
+                headers={
+                    "Content-Type": request.headers.get("content-type", "application/json"),
+                    "X-Forwarded-By": GATEWAY_NAME
+                }
+            )
+            
+            gateway_logger.log_info(f"DataGather 서비스 데이터 분류 삭제 응답: {response.status_code}")
+            return Response(
+                content=response.content,
+                status_code=response.status_code,
+                headers=dict(response.headers),
+                media_type=response.headers.get("content-type")
+            )
+            
+    except httpx.TimeoutException:
+        gateway_logger.log_error("DataGather 서비스 데이터 분류 삭제 연결 시간 초과")
+        raise HTTPException(status_code=504, detail="DataGather 서비스 데이터 분류 삭제 연결 시간 초과")
+    except httpx.ConnectError:
+        gateway_logger.log_error("DataGather 서비스 데이터 분류 삭제 연결 실패")
+        raise HTTPException(status_code=503, detail="DataGather 서비스 데이터 분류 삭제 연결 실패")
+    except Exception as e:
+        gateway_logger.log_error(f"DataGather 서비스 데이터 분류 삭제 중 오류 발생: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"DataGather 서비스 데이터 분류 삭제 오류: {str(e)}")
+
 @app.post("/save-transport-data")
 async def save_transport_data_proxy(request: Request):
     """운송 데이터를 데이터베이스에 저장하는 엔드포인트 - DataGather 서비스로 프록시"""

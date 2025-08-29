@@ -693,6 +693,102 @@ async def classify_data(data: dict):
             "error": str(e)
         }
 
+# 분류 데이터 삭제 엔드포인트
+@app.delete("/delete-classification")
+async def delete_classification(data: dict):
+    """데이터 분류를 삭제하는 엔드포인트"""
+    try:
+        logger.info(f"분류 데이터 삭제 요청 받음")
+        
+        # 요청 데이터 추출
+        source_table = data.get('source_table')
+        source_id = data.get('source_id')
+        
+        if not source_table or not source_id:
+            return {
+                "success": False,
+                "message": "소스 테이블 또는 소스 ID가 없습니다.",
+                "error": "Missing source_table or source_id"
+            }
+        
+        # PostgreSQL Railway 데이터베이스 연결 설정
+        database_url = os.getenv("DATABASE_URL")
+        
+        # PostgreSQL 전용 엔진 설정
+        engine = create_engine(
+            database_url,
+            pool_pre_ping=True,
+            pool_recycle=300,
+            echo=False,
+            connect_args={
+                "connect_timeout": 10,
+                "application_name": "datagather_service"
+            }
+        )
+        
+        with Session(engine) as session:
+            try:
+                session.begin()
+                
+                # 원본 테이블에서 분류 정보 삭제
+                if source_table == 'input_data':
+                    cursor = session.execute(text("""
+                        UPDATE input_data 
+                        SET 분류 = NULL 
+                        WHERE id = :source_id
+                    """), {"source_id": source_id})
+                elif source_table == 'output_data':
+                    cursor = session.execute(text("""
+                        UPDATE output_data 
+                        SET 분류 = NULL 
+                        WHERE id = :source_id
+                    """), {"source_id": source_id})
+                else:
+                    return {
+                        "success": False,
+                        "message": f"지원하지 않는 소스 테이블입니다: {source_table}",
+                        "error": f"Unsupported source table: {source_table}"
+                    }
+                
+                # 분류별 테이블에서 해당 데이터 삭제
+                classification_tables = ['fuel_data', 'utility_data', 'waste_data', 'process_product_data']
+                deleted_count = 0
+                
+                for table in classification_tables:
+                    try:
+                        cursor = session.execute(text(f"""
+                            DELETE FROM {table} 
+                            WHERE source_table = :source_table AND source_id = :source_id
+                        """), {"source_table": source_table, "source_id": source_id})
+                        
+                        if cursor.rowcount > 0:
+                            deleted_count += cursor.rowcount
+                            logger.info(f"{table} 테이블에서 분류 데이터 삭제: {cursor.rowcount}행")
+                    except Exception as table_error:
+                        logger.warning(f"{table} 테이블 삭제 중 오류 (무시): {table_error}")
+                        continue
+                
+                session.commit()
+                logger.info(f"분류 데이터 삭제 완료: {deleted_count}행 삭제됨")
+                return {
+                    "success": True, 
+                    "message": f"분류 데이터가 성공적으로 삭제되었습니다. ({deleted_count}행)", 
+                    "deleted_count": deleted_count
+                }
+                
+            except Exception as db_error:
+                session.rollback()
+                logger.error(f"분류 데이터 삭제 실패: {db_error}")
+                raise db_error
+                
+    except Exception as e:
+        logger.error(f"분류 데이터 삭제 엔드포인트 실패: {e}")
+        return {
+            "success": False, 
+            "message": f"분류 데이터 삭제 중 오류가 발생했습니다: {str(e)}", 
+            "error": str(e)
+        }
+
 # 분류 데이터 조회 엔드포인트
 @app.get("/classified-data/{classification}")
 async def get_classified_data(classification: str):

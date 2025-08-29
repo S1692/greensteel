@@ -753,8 +753,6 @@ async def delete_classification(data: dict):
         
         with Session(engine) as session:
             try:
-                session.begin()
-                
                 # 원본 테이블에서 분류 정보 삭제
                 if source_table == 'input_data':
                     cursor = session.execute(text("""
@@ -804,7 +802,11 @@ async def delete_classification(data: dict):
             except Exception as db_error:
                 session.rollback()
                 logger.error(f"분류 데이터 삭제 실패: {db_error}")
-                raise db_error
+                return {
+                    "success": False,
+                    "message": f"분류 데이터 삭제 중 오류가 발생했습니다: {str(db_error)}",
+                    "error": str(db_error)
+                }
                 
     except Exception as e:
         logger.error(f"분류 데이터 삭제 엔드포인트 실패: {e}")

@@ -195,7 +195,7 @@ export default function CBAMPage() {
       setRegisteredSites(response.data.map((install: any) => ({
         id: install.id,
         name: install.name,
-        reportingYear: install.reporting_year.toString()
+        reportingYear: install.reporting_year ? install.reporting_year.toString() : 'N/A'
       })));
     } catch (error: any) {
       console.error('❌ 사업장 목록 조회 실패:', error);

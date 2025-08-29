@@ -173,103 +173,204 @@ async def save_processed_data(data: dict):
     """AI 처리된 데이터를 데이터베이스에 저장"""
     try:
         logger.info(f"DB 저장 요청 받음: {data.get('filename', 'unknown')}")
-        
-        # 요청 데이터 추출
         filename = data.get('filename', '')
         input_data = data.get('data', [])
         columns = data.get('columns', [])
         
         if not input_data:
-            return {
-                "success": False,
-                "message": "저장할 데이터가 없습니다.",
-                "error": "No data provided"
-            }
+            return {"success": False, "message": "저장할 데이터가 없습니다.", "error": "No data provided"}
         
-        # 데이터베이스 연결 및 저장 로직
         from .database import get_db
-        from .models import ProcessInput, Performance, Transport, BaseData, OutputData
         from sqlalchemy.orm import Session
         from sqlalchemy import create_engine
         import os
         
-        # 데이터베이스 연결
         database_url = os.getenv("DATABASE_URL", "postgresql://postgres:lUAkUKpUxubYDvmqzGKxJLKgZCWMjaQy@switchyard.proxy.rlwy.net:51947/railway")
         engine = create_engine(database_url)
         
-        # 세션 생성
         with Session(engine) as session:
             try:
-                # 트랜잭션 시작
                 session.begin()
-                
                 saved_count = 0
                 
                 for row in input_data:
                     try:
-                        # 공정 정보 저장
-                        if row.get('공정'):
-                            process_data = ProcessInput(
-                                input_name=row.get('투입물명', ''),
-                                amount=float(row.get('수량', 0)) if row.get('수량') else 0,
-                                input_type='material',  # 기본값
-                                notes=f"파일: {filename}, AI추천답변: {row.get('AI추천답변', '')}"
-                            )
-                            session.add(process_data)
-                        
-                        # 성과 데이터 저장
-                        if row.get('생산수량'):
-                            performance_data = Performance(
-                                process_name=row.get('공정', ''),
-                                production_amount=float(row.get('생산수량', 0)) if row.get('생산수량') else 0,
-                                unit=row.get('단위', ''),
-                                description=f"파일: {filename}, 생산품: {row.get('생산품명', '')}"
-                            )
-                            session.add(performance_data)
-                        
-                        # 기본 데이터 저장
-                        base_data = BaseData(
-                            name=row.get('투입물명', ''),
-                            type='input',
-                            category=row.get('공정', ''),
-                            unit=row.get('단위', ''),
-                            quantity=float(row.get('수량', 0)) if row.get('수량') else 0,
-                            source=filename,
-                            description=f"AI추천답변: {row.get('AI추천답변', '')}"
-                        )
-                        session.add(base_data)
-                        
-                        saved_count += 1
-                        
+                        # datagather_input 테이블에 저장
+                        if row.get('공정') or row.get('투입물명'):
+                            input_data = {
+                                'lot_number': row.get('로트번호', ''),
+                                'product_name': row.get('생산품명', ''),
+                                'production_quantity': float(row.get('생산수량', 0)) if row.get('생산수량') else 0,
+                                'input_date': row.get('입고일', None),
+                                'end_date': row.get('출고일', None),
+                                'process_name': row.get('공정', ''),
+                                'input_material': row.get('투입물명', ''),
+                                'quantity': float(row.get('수량', 0)) if row.get('수량') else 0,
+                                'unit': row.get('단위', ''),
+                                'ai_recommendation': row.get('AI추천답변', ''),
+                                'source_file': filename
+                            }
+                            
+                            # None 값 제거
+                            input_data = {k: v for k, v in input_data.items() if v is not None}
+                            
+                            cursor = session.execute("""
+                                INSERT INTO datagather_input 
+                                (lot_number, product_name, production_quantity, input_date, end_date, 
+                                 process_name, input_material, quantity, unit, ai_recommendation, source_file)
+                                VALUES (:lot_number, :product_name, :production_quantity, :input_date, :end_date,
+                                        :process_name, :input_material, :quantity, :unit, :ai_recommendation, :source_file)
+                            """, input_data)
+                            
+                            saved_count += 1
+                    
                     except Exception as row_error:
                         logger.error(f"행 데이터 저장 실패: {row_error}")
                         continue
                 
-                # 트랜잭션 커밋
                 session.commit()
-                
                 logger.info(f"DB 저장 완료: {saved_count}행 저장됨")
-                
-                return {
-                    "success": True,
-                    "message": f"데이터베이스에 성공적으로 저장되었습니다. ({saved_count}행)",
-                    "saved_count": saved_count,
-                    "filename": filename
-                }
+                return {"success": True, "message": f"데이터베이스에 성공적으로 저장되었습니다. ({saved_count}행)", "saved_count": saved_count, "filename": filename}
                 
             except Exception as db_error:
-                # 트랜잭션 롤백
                 session.rollback()
                 logger.error(f"데이터베이스 저장 실패: {db_error}")
                 raise db_error
                 
     except Exception as e:
         logger.error(f"DB 저장 엔드포인트 실패: {e}")
-        return {
-            "success": False,
-            "message": f"데이터베이스 저장 중 오류가 발생했습니다: {str(e)}",
-            "error": str(e)
-        }
+        return {"success": False, "message": f"데이터베이스 저장 중 오류가 발생했습니다: {str(e)}", "error": str(e)}
+
+@app.post("/save-transport-data")
+async def save_transport_data(data: dict):
+    """운송 데이터를 데이터베이스에 저장"""
+    try:
+        logger.info(f"운송 데이터 저장 요청 받음: {data.get('filename', 'unknown')}")
+        filename = data.get('filename', '')
+        transport_data = data.get('data', [])
+        
+        if not transport_data:
+            return {"success": False, "message": "저장할 운송 데이터가 없습니다.", "error": "No transport data provided"}
+        
+        from .database import get_db
+        from sqlalchemy.orm import Session
+        from sqlalchemy import create_engine
+        import os
+        
+        database_url = os.getenv("DATABASE_URL", "postgresql://postgres:lUAkUKpUxubYDvmqzGKxJLKgZCWMjaQy@switchyard.proxy.rlwy.net:51947/railway")
+        engine = create_engine(database_url)
+        
+        with Session(engine) as session:
+            try:
+                session.begin()
+                saved_count = 0
+                
+                for row in transport_data:
+                    try:
+                        transport_record = {
+                            'transport_date': row.get('운송일자', None),
+                            'departure_location': row.get('출발지', ''),
+                            'arrival_location': row.get('도착지', ''),
+                            'transport_mode': row.get('운송수단', ''),
+                            'transport_distance': float(row.get('운송거리', 0)) if row.get('운송거리') else 0,
+                            'transport_cost': float(row.get('운송비용', 0)) if row.get('운송비용') else 0,
+                            'transport_volume': float(row.get('운송량', 0)) if row.get('운송량') else 0,
+                            'unit': row.get('단위', ''),
+                            'source_file': filename
+                        }
+                        
+                        # None 값 제거
+                        transport_record = {k: v for k, v in transport_record.items() if v is not None}
+                        
+                        cursor = session.execute("""
+                            INSERT INTO datagather_transport 
+                            (transport_date, departure_location, arrival_location, transport_mode, 
+                             transport_distance, transport_cost, transport_volume, unit, source_file)
+                            VALUES (:transport_date, :departure_location, :arrival_location, :transport_mode,
+                                    :transport_distance, :transport_cost, :transport_volume, :unit, :source_file)
+                        """, transport_record)
+                        
+                        saved_count += 1
+                    
+                    except Exception as row_error:
+                        logger.error(f"운송 데이터 행 저장 실패: {row_error}")
+                        continue
+                
+                session.commit()
+                logger.info(f"운송 데이터 DB 저장 완료: {saved_count}행 저장됨")
+                return {"success": True, "message": f"운송 데이터가 성공적으로 저장되었습니다. ({saved_count}행)", "saved_count": saved_count, "filename": filename}
+                
+            except Exception as db_error:
+                session.rollback()
+                logger.error(f"운송 데이터 데이터베이스 저장 실패: {db_error}")
+                raise db_error
+                
+    except Exception as e:
+        logger.error(f"운송 데이터 저장 엔드포인트 실패: {e}")
+        return {"success": False, "message": f"운송 데이터 저장 중 오류가 발생했습니다: {str(e)}", "error": str(e)}
+
+@app.post("/save-process-data")
+async def save_process_data(data: dict):
+    """공정 데이터를 데이터베이스에 저장"""
+    try:
+        logger.info(f"공정 데이터 저장 요청 받음: {data.get('filename', 'unknown')}")
+        filename = data.get('filename', '')
+        process_data = data.get('data', [])
+        
+        if not process_data:
+            return {"success": False, "message": "저장할 공정 데이터가 없습니다.", "error": "No process data provided"}
+        
+        from .database import get_db
+        from sqlalchemy.orm import Session
+        from sqlalchemy import create_engine
+        import os
+        
+        database_url = os.getenv("DATABASE_URL", "postgresql://postgres:lUAkUKpUxubYDvmqzGKxJLKgZCWMjaQy@switchyard.proxy.rlwy.net:51947/railway")
+        engine = create_engine(database_url)
+        
+        with Session(engine) as session:
+            try:
+                session.begin()
+                saved_count = 0
+                
+                for row in process_data:
+                    try:
+                        process_record = {
+                            'process_name': row.get('공정명', ''),
+                            'process_description': row.get('공정설명', ''),
+                            'process_type': row.get('공정유형', ''),
+                            'process_stage': row.get('공정단계', ''),
+                            'process_efficiency': float(row.get('공정효율', 0)) if row.get('공정효율') else 0,
+                            'source_file': filename
+                        }
+                        
+                        # None 값 제거
+                        process_record = {k: v for k, v in process_record.items() if v is not None}
+                        
+                        cursor = session.execute("""
+                            INSERT INTO datagather_process 
+                            (process_name, process_description, process_type, process_stage, process_efficiency, source_file)
+                            VALUES (:process_name, :process_description, :process_type, :process_stage, :process_efficiency, :source_file)
+                        """, process_record)
+                        
+                        saved_count += 1
+                    
+                    except Exception as row_error:
+                        logger.error(f"공정 데이터 행 저장 실패: {row_error}")
+                        continue
+                
+                session.commit()
+                logger.info(f"공정 데이터 DB 저장 완료: {saved_count}행 저장됨")
+                return {"success": True, "message": f"공정 데이터가 성공적으로 저장되었습니다. ({saved_count}행)", "saved_count": saved_count, "filename": filename}
+                
+            except Exception as db_error:
+                session.rollback()
+                logger.error(f"공정 데이터 데이터베이스 저장 실패: {db_error}")
+                raise db_error
+                
+    except Exception as e:
+        logger.error(f"공정 데이터 저장 엔드포인트 실패: {e}")
+        return {"success": False, "message": f"공정 데이터 저장 중 오류가 발생했습니다: {str(e)}", "error": str(e)}
 
 # 데이터 업로드 엔드포인트
 @app.post("/api/upload")

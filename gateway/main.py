@@ -872,21 +872,12 @@ async def ai_process_stream_proxy(request: Request):
 async def save_processed_data_proxy(request: Request):
     """AI 처리된 데이터를 데이터베이스에 저장하는 엔드포인트 - DataGather 서비스로 프록시"""
     try:
-        # DataGather 서비스로 DB 저장 요청 전송
         datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
-        
         if not datagather_service_url:
             raise HTTPException(status_code=503, detail="DataGather 서비스 URL이 설정되지 않았습니다")
-        
         gateway_logger.log_info(f"DB 저장 요청을 DataGather 서비스로 프록시: {datagather_service_url}")
-        
-        # DataGather 서비스로 프록시 요청
         target_url = f"{datagather_service_url.rstrip('/')}/save-processed-data"
-        
-        # 요청 바디 읽기
         body = await request.body()
-        
-        # httpx로 프록시 요청 실행
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
                 url=target_url,
@@ -896,23 +887,85 @@ async def save_processed_data_proxy(request: Request):
                     "X-Forwarded-By": GATEWAY_NAME
                 }
             )
-            
             gateway_logger.log_info(f"DataGather 서비스 DB 저장 응답: {response.status_code}")
-            
-            # 응답 반환
             return Response(
                 content=response.content,
                 status_code=response.status_code,
                 headers=dict(response.headers),
                 media_type=response.headers.get("content-type")
             )
-            
     except httpx.TimeoutException:
         gateway_logger.log_error("DataGather 서비스 DB 저장 연결 시간 초과")
         raise HTTPException(status_code=504, detail="DataGather 서비스 DB 저장 연결 시간 초과")
     except httpx.ConnectError:
         gateway_logger.log_error("DataGather 서비스 DB 저장 연결 실패")
         raise HTTPException(status_code=503, detail="DataGather 서비스 DB 저장에 연결할 수 없습니다")
+
+@app.post("/save-transport-data")
+async def save_transport_data_proxy(request: Request):
+    """운송 데이터를 데이터베이스에 저장하는 엔드포인트 - DataGather 서비스로 프록시"""
+    try:
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
+        if not datagather_service_url:
+            raise HTTPException(status_code=503, detail="DataGather 서비스 URL이 설정되지 않았습니다")
+        gateway_logger.log_info(f"운송 데이터 저장 요청을 DataGather 서비스로 프록시: {datagather_service_url}")
+        target_url = f"{datagather_service_url.rstrip('/')}/save-transport-data"
+        body = await request.body()
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                url=target_url,
+                content=body,
+                headers={
+                    "Content-Type": request.headers.get("content-type", "application/json"),
+                    "X-Forwarded-By": GATEWAY_NAME
+                }
+            )
+            gateway_logger.log_info(f"DataGather 서비스 운송 데이터 저장 응답: {response.status_code}")
+            return Response(
+                content=response.content,
+                status_code=response.status_code,
+                headers=dict(response.headers),
+                media_type=response.headers.get("content-type")
+            )
+    except httpx.TimeoutException:
+        gateway_logger.log_error("DataGather 서비스 운송 데이터 저장 연결 시간 초과")
+        raise HTTPException(status_code=504, detail="DataGather 서비스 운송 데이터 저장 연결 시간 초과")
+    except httpx.ConnectError:
+        gateway_logger.log_error("DataGather 서비스 운송 데이터 저장 연결 실패")
+        raise HTTPException(status_code=503, detail="DataGather 서비스 운송 데이터 저장에 연결할 수 없습니다")
+
+@app.post("/save-process-data")
+async def save_process_data_proxy(request: Request):
+    """공정 데이터를 데이터베이스에 저장하는 엔드포인트 - DataGather 서비스로 프록시"""
+    try:
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
+        if not datagather_service_url:
+            raise HTTPException(status_code=503, detail="DataGather 서비스 URL이 설정되지 않았습니다")
+        gateway_logger.log_info(f"공정 데이터 저장 요청을 DataGather 서비스로 프록시: {datagather_service_url}")
+        target_url = f"{datagather_service_url.rstrip('/')}/save-process-data"
+        body = await request.body()
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                url=target_url,
+                content=body,
+                headers={
+                    "Content-Type": request.headers.get("content-type", "application/json"),
+                    "X-Forwarded-By": GATEWAY_NAME
+                }
+            )
+            gateway_logger.log_info(f"DataGather 서비스 공정 데이터 저장 응답: {response.status_code}")
+            return Response(
+                content=response.content,
+                status_code=response.status_code,
+                headers=dict(response.headers),
+                media_type=response.headers.get("content-type")
+            )
+    except httpx.TimeoutException:
+        gateway_logger.log_error("DataGather 서비스 공정 데이터 저장 연결 시간 초과")
+        raise HTTPException(status_code=504, detail="DataGather 서비스 공정 데이터 저장 연결 시간 초과")
+    except httpx.ConnectError:
+        gateway_logger.log_error("DataGather 서비스 공정 데이터 저장 연결 실패")
+        raise HTTPException(status_code=503, detail="DataGather 서비스 공정 데이터 저장에 연결할 수 없습니다")
 
 # 모든 HTTP 메서드에 대한 프록시 라우팅 (catch-all 라우트는 마지막에 배치)
 @app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"])

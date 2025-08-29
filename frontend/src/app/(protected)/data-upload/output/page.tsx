@@ -53,6 +53,8 @@ const OutputDataPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [editReasons, setEditReasons] = useState<{ [key: string]: string }>({});
   const inputFileRef = useRef<HTMLInputElement>(null);
+  const [isSavingToDB, setIsSavingToDB] = useState(false);
+  const [dbSaveStatus, setDbSaveStatus] = useState<string>('');
 
   // 템플릿 다운로드
   const handleTemplateDownload = () => {
@@ -234,6 +236,45 @@ const OutputDataPage: React.FC = () => {
     e.preventDefault();
   };
 
+  const handleSaveToDatabase = async () => {
+    if (!inputData || inputData.data.length === 0) {
+      setDbSaveStatus('저장할 데이터가 없습니다.');
+      return;
+    }
+
+    setIsSavingToDB(true);
+    setDbSaveStatus('데이터베이스에 저장 중...');
+
+    try {
+      const response = await fetch('/api/save-output-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filename: inputFile?.name || 'unknown',
+          data: inputData.data,
+          columns: inputData.columns
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setDbSaveStatus(`✅ ${result.message}`);
+        console.log('산출물 데이터가 성공적으로 저장되었습니다:', result);
+      } else {
+        setDbSaveStatus(`❌ 저장 실패: ${result.message}`);
+        console.error('산출물 데이터 저장 실패:', result);
+      }
+    } catch (error) {
+      setDbSaveStatus(`❌ 오류 발생: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+      console.error('산출물 데이터 저장 중 오류:', error);
+    } finally {
+      setIsSavingToDB(false);
+    }
+  };
+
   return (
     <CommonShell>
       <div className='w-full h-full p-4 lg:p-6 xl:p-8 space-y-4 lg:space-y-6 xl:space-y-8'>
@@ -389,7 +430,27 @@ const OutputDataPage: React.FC = () => {
                     행 수: {inputData.data.length}
                   </p>
                 </div>
+                <div className='flex gap-2'>
+                  <Button
+                    onClick={handleSaveToDatabase}
+                    disabled={isSavingToDB}
+                    className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg'
+                  >
+                    {isSavingToDB ? '저장 중...' : 'DB에 저장하기'}
+                  </Button>
+                </div>
               </div>
+
+              {/* DB 저장 상태 표시 */}
+              {dbSaveStatus && (
+                <div className={`p-4 mb-4 rounded-lg ${
+                  dbSaveStatus.includes('✅') ? 'bg-green-100 text-green-800' : 
+                  dbSaveStatus.includes('❌') ? 'bg-red-100 text-red-800' : 
+                  'bg-blue-100 text-blue-800'
+                }`}>
+                  {dbSaveStatus}
+                </div>
+              )}
 
               {/* 데이터 테이블 */}
               <div className='overflow-x-auto'>

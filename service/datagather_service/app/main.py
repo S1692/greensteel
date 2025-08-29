@@ -167,7 +167,6 @@ async def ai_process_stream(data: dict):
             "error": str(e)
         }
 
-# DB 저장 엔드포인트
 @app.post("/save-processed-data")
 async def save_processed_data(data: dict):
     """AI 처리된 데이터를 데이터베이스에 저장"""
@@ -195,19 +194,19 @@ async def save_processed_data(data: dict):
                 
                 for row in input_data:
                     try:
-                        # datagather_input 테이블에 저장
+                        # input_data 테이블에 저장
                         if row.get('공정') or row.get('투입물명'):
                             input_data = {
-                                'lot_number': row.get('로트번호', ''),
-                                'product_name': row.get('생산품명', ''),
-                                'production_quantity': float(row.get('생산수량', 0)) if row.get('생산수량') else 0,
-                                'input_date': row.get('입고일', None),
-                                'end_date': row.get('출고일', None),
-                                'process_name': row.get('공정', ''),
-                                'input_material': row.get('투입물명', ''),
-                                'quantity': float(row.get('수량', 0)) if row.get('수량') else 0,
-                                'unit': row.get('단위', ''),
-                                'ai_recommendation': row.get('AI추천답변', ''),
+                                '로트번호': row.get('로트번호', ''),
+                                '생산품명': row.get('생산품명', ''),
+                                '생산수량': float(row.get('생산수량', 0)) if row.get('생산수량') else 0,
+                                '투입일': row.get('투입일', None),
+                                '종료일': row.get('종료일', None),
+                                '공정': row.get('공정', ''),
+                                '투입물명': row.get('투입물명', ''),
+                                '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
+                                '단위': row.get('단위', ''),
+                                'AI추천답변': row.get('AI추천답변', ''),
                                 'source_file': filename
                             }
                             
@@ -215,17 +214,17 @@ async def save_processed_data(data: dict):
                             input_data = {k: v for k, v in input_data.items() if v is not None and v != ''}
                             
                             # 필수 컬럼이 있는지 확인
-                            if input_data.get('process_name') or input_data.get('input_material'):
+                            if input_data.get('공정') or input_data.get('투입물명'):
                                 cursor = session.execute(text("""
-                                    INSERT INTO datagather_input 
-                                    (lot_number, product_name, production_quantity, input_date, end_date, 
-                                     process_name, input_material, quantity, unit, ai_recommendation, source_file)
-                                    VALUES (:lot_number, :product_name, :production_quantity, :input_date, :end_date,
-                                            :process_name, :input_material, :quantity, :unit, :ai_recommendation, :source_file)
+                                    INSERT INTO input_data 
+                                    (로트번호, 생산품명, 생산수량, 투입일, 종료일, 
+                                     공정, 투입물명, 수량, 단위, AI추천답변, source_file)
+                                    VALUES (:로트번호, :생산품명, :생산수량, :투입일, :종료일,
+                                            :공정, :투입물명, :수량, :단위, :AI추천답변, :source_file)
                                 """), input_data)
                                 
                                 saved_count += 1
-                                logger.info(f"행 {saved_count} 저장 성공: {input_data.get('process_name', '')} - {input_data.get('input_material', '')}")
+                                logger.info(f"행 {saved_count} 저장 성공: {input_data.get('공정', '')} - {input_data.get('투입물명', '')}")
                             else:
                                 logger.warning(f"필수 데이터 부족으로 건너뜀: {row}")
                     
@@ -273,14 +272,14 @@ async def save_transport_data(data: dict):
                 for row in transport_data:
                     try:
                         transport_record = {
-                            'transport_date': row.get('운송일자', None),
-                            'departure_location': row.get('출발지', ''),
-                            'arrival_location': row.get('도착지', ''),
-                            'transport_mode': row.get('운송수단', ''),
-                            'transport_distance': float(row.get('운송거리', 0)) if row.get('운송거리') else 0,
-                            'transport_cost': float(row.get('운송비용', 0)) if row.get('운송비용') else 0,
-                            'transport_volume': float(row.get('운송량', 0)) if row.get('운송량') else 0,
-                            'unit': row.get('단위', ''),
+                            '생산품명': row.get('생산품명', ''),
+                            '로트번호': row.get('로트번호', ''),
+                            '운송_물질': row.get('운송 물질', ''),
+                            '운송_수량': float(row.get('운송 수량', 0)) if row.get('운송 수량') else 0,
+                            '운송_일자': row.get('운송 일자', None),
+                            '도착_공정': row.get('도착 공정', ''),
+                            '출발지': row.get('출발지', ''),
+                            '이동_수단': row.get('이동 수단', ''),
                             'source_file': filename
                         }
                         
@@ -288,11 +287,11 @@ async def save_transport_data(data: dict):
                         transport_record = {k: v for k, v in transport_record.items() if v is not None}
                         
                         cursor = session.execute(text("""
-                            INSERT INTO datagather_transport 
-                            (transport_date, departure_location, arrival_location, transport_mode, 
-                             transport_distance, transport_cost, transport_volume, unit, source_file)
-                            VALUES (:transport_date, :departure_location, :arrival_location, :transport_mode,
-                                    :transport_distance, :transport_cost, :transport_volume, :unit, :source_file)
+                            INSERT INTO transport_data 
+                            (생산품명, 로트번호, 운송_물질, 운송_수량, 운송_일자, 
+                             도착_공정, 출발지, 이동_수단, source_file)
+                            VALUES (:생산품명, :로트번호, :운송_물질, :운송_수량, :운송_일자,
+                                    :도착_공정, :출발지, :이동_수단, :source_file)
                         """), transport_record)
                         
                         saved_count += 1
@@ -341,11 +340,10 @@ async def save_process_data(data: dict):
                 for row in process_data:
                     try:
                         process_record = {
-                            'process_name': row.get('공정명', ''),
-                            'process_description': row.get('공정설명', ''),
-                            'process_type': row.get('공정유형', ''),
-                            'process_stage': row.get('공정단계', ''),
-                            'process_efficiency': float(row.get('공정효율', 0)) if row.get('공정효율') else 0,
+                            '공정명': row.get('공정명', ''),
+                            '생산제품': row.get('생산제품', ''),
+                            '세부공정': row.get('세부공정', ''),
+                            '공정_설명': row.get('공정 설명', ''),
                             'source_file': filename
                         }
                         
@@ -353,9 +351,9 @@ async def save_process_data(data: dict):
                         process_record = {k: v for k, v in process_record.items() if v is not None}
                         
                         cursor = session.execute(text("""
-                            INSERT INTO datagather_process 
-                            (process_name, process_description, process_type, process_stage, process_efficiency, source_file)
-                            VALUES (:process_name, :process_description, :process_type, :process_stage, :process_efficiency, :source_file)
+                            INSERT INTO process_data 
+                            (공정명, 생산제품, 세부공정, 공정_설명, source_file)
+                            VALUES (:공정명, :생산제품, :세부공정, :공정_설명, :source_file)
                         """), process_record)
                         
                         saved_count += 1
@@ -376,6 +374,75 @@ async def save_process_data(data: dict):
     except Exception as e:
         logger.error(f"공정 데이터 저장 엔드포인트 실패: {e}")
         return {"success": False, "message": f"공정 데이터 저장 중 오류가 발생했습니다: {str(e)}", "error": str(e)}
+
+@app.post("/save-output-data")
+async def save_output_data(data: dict):
+    """산출물 데이터를 데이터베이스에 저장"""
+    try:
+        logger.info(f"산출물 데이터 저장 요청 받음: {data.get('filename', 'unknown')}")
+        filename = data.get('filename', '')
+        output_data = data.get('data', [])
+        
+        if not output_data:
+            return {"success": False, "message": "저장할 산출물 데이터가 없습니다.", "error": "No output data provided"}
+        
+        from .database import get_db
+        from sqlalchemy.orm import Session
+        from sqlalchemy import create_engine, text
+        import os
+        
+        database_url = os.getenv("DATABASE_URL", "postgresql://postgres:lUAkUKpUxubYDvmqzGKxJLKgZCWMjaQy@switchyard.proxy.rlwy.net:51947/railway")
+        engine = create_engine(database_url)
+        
+        with Session(engine) as session:
+            try:
+                session.begin()
+                saved_count = 0
+                
+                for row in output_data:
+                    try:
+                        output_record = {
+                            '로트번호': row.get('로트번호', ''),
+                            '생산품명': row.get('생산품명', ''),
+                            '생산수량': float(row.get('생산수량', 0)) if row.get('생산수량') else 0,
+                            '투입일': row.get('투입일', None),
+                            '종료일': row.get('종료일', None),
+                            '공정': row.get('공정', ''),
+                            '산출물명': row.get('산출물명', ''),
+                            '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
+                            '단위': row.get('단위', ''),
+                            'source_file': filename
+                        }
+                        
+                        # None 값 제거
+                        output_record = {k: v for k, v in output_record.items() if v is not None}
+                        
+                        cursor = session.execute(text("""
+                            INSERT INTO output_data 
+                            (로트번호, 생산품명, 생산수량, 투입일, 종료일, 
+                             공정, 산출물명, 수량, 단위, source_file)
+                            VALUES (:로트번호, :생산품명, :생산수량, :투입일, :종료일,
+                                    :공정, :산출물명, :수량, :단위, :source_file)
+                        """), output_record)
+                        
+                        saved_count += 1
+                    
+                    except Exception as row_error:
+                        logger.error(f"산출물 데이터 행 저장 실패: {row_error}")
+                        continue
+                
+                session.commit()
+                logger.info(f"산출물 데이터 DB 저장 완료: {saved_count}행 저장됨")
+                return {"success": True, "message": f"산출물 데이터가 성공적으로 저장되었습니다. ({saved_count}행)", "saved_count": saved_count, "filename": filename}
+                
+            except Exception as db_error:
+                session.rollback()
+                logger.error(f"산출물 데이터 데이터베이스 저장 실패: {db_error}")
+                raise db_error
+                
+    except Exception as e:
+        logger.error(f"산출물 데이터 저장 엔드포인트 실패: {e}")
+        return {"success": False, "message": f"산출물 데이터 저장 중 오류가 발생했습니다: {str(e)}", "error": str(e)}
 
 # 데이터 업로드 엔드포인트
 @app.post("/api/upload")

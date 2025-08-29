@@ -2,6 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 from datetime import datetime
+import os
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import Session
 
 # 데이터베이스 및 모델 import
 from .database import init_db
@@ -764,6 +767,124 @@ async def get_classified_data(classification: str):
         return {
             "success": False,
             "message": f"분류 데이터 조회 중 오류가 발생했습니다: {str(e)}",
+            "error": str(e)
+        }
+
+# 입력 데이터 조회 엔드포인트
+@app.get("/api/datagather/input-data")
+async def get_input_data():
+    """입력 데이터 조회"""
+    try:
+        # PostgreSQL Railway 데이터베이스 연결 설정
+        database_url = os.getenv("DATABASE_URL")
+        
+        engine = create_engine(
+            database_url,
+            pool_pre_ping=True,
+            pool_recycle=300,
+            echo=False,
+            connect_args={
+                "connect_timeout": 10,
+                "application_name": "datagather_service"
+            }
+        )
+        
+        with Session(engine) as session:
+            try:
+                # input_data 테이블의 모든 데이터 조회
+                result = session.execute(text("SELECT * FROM input_data ORDER BY created_at DESC"))
+                rows = result.fetchall()
+                
+                # 결과를 딕셔너리 리스트로 변환
+                data = []
+                for row in rows:
+                    row_dict = dict(row._mapping)
+                    # datetime 객체를 문자열로 변환
+                    for key, value in row_dict.items():
+                        if hasattr(value, 'isoformat'):
+                            row_dict[key] = value.isoformat()
+                    data.append(row_dict)
+                
+                logger.info(f"입력 데이터 조회 완료: {len(data)}행")
+                return {
+                    "success": True,
+                    "message": "입력 데이터 조회 완료",
+                    "data": data,
+                    "count": len(data)
+                }
+                
+            except Exception as db_error:
+                logger.error(f"입력 데이터 조회 실패: {db_error}")
+                return {
+                    "success": False,
+                    "message": f"입력 데이터 조회 중 오류가 발생했습니다: {str(db_error)}",
+                    "error": str(db_error)
+                }
+                
+    except Exception as e:
+        logger.error(f"입력 데이터 조회 엔드포인트 실패: {e}")
+        return {
+            "success": False,
+            "message": f"입력 데이터 조회 중 오류가 발생했습니다: {str(e)}",
+            "error": str(e)
+        }
+
+# 출력 데이터 조회 엔드포인트
+@app.get("/api/datagather/output-data")
+async def get_output_data():
+    """출력 데이터 조회"""
+    try:
+        # PostgreSQL Railway 데이터베이스 연결 설정
+        database_url = os.getenv("DATABASE_URL")
+        
+        engine = create_engine(
+            database_url,
+            pool_pre_ping=True,
+            pool_recycle=300,
+            echo=False,
+            connect_args={
+                "connect_timeout": 10,
+                "application_name": "datagather_service"
+            }
+        )
+        
+        with Session(engine) as session:
+            try:
+                # output_data 테이블의 모든 데이터 조회
+                result = session.execute(text("SELECT * FROM output_data ORDER BY created_at DESC"))
+                rows = result.fetchall()
+                
+                # 결과를 딕셔너리 리스트로 변환
+                data = []
+                for row in rows:
+                    row_dict = dict(row._mapping)
+                    # datetime 객체를 문자열로 변환
+                    for key, value in row_dict.items():
+                        if hasattr(value, 'isoformat'):
+                            row_dict[key] = value.isoformat()
+                    data.append(row_dict)
+                
+                logger.info(f"출력 데이터 조회 완료: {len(data)}행")
+                return {
+                    "success": True,
+                    "message": "출력 데이터 조회 완료",
+                    "data": data,
+                    "count": len(data)
+                }
+                
+            except Exception as db_error:
+                logger.error(f"출력 데이터 조회 실패: {db_error}")
+                return {
+                    "success": False,
+                    "message": f"출력 데이터 조회 중 오류가 발생했습니다: {str(db_error)}",
+                    "error": str(db_error)
+                }
+                
+    except Exception as e:
+        logger.error(f"출력 데이터 조회 엔드포인트 실패: {e}")
+        return {
+            "success": False,
+            "message": f"출력 데이터 조회 중 오류가 발생했습니다: {str(e)}",
             "error": str(e)
         }
 

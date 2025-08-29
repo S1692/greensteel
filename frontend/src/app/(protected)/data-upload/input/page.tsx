@@ -121,7 +121,7 @@ const InputDataPage: React.FC = () => {
   const [editReasons, setEditReasons] = useState<{ [key: string]: string }>({});
   const inputFileRef = useRef<HTMLInputElement>(null);
   const [isSavingToDB, setIsSavingToDB] = useState(false);
-  const [dbSaveStatus, setDbSaveStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const [dbSaveStatus, setDbSaveStatus] = useState<string>('');
 
   // 템플릿 다운로드
   const handleTemplateDownload = () => {
@@ -329,19 +329,19 @@ const InputDataPage: React.FC = () => {
           };
         });
 
-        // 편집 가능한 행 데이터 업데이트
-        const updatedEditableRows: EditableRow[] = processedDataWithAppliedRecommendations.map((row, index) => ({
+        // AI 처리된 데이터를 편집 가능한 행 데이터로 변환 (원본 데이터 유지)
+        const updatedEditableRows: EditableRow[] = processedData.map((row: DataRow, index) => ({
           id: `input-${index}`,
           originalData: row,
-          modifiedData: { ...row },
+          modifiedData: { ...row }, // 원본 데이터 유지, AI 추천 답변은 별도 컬럼에만 표시
           isEditing: false
         }));
 
         setEditableInputRows(updatedEditableRows);
-        setError(null);
+        console.log('AI 처리 완료: 편집 가능한 행 데이터 업데이트됨');
         
         // 성공 메시지 표시
-        console.log('AI 추천 답변이 투입물명 컬럼에 성공적으로 적용되었습니다.');
+        console.log('AI 추천 답변이 별도 컬럼에 표시되었습니다. DB 저장 시 적용됩니다.');
         
       } else {
         throw new Error(responseData.message || 'AI 처리 실패');
@@ -618,16 +618,26 @@ const InputDataPage: React.FC = () => {
 
   // DB 저장 핸들러
   const handleSaveToDatabase = async () => {
-    if (!aiProcessedData || !aiProcessedData.data || aiProcessedData.data.length === 0) {
+    if (!editableInputRows || editableInputRows.length === 0) {
       setError('저장할 데이터가 없습니다.');
       return;
     }
 
     setIsSavingToDB(true);
-    setDbSaveStatus(null);
+    setDbSaveStatus('데이터베이스에 저장 중...');
     setError(null);
 
     try {
+      // AI 추천 답변을 투입물명에 적용하여 저장할 데이터 준비
+      const dataToSave = editableInputRows.map(row => {
+        const aiRecommendation = row.modifiedData['AI추천답변'] || '';
+        return {
+          ...row.modifiedData,
+          // AI 추천 답변이 있으면 투입물명에 적용, 없으면 원본 투입물명 유지
+          '투입물명': aiRecommendation || row.modifiedData['투입물명'] || ''
+        };
+      });
+
       const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
       const response = await fetch(`${gatewayUrl}/save-processed-data`, {
         method: 'POST',
@@ -635,10 +645,10 @@ const InputDataPage: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          filename: aiProcessedData.filename,
-          data: aiProcessedData.data,
-          columns: aiProcessedData.columns
-        })
+          filename: inputFile?.name || 'unknown',
+          data: dataToSave,
+          columns: Object.keys(dataToSave[0] || {})
+        }),
       });
 
       if (!response.ok) {
@@ -647,15 +657,35 @@ const InputDataPage: React.FC = () => {
 
       const responseData = await response.json();
       if (responseData.success) {
-        setDbSaveStatus({ success: true, message: '데이터베이스에 성공적으로 저장되었습니다.' });
+        setDbSaveStatus('✅ 데이터베이스에 성공적으로 저장되었습니다.');
         console.log('데이터베이스 저장 성공:', responseData);
+        
+        // 저장 성공 후 편집 가능한 행 데이터 업데이트 (AI 추천 답변 적용된 상태로)
+        const updatedRows = editableInputRows.map(row => {
+          const aiRecommendation = row.modifiedData['AI추천답변'] || '';
+          return {
+            ...row,
+            originalData: {
+              ...row.modifiedData,
+              '투입물명': aiRecommendation || row.modifiedData['투입물명'] || ''
+            },
+            modifiedData: {
+              ...row.modifiedData,
+              '투입물명': aiRecommendation || row.modifiedData['투입물명'] || ''
+            }
+          };
+        });
+        
+        setEditableInputRows(updatedRows);
+        console.log('AI 추천 답변이 투입물명 컬럼에 성공적으로 적용되었습니다.');
+        
       } else {
         throw new Error(responseData.message || '데이터베이스 저장 실패');
       }
     } catch (err) {
       console.error('데이터베이스 저장 오류:', err);
       setError(`데이터베이스 저장 중 오류가 발생했습니다: ${err}`);
-      setDbSaveStatus({ success: false, message: `데이터베이스 저장 실패: ${err}` });
+      setDbSaveStatus(`❌ 데이터베이스 저장 실패: ${err}`);
     } finally {
       setIsSavingToDB(false);
     }
@@ -963,11 +993,11 @@ const InputDataPage: React.FC = () => {
             
             {dbSaveStatus && (
               <div className={`text-sm px-3 py-2 rounded-lg ${
-                dbSaveStatus.success 
+                dbSaveStatus.includes('✅') 
                   ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
                   : 'bg-red-500/20 text-red-400 border border-red-500/30'
               }`}>
-                {dbSaveStatus.message}
+                {dbSaveStatus}
               </div>
             )}
           </div>

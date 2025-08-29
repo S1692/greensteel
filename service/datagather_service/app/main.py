@@ -205,22 +205,21 @@ async def save_processed_data(data: dict):
                                 '공정': row.get('공정', ''),
                                 '투입물명': row.get('투입물명', ''),
                                 '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
-                                '단위': row.get('단위', ''),
-                                'AI추천답변': row.get('AI추천답변', ''),
+                                '단위': row.get('단위', '개'),  # 기본값 설정
                                 'source_file': filename
                             }
                             
                             # None 값 제거 (빈 문자열은 유지)
-                            input_data = {k: v for k, v in input_data.items() if v is not None and v != ''}
+                            input_data = {k: v for k, v in input_data.items() if v is not None}
                             
                             # 필수 컬럼이 있는지 확인
                             if input_data.get('공정') or input_data.get('투입물명'):
                                 cursor = session.execute(text("""
                                     INSERT INTO input_data 
                                     (로트번호, 생산품명, 생산수량, 투입일, 종료일, 
-                                     공정, 투입물명, 수량, 단위, AI추천답변, source_file)
+                                     공정, 투입물명, 수량, 단위, source_file)
                                     VALUES (:로트번호, :생산품명, :생산수량, :투입일, :종료일,
-                                            :공정, :투입물명, :수량, :단위, :AI추천답변, :source_file)
+                                            :공정, :투입물명, :수량, :단위, :source_file)
                                 """), input_data)
                                 
                                 saved_count += 1

@@ -99,34 +99,62 @@ async def ai_process_stream(data: dict):
                 "error": "No data provided"
             }
         
-        logger.info(f"AI 처리 시작: {len(input_data)}개 행")
+        # AI 추천 답변 생성 (규칙 기반)
+        def generate_ai_recommendation(row: dict) -> str:
+            """규칙 기반 AI 추천 답변 생성"""
+            공정 = row.get('공정', '').lower()
+            투입물명 = row.get('투입물명', '').lower()
+            수량 = row.get('수량', 0)
+            단위 = row.get('단위', '')
+            
+            # 공정별 추천 로직
+            if '코크스' in 공정:
+                if '석탄' in 투입물명:
+                    return f"코크스 제조 공정에 적합한 석탄 사용. 수량: {수량} {단위}"
+                else:
+                    return f"코크스 공정에 적합한 원료 선택 필요. 현재: {투입물명}"
+            
+            elif '소결' in 공정:
+                if '철광석' in 투입물명 or '광석' in 투입물명:
+                    return f"소결 공정에 적합한 철광석 사용. 수량: {수량} {단위}"
+                else:
+                    return f"소결 공정에 적합한 원료 선택 필요. 현재: {투입물명}"
+            
+            elif '제철' in 공정:
+                if '코크스' in 투입물명 or '석탄' in 투입물명:
+                    return f"제철 공정에 적합한 연료 사용. 수량: {수량} {단위}"
+                else:
+                    return f"제철 공정에 적합한 연료 선택 필요. 현재: {투입물명}"
+            
+            elif '제강' in 공정:
+                if '산소' in 투입물명 or '가스' in 투입물명:
+                    return f"제강 공정에 적합한 산화제 사용. 수량: {수량} {단위}"
+                else:
+                    return f"제강 공정에 적합한 산화제 선택 필요. 현재: {투입물명}"
+            
+            elif '압연' in 공정:
+                if '전기' in 투입물명 or '에너지' in 투입물명:
+                    return f"압연 공정에 적합한 에너지 사용. 수량: {수량} {단위}"
+                else:
+                    return f"압연 공정에 적합한 에너지 선택 필요. 현재: {투입물명}"
+            
+            else:
+                return f"일반 공정. 원료: {투입물명}, 수량: {수량} {단위}"
         
-        # AI 처리를 위한 규칙 기반 로직 구현
+        # 각 행에 AI 추천 답변 추가
         processed_data = []
-        
-        for i, row in enumerate(input_data):
-            # AI 추천 답변 생성 로직
-            ai_recommendation = generate_ai_recommendation(row)
-            
-            # 원본 데이터에 AI 추천 답변 추가
-            processed_row = {**row, 'AI추천답변': ai_recommendation}
+        for row in input_data:
+            processed_row = row.copy()
+            processed_row['AI추천답변'] = generate_ai_recommendation(row)
             processed_data.append(processed_row)
-            
-            # 진행 상황 로그
-            if (i + 1) % 10 == 0:
-                logger.info(f"AI 처리 진행 중: {i + 1}/{len(input_data)} 행 완료")
         
-        logger.info(f"AI 처리 완료: {len(processed_data)}개 행 처리됨")
+        logger.info(f"AI 처리 완료: {len(processed_data)}행 처리됨")
         
-        # 결과 반환
         return {
             "success": True,
-            "message": "AI 처리 스트리밍 완료",
+            "message": "AI 처리가 완료되었습니다.",
             "data": processed_data,
             "columns": columns,
-            "ai_classification": "규칙 기반 분류 및 추천",
-            "streaming": True,
-            "timestamp": datetime.now().isoformat(),
             "total_rows": len(input_data),
             "processed_rows": len(processed_data)
         }
@@ -135,66 +163,113 @@ async def ai_process_stream(data: dict):
         logger.error(f"AI 처리 스트리밍 실패: {e}")
         return {
             "success": False,
-            "message": "AI 처리 스트리밍 실패",
-            "error": str(e),
-            "streaming": False
+            "message": f"AI 처리 중 오류가 발생했습니다: {str(e)}",
+            "error": str(e)
         }
 
-def generate_ai_recommendation(row: dict) -> str:
-    """규칙 기반 AI 추천 답변 생성"""
+# DB 저장 엔드포인트
+@app.post("/save-processed-data")
+async def save_processed_data(data: dict):
+    """AI 처리된 데이터를 데이터베이스에 저장"""
     try:
-        process = str(row.get('공정', '')).strip()
-        input_material = str(row.get('투입물명', '')).strip()
-        quantity = row.get('수량', 0)
-        unit = str(row.get('단위', '')).strip()
+        logger.info(f"DB 저장 요청 받음: {data.get('filename', 'unknown')}")
         
-        # 공정별 추천 로직
-        if '코크스' in process or '코크스' in str(row.get('생산품명', '')):
-            if '점결탄' in input_material:
-                return f"코크스 생산을 위한 점결탄 투입량이 적절합니다. 현재 {quantity}{unit} 투입으로 {row.get('생산수량', 0)}톤의 코크스 생산이 가능합니다."
-            elif '석탄' in input_material:
-                return f"코크스 생산 공정에 적합한 석탄입니다. {quantity}{unit} 투입으로 고품질 코크스 제조가 가능합니다."
+        # 요청 데이터 추출
+        filename = data.get('filename', '')
+        input_data = data.get('data', [])
+        columns = data.get('columns', [])
         
-        elif '소결' in process or '소결' in str(row.get('생산품명', '')):
-            if '광석' in input_material:
-                return f"소결 공정에 적합한 광석입니다. {quantity}{unit} 투입으로 {row.get('생산수량', 0)}톤의 소결광 생산이 가능합니다."
-            elif '정립광' in input_material:
-                return f"정립된 광석으로 소결 공정 효율성이 향상됩니다. {quantity}{unit} 투입량이 적절합니다."
-            elif '석회' in input_material:
-                return f"소결 공정의 용융점 조절을 위한 석회 투입입니다. {quantity}{unit} 투입으로 소결 품질이 향상됩니다."
+        if not input_data:
+            return {
+                "success": False,
+                "message": "저장할 데이터가 없습니다.",
+                "error": "No data provided"
+            }
         
-        elif '제철' in process or '고로' in process:
-            if '코크스' in input_material:
-                return f"고로 제철 공정의 주요 연료입니다. {quantity}{unit} 투입으로 철광석 환원이 가능합니다."
-            elif '소결광' in input_material:
-                return f"고로 제철 공정에 최적화된 소결광입니다. {quantity}{unit} 투입으로 철 생산 효율성이 향상됩니다."
-            elif '석회석' in input_material:
-                return f"고로 제철 공정의 슬래그 형성을 위한 용제입니다. {quantity}{unit} 투입량이 적절합니다."
+        # 데이터베이스 연결 및 저장 로직
+        from .database import get_db
+        from .models import ProcessInput, Performance, Transport, BaseData, OutputData
+        from sqlalchemy.orm import Session
+        from sqlalchemy import create_engine
+        import os
         
-        elif '제강' in process:
-            if '철' in input_material or '선철' in input_material:
-                return f"제강 공정의 원료입니다. {quantity}{unit} 투입으로 강재 제조가 가능합니다."
-            elif '합금' in input_material:
-                return f"제강 공정의 합금 원소입니다. {quantity}{unit} 투입으로 원하는 강재 특성을 확보할 수 있습니다."
+        # 데이터베이스 연결
+        database_url = os.getenv("DATABASE_URL", "postgresql://postgres:lUAkUKpUxubYDvmqzGKxJLKgZCWMjaQy@switchyard.proxy.rlwy.net:51947/railway")
+        engine = create_engine(database_url)
         
-        elif '압연' in process:
-            if '강재' in input_material or '슬라브' in input_material:
-                return f"압연 공정의 원료입니다. {quantity}{unit} 투입으로 압연 제품 생산이 가능합니다."
-        
-        # 일반적인 추천
-        if quantity and unit:
-            if quantity > 1000:
-                return f"대량 투입으로 인한 경제적 효율성이 높습니다. {quantity}{unit} 투입량이 적절합니다."
-            elif quantity < 100:
-                return f"소량 투입으로 정밀한 공정 제어가 가능합니다. {quantity}{unit} 투입량이 적절합니다."
-            else:
-                return f"표준 투입량으로 안정적인 공정 운영이 가능합니다. {quantity}{unit} 투입량이 적절합니다."
-        
-        return "AI 분석 결과, 투입량과 공정 조건이 적절합니다."
-        
+        # 세션 생성
+        with Session(engine) as session:
+            try:
+                # 트랜잭션 시작
+                session.begin()
+                
+                saved_count = 0
+                
+                for row in input_data:
+                    try:
+                        # 공정 정보 저장
+                        if row.get('공정'):
+                            process_data = ProcessInput(
+                                input_name=row.get('투입물명', ''),
+                                amount=float(row.get('수량', 0)) if row.get('수량') else 0,
+                                input_type='material',  # 기본값
+                                notes=f"파일: {filename}, AI추천답변: {row.get('AI추천답변', '')}"
+                            )
+                            session.add(process_data)
+                        
+                        # 성과 데이터 저장
+                        if row.get('생산수량'):
+                            performance_data = Performance(
+                                process_name=row.get('공정', ''),
+                                production_amount=float(row.get('생산수량', 0)) if row.get('생산수량') else 0,
+                                unit=row.get('단위', ''),
+                                description=f"파일: {filename}, 생산품: {row.get('생산품명', '')}"
+                            )
+                            session.add(performance_data)
+                        
+                        # 기본 데이터 저장
+                        base_data = BaseData(
+                            name=row.get('투입물명', ''),
+                            type='input',
+                            category=row.get('공정', ''),
+                            unit=row.get('단위', ''),
+                            quantity=float(row.get('수량', 0)) if row.get('수량') else 0,
+                            source=filename,
+                            description=f"AI추천답변: {row.get('AI추천답변', '')}"
+                        )
+                        session.add(base_data)
+                        
+                        saved_count += 1
+                        
+                    except Exception as row_error:
+                        logger.error(f"행 데이터 저장 실패: {row_error}")
+                        continue
+                
+                # 트랜잭션 커밋
+                session.commit()
+                
+                logger.info(f"DB 저장 완료: {saved_count}행 저장됨")
+                
+                return {
+                    "success": True,
+                    "message": f"데이터베이스에 성공적으로 저장되었습니다. ({saved_count}행)",
+                    "saved_count": saved_count,
+                    "filename": filename
+                }
+                
+            except Exception as db_error:
+                # 트랜잭션 롤백
+                session.rollback()
+                logger.error(f"데이터베이스 저장 실패: {db_error}")
+                raise db_error
+                
     except Exception as e:
-        logger.error(f"AI 추천 생성 중 오류: {e}")
-        return "AI 분석 중 오류가 발생했습니다."
+        logger.error(f"DB 저장 엔드포인트 실패: {e}")
+        return {
+            "success": False,
+            "message": f"데이터베이스 저장 중 오류가 발생했습니다: {str(e)}",
+            "error": str(e)
+        }
 
 # 데이터 업로드 엔드포인트
 @app.post("/api/upload")

@@ -120,6 +120,8 @@ const InputDataPage: React.FC = () => {
   const [preparedDataForDB, setPreparedDataForDB] = useState<any>(null);
   const [editReasons, setEditReasons] = useState<{ [key: string]: string }>({});
   const inputFileRef = useRef<HTMLInputElement>(null);
+  const [isSavingToDB, setIsSavingToDB] = useState(false);
+  const [dbSaveStatus, setDbSaveStatus] = useState<{ success: boolean; message: string } | null>(null);
 
   // 템플릿 다운로드
   const handleTemplateDownload = () => {
@@ -604,6 +606,51 @@ const InputDataPage: React.FC = () => {
     e.preventDefault();
   };
 
+  // DB 저장 핸들러
+  const handleSaveToDatabase = async () => {
+    if (!aiProcessedData || !aiProcessedData.data || aiProcessedData.data.length === 0) {
+      setError('저장할 데이터가 없습니다.');
+      return;
+    }
+
+    setIsSavingToDB(true);
+    setDbSaveStatus(null);
+    setError(null);
+
+    try {
+      const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
+      const response = await fetch(`${gatewayUrl}/save-processed-data`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filename: aiProcessedData.filename,
+          data: aiProcessedData.data,
+          columns: aiProcessedData.columns
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`데이터베이스 저장 실패: ${response.status}`);
+      }
+
+      const responseData = await response.json();
+      if (responseData.success) {
+        setDbSaveStatus({ success: true, message: '데이터베이스에 성공적으로 저장되었습니다.' });
+        console.log('데이터베이스 저장 성공:', responseData);
+      } else {
+        throw new Error(responseData.message || '데이터베이스 저장 실패');
+      }
+    } catch (err) {
+      console.error('데이터베이스 저장 오류:', err);
+      setError(`데이터베이스 저장 중 오류가 발생했습니다: ${err}`);
+      setDbSaveStatus({ success: false, message: `데이터베이스 저장 실패: ${err}` });
+    } finally {
+      setIsSavingToDB(false);
+    }
+  };
+
   return (
     <CommonShell>
       <div className='w-full h-full p-4 lg:p-6 xl:p-8 space-y-4 lg:space-y-6 xl:space-y-8'>
@@ -883,6 +930,37 @@ const InputDataPage: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* DB 저장 버튼 */}
+          <div className='mt-4 flex items-center gap-4'>
+            <Button
+              onClick={handleSaveToDatabase}
+              disabled={isSavingToDB}
+              className='bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-6 py-2 rounded-lg flex items-center gap-2'
+            >
+              {isSavingToDB ? (
+                <>
+                  <div className='w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin'></div>
+                  저장 중...
+                </>
+              ) : (
+                <>
+                  <Save className='w-4 h-4' />
+                  데이터베이스에 저장
+                </>
+              )}
+            </Button>
+            
+            {dbSaveStatus && (
+              <div className={`text-sm px-3 py-2 rounded-lg ${
+                dbSaveStatus.success 
+                  ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                  : 'bg-red-500/20 text-red-400 border border-red-500/30'
+              }`}>
+                {dbSaveStatus.message}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </CommonShell>

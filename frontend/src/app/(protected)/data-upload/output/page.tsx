@@ -22,25 +22,48 @@ import { Input } from '@/components/atomic/atoms';
 import Link from 'next/link';
 
 // 타입 정의
+type DataRow = {
+  로트번호?: string | number;
+  생산품명?: string;
+  생산수량?: string | number;
+  투입일?: string | number;
+  종료일?: string | number;
+  공정?: string;
+  산출물명?: string;
+  수량?: string | number;
+  단위?: string;
+  [key: string]: any;
+};
+
 interface DataPreview {
   filename: string;
   fileSize: string;
-  data: any[];
+  data: Array<DataRow>;
   columns: string[];
 }
 
 interface AIProcessedData {
-  processed_count: number;
-  total_count: number;
+  status: string;
+  message: string;
+  filename: string;
+  total_rows: number;
+  processed_rows: number;
+  data: Array<DataRow>;
+  columns: string[];
 }
 
 interface EditableRow {
   id: string;
-  originalData: any;
-  modifiedData: any;
+  originalData: DataRow;
+  modifiedData: DataRow;
   isEditing: boolean;
   editReason?: string;
   isNewlyAdded?: boolean;
+}
+
+// 행별 오류 상태 관리
+interface RowErrors {
+  [rowId: string]: { [column: string]: string };
 }
 
 const OutputDataPage: React.FC = () => {
@@ -55,6 +78,410 @@ const OutputDataPage: React.FC = () => {
   const inputFileRef = useRef<HTMLInputElement>(null);
   const [isSavingToDB, setIsSavingToDB] = useState(false);
   const [dbSaveStatus, setDbSaveStatus] = useState<string>('');
+  
+  // 행별 오류 상태 관리
+  const [rowErrors, setRowErrors] = useState<RowErrors>({});
+
+  // 행별 오류 업데이트
+  const updateRowError = (rowId: string, column: string, errorMessage: string) => {
+    setRowErrors(prev => ({
+      ...prev,
+      [rowId]: {
+        ...prev[rowId],
+        [column]: errorMessage
+      }
+    }));
+  };
+
+  // 행별 오류 제거
+  const clearRowError = (rowId: string, column: string) => {
+    setRowErrors(prev => {
+      const newErrors = { ...prev };
+      if (newErrors[rowId]) {
+        delete newErrors[rowId][column];
+        if (Object.keys(newErrors[rowId]).length === 0) {
+          delete newErrors[rowId];
+        }
+      }
+      return newErrors;
+    });
+  };
+
+  // 행 삭제 핸들러
+  const deleteRow = (rowId: string) => {
+    setEditableInputRows(prev => prev.filter(row => row.id !== rowId));
+    // 수정 사유도 함께 제거
+    setEditReasons(prev => {
+      const newReasons = { ...prev };
+      delete newReasons[rowId];
+      return newReasons;
+    });
+    // 행별 오류도 제거
+    setRowErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[rowId];
+      return newErrors;
+    });
+    setError(null);
+  };
+
+  // 숫자 입력 필드에서 문자 입력 방지
+  const handleNumericInput = (e: React.KeyboardEvent<HTMLInputElement>, column: string) => {
+    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+    const isNumericColumn = ['로트번호', '생산수량', '수량'].includes(column);
+    
+    if (isNumericColumn) {
+      // 숫자, 소수점, 허용된 키만 입력 가능
+      if (!/[\d.]/.test(e.key) && !allowedKeys.includes(e.key)) {
+        e.preventDefault();
+        return;
+      }
+      
+      // 소수점은 한 번만 입력 가능
+      if (e.key === '.' && (e.currentTarget.value.includes('.') || e.currentTarget.value === '')) {
+        e.preventDefault();
+        return;
+      }
+    }
+  };
+
+  // 날짜 비교 검증 함수
+  const validateDateComparison = (rowId: string, column: string, value: string): void => {
+    const row = editableInputRows.find(r => r.id === rowId);
+    if (!row) return;
+    
+    if (column === '투입일' && row.modifiedData['종료일']) {
+      const startDate = new Date(value);
+      const endDate = new Date(row.modifiedData['종료일']);
+      if (startDate > endDate) {
+        updateRowError(rowId, column, '투입일은 종료일보다 늦을 수 없습니다.');
+      } else {
+        clearRowError(rowId, column);
+      }
+    } else if (column === '종료일' && row.modifiedData['투입일']) {
+      const startDate = new Date(row.modifiedData['투입일']);
+      const endDate = new Date(value);
+      if (startDate > endDate) {
+        updateRowError(rowId, column, '종료일은 투입일보다 빠를 수 없습니다.');
+      } else {
+        clearRowError(rowId, column);
+      }
+    }
+  };
+
+  // 입력 유효성 검사
+  const validateInput = (column: string, value: string): { isValid: boolean; errorMessage: string } => {
+    if (value.length > 20) {
+      console.log(`글자 수 초과: ${column} - ${value.length}글자`);
+      return { isValid: false, errorMessage: '20자 이하로 입력해주세요.' };
+    }
+    
+    switch (column) {
+      case '로트번호':
+      case '생산수량':
+      case '수량':
+        const isNumberValid = /^\d*$/.test(value);
+        if (!isNumberValid) {
+          console.log(`숫자만 입력 가능: ${column} - ${value}`);
+          return { isValid: false, errorMessage: '숫자만 입력 가능합니다.' };
+        }
+        return { isValid: true, errorMessage: '' };
+      case '투입일':
+      case '종료일':
+        if (!value || value === '') {
+          return { isValid: true, errorMessage: '' };
+        }
+        
+        // YYYY-MM-DD 형식 검증
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(value)) {
+          console.log(`날짜 형식 오류: ${column} - ${value}`);
+          return { isValid: false, errorMessage: 'YYYY-MM-DD 형식으로 입력해주세요.' };
+        }
+        
+        // 유효한 날짜인지 검증
+        const date = new Date(value);
+        if (isNaN(date.getTime())) {
+          console.log(`유효하지 않은 날짜: ${column} - ${value}`);
+          return { isValid: false, errorMessage: '유효한 날짜를 입력해주세요.' };
+        }
+        
+        // 미래 날짜 제한 (선택사항)
+        const today = new Date();
+        today.setHours(23, 59, 59, 999); // 오늘의 마지막 시간
+        if (date > today) {
+          console.log(`미래 날짜 입력: ${column} - ${value}`);
+          return { isValid: false, errorMessage: '미래 날짜는 입력할 수 없습니다.' };
+        }
+        
+        return { isValid: true, errorMessage: '' };
+      case '생산품명':
+        const isProductNameValid = /^[가-힣a-zA-Z0-9\s\-_()]*$/.test(value);
+        if (!isProductNameValid) {
+          console.log(`텍스트 입력 오류: ${column} - ${value}`);
+          return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자만 입력 가능합니다.' };
+        }
+        return { isValid: true, errorMessage: '' };
+      case '공정':
+        const isProcessValid = /^[가-힣a-zA-Z0-9\s\-_()]*$/.test(value);
+        if (!isProcessValid) {
+          console.log(`텍스트 입력 오류: ${column} - ${value}`);
+          return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자만 입력 가능합니다.' };
+        }
+        return { isValid: true, errorMessage: '' };
+      case '산출물명':
+        const isOutputMaterialValid = /^[가-힣a-zA-Z0-9\s\-_()]*$/.test(value);
+        if (!isOutputMaterialValid) {
+          console.log(`텍스트 입력 오류: ${column} - ${value}`);
+          return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자만 입력 가능합니다.' };
+        }
+        return { isValid: true, errorMessage: '' };
+      case '단위':
+        const isUnitValid = /^[가-힣a-zA-Z0-9\s\-_()]*$/.test(value);
+        if (!isUnitValid) {
+          console.log(`텍스트 입력 오류: ${column} - ${value}`);
+          return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자만 입력 가능합니다.' };
+        }
+        return { isValid: true, errorMessage: '' };
+      default:
+        return { isValid: true, errorMessage: '' };
+    }
+  };
+
+  // 새로운 행 추가 핸들러
+  const addNewRow = () => {
+    const newRow: EditableRow = {
+      id: `output-${editableInputRows.length}`,
+      originalData: {},
+      modifiedData: {},
+      isEditing: true,
+      isNewlyAdded: true
+    };
+    setEditableInputRows(prev => [...prev, newRow]);
+  };
+
+  // 입력 필드 렌더링
+  const renderInputField = (row: EditableRow, column: string) => {
+    const value = row.modifiedData[column] || '';
+    const isNewRow = row.isNewlyAdded;
+    const isRequired = isNewRow && ['로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '산출물명', '수량', '단위'].includes(column);
+    
+    const getInputClassName = () => {
+      let baseClass = 'w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+      
+      if (isNewRow) {
+        baseClass += ' border-green-300 bg-green-50 text-black';
+      } else if (row.isEditing) {
+        baseClass += ' border-blue-300 bg-blue-50 text-black';
+      } else {
+        baseClass += ' border-gray-300 bg-white text-black';
+      }
+      
+      return baseClass;
+    };
+
+    switch (column) {
+      case '로트번호':
+      case '생산수량':
+      case '수량':
+        return (
+          <div className='relative'>
+            <input
+              type='text'
+              value={value}
+              maxLength={20}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                const { isValid, errorMessage } = validateInput(column, newValue);
+                if (isValid) {
+                  handleInputChange(row.id, column, newValue);
+                  clearRowError(row.id, column);
+                } else {
+                  handleInputChange(row.id, column, newValue);
+                  updateRowError(row.id, column, errorMessage);
+                }
+              }}
+              onKeyDown={(e) => handleNumericInput(e, column)}
+              placeholder={isRequired ? '숫자만 입력 *' : '숫자만 입력'}
+              className={getInputClassName()}
+            />
+            {isRequired && (
+              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+            )}
+            {rowErrors[row.id]?.[column] && (
+              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
+            )}
+          </div>
+        );
+      
+      case '투입일':
+      case '종료일':
+        return (
+          <div className='relative'>
+            <input
+              type='date'
+              value={value}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                const { isValid, errorMessage } = validateInput(column, newValue);
+                
+                handleInputChange(row.id, column, newValue);
+                
+                if (isValid) {
+                  clearRowError(row.id, column);
+                  // 날짜 비교 검증 실행
+                  validateDateComparison(row.id, column, newValue);
+                } else {
+                  updateRowError(row.id, column, errorMessage);
+                }
+              }}
+              className={getInputClassName()}
+            />
+            {isRequired && (
+              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+            )}
+            {rowErrors[row.id]?.[column] && (
+              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
+            )}
+          </div>
+        );
+      
+      case '생산품명':
+        return (
+          <div className='relative'>
+            <input
+              type='text'
+              value={value}
+              maxLength={50}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                const { isValid, errorMessage } = validateInput(column, newValue);
+                if (isValid) {
+                  handleInputChange(row.id, column, newValue);
+                  clearRowError(row.id, column);
+                } else {
+                  handleInputChange(row.id, column, newValue);
+                  updateRowError(row.id, column, errorMessage);
+                }
+              }}
+              placeholder={isRequired ? '생산품명을 입력하세요 *' : '생산품명을 입력하세요'}
+              className={getInputClassName()}
+            />
+            {isRequired && (
+              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+            )}
+            {rowErrors[row.id]?.[column] && (
+              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
+            )}
+          </div>
+        );
+      
+      case '공정':
+        return (
+          <div className='relative'>
+            <input
+              type='text'
+              value={value}
+              maxLength={20}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                const { isValid, errorMessage } = validateInput(column, newValue);
+                if (isValid) {
+                  handleInputChange(row.id, column, newValue);
+                  clearRowError(row.id, column);
+                } else {
+                  handleInputChange(row.id, column, newValue);
+                  updateRowError(row.id, column, errorMessage);
+                }
+              }}
+              placeholder={isRequired ? '공정명을 입력하세요 *' : '공정명을 입력하세요'}
+              className={getInputClassName()}
+            />
+            {isRequired && (
+              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+            )}
+            {rowErrors[row.id]?.[column] && (
+              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
+            )}
+          </div>
+        );
+      
+      case '산출물명':
+        return (
+          <div className='relative'>
+            <input
+              type='text'
+              value={value}
+              maxLength={20}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                const { isValid, errorMessage } = validateInput(column, newValue);
+                if (isValid) {
+                  handleInputChange(row.id, column, newValue);
+                  clearRowError(row.id, column);
+                } else {
+                  handleInputChange(row.id, column, newValue);
+                  updateRowError(row.id, column, errorMessage);
+                }
+              }}
+              placeholder={isRequired ? '산출물명을 입력하세요 *' : '산출물명을 입력하세요'}
+              className={getInputClassName()}
+            />
+            {isRequired && (
+              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+            )}
+            {rowErrors[row.id]?.[column] && (
+              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
+            )}
+          </div>
+        );
+      
+      case '단위':
+        return (
+          <div className='relative'>
+            <select
+              value={value}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                const { isValid, errorMessage } = validateInput(column, newValue);
+                if (isValid) {
+                  handleInputChange(row.id, column, newValue);
+                  clearRowError(row.id, column);
+                } else {
+                  handleInputChange(row.id, column, newValue);
+                  updateRowError(row.id, column, errorMessage);
+                }
+              }}
+              className={getInputClassName()}
+            >
+              <option value=''>단위를 선택하세요</option>
+              <option value='t'>톤</option>
+              <option value='kg'>킬로그램</option>
+              <option value='g'>그램</option>
+              <option value='L'>리터</option>
+              <option value='mL'>밀리리터</option>
+              <option value='개수'>개수</option>
+              <option value='kg/h'>킬로그램/시간</option>
+              <option value='kg/m'>킬로그램/미터</option>
+              <option value='kg/m2'>킬로그램/제곱미터</option>
+              <option value='kg/m3'>킬로그램/세제곱미터</option>
+              <option value='kg/L'>킬로그램/리터</option>
+            </select>
+            {isRequired && (
+              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+            )}
+            {rowErrors[row.id]?.[column] && (
+              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
+            )}
+          </div>
+        );
+      
+      default:
+        return (
+          <span>{value || '-'}</span>
+        );
+    }
+  };
 
   // 템플릿 다운로드
   const handleTemplateDownload = () => {
@@ -103,7 +530,7 @@ const OutputDataPage: React.FC = () => {
       
       // 첫 번째 행에서 컬럼명 추출
       const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
-      const columns = [];
+      const columns: string[] = [];
       for (let col = range.s.c; col <= range.e.c; col++) {
         const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
         const cell = worksheet[cellAddress];
@@ -117,7 +544,7 @@ const OutputDataPage: React.FC = () => {
         header: columns,
         range: 1,
         defval: ''
-      });
+      }) as DataRow[];
 
       // 편집 가능한 행 데이터 생성
       const editableRows: EditableRow[] = jsonData.map((row: any, index) => ({
@@ -141,8 +568,13 @@ const OutputDataPage: React.FC = () => {
       // AI 처리 시뮬레이션
       setTimeout(() => {
         setAiProcessedData({
-          processed_count: jsonData.length,
-          total_count: jsonData.length
+          status: 'completed',
+          message: '데이터 처리 완료',
+          filename: inputFile.name,
+          total_rows: jsonData.length,
+          processed_rows: jsonData.length,
+          data: jsonData,
+          columns: columns
         });
       }, 2000);
 
@@ -151,6 +583,79 @@ const OutputDataPage: React.FC = () => {
       setError('파일 업로드 중 오류가 발생했습니다.');
     } finally {
       setIsInputUploading(false);
+    }
+  };
+
+  // DB 저장 핸들러
+  const handleSaveToDatabase = async () => {
+    if (!inputData || inputData.data.length === 0) {
+      setError('저장할 데이터가 없습니다.');
+      return;
+    }
+
+    setIsSavingToDB(true);
+    setDbSaveStatus('');
+    setError(null);
+
+    try {
+      // Excel 날짜를 PostgreSQL date 형식으로 변환하는 함수
+      const convertExcelDate = (excelDate: any): string | null => {
+        if (!excelDate || excelDate === '') return null;
+        
+        try {
+          // 이미 문자열 형태의 날짜인 경우
+          if (typeof excelDate === 'string') {
+            return excelDate;
+          }
+          
+          // Excel 날짜 숫자인 경우 (1900년 1월 1일부터의 일수)
+          if (typeof excelDate === 'number') {
+            const baseDate = new Date(1900, 0, 1); // JavaScript는 0부터 시작
+            const resultDate = new Date(baseDate.getTime() + (excelDate - 1) * 24 * 60 * 60 * 1000);
+            return resultDate.toISOString().split('T')[0]; // YYYY-MM-DD 형식
+          }
+          
+          return null;
+        } catch (error) {
+          console.warn('날짜 변환 실패:', excelDate, error);
+          return null;
+        }
+      };
+
+      // 날짜 변환을 적용한 데이터 준비
+      const processedData = inputData.data.map((row: any) => ({
+        ...row,
+        '투입일': convertExcelDate(row['투입일']),
+        '종료일': convertExcelDate(row['종료일'])
+      }));
+
+      const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
+      const response = await fetch(`${gatewayUrl}/save-output-data`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filename: inputFile?.name || 'unknown',
+          data: processedData,
+          columns: inputData.columns
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setDbSaveStatus(`✅ ${result.message}`);
+        console.log('산출물 데이터가 성공적으로 저장되었습니다:', result);
+      } else {
+        setDbSaveStatus(`❌ 저장 실패: ${result.message}`);
+        console.error('산출물 데이터 저장 실패:', result);
+      }
+    } catch (error) {
+      setDbSaveStatus(`❌ 오류 발생: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+      console.error('산출물 데이터 저장 중 오류:', error);
+    } finally {
+      setIsSavingToDB(false);
     }
   };
 
@@ -234,77 +739,6 @@ const OutputDataPage: React.FC = () => {
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-  };
-
-  const handleSaveToDatabase = async () => {
-    if (!inputData || inputData.data.length === 0) {
-      setDbSaveStatus('저장할 데이터가 없습니다.');
-      return;
-    }
-
-    setIsSavingToDB(true);
-    setDbSaveStatus('데이터베이스에 저장 중...');
-
-    try {
-      // Excel 날짜를 PostgreSQL date 형식으로 변환하는 함수
-      const convertExcelDate = (excelDate: any): string | null => {
-        if (!excelDate || excelDate === '') return null;
-        
-        try {
-          // 이미 문자열 형태의 날짜인 경우
-          if (typeof excelDate === 'string') {
-            return excelDate;
-          }
-          
-          // Excel 날짜 숫자인 경우 (1900년 1월 1일부터의 일수)
-          if (typeof excelDate === 'number') {
-            const baseDate = new Date(1900, 0, 1); // JavaScript는 0부터 시작
-            const resultDate = new Date(baseDate.getTime() + (excelDate - 1) * 24 * 60 * 60 * 1000);
-            return resultDate.toISOString().split('T')[0]; // YYYY-MM-DD 형식
-          }
-          
-          return null;
-        } catch (error) {
-          console.warn('날짜 변환 실패:', excelDate, error);
-          return null;
-        }
-      };
-
-      // 날짜 변환을 적용한 데이터 준비
-      const processedData = inputData.data.map((row: any) => ({
-        ...row,
-        '투입일': convertExcelDate(row['투입일']),
-        '종료일': convertExcelDate(row['종료일'])
-      }));
-
-      const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:3000'; // 환경 변수에서 게이트웨이 URL 가져오기
-      const response = await fetch(`${gatewayUrl}/save-output-data`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          filename: inputFile?.name || 'unknown',
-          data: processedData,
-          columns: inputData.columns
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        setDbSaveStatus(`✅ ${result.message}`);
-        console.log('산출물 데이터가 성공적으로 저장되었습니다:', result);
-      } else {
-        setDbSaveStatus(`❌ 저장 실패: ${result.message}`);
-        console.error('산출물 데이터 저장 실패:', result);
-      }
-    } catch (error) {
-      setDbSaveStatus(`❌ 오류 발생: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
-      console.error('산출물 데이터 저장 중 오류:', error);
-    } finally {
-      setIsSavingToDB(false);
-    }
   };
 
   return (
@@ -505,12 +939,7 @@ const OutputDataPage: React.FC = () => {
                         {inputData.columns.map((column) => (
                           <td key={column} className='border border-white/20 px-3 py-2 text-sm text-white'>
                             {row.isEditing ? (
-                              <Input
-                                type='text'
-                                value={row.modifiedData[column] || ''}
-                                onChange={(e) => handleInputChange(row.id, column, e.target.value)}
-                                className='w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white focus:outline-none focus:ring-2 focus:ring-primary/50'
-                              />
+                              renderInputField(row, column)
                             ) : (
                               <span>{row.modifiedData[column] || '-'}</span>
                             )}
@@ -535,19 +964,41 @@ const OutputDataPage: React.FC = () => {
                               </Button>
                             </div>
                           ) : (
-                            <Button
-                              onClick={() => toggleRowEdit(row.id)}
-                              className='bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs'
-                            >
-                              <Edit3 className='w-3 h-3 mr-1' />
-                              편집
-                            </Button>
+                            <div className='flex gap-2'>
+                              <Button
+                                onClick={() => toggleRowEdit(row.id)}
+                                className='bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs'
+                              >
+                                <Edit3 className='w-3 h-3 mr-1' />
+                                편집
+                              </Button>
+                              {row.isNewlyAdded && (
+                                <Button
+                                  onClick={() => deleteRow(row.id)}
+                                  className='bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs'
+                                >
+                                  <Trash2 className='w-3 h-3 mr-1' />
+                                  삭제
+                                </Button>
+                              )}
+                            </div>
                           )}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              {/* 데이터 추가 버튼 */}
+              <div className='mt-4 flex justify-center'>
+                <Button
+                  onClick={addNewRow}
+                  className='bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center gap-2'
+                >
+                  <Plus className='w-4 h-4' />
+                  데이터 추가
+                </Button>
               </div>
 
               {/* 수정 사유 입력 */}
@@ -590,7 +1041,7 @@ const OutputDataPage: React.FC = () => {
                 <div>
                   <h3 className='text-lg font-semibold text-white'>데이터 처리 완료</h3>
                   <p className='text-sm text-white/60'>
-                    총 {aiProcessedData.total_count}행이 성공적으로 처리되었습니다.
+                    총 {aiProcessedData.total_rows}행이 성공적으로 처리되었습니다.
                   </p>
                 </div>
               </div>

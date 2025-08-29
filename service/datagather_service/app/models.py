@@ -106,11 +106,11 @@ class BaseData(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 # ============================================================================
-# 📤 Output 모델 (출력 데이터)
+# 📤 Output 모델 (실적정보(산출물))
 # ============================================================================
 
 class OutputData(Base):
-    """출력 데이터 모델"""
+    """실적정보(산출물) 모델"""
     __tablename__ = "output"
     
     id = Column(Integer, primary_key=True, index=True)

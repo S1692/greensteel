@@ -23,20 +23,47 @@ import { Input } from '@/components/atomic/atoms';
 import Link from 'next/link';
 
 // 타입 정의
+type DataRow = {
+  생산품명?: string;
+  로트번호?: string | number;
+  운송물질?: string;
+  운송수량?: string | number;
+  운송일자?: string | number;
+  도착공정?: string;
+  출발지?: string;
+  이동수단?: string;
+  [key: string]: any;
+};
+
 interface DataPreview {
   filename: string;
   fileSize: string;
-  data: any[];
+  data: Array<DataRow>;
+  columns: string[];
+}
+
+interface AIProcessedData {
+  status: string;
+  message: string;
+  filename: string;
+  total_rows: number;
+  processed_rows: number;
+  data: Array<DataRow>;
   columns: string[];
 }
 
 interface EditableRow {
   id: string;
-  originalData: any;
-  modifiedData: any;
+  originalData: DataRow;
+  modifiedData: DataRow;
   isEditing: boolean;
   editReason?: string;
   isNewlyAdded?: boolean;
+}
+
+// 행별 오류 상태 관리
+interface RowErrors {
+  [rowId: string]: { [column: string]: string };
 }
 
 const TransportDataPage: React.FC = () => {
@@ -45,11 +72,469 @@ const TransportDataPage: React.FC = () => {
   const [inputData, setInputData] = useState<DataPreview | null>(null);
   const [editableInputRows, setEditableInputRows] = useState<EditableRow[]>([]);
   const [isInputUploading, setIsInputUploading] = useState(false);
-  const [isSavingToDB, setIsSavingToDB] = useState(false);
-  const [dbSaveStatus, setDbSaveStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const [aiProcessedData, setAiProcessedData] = useState<AIProcessedData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editReasons, setEditReasons] = useState<{ [key: string]: string }>({});
   const inputFileRef = useRef<HTMLInputElement>(null);
+  const [isSavingToDB, setIsSavingToDB] = useState(false);
+  const [dbSaveStatus, setDbSaveStatus] = useState<string>('');
+  
+  // 행별 오류 상태 관리
+  const [rowErrors, setRowErrors] = useState<RowErrors>({});
+
+  // 행별 오류 업데이트
+  const updateRowError = (rowId: string, column: string, errorMessage: string) => {
+    setRowErrors(prev => ({
+      ...prev,
+      [rowId]: {
+        ...prev[rowId],
+        [column]: errorMessage
+      }
+    }));
+  };
+
+  // 행별 오류 제거
+  const clearRowError = (rowId: string, column: string) => {
+    setRowErrors(prev => {
+      const newErrors = { ...prev };
+      if (newErrors[rowId]) {
+        delete newErrors[rowId][column];
+        if (Object.keys(newErrors[rowId]).length === 0) {
+          delete newErrors[rowId];
+        }
+      }
+      return newErrors;
+    });
+  };
+
+  // 행 삭제 핸들러
+  const deleteRow = (rowId: string) => {
+    setEditableInputRows(prev => prev.filter(row => row.id !== rowId));
+    // 수정 사유도 함께 제거
+    setEditReasons(prev => {
+      const newReasons = { ...prev };
+      delete newReasons[rowId];
+      return newReasons;
+    });
+    // 행별 오류도 제거
+    setRowErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[rowId];
+      return newErrors;
+    });
+    setError(null);
+  };
+
+  // 숫자 입력 필드에서 문자 입력 방지
+  const handleNumericInput = (e: React.KeyboardEvent<HTMLInputElement>, column: string) => {
+    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+    const isNumericColumn = ['로트번호', '운송수량'].includes(column);
+    
+    if (isNumericColumn) {
+      // 숫자, 소수점, 허용된 키만 입력 가능
+      if (!/[\d.]/.test(e.key) && !allowedKeys.includes(e.key)) {
+        e.preventDefault();
+        return;
+      }
+      
+      // 소수점은 한 번만 입력 가능
+      if (e.key === '.' && (e.currentTarget.value.includes('.') || e.currentTarget.value === '')) {
+        e.preventDefault();
+        return;
+      }
+    }
+  };
+
+  // 날짜 비교 검증 함수
+  const validateDateComparison = (rowId: string, column: string, value: string): void => {
+    const row = editableInputRows.find(r => r.id === rowId);
+    if (!row) return;
+    
+    // 운송일자는 단일 날짜이므로 비교 검증 불필요
+    return;
+  };
+
+  // 입력 유효성 검사
+  const validateInput = (column: string, value: string): { isValid: boolean; errorMessage: string } => {
+    if (value.length > 20) {
+      console.log(`글자 수 초과: ${column} - ${value.length}글자`);
+      return { isValid: false, errorMessage: '20자 이하로 입력해주세요.' };
+    }
+    
+    switch (column) {
+             case '로트번호':
+       case '운송수량':
+         const isNumberValid = /^\d*$/.test(value);
+         if (!isNumberValid) {
+           console.log(`숫자만 입력 가능: ${column} - ${value}`);
+           return { isValid: false, errorMessage: '숫자만 입력 가능합니다.' };
+         }
+         return { isValid: true, errorMessage: '' };
+      case '운송일자':
+        if (!value || value === '') {
+          return { isValid: true, errorMessage: '' };
+        }
+        
+        // YYYY-MM-DD 형식 검증
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(value)) {
+          console.log(`날짜 형식 오류: ${column} - ${value}`);
+          return { isValid: false, errorMessage: 'YYYY-MM-DD 형식으로 입력해주세요.' };
+        }
+        
+        // 유효한 날짜인지 검증
+        const date = new Date(value);
+        if (isNaN(date.getTime())) {
+          console.log(`유효하지 않은 날짜: ${column} - ${value}`);
+          return { isValid: false, errorMessage: '유효한 날짜를 입력해주세요.' };
+        }
+        
+        // 미래 날짜 제한 (선택사항)
+        const today = new Date();
+        today.setHours(23, 59, 59, 999); // 오늘의 마지막 시간
+        if (date > today) {
+          console.log(`미래 날짜 입력: ${column} - ${value}`);
+          return { isValid: false, errorMessage: '미래 날짜는 입력할 수 없습니다.' };
+        }
+        
+        return { isValid: true, errorMessage: '' };
+      case '생산품명':
+        const isProductNameValid = /^[가-힣a-zA-Z0-9\s\-_()]*$/.test(value);
+        if (!isProductNameValid) {
+          console.log(`텍스트 입력 오류: ${column} - ${value}`);
+          return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자만 입력 가능합니다.' };
+        }
+        return { isValid: true, errorMessage: '' };
+      case '출발지':
+      case '도착공정':
+      case '운송물질':
+        const isLocationValid = /^[가-힣a-zA-Z0-9\s\-_()]*$/.test(value);
+        if (!isLocationValid) {
+          console.log(`텍스트 입력 오류: ${column} - ${value}`);
+          return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자만 입력 가능합니다.' };
+        }
+        return { isValid: true, errorMessage: '' };
+      case '이동수단':
+        const isTransportValid = /^[가-힣a-zA-Z0-9\s\-_()]*$/.test(value);
+        if (!isTransportValid) {
+          console.log(`텍스트 입력 오류: ${column} - ${value}`);
+          return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자만 입력 가능합니다.' };
+        }
+        return { isValid: true, errorMessage: '' };
+
+      default:
+        return { isValid: true, errorMessage: '' };
+    }
+  };
+
+  // 새로운 행 추가 핸들러
+  const addNewRow = () => {
+    const newRow: EditableRow = {
+      id: `transport-${editableInputRows.length}`,
+      originalData: {},
+      modifiedData: {},
+      isEditing: true,
+      isNewlyAdded: true
+    };
+    setEditableInputRows(prev => [...prev, newRow]);
+  };
+
+  // 입력 필드 렌더링
+  const renderInputField = (row: EditableRow, column: string) => {
+    const value = row.modifiedData[column] || '';
+    const isNewRow = row.isNewlyAdded;
+    const isRequired = isNewRow && ['생산품명', '로트번호', '운송물질', '운송수량', '운송일자', '도착공정', '출발지', '이동수단'].includes(column);
+    
+    const getInputClassName = () => {
+      let baseClass = 'w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+      
+      if (isNewRow) {
+        baseClass += ' border-green-300 bg-green-50 text-black';
+      } else if (row.isEditing) {
+        baseClass += ' border-blue-300 bg-blue-50 text-black';
+      } else {
+        baseClass += ' border-gray-300 bg-white text-black';
+      }
+      
+      return baseClass;
+    };
+
+    switch (column) {
+      case '로트번호':
+        return (
+          <div className='relative'>
+            <input
+              type='text'
+              value={value}
+              maxLength={20}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                const { isValid, errorMessage } = validateInput(column, newValue);
+                if (isValid) {
+                  handleInputChange(row.id, column, newValue);
+                  clearRowError(row.id, column);
+                } else {
+                  handleInputChange(row.id, column, newValue);
+                  updateRowError(row.id, column, errorMessage);
+                }
+              }}
+              onKeyDown={(e) => handleNumericInput(e, column)}
+              placeholder={isRequired ? '숫자만 입력 *' : '숫자만 입력'}
+              className={getInputClassName()}
+            />
+            {isRequired && (
+              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+            )}
+            {rowErrors[row.id]?.[column] && (
+              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
+            )}
+          </div>
+        );
+      
+      case '운송수량':
+        return (
+          <div className='relative'>
+            <input
+              type='text'
+              value={value}
+              maxLength={20}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                const { isValid, errorMessage } = validateInput(column, newValue);
+                if (isValid) {
+                  handleInputChange(row.id, column, newValue);
+                  clearRowError(row.id, column);
+                } else {
+                  handleInputChange(row.id, column, newValue);
+                  updateRowError(row.id, column, errorMessage);
+                }
+              }}
+              onKeyDown={(e) => handleNumericInput(e, column)}
+              placeholder={isRequired ? '운송수량을 입력하세요 *' : '운송수량을 입력하세요'}
+              className={getInputClassName()}
+            />
+            {isRequired && (
+              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+            )}
+            {rowErrors[row.id]?.[column] && (
+              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
+            )}
+          </div>
+        );
+      
+      case '운송일자':
+        return (
+          <div className='relative'>
+            <input
+              type='date'
+              value={value}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                const { isValid, errorMessage } = validateInput(column, newValue);
+                
+                handleInputChange(row.id, column, newValue);
+                
+                if (isValid) {
+                  clearRowError(row.id, column);
+                  // 날짜 비교 검증 실행
+                  validateDateComparison(row.id, column, newValue);
+                } else {
+                  updateRowError(row.id, column, errorMessage);
+                }
+              }}
+              className={getInputClassName()}
+            />
+            {isRequired && (
+              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+            )}
+            {rowErrors[row.id]?.[column] && (
+              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
+            )}
+          </div>
+        );
+      
+      case '생산품명':
+        return (
+          <div className='relative'>
+            <input
+              type='text'
+              value={value}
+              maxLength={50}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                const { isValid, errorMessage } = validateInput(column, newValue);
+                if (isValid) {
+                  handleInputChange(row.id, column, newValue);
+                  clearRowError(row.id, column);
+                } else {
+                  handleInputChange(row.id, column, newValue);
+                  updateRowError(row.id, column, errorMessage);
+                }
+              }}
+              placeholder={isRequired ? '생산품명을 입력하세요 *' : '생산품명을 입력하세요'}
+              className={getInputClassName()}
+            />
+            {isRequired && (
+              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+            )}
+            {rowErrors[row.id]?.[column] && (
+              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
+            )}
+          </div>
+        );
+      
+      case '출발지':
+      case '도착공정':
+        return (
+          <div className='relative'>
+            <input
+              type='text'
+              value={value}
+              maxLength={20}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                const { isValid, errorMessage } = validateInput(column, newValue);
+                if (isValid) {
+                  handleInputChange(row.id, column, newValue);
+                  clearRowError(row.id, column);
+                } else {
+                  handleInputChange(row.id, column, newValue);
+                  updateRowError(row.id, column, errorMessage);
+                }
+              }}
+              placeholder={isRequired ? `${column}을 입력하세요 *` : `${column}을 입력하세요`}
+              className={getInputClassName()}
+            />
+            {isRequired && (
+              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+            )}
+            {rowErrors[row.id]?.[column] && (
+              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
+            )}
+          </div>
+        );
+      
+      case '이동수단':
+        return (
+          <div className='relative'>
+            <input
+              type='text'
+              value={value}
+              maxLength={20}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                const { isValid, errorMessage } = validateInput(column, newValue);
+                if (isValid) {
+                  handleInputChange(row.id, column, newValue);
+                  clearRowError(row.id, column);
+                } else {
+                  handleInputChange(row.id, column, newValue);
+                  updateRowError(row.id, column, errorMessage);
+                }
+              }}
+              placeholder={isRequired ? '이동수단을 입력하세요 *' : '이동수단을 입력하세요'}
+              className={getInputClassName()}
+            />
+            {isRequired && (
+              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+            )}
+            {rowErrors[row.id]?.[column] && (
+              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
+            )}
+          </div>
+        );
+      
+      case '운송물질':
+        return (
+          <div className='relative'>
+            <input
+              type='text'
+              value={value}
+              maxLength={20}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                const { isValid, errorMessage } = validateInput(column, newValue);
+                if (isValid) {
+                  handleInputChange(row.id, column, newValue);
+                  clearRowError(row.id, column);
+                } else {
+                  handleInputChange(row.id, column, newValue);
+                  updateRowError(row.id, column, errorMessage);
+                }
+              }}
+              placeholder={isRequired ? '운송물질을 입력하세요 *' : '운송물질을 입력하세요'}
+              className={getInputClassName()}
+            />
+            {isRequired && (
+              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+            )}
+            {rowErrors[row.id]?.[column] && (
+              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
+            )}
+          </div>
+        );
+      
+      case '도착공정':
+        return (
+          <div className='relative'>
+            <input
+              type='text'
+              value={value}
+              maxLength={20}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                const { isValid, errorMessage } = validateInput(column, newValue);
+                if (isValid) {
+                  handleInputChange(row.id, column, newValue);
+                  clearRowError(row.id, column);
+                } else {
+                  handleInputChange(row.id, column, newValue);
+                  updateRowError(row.id, column, errorMessage);
+                }
+              }}
+              placeholder={isRequired ? '도착공정을 입력하세요 *' : '도착공정을 입력하세요'}
+              className={getInputClassName()}
+            />
+            {isRequired && (
+              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+            )}
+            {rowErrors[row.id]?.[column] && (
+              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
+            )}
+          </div>
+        );
+      
+      default:
+        return (
+          <div className='relative'>
+            <input
+              type='text'
+              value={value}
+              maxLength={20}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                const { isValid, errorMessage } = validateInput(column, newValue);
+                if (isValid) {
+                  handleInputChange(row.id, column, newValue);
+                  clearRowError(row.id, column);
+                } else {
+                  handleInputChange(row.id, column, newValue);
+                  updateRowError(row.id, column, errorMessage);
+                }
+              }}
+              placeholder={isRequired ? `${column}을 입력하세요 *` : `${column}을 입력하세요`}
+              className={getInputClassName()}
+            />
+            {isRequired && (
+              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+            )}
+            {rowErrors[row.id]?.[column] && (
+              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
+            )}
+          </div>
+        );
+    }
+  };
 
   // 템플릿 다운로드
   const handleTemplateDownload = () => {
@@ -75,6 +560,7 @@ const TransportDataPage: React.FC = () => {
       setError(null);
       setInputData(null);
       setEditableInputRows([]);
+      setAiProcessedData(null);
     }
   };
 
@@ -97,7 +583,7 @@ const TransportDataPage: React.FC = () => {
       
       // 첫 번째 행에서 컬럼명 추출
       const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
-      const columns = [];
+      const columns: string[] = [];
       for (let col = range.s.c; col <= range.e.c; col++) {
         const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
         const cell = worksheet[cellAddress];
@@ -111,7 +597,7 @@ const TransportDataPage: React.FC = () => {
         header: columns,
         range: 1,
         defval: ''
-      });
+      }) as DataRow[];
 
       // 편집 가능한 행 데이터 생성
       const editableRows: EditableRow[] = jsonData.map((row: any, index) => ({
@@ -132,6 +618,19 @@ const TransportDataPage: React.FC = () => {
       setEditableInputRows(editableRows);
       setError(null);
 
+      // AI 처리 시뮬레이션
+      setTimeout(() => {
+        setAiProcessedData({
+          status: 'completed',
+          message: '데이터 처리 완료',
+          filename: inputFile.name,
+          total_rows: jsonData.length,
+          processed_rows: jsonData.length,
+          data: jsonData,
+          columns: columns
+        });
+      }, 2000);
+
     } catch (err) {
       console.error('파일 업로드 오류:', err);
       setError('파일 업로드 중 오류가 발생했습니다.');
@@ -142,13 +641,13 @@ const TransportDataPage: React.FC = () => {
 
   // DB 저장 핸들러
   const handleSaveToDatabase = async () => {
-    if (!inputData || !inputData.data || inputData.data.length === 0) {
+    if (!inputData || inputData.data.length === 0) {
       setError('저장할 데이터가 없습니다.');
       return;
     }
 
     setIsSavingToDB(true);
-    setDbSaveStatus(null);
+    setDbSaveStatus('');
     setError(null);
 
     try {
@@ -176,11 +675,11 @@ const TransportDataPage: React.FC = () => {
         }
       };
 
-      // 날짜 변환을 적용한 데이터 준비
-      const processedData = inputData.data.map((row: any) => ({
-        ...row,
-        '운송 일자': convertExcelDate(row['운송 일자'])
-      }));
+             // 날짜 변환을 적용한 데이터 준비
+       const processedData = inputData.data.map((row: any) => ({
+         ...row,
+         '운송일자': convertExcelDate(row['운송일자'])
+       }));
 
       const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
       const response = await fetch(`${gatewayUrl}/save-transport-data`, {
@@ -189,27 +688,24 @@ const TransportDataPage: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          filename: inputData.filename,
+          filename: inputFile?.name || 'unknown',
           data: processedData,
           columns: inputData.columns
-        })
+        }),
       });
 
-      if (!response.ok) {
-        throw new Error(`데이터베이스 저장 실패: ${response.status}`);
-      }
+      const result = await response.json();
 
-      const responseData = await response.json();
-      if (responseData.success) {
-        setDbSaveStatus({ success: true, message: '데이터베이스에 성공적으로 저장되었습니다.' });
-        console.log('데이터베이스 저장 성공:', responseData);
+      if (result.success) {
+        setDbSaveStatus(`✅ ${result.message}`);
+        console.log('운송 데이터가 성공적으로 저장되었습니다:', result);
       } else {
-        throw new Error(responseData.message || '데이터베이스 저장 실패');
+        setDbSaveStatus(`❌ 저장 실패: ${result.message}`);
+        console.error('운송 데이터 저장 실패:', result);
       }
-    } catch (err) {
-      console.error('데이터베이스 저장 오류:', err);
-      setError(`데이터베이스 저장 중 오류가 발생했습니다: ${err}`);
-      setDbSaveStatus({ success: false, message: `데이터베이스 저장 실패: ${err}` });
+    } catch (error) {
+      setDbSaveStatus(`❌ 오류 발생: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+      console.error('운송 데이터 저장 중 오류:', error);
     } finally {
       setIsSavingToDB(false);
     }
@@ -311,7 +807,7 @@ const TransportDataPage: React.FC = () => {
           <div>
             <h1 className='stitch-h1 text-xl lg:text-2xl xl:text-3xl font-bold'>운송정보</h1>
             <p className='stitch-caption text-white/60 text-xs lg:text-sm'>
-              원재료 및 제품의 운송 과정에서 발생하는 데이터를 관리합니다.
+              생산품의 운송 과정과 관련된 데이터를 업로드하고 분석합니다.
             </p>
           </div>
         </div>
@@ -321,8 +817,8 @@ const TransportDataPage: React.FC = () => {
           {/* 1. 템플릿 다운로드 섹션 */}
           <div className='stitch-card p-6'>
             <div className='flex items-center gap-3 mb-4'>
-              <div className='w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center'>
-                <Download className='w-5 h-5 text-purple-600' />
+              <div className='w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center'>
+                <Download className='w-5 h-5 text-blue-600' />
               </div>
               <div>
                 <h2 className='text-lg font-semibold text-white'>템플릿 다운로드</h2>
@@ -331,7 +827,7 @@ const TransportDataPage: React.FC = () => {
             </div>
             <Button
               onClick={handleTemplateDownload}
-              className='bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg transition-colors'
+              className='bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors'
             >
               <Download className='w-4 h-4 mr-2' />
               템플릿 다운로드
@@ -341,8 +837,8 @@ const TransportDataPage: React.FC = () => {
           {/* 2. Excel 업로드 섹션 */}
           <div className='stitch-card p-6'>
             <div className='flex items-center gap-3 mb-4'>
-              <div className='w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center'>
-                <Truck className='w-5 h-5 text-blue-600' />
+              <div className='w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center'>
+                <Truck className='w-5 h-5 text-green-600' />
               </div>
               <div>
                 <h2 className='text-lg font-semibold text-white'>Excel 업로드</h2>
@@ -412,6 +908,7 @@ const TransportDataPage: React.FC = () => {
                           setInputFile(null);
                           setInputData(null);
                           setEditableInputRows([]);
+                          setAiProcessedData(null);
                         }}
                         className='bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg transition-colors'
                       >
@@ -424,7 +921,22 @@ const TransportDataPage: React.FC = () => {
             </div>
           </div>
 
-          {/* 3. 데이터 미리보기 및 편집 */}
+          {/* 3. AI 처리 상태 표시 */}
+          {isInputUploading && (
+            <div className='stitch-card p-6'>
+              <div className='flex items-center gap-3'>
+                <div className='w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center'>
+                  <Brain className='w-5 h-5 text-blue-600' />
+                </div>
+                <div>
+                  <h3 className='text-lg font-semibold text-white'>데이터 처리 중...</h3>
+                  <p className='text-sm text-white/60'>업로드된 파일을 분석하고 처리하는 중입니다.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 4. 데이터 미리보기 및 편집 */}
           {inputData && editableInputRows.length > 0 && (
             <div className='stitch-card p-6'>
               <div className='flex items-center justify-between mb-4'>
@@ -436,7 +948,27 @@ const TransportDataPage: React.FC = () => {
                     행 수: {inputData.data.length}
                   </p>
                 </div>
+                <div className='flex gap-2'>
+                  <Button
+                    onClick={handleSaveToDatabase}
+                    disabled={isSavingToDB}
+                    className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg'
+                  >
+                    {isSavingToDB ? '저장 중...' : 'DB에 저장하기'}
+                  </Button>
+                </div>
               </div>
+
+              {/* DB 저장 상태 표시 */}
+              {dbSaveStatus && (
+                <div className={`p-4 mb-4 rounded-lg ${
+                  dbSaveStatus.includes('✅') ? 'bg-green-100 text-green-800' : 
+                  dbSaveStatus.includes('❌') ? 'bg-red-100 text-red-800' : 
+                  'bg-blue-100 text-blue-800'
+                }`}>
+                  {dbSaveStatus}
+                </div>
+              )}
 
               {/* 데이터 테이블 */}
               <div className='overflow-x-auto'>
@@ -459,12 +991,7 @@ const TransportDataPage: React.FC = () => {
                         {inputData.columns.map((column) => (
                           <td key={column} className='border border-white/20 px-3 py-2 text-sm text-white'>
                             {row.isEditing ? (
-                              <Input
-                                type='text'
-                                value={row.modifiedData[column] || ''}
-                                onChange={(e) => handleInputChange(row.id, column, e.target.value)}
-                                className='w-full px-2 py-1 bg-white/10 border border-white/20 rounded text-white focus:outline-none focus:ring-2 focus:ring-primary/50'
-                              />
+                              renderInputField(row, column)
                             ) : (
                               <span>{row.modifiedData[column] || '-'}</span>
                             )}
@@ -489,13 +1016,24 @@ const TransportDataPage: React.FC = () => {
                               </Button>
                             </div>
                           ) : (
-                            <Button
-                              onClick={() => toggleRowEdit(row.id)}
-                              className='bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs'
-                            >
-                              <Edit3 className='w-3 h-3 mr-1' />
-                              편집
-                            </Button>
+                            <div className='flex gap-2'>
+                              <Button
+                                onClick={() => toggleRowEdit(row.id)}
+                                className='bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs'
+                              >
+                                <Edit3 className='w-3 h-3 mr-1' />
+                                편집
+                              </Button>
+                              {row.isNewlyAdded && (
+                                <Button
+                                  onClick={() => deleteRow(row.id)}
+                                  className='bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs'
+                                >
+                                  <Trash2 className='w-3 h-3 mr-1' />
+                                  삭제
+                                </Button>
+                              )}
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -504,38 +1042,16 @@ const TransportDataPage: React.FC = () => {
                 </table>
               </div>
 
-              {/* DB 저장 버튼 */}
-              {inputData && inputData.data.length > 0 && (
-                <div className='mt-4 flex items-center gap-4'>
-                  <Button
-                    onClick={handleSaveToDatabase}
-                    disabled={isSavingToDB}
-                    className='bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-6 py-2 rounded-lg flex items-center gap-2'
-                  >
-                    {isSavingToDB ? (
-                      <>
-                        <div className='w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin'></div>
-                        저장 중...
-                      </>
-                    ) : (
-                      <>
-                        <Save className='w-4 h-4' />
-                        데이터베이스에 저장
-                      </>
-                    )}
-                  </Button>
-                  
-                  {dbSaveStatus && (
-                    <div className={`text-sm px-3 py-2 rounded-lg ${
-                      dbSaveStatus.success 
-                        ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                        : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                    }`}>
-                      {dbSaveStatus.message}
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* 데이터 추가 버튼 */}
+              <div className='mt-4 flex justify-center'>
+                <Button
+                  onClick={addNewRow}
+                  className='bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center gap-2'
+                >
+                  <Plus className='w-4 h-4' />
+                  데이터 추가
+                </Button>
+              </div>
 
               {/* 수정 사유 입력 */}
               {editableInputRows.some(row => row.isEditing) && (
@@ -567,7 +1083,24 @@ const TransportDataPage: React.FC = () => {
             </div>
           )}
 
-          {/* 4. 오류 메시지 */}
+          {/* 5. AI 처리 결과 */}
+          {aiProcessedData && (
+            <div className='stitch-card p-6'>
+              <div className='flex items-center gap-3 mb-4'>
+                <div className='w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center'>
+                  <CheckCircle className='w-5 h-5 text-green-600' />
+                </div>
+                <div>
+                  <h3 className='text-lg font-semibold text-white'>데이터 처리 완료</h3>
+                  <p className='text-sm text-white/60'>
+                    총 {aiProcessedData.total_rows}행이 성공적으로 처리되었습니다.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 6. 오류 메시지 */}
           {error && (
             <div className='stitch-card p-6 bg-red-500/10 border border-red-500/20'>
               <div className='flex items-center gap-3'>

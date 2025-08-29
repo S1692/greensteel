@@ -770,10 +770,10 @@ async def get_classified_data(classification: str):
             "error": str(e)
         }
 
-# 입력 데이터 조회 엔드포인트
+# 입력 데   이터 조회 엔드포인트
 @app.get("/api/datagather/input-data")
 async def get_input_data():
-    """입력 데이터 조회"""
+    """실적정보(투입물) 조회"""
     try:
         # PostgreSQL Railway 데이터베이스 연결 설정
         database_url = os.getenv("DATABASE_URL")
@@ -805,34 +805,34 @@ async def get_input_data():
                             row_dict[key] = value.isoformat()
                     data.append(row_dict)
                 
-                logger.info(f"입력 데이터 조회 완료: {len(data)}행")
+                logger.info(f"실적정보(투입물) 조회 완료: {len(data)}행")
                 return {
                     "success": True,
-                    "message": "입력 데이터 조회 완료",
+                    "message": "실적정보(투입물) 조회 완료",
                     "data": data,
                     "count": len(data)
                 }
                 
             except Exception as db_error:
-                logger.error(f"입력 데이터 조회 실패: {db_error}")
+                logger.error(f"실적정보(투입물) 조회 실패: {db_error}")
                 return {
                     "success": False,
-                    "message": f"입력 데이터 조회 중 오류가 발생했습니다: {str(db_error)}",
+                    "message": f"실적정보(투입물) 조회 중 오류가 발생했습니다: {str(db_error)}",
                     "error": str(db_error)
                 }
                 
     except Exception as e:
-        logger.error(f"입력 데이터 조회 엔드포인트 실패: {e}")
+        logger.error(f"실적정보(투입물) 조회 엔드포인트 실패: {e}")
         return {
             "success": False,
-            "message": f"입력 데이터 조회 중 오류가 발생했습니다: {str(e)}",
+            "message": f"실적정보(투입물) 조회 중 오류가 발생했습니다: {str(e)}",
             "error": str(e)
         }
 
-# 출력 데이터 조회 엔드포인트
+# 실적정보(산출물) 조회 엔드포인트
 @app.get("/api/datagather/output-data")
 async def get_output_data():
-    """출력 데이터 조회"""
+    """실적정보(산출물) 조회"""
     try:
         # PostgreSQL Railway 데이터베이스 연결 설정
         database_url = os.getenv("DATABASE_URL")
@@ -864,27 +864,27 @@ async def get_output_data():
                             row_dict[key] = value.isoformat()
                     data.append(row_dict)
                 
-                logger.info(f"출력 데이터 조회 완료: {len(data)}행")
+                logger.info(f"실적정보(산출물) 조회 완료: {len(data)}행")
                 return {
                     "success": True,
-                    "message": "출력 데이터 조회 완료",
+                    "message": "실적정보(산출물) 조회 완료",
                     "data": data,
                     "count": len(data)
                 }
                 
             except Exception as db_error:
-                logger.error(f"출력 데이터 조회 실패: {db_error}")
+                logger.error(f"실적정보(산출물) 조회 실패: {db_error}")
                 return {
                     "success": False,
-                    "message": f"출력 데이터 조회 중 오류가 발생했습니다: {str(db_error)}",
+                    "message": f"실적정보(산출물) 조회 중 오류가 발생했습니다: {str(db_error)}",
                     "error": str(db_error)
                 }
                 
     except Exception as e:
-        logger.error(f"출력 데이터 조회 엔드포인트 실패: {e}")
+        logger.error(f"실적정보(산출물) 조회 엔드포인트 실패: {e}")
         return {
             "success": False,
-            "message": f"출력 데이터 조회 중 오류가 발생했습니다: {str(e)}",
+            "message": f"실적정보(산출물) 조회 중 오류가 발생했습니다: {str(e)}",
             "error": str(e)
         }
 

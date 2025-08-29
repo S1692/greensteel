@@ -49,7 +49,7 @@ const DataUploadPage: React.FC = () => {
       icon: Truck,
       href: '/data-upload/transport',
       color: 'from-purple-500 to-purple-600',
-      features: ['운송 경로 관리', '탄소 배출량 계산', '비용 분석'],
+      features: ['운송 경로 관리'],
       templateFile: '실적_데이터_운송정보.xlsx'
     },
     {
@@ -60,7 +60,7 @@ const DataUploadPage: React.FC = () => {
       icon: Cog,
       href: '/data-upload/process',
       color: 'from-orange-500 to-orange-600',
-      features: ['공정 흐름 관리', '설비 정보 관리', '공정별 성과 분석'],
+      features: ['설비 정보 관리'],
       templateFile: '실적_데이터_공정정보.xlsx'
     }
   ];

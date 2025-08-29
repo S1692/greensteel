@@ -12,7 +12,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
             "success": False,
-            "message": "입력 데이터 검증에 실패했습니다.",
+            "message": "실적정보(투입물) 검증에 실패했습니다.",
             "data": {
                 "errors": exc.errors(),
                 "request_path": request.url.path

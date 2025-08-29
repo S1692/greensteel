@@ -123,6 +123,52 @@ const InputDataPage: React.FC = () => {
   const [isSavingToDB, setIsSavingToDB] = useState(false);
   const [dbSaveStatus, setDbSaveStatus] = useState<string>('');
 
+  // 행별 오류 상태 관리
+  const [rowErrors, setRowErrors] = useState<{ [key: string]: { [column: string]: string } }>({});
+
+  // 행별 오류 업데이트
+  const updateRowError = (rowId: string, column: string, errorMessage: string) => {
+    setRowErrors(prev => ({
+      ...prev,
+      [rowId]: {
+        ...prev[rowId],
+        [column]: errorMessage
+      }
+    }));
+  };
+
+  // 행별 오류 제거
+  const clearRowError = (rowId: string, column: string) => {
+    setRowErrors(prev => {
+      const newErrors = { ...prev };
+      if (newErrors[rowId]) {
+        delete newErrors[rowId][column];
+        if (Object.keys(newErrors[rowId]).length === 0) {
+          delete newErrors[rowId];
+        }
+      }
+      return newErrors;
+    });
+  };
+
+  // 행 삭제 핸들러
+  const deleteRow = (rowId: string) => {
+    setEditableInputRows(prev => prev.filter(row => row.id !== rowId));
+    // 수정 사유도 함께 제거
+    setEditReasons(prev => {
+      const newReasons = { ...prev };
+      delete newReasons[rowId];
+      return newReasons;
+    });
+    // 행별 오류도 제거
+    setRowErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors[rowId];
+      return newErrors;
+    });
+    setError(null);
+  };
+
   // 템플릿 다운로드
   const handleTemplateDownload = () => {
     const link = document.createElement('a');
@@ -366,6 +412,26 @@ const InputDataPage: React.FC = () => {
     );
   };
 
+  // 숫자 입력 필드에서 문자 입력 방지
+  const handleNumericInput = (e: React.KeyboardEvent<HTMLInputElement>, column: string) => {
+    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+    const isNumericColumn = ['로트번호', '생산수량', '수량'].includes(column);
+    
+    if (isNumericColumn) {
+      // 숫자, 소수점, 허용된 키만 입력 가능
+      if (!/[\d.]/.test(e.key) && !allowedKeys.includes(e.key)) {
+        e.preventDefault();
+        return;
+      }
+      
+      // 소수점은 한 번만 입력 가능
+      if (e.key === '.' && (e.currentTarget.value.includes('.') || e.currentTarget.value === '')) {
+        e.preventDefault();
+        return;
+      }
+    }
+  };
+
   // 행 편집 토글
   const toggleRowEdit = (rowId: string) => {
     setEditableInputRows(prev => 
@@ -441,11 +507,35 @@ const InputDataPage: React.FC = () => {
     }
   };
 
+  // 날짜 비교 검증 함수
+  const validateDateComparison = (rowId: string, column: string, value: string): void => {
+    const row = editableInputRows.find(r => r.id === rowId);
+    if (!row) return;
+    
+    if (column === '투입일' && row.modifiedData['종료일']) {
+      const inputDate = new Date(value);
+      const endDate = new Date(row.modifiedData['종료일']);
+      if (inputDate > endDate) {
+        updateRowError(rowId, column, '투입일은 종료일보다 늦을 수 없습니다.');
+      } else {
+        clearRowError(rowId, column);
+      }
+    } else if (column === '종료일' && row.modifiedData['투입일']) {
+      const startDate = new Date(row.modifiedData['투입일']);
+      const endDate = new Date(value);
+      if (startDate > endDate) {
+        updateRowError(rowId, column, '종료일은 투입일보다 빠를 수 없습니다.');
+      } else {
+        clearRowError(rowId, column);
+      }
+    }
+  };
+
   // 입력 유효성 검사
-  const validateInput = (column: string, value: string): boolean => {
+  const validateInput = (column: string, value: string): { isValid: boolean; errorMessage: string } => {
     if (value.length > 20) {
       console.log(`글자 수 초과: ${column} - ${value.length}글자`);
-      return false;
+      return { isValid: false, errorMessage: '20자 이하로 입력해주세요.' };
     }
     
     switch (column) {
@@ -455,45 +545,94 @@ const InputDataPage: React.FC = () => {
         const isNumberValid = /^\d*$/.test(value);
         if (!isNumberValid) {
           console.log(`숫자만 입력 가능: ${column} - ${value}`);
+          return { isValid: false, errorMessage: '숫자만 입력 가능합니다.' };
         }
-        return isNumberValid;
+        return { isValid: true, errorMessage: '' };
       case '투입일':
       case '종료일':
-        const isDateValid = /^\d{4}-\d{2}-\d{2}$/.test(value) || value === '';
-        if (!isDateValid) {
+        if (!value || value === '') {
+          return { isValid: true, errorMessage: '' };
+        }
+        
+        // YYYY-MM-DD 형식 검증
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(value)) {
           console.log(`날짜 형식 오류: ${column} - ${value}`);
+          return { isValid: false, errorMessage: 'YYYY-MM-DD 형식으로 입력해주세요.' };
         }
-        return isDateValid;
+        
+        // 유효한 날짜인지 검증
+        const date = new Date(value);
+        if (isNaN(date.getTime())) {
+          console.log(`유효하지 않은 날짜: ${column} - ${value}`);
+          return { isValid: false, errorMessage: '유효한 날짜를 입력해주세요.' };
+        }
+        
+        // 미래 날짜 제한 (선택사항)
+        const today = new Date();
+        today.setHours(23, 59, 59, 999); // 오늘의 마지막 시간
+        if (date > today) {
+          console.log(`미래 날짜 입력: ${column} - ${value}`);
+          return { isValid: false, errorMessage: '미래 날짜는 입력할 수 없습니다.' };
+        }
+        
+        return { isValid: true, errorMessage: '' };
       case '생산품명':
-      case '공정':
-      case '투입물명':
-      case '단위':
-        const isTextValid = /^[가-힣a-zA-Z0-9\s\-_()]*$/.test(value);
-        if (!isTextValid) {
+        const isProductNameValid = /^[가-힣a-zA-Z0-9\s\-_()]*$/.test(value);
+        if (!isProductNameValid) {
           console.log(`텍스트 입력 오류: ${column} - ${value}`);
+          return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자만 입력 가능합니다.' };
         }
-        return isTextValid;
+        return { isValid: true, errorMessage: '' };
+      case '공정':
+        const isProcessValid = /^[가-힣a-zA-Z0-9\s\-_()]*$/.test(value);
+        if (!isProcessValid) {
+          console.log(`텍스트 입력 오류: ${column} - ${value}`);
+          return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자만 입력 가능합니다.' };
+        }
+        return { isValid: true, errorMessage: '' };
+      case '투입물명':
+        const isMaterialNameValid = /^[가-힣a-zA-Z0-9\s\-_()]*$/.test(value);
+        if (!isMaterialNameValid) {
+          console.log(`텍스트 입력 오류: ${column} - ${value}`);
+          return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자만 입력 가능합니다.' };
+        }
+        return { isValid: true, errorMessage: '' };
+      case '단위':
+        const isUnitValid = /^[가-힣a-zA-Z0-9\s\-_()]*$/.test(value);
+        if (!isUnitValid) {
+          console.log(`텍스트 입력 오류: ${column} - ${value}`);
+          return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자만 입력 가능합니다.' };
+        }
+        return { isValid: true, errorMessage: '' };
       default:
-        return true;
+        return { isValid: true, errorMessage: '' };
     }
   };
 
   // 입력 필드 렌더링
   const renderInputField = (row: EditableRow, column: string) => {
     const value = row.modifiedData[column] || '';
-    const isNewRow = !row.originalData || Object.keys(row.originalData).length === 0;
+    const isNewRow = !row.originalData || Object.keys(row.originalData).length === 0 || 
+                     Object.values(row.originalData).every(val => val === '' || val === null || val === undefined);
+    const isExcelData = !isNewRow; // Excel에서 업로드된 기존 데이터
     const isRequired = isNewRow && ['로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '투입물명', '수량', '단위'].includes(column);
     const hasValue = value && value.toString().trim() !== '';
+    
+    // Excel 데이터인 경우 AI 추천답변만 편집 가능
+    if (isExcelData && column !== 'AI추천답변') {
+      return <span className='text-white/60'>{value || '-'}</span>;
+    }
     
     const getInputClassName = () => {
       let baseClass = 'w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
       
       if (isNewRow) {
-        baseClass += ' border-green-300 bg-green-50';
+        baseClass += ' border-green-300 bg-green-50 text-black';
       } else if (row.isEditing) {
-        baseClass += ' border-blue-300 bg-blue-50';
+        baseClass += ' border-blue-300 bg-blue-50 text-black';
       } else {
-        baseClass += ' border-gray-300 bg-white';
+        baseClass += ' border-gray-300 bg-white text-black';
       }
       
       return baseClass;
@@ -511,17 +650,24 @@ const InputDataPage: React.FC = () => {
               maxLength={20}
               onChange={(e) => {
                 const newValue = e.target.value;
-                if (validateInput(column, newValue)) {
+                const { isValid, errorMessage } = validateInput(column, newValue);
+                if (isValid) {
                   handleInputChange(row.id, column, newValue);
+                  clearRowError(row.id, column);
                 } else {
                   handleInputChange(row.id, column, newValue);
+                  updateRowError(row.id, column, errorMessage);
                 }
               }}
+              onKeyDown={(e) => handleNumericInput(e, column)}
               placeholder={isRequired ? '숫자만 입력 *' : '숫자만 입력'}
               className={getInputClassName()}
             />
             {isRequired && (
               <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+            )}
+            {rowErrors[row.id]?.[column] && (
+              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
             )}
           </div>
         );
@@ -533,19 +679,62 @@ const InputDataPage: React.FC = () => {
             <input
               type='date'
               value={value}
-              onChange={(e) => handleInputChange(row.id, column, e.target.value)}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                const { isValid, errorMessage } = validateInput(column, newValue);
+                
+                handleInputChange(row.id, column, newValue);
+                
+                if (isValid) {
+                  clearRowError(row.id, column);
+                  // 날짜 비교 검증 실행
+                  validateDateComparison(row.id, column, newValue);
+                } else {
+                  updateRowError(row.id, column, errorMessage);
+                }
+              }}
               className={getInputClassName()}
             />
             {isRequired && (
               <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
             )}
+            {rowErrors[row.id]?.[column] && (
+              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
+            )}
           </div>
         );
       
       case '생산품명':
+        return (
+          <div className='relative'>
+            <input
+              type='text'
+              value={value}
+              maxLength={50}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                const { isValid, errorMessage } = validateInput(column, newValue);
+                if (isValid) {
+                  handleInputChange(row.id, column, newValue);
+                  clearRowError(row.id, column);
+                } else {
+                  handleInputChange(row.id, column, newValue);
+                  updateRowError(row.id, column, errorMessage);
+                }
+              }}
+              placeholder={isRequired ? '생산품명을 입력하세요 *' : '생산품명을 입력하세요'}
+              className={getInputClassName()}
+            />
+            {isRequired && (
+              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+            )}
+            {rowErrors[row.id]?.[column] && (
+              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
+            )}
+          </div>
+        );
+      
       case '공정':
-      case '투입물명':
-      case '단위':
         return (
           <div className='relative'>
             <input
@@ -554,17 +743,105 @@ const InputDataPage: React.FC = () => {
               maxLength={20}
               onChange={(e) => {
                 const newValue = e.target.value;
-                if (validateInput(column, newValue)) {
+                const { isValid, errorMessage } = validateInput(column, newValue);
+                if (isValid) {
                   handleInputChange(row.id, column, newValue);
+                  clearRowError(row.id, column);
                 } else {
                   handleInputChange(row.id, column, newValue);
+                  updateRowError(row.id, column, errorMessage);
                 }
               }}
+              onKeyDown={(e) => handleNumericInput(e, column)}
               placeholder={isRequired ? '한글/영문/숫자 입력 *' : '한글/영문/숫자 입력'}
               className={getInputClassName()}
             />
             {isRequired && (
               <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+            )}
+            {rowErrors[row.id]?.[column] && (
+              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
+            )}
+          </div>
+        );
+      
+      case '투입물명':
+        return (
+          <div className='relative'>
+            <input
+              type='text'
+              value={value}
+              maxLength={20}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                const { isValid, errorMessage } = validateInput(column, newValue);
+                if (isValid) {
+                  handleInputChange(row.id, column, newValue);
+                  clearRowError(row.id, column);
+                } else {
+                  handleInputChange(row.id, column, newValue);
+                  updateRowError(row.id, column, errorMessage);
+                }
+              }}
+              onKeyDown={(e) => handleNumericInput(e, column)}
+              placeholder={isRequired ? '한글/영문/숫자 입력 *' : '한글/영문/숫자 입력'}
+              className={getInputClassName()}
+            />
+            {isRequired && (
+              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+            )}
+            {rowErrors[row.id]?.[column] && (
+              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
+            )}
+          </div>
+        );
+      
+      case '단위':
+        return (
+          <div className='relative'>
+            <select
+              value={value}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                const { isValid, errorMessage } = validateInput(column, newValue);
+                if (isValid) {
+                  handleInputChange(row.id, column, newValue);
+                  clearRowError(row.id, column);
+                } else {
+                  handleInputChange(row.id, column, newValue);
+                  updateRowError(row.id, column, errorMessage);
+                }
+              }}
+              className={getInputClassName()}
+            >
+              <option value=''>단위를 선택하세요</option>
+              <option value='t'>톤</option>
+              <option value='kg'>킬로그램</option>
+              <option value='개수'>개수</option>
+              <option value='kg/h'>킬로그램/시간</option>
+              <option value='kg/m'>킬로그램/미터</option>
+              <option value='kg/m2'>킬로그램/제곱미터</option>
+              <option value='kg/m3'>킬로그램/세제곱미터</option>
+              <option value='kg/L'>킬로그램/리터</option>
+              <option value='kg/m2/h'>킬로그램/제곱미터/시간</option>
+              <option value='kg/m3/h'>킬로그램/세제곱미터/시간</option>
+              <option value='kg/L/h'>킬로그램/리터/시간</option>
+              <option value='kg/m2/m'>킬로그램/제곱미터/미터</option>
+              <option value='kg/m3/m'>킬로그램/세제곱미터/미터</option>
+              <option value='kg/L/m'>킬로그램/리터/미터</option>
+              <option value='kg/m2/m2'>킬로그램/제곱미터/제곱미터</option>
+              <option value='kg/m3/m2'>킬로그램/세제곱미터/제곱미터</option>
+              <option value='kg/L/m2'>킬로그램/리터/제곱미터</option>
+              <option value='kg/m3/m3'>킬로그램/세제곱미터/세제곱미터</option>
+              <option value='kg/L/m3'>킬로그램/리터/세제곱미터</option>
+              <option value='kg/m2/m3'>킬로그램/제곱미터/세제곱미터</option>
+              <option value='kg/L/m3'>킬로그램/리터/세제곱미터</option>
+            </select>
+            {isRequired && (
+              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+            )}
+            {rowErrors[row.id]?.[column] && (
+              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
             )}
           </div>
         );
@@ -579,7 +856,7 @@ const InputDataPage: React.FC = () => {
               onChange={(e) => handleInputChange(row.id, column, e.target.value)}
               placeholder={isNewRow ? 'AI 추천 답변을 입력하세요' : 'AI 추천 답변을 수정하거나 입력하세요'}
               className={`w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                isNewRow ? 'border-green-300 bg-green-50' : 'border-blue-300 bg-blue-50'
+                isNewRow ? 'border-green-300 bg-green-50 text-black' : 'border-blue-300 bg-blue-50 text-black'
               }`}
             />
             <span className={`absolute -top-2 -right-2 text-xs ${
@@ -729,6 +1006,39 @@ const InputDataPage: React.FC = () => {
     } finally {
       setIsSavingToDB(false);
     }
+  };
+
+  // 새로운 행 추가 핸들러
+  const addNewRow = () => {
+    const newRow: EditableRow = {
+      id: `input-${editableInputRows.length}`,
+      originalData: {
+        '로트번호': '',
+        '생산품명': '',
+        '생산수량': '',
+        '투입일': '',
+        '종료일': '',
+        '공정': '',
+        '투입물명': '',
+        '수량': '',
+        '단위': '',
+        'AI추천답변': ''
+      },
+      modifiedData: {
+        '로트번호': '',
+        '생산품명': '',
+        '생산수량': '',
+        '투입일': '',
+        '종료일': '',
+        '공정': '',
+        '투입물명': '',
+        '수량': '',
+        '단위': '',
+        'AI추천답변': ''
+      },
+      isEditing: true
+    };
+    setEditableInputRows(prev => [...prev, newRow]);
   };
 
   return (
@@ -947,6 +1257,17 @@ const InputDataPage: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              {/* 데이터 추가 버튼 */}
+              <div className='mt-4 flex justify-center'>
+                <Button
+                  onClick={addNewRow}
+                  className='bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center gap-2'
+                >
+                  <Plus className='w-4 h-4' />
+                  데이터 추가
+                </Button>
               </div>
 
               {/* 수정 사유 입력 */}

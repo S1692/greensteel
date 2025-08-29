@@ -633,10 +633,19 @@ const InputDataPage: React.FC = () => {
         const aiRecommendation = row.modifiedData['AI추천답변'] || '';
         const unit = row.modifiedData['단위'] && row.modifiedData['단위'].trim() ? row.modifiedData['단위'] : 't';
         
+        // AI 추천 답변이 있으면 투입물명에 적용, 없으면 원본 투입물명 유지
+        let 투입물명 = aiRecommendation || row.modifiedData['투입물명'] || '';
+        
+        // 투입물명 길이 제한 (데이터베이스 컬럼 제한 고려)
+        if (투입물명.length > 100) {
+          투입물명 = 투입물명.substring(0, 100);
+          console.warn(`투입물명이 너무 길어서 자동으로 잘렸습니다: ${투입물명}`);
+        }
+        
         return {
           ...row.modifiedData,
           // AI 추천 답변이 있으면 투입물명에 적용, 없으면 원본 투입물명 유지
-          '투입물명': aiRecommendation || row.modifiedData['투입물명'] || '',
+          '투입물명': 투입물명,
           // 빈 단위 값은 't'로 설정
           '단위': unit
         };

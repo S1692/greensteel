@@ -184,8 +184,20 @@ async def save_processed_data(data: dict):
         from sqlalchemy import create_engine, text
         import os
         
+        # PostgreSQL Railway 데이터베이스 연결 설정
         database_url = os.getenv("DATABASE_URL", "postgresql://postgres:lUAkUKpUxubYDvmqzGKxJLKgZCWMjaQy@switchyard.proxy.rlwy.net:51947/railway")
-        engine = create_engine(database_url)
+        
+        # PostgreSQL 전용 엔진 설정
+        engine = create_engine(
+            database_url,
+            pool_pre_ping=True,  # 연결 상태 확인
+            pool_recycle=300,    # 5분마다 연결 재생성
+            echo=False,          # SQL 로그 비활성화
+            connect_args={
+                "connect_timeout": 10,  # 연결 타임아웃
+                "application_name": "datagather_service"  # 애플리케이션 이름
+            }
+        )
         
         # 데이터베이스에 저장
         saved_count = 0
@@ -270,8 +282,20 @@ async def save_transport_data(data: dict):
         from sqlalchemy import create_engine, text
         import os
         
+        # PostgreSQL Railway 데이터베이스 연결 설정
         database_url = os.getenv("DATABASE_URL", "postgresql://postgres:lUAkUKpUxubYDvmqzGKxJLKgZCWMjaQy@switchyard.proxy.rlwy.net:51947/railway")
-        engine = create_engine(database_url)
+        
+        # PostgreSQL 전용 엔진 설정
+        engine = create_engine(
+            database_url,
+            pool_pre_ping=True,  # 연결 상태 확인
+            pool_recycle=300,    # 5분마다 연결 재생성
+            echo=False,          # SQL 로그 비활성화
+            connect_args={
+                "connect_timeout": 10,  # 연결 타임아웃
+                "application_name": "datagather_service"  # 애플리케이션 이름
+            }
+        )
         
         with Session(engine) as session:
             try:
@@ -338,8 +362,20 @@ async def save_process_data(data: dict):
         from sqlalchemy import create_engine, text
         import os
         
+        # PostgreSQL Railway 데이터베이스 연결 설정
         database_url = os.getenv("DATABASE_URL", "postgresql://postgres:lUAkUKpUxubYDvmqzGKxJLKgZCWMjaQy@switchyard.proxy.rlwy.net:51947/railway")
-        engine = create_engine(database_url)
+        
+        # PostgreSQL 전용 엔진 설정
+        engine = create_engine(
+            database_url,
+            pool_pre_ping=True,  # 연결 상태 확인
+            pool_recycle=300,    # 5분마다 연결 재생성
+            echo=False,          # SQL 로그 비활성화
+            connect_args={
+                "connect_timeout": 10,  # 연결 타임아웃
+                "application_name": "datagather_service"  # 애플리케이션 이름
+            }
+        )
         
         with Session(engine) as session:
             try:
@@ -400,8 +436,20 @@ async def save_output_data(data: dict):
         from sqlalchemy import create_engine, text
         import os
         
+        # PostgreSQL Railway 데이터베이스 연결 설정
         database_url = os.getenv("DATABASE_URL", "postgresql://postgres:lUAkUKpUxubYDvmqzGKxJLKgZCWMjaQy@switchyard.proxy.rlwy.net:51947/railway")
-        engine = create_engine(database_url)
+        
+        # PostgreSQL 전용 엔진 설정
+        engine = create_engine(
+            database_url,
+            pool_pre_ping=True,  # 연결 상태 확인
+            pool_recycle=300,    # 5분마다 연결 재생성
+            echo=False,          # SQL 로그 비활성화
+            connect_args={
+                "connect_timeout": 10,  # 연결 타임아웃
+                "application_name": "datagather_service"  # 애플리케이션 이름
+            }
+        )
         
         with Session(engine) as session:
             try:

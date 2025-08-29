@@ -816,9 +816,13 @@ async def delete_classification(data: dict):
             "error": str(e)
         }
 
-# 분류 데이터 조회 엔드포인트
+# 분류 데이터 조회 엔드포인트 (레거시 경로)
 @app.get("/classified-data/{classification}")
 async def get_classified_data(classification: str):
+
+# 분류 데이터 조회 엔드포인트 (API 경로)
+@app.get("/api/datagather/classified-data/{classification}")
+async def get_classified_data_api(classification: str):
     """특정 분류의 데이터를 조회하는 엔드포인트"""
     try:
         # 분류별 테이블명 매핑

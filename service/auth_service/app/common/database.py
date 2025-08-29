@@ -22,20 +22,9 @@ async def close_database_connection(connection):
 
 async def create_tables():
     """필요한 테이블들을 생성합니다 (테이블이 없을 때만)"""
-    connection = await get_database_connection()
+    connection = None
     try:
-        # 테이블 존재 여부 확인
-        tables_exist = await connection.fetchval("""
-            SELECT COUNT(*) FROM information_schema.tables 
-            WHERE table_schema = 'public' 
-            AND table_name IN ('companies', 'users')
-        """)
-        
-        if tables_exist == 2:
-            auth_logger.info("Required tables already exist, skipping creation")
-            return
-        
-        auth_logger.info("Some required tables are missing, creating them...")
+        connection = await get_database_connection()
         
         # companies 테이블 생성
         await connection.execute("""
@@ -43,8 +32,8 @@ async def create_tables():
                 id SERIAL PRIMARY KEY,
                 company_id VARCHAR(100) UNIQUE NOT NULL,
                 password VARCHAR(255) NOT NULL,
-                Installation VARCHAR(255) NOT NULL,
-                Installation_en VARCHAR(255),
+                installation VARCHAR(255) NOT NULL,
+                installation_en VARCHAR(255),
                 economic_activity VARCHAR(255),
                 economic_activity_en VARCHAR(255),
                 representative VARCHAR(100),
@@ -61,8 +50,8 @@ async def create_tables():
                 country VARCHAR(100),
                 country_en VARCHAR(100),
                 unlocode VARCHAR(10),
-                sourcelatitude DECIMAL(10, 8),
-                sourcelongitude DECIMAL(11, 8),
+                source_latitude DECIMAL(10, 8),
+                source_longitude DECIMAL(11, 8),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )

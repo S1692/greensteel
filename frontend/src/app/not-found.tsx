@@ -34,7 +34,6 @@ const NotFoundPage: React.FC = () => {
     const BASE_SPEED = 6.1;
     const DUCK_SCALE = 0.62;
     const COYOTE_MS = 90;   // 착지 직후 점프 유예
-    const BUFFER_MS = 120;  // 점프 키 버퍼
 
     // ====== Game State ======
     let speed = BASE_SPEED;
@@ -45,10 +44,9 @@ const NotFoundPage: React.FC = () => {
     let startTime = Date.now();
     let spawnCooldown = 50;
 
-    // 점프 보조
+    // 점프 보조 - 단순화
     let coyoteUntil = 0;
-    let jumpBufferedUntil = 0;
-    let jumpQueued = false; // 프레임-안전 점프 큐
+    let canJump = true;
 
     // RNG
     const startMs = performance.now();
@@ -93,22 +91,16 @@ const NotFoundPage: React.FC = () => {
 
     // ====== Controls ======
     function doJump() {
-      // 실제 점프는 update()에서만 호출
-      if (player.vy >= -1) {
+      // 단순화된 점프 로직
+      if (canJump && (player.onGround() || performance.now() < coyoteUntil)) {
         player.vy = JUMP_VY;
+        canJump = false;
         coyoteUntil = 0;
-        jumpBufferedUntil = 0;
       }
     }
-    function wantJump() {
-      // 어떤 입력이든 점프 의지만 큐에 쌓음
-      if (!running) {
-        restart();
-      }
-      jumpQueued = true;
-      jumpBufferedUntil = performance.now() + BUFFER_MS;
-    }
+    
     function setDuck(on: boolean) { player.ducking = on; }
+    
     function restart() {
       speed = BASE_SPEED;
       score = 0;
@@ -121,8 +113,7 @@ const NotFoundPage: React.FC = () => {
       player.ducking = false;
       running = true;
       coyoteUntil = 0;
-      jumpBufferedUntil = 0;
-      jumpQueued = false;
+      canJump = true;
     }
 
     // 키 매칭
@@ -137,12 +128,9 @@ const NotFoundPage: React.FC = () => {
         || k === 'ArrowDown' || k === 'Down' || k === 's' || k === 'S';
     };
 
-    const passiveFalse: AddEventListenerOptions = { passive: false };
-    const captureTrue: AddEventListenerOptions = { capture: true };
-
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
-      if (isJumpKey(e)) { e.preventDefault(); wantJump(); return; }
+      if (isJumpKey(e)) { e.preventDefault(); doJump(); return; }
       if (isDuckKey(e)) { e.preventDefault(); setDuck(true); return; }
       if (e.code === 'KeyR' || e.key === 'r' || e.key === 'R') { e.preventDefault(); restart(); }
     };
@@ -150,16 +138,14 @@ const NotFoundPage: React.FC = () => {
       if (isDuckKey(e)) setDuck(false);
     };
 
-    // window + document (capture) 모두 등록
-    window.addEventListener('keydown', onKeyDown, captureTrue);
-    window.addEventListener('keyup', onKeyUp, captureTrue);
-    document.addEventListener('keydown', onKeyDown, passiveFalse);
-    document.addEventListener('keyup', onKeyUp);
+    // 이벤트 리스너 등록 - 중복 제거
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
 
     // 캔버스 탭/클릭 = 점프
-    const onCanvasTouchStart = (ev: TouchEvent) => { ev.preventDefault(); wantJump(); };
-    const onCanvasMouseDown  = (ev: MouseEvent)  => { ev.preventDefault(); wantJump(); };
-    canvas.addEventListener('touchstart', onCanvasTouchStart, passiveFalse);
+    const onCanvasTouchStart = (ev: TouchEvent) => { ev.preventDefault(); doJump(); };
+    const onCanvasMouseDown  = (ev: MouseEvent)  => { ev.preventDefault(); doJump(); };
+    canvas.addEventListener('touchstart', onCanvasTouchStart, { passive: false });
     canvas.addEventListener('mousedown',  onCanvasMouseDown);
 
     // 모바일 버튼 바인딩
@@ -173,9 +159,9 @@ const NotFoundPage: React.FC = () => {
       const onMouseUp    = (ev: MouseEvent)  => { ev.preventDefault(); release?.(); };
       const onMouseLeave = (ev: MouseEvent)  => { ev.preventDefault(); release?.(); };
 
-      el.addEventListener('touchstart', onTouchStart, passiveFalse);
-      el.addEventListener('touchend',   onTouchEnd,   passiveFalse);
-      el.addEventListener('touchcancel',onTouchEnd,   passiveFalse);
+      el.addEventListener('touchstart', onTouchStart, { passive: false });
+      el.addEventListener('touchend',   onTouchEnd,   { passive: false });
+      el.addEventListener('touchcancel',onTouchEnd,   { passive: false });
       el.addEventListener('mousedown',  onMouseDown);
       el.addEventListener('mouseup',    onMouseUp);
       el.addEventListener('mouseleave', onMouseLeave);
@@ -190,7 +176,7 @@ const NotFoundPage: React.FC = () => {
       };
     };
 
-    const unbindJump  = bindHold('btn-jump', () => wantJump());
+    const unbindJump  = bindHold('btn-jump', () => doJump());
     const unbindDuck  = bindHold('btn-duck', () => setDuck(true), () => setDuck(false));
     const unbindReset = bindHold('btn-reset', () => restart());
 
@@ -212,15 +198,6 @@ const NotFoundPage: React.FC = () => {
       // === Physics ===
       const prevOnGround = player.onGround();
 
-      // 프레임 시작: onGround/coyote면 점프 큐 소모
-      if (jumpQueued) {
-        const now = performance.now();
-        if (player.onGround() || now < coyoteUntil) {
-          doJump();
-          jumpQueued = false;
-        }
-      }
-
       player.vy += GRAVITY;
       player.y += player.vy;
 
@@ -232,14 +209,9 @@ const NotFoundPage: React.FC = () => {
         player.y = targetY;
         player.vy = 0;
 
-        // 코요테 갱신
+        // 코요테 갱신 및 점프 가능 상태 복원
         coyoteUntil = performance.now() + COYOTE_MS;
-
-        // 착지 직후: 버퍼/큐 살아있으면 즉시 점프
-        if (performance.now() < jumpBufferedUntil || jumpQueued) {
-          doJump();
-          jumpQueued = false;
-        }
+        canJump = true;
       } else if (prevOnGround && !player.onGround()) {
         // 이륙: 코요테 유지
         coyoteUntil = performance.now() + COYOTE_MS;
@@ -467,10 +439,8 @@ const NotFoundPage: React.FC = () => {
 
     // cleanup
     return () => {
-      window.removeEventListener('keydown', onKeyDown, true); // capture: true
-      window.removeEventListener('keyup', onKeyUp, true);
-      document.removeEventListener('keydown', onKeyDown);
-      document.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
       canvas.removeEventListener('touchstart', onCanvasTouchStart);
       canvas.removeEventListener('mousedown', onCanvasMouseDown);
       if (unbindJump) unbindJump();

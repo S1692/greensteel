@@ -91,7 +91,7 @@ class ProductUpdateRequest(BaseModel):
 
 class ProcessCreateRequest(BaseModel):
     """프로세스 생성 요청"""
-    product_id: int = Field(..., description="제품 ID")
+    product_id: Optional[int] = Field(None, description="제품 ID (선택사항)")
     process_name: str = Field(..., description="프로세스명")
     start_period: date = Field(..., description="시작일")
     end_period: date = Field(..., description="종료일")
@@ -99,7 +99,7 @@ class ProcessCreateRequest(BaseModel):
 class ProcessResponse(BaseModel):
     """프로세스 응답"""
     id: int = Field(..., description="프로세스 ID")
-    product_id: int = Field(..., description="제품 ID")
+    product_id: Optional[int] = Field(None, description="제품 ID (관계 테이블에서 조회)")
     process_name: str = Field(..., description="프로세스명")
     start_period: date = Field(..., description="시작일")
     end_period: date = Field(..., description="종료일")
@@ -108,6 +108,7 @@ class ProcessResponse(BaseModel):
 
 class ProcessUpdateRequest(BaseModel):
     """프로세스 수정 요청"""
+    product_id: Optional[int] = Field(None, description="제품 ID (선택사항)")
     process_name: Optional[str] = Field(None, description="프로세스명")
     start_period: Optional[date] = Field(None, description="시작일")
     end_period: Optional[date] = Field(None, description="종료일")

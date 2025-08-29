@@ -25,7 +25,19 @@ import Link from 'next/link';
 interface DataPreview {
   filename: string;
   fileSize: string;
-  data: any[];
+  data: Array<{
+    로트번호?: string | number;
+    생산품명?: string;
+    생산수량?: string | number;
+    투입일?: string | number;
+    종료일?: string | number;
+    공정?: string;
+    투입물명?: string;
+    수량?: string | number;
+    단위?: string;
+    AI추천답변?: string;
+    [key: string]: any;
+  }>;
   columns: string[];
 }
 
@@ -35,18 +47,51 @@ interface AIProcessedData {
   filename: string;
   total_rows: number;
   processed_rows: number;
-  data: any[];
+  data: Array<{
+    로트번호?: string | number;
+    생산품명?: string;
+    생산수량?: string | number;
+    투입일?: string | number;
+    종료일?: string | number;
+    공정?: string;
+    투입물명?: string;
+    수량?: string | number;
+    단위?: string;
+    AI추천답변?: string;
+    [key: string]: any;
+  }>;
   columns: string[];
-  processed_count?: number;
 }
 
 interface EditableRow {
   id: string;
-  originalData: any;
-  modifiedData: any;
+  originalData: {
+    로트번호?: string | number;
+    생산품명?: string;
+    생산수량?: string | number;
+    투입일?: string | number;
+    종료일?: string | number;
+    공정?: string;
+    투입물명?: string;
+    수량?: string | number;
+    단위?: string;
+    AI추천답변?: string;
+    [key: string]: any;
+  };
+  modifiedData: {
+    로트번호?: string | number;
+    생산품명?: string;
+    생산수량?: string | number;
+    투입일?: string | number;
+    종료일?: string | number;
+    공정?: string;
+    투입물명?: string;
+    수량?: string | number;
+    단위?: string;
+    AI추천답변?: string;
+    [key: string]: any;
+  };
   isEditing: boolean;
-  editReason?: string;
-  isNewlyAdded?: boolean;
 }
 
 const InputDataPage: React.FC = () => {
@@ -230,75 +275,50 @@ const InputDataPage: React.FC = () => {
         throw new Error(`AI 처리 요청 실패: ${response.status}`);
       }
 
-      console.log('AI 처리 응답 수신, 스트리밍 시작...');
+      console.log('AI 처리 응답 수신...');
       
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('스트리밍 응답을 읽을 수 없습니다.');
-      }
-
-      let processedData: any[] = [];
-      let unifiedColumns: string[] = [];
-
-      while (true) {
-        const { done, value } = await reader.read();
+      // JSON 응답 처리 (스트리밍이 아닌 일반 응답)
+      const responseData = await response.json();
+      console.log('AI 처리 응답 데이터:', responseData);
+      
+      if (responseData.success) {
+        const processedData = responseData.data || [];
+        const unifiedColumns = responseData.columns || [];
         
-        if (done) {
-          console.log('스트리밍 완료');
-          break;
-        }
-
-        const chunk = new TextDecoder().decode(value);
-        const lines = chunk.split('\n');
+        console.log('AI 처리 완료:', {
+          totalRows: responseData.total_rows,
+          processedRows: responseData.processed_rows,
+          data: processedData,
+          columns: unifiedColumns
+        });
         
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              console.log('스트리밍 데이터 수신:', data);
-              
-              if (data.status === 'completed') {
-                processedData = data.data || [];
-                unifiedColumns = data.columns || [];
-                
-                console.log('AI 처리 완료:', {
-                  totalRows: data.total_rows,
-                  processedRows: data.processed_rows,
-                  data: processedData,
-                  columns: unifiedColumns
-                });
-                
-                // AI 처리된 데이터로 상태 업데이트
-                setAiProcessedData({
-                  status: 'completed',
-                  message: 'AI 처리가 완료되었습니다.',
-                  filename: inputData.filename,
-                  total_rows: data.total_rows || 0,
-                  processed_rows: data.processed_rows || 0,
-                  data: processedData,
-                  columns: unifiedColumns
-                });
+        // AI 처리된 데이터로 상태 업데이트
+        setAiProcessedData({
+          status: 'completed',
+          message: 'AI 처리가 완료되었습니다.',
+          filename: inputData.filename,
+          total_rows: responseData.total_rows || 0,
+          processed_rows: responseData.processed_rows || 0,
+          data: processedData,
+          columns: unifiedColumns
+        });
 
-                // 편집 가능한 행 데이터 업데이트
-                const updatedEditableRows: EditableRow[] = processedData.map((row, index) => ({
-                  id: `input-${index}`,
-                  originalData: row,
-                  modifiedData: { ...row },
-                  isEditing: false
-                }));
+        // 편집 가능한 행 데이터 업데이트
+        const updatedEditableRows: EditableRow[] = processedData.map((row, index) => ({
+          id: `input-${index}`,
+          originalData: row,
+          modifiedData: { ...row },
+          isEditing: false
+        }));
 
-                setEditableInputRows(updatedEditableRows);
-                setError(null);
-                
-              } else if (data.status === 'processing') {
-                console.log('AI 처리 진행 중:', data.message);
-                // 진행 상태 업데이트 로직 추가 가능
-              }
-            } catch (parseError) {
-              console.error('JSON 파싱 오류:', parseError);
-            }
-          }
-        }
+        setEditableInputRows(updatedEditableRows);
+        setError(null);
+        
+        // 성공 메시지 표시
+        console.log('AI 추천 답변이 성공적으로 생성되었습니다.');
+        
+      } else {
+        throw new Error(responseData.message || 'AI 처리 실패');
       }
 
     } catch (err) {

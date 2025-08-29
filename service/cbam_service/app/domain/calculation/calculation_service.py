@@ -209,11 +209,14 @@ class CalculationService:
         """프로세스 생성"""
         try:
             process_data = {
-                "product_id": request.product_id,
                 "process_name": request.process_name,
                 "start_period": request.start_period,
                 "end_period": request.end_period
             }
+            
+            # product_id가 제공된 경우에만 추가
+            if request.product_id is not None:
+                process_data["product_id"] = request.product_id
             
             saved_process = await self.calc_repository.create_process(process_data)
             if saved_process:

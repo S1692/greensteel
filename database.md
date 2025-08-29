@@ -18,7 +18,7 @@ CREATE TABLE install (
 ```sql
 CREATE TABLE product (
     id SERIAL PRIMARY KEY,
-    install_id INT NOT NULL,
+    install_id INT NOT NULL REFERENCES install(id) ON DELETE CASCADE,
     product_name TEXT NOT NULL,
     product_category TEXT NOT NULL CHECK (product_category IN ('단순제품', '복합제품')),
     prostart_period DATE NOT NULL,
@@ -50,13 +50,11 @@ CREATE TABLE process (
 ```sql
 CREATE TABLE product_process (
     id SERIAL PRIMARY KEY,
-    product_id INTEGER NOT NULL,
-    process_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL REFERENCES product(id) ON DELETE CASCADE,
+    process_id INTEGER NOT NULL REFERENCES process(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(product_id, process_id),
-    FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE,
-    FOREIGN KEY (process_id) REFERENCES process(id) ON DELETE CASCADE
+    UNIQUE(product_id, process_id)
 );
 ```
 
@@ -64,18 +62,19 @@ CREATE TABLE product_process (
 ```sql
 -- ENUM 타입 정의
 CREATE TYPE input_type_enum AS ENUM ('material', 'fuel', 'electricity');
+CREATE TYPE allocation_method_enum AS ENUM ('direct', 'proportional', 'time_based', 'mass_based', 'energy_based');
 
 CREATE TABLE process_input (
     id SERIAL PRIMARY KEY,
-    process_id INT NOT NULL REFERENCES process(id),
+    process_id INT NOT NULL REFERENCES process(id) ON DELETE CASCADE,
     input_type input_type_enum NOT NULL,
     input_name TEXT NOT NULL,
-    input_amount FLOAT NOT NULL,
+    amount FLOAT NOT NULL, -- input_amount에서 amount로 통일
     factor FLOAT DEFAULT 1.0,
     oxy_factor FLOAT DEFAULT 1.0,
-    direm FLOAT,
-    indirem FLOAT,
-    emission_factor_id INTEGER REFERENCES emission_factors(id),
+    direm_emission FLOAT, -- direm에서 direm_emission으로 명확화
+    indirem_emission FLOAT, -- indirem에서 indirem_emission으로 명확화
+    emission_factor_id INTEGER REFERENCES emission_factors(id) ON DELETE SET NULL,
     allocation_method allocation_method_enum DEFAULT 'direct',
     allocation_ratio DECIMAL(5,4) DEFAULT 1.0,
     measurement_uncertainty DECIMAL(5,4),
@@ -98,6 +97,8 @@ CREATE TABLE edge (
     target_id INT NOT NULL,
     edge_kind edge_kind_enum NOT NULL,
     qty FLOAT,
+    source_type TEXT NOT NULL CHECK (source_type IN ('product', 'process')), -- 소스 타입 명시
+    target_type TEXT NOT NULL CHECK (target_type IN ('product', 'process')), -- 타겟 타입 명시
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -126,7 +127,6 @@ CREATE TABLE emission_factors (
 ```sql
 -- ENUM 타입 정의
 CREATE TYPE emission_type_enum AS ENUM ('direct', 'indirect', 'precursor');
-CREATE TYPE allocation_method_enum AS ENUM ('direct', 'proportional', 'time_based', 'mass_based', 'energy_based');
 
 CREATE TABLE emission_attribution (
     id SERIAL PRIMARY KEY,
@@ -146,13 +146,31 @@ CREATE TABLE emission_attribution (
 ```sql
 CREATE TABLE product_emissions (
     id SERIAL PRIMARY KEY,
-    product_id INTEGER REFERENCES product(id) ON DELETE CASCADE,
+    product_id INTEGER UNIQUE NOT NULL REFERENCES product(id) ON DELETE CASCADE,
     direct_emission DECIMAL(15,6) NOT NULL DEFAULT 0,
     indirect_emission DECIMAL(15,6) NOT NULL DEFAULT 0,
     precursor_emission DECIMAL(15,6) NOT NULL DEFAULT 0,
     total_emission DECIMAL(15,6) NOT NULL DEFAULT 0,
     emission_intensity DECIMAL(15,6), -- tCO2/ton
     calculation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 10. cbam_declaration 테이블 (CBAM 신고)
+```sql
+CREATE TABLE cbam_declaration (
+    id SERIAL PRIMARY KEY,
+    product_id INTEGER NOT NULL REFERENCES product(id) ON DELETE CASCADE,
+    declaration_period TEXT NOT NULL, -- YYYY-MM 형식
+    total_emission DECIMAL(15,6) NOT NULL DEFAULT 0,
+    embedded_emission DECIMAL(15,6) NOT NULL DEFAULT 0,
+    carbon_price DECIMAL(10,2), -- EUR/ton CO2
+    declaration_status TEXT DEFAULT 'draft' CHECK (declaration_status IN ('draft', 'submitted', 'approved', 'rejected')),
+    submitted_at TIMESTAMP,
+    approved_at TIMESTAMP,
+    notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -182,6 +200,10 @@ product, process
 product_emissions (제품별 총 배출량)
     ↓ (1:1)
 product
+
+cbam_declaration (CBAM 신고)
+    ↓ (N:1)
+product
 ```
 
 ## 📊 주요 인덱스
@@ -190,19 +212,29 @@ product
 -- product 테이블
 CREATE INDEX idx_product_name ON product(product_name);
 CREATE INDEX idx_product_install_id ON product(install_id);
+CREATE INDEX idx_product_category ON product(product_category);
 
 -- process 테이블
 CREATE INDEX idx_process_name ON process(process_name);
+CREATE INDEX idx_process_period ON process(start_period, end_period);
 
 -- product_process 테이블
 CREATE INDEX idx_product_process_product_id ON product_process(product_id);
 CREATE INDEX idx_product_process_process_id ON product_process(process_id);
+CREATE UNIQUE INDEX idx_product_process_unique ON product_process(product_id, process_id);
 
 -- process_input 테이블
 CREATE INDEX idx_process_input_process_id ON process_input(process_id);
+CREATE INDEX idx_process_input_type ON process_input(input_type);
+CREATE INDEX idx_process_input_name ON process_input(input_name);
 CREATE INDEX idx_process_input_factor_id ON process_input(emission_factor_id);
 CREATE INDEX idx_process_input_allocation ON process_input(allocation_method);
 CREATE INDEX idx_process_input_verification ON process_input(verification_status);
+
+-- edge 테이블
+CREATE INDEX idx_edge_source ON edge(source_id, source_type);
+CREATE INDEX idx_edge_target ON edge(target_id, target_type);
+CREATE INDEX idx_edge_kind ON edge(edge_kind);
 
 -- emission_factors 테이블
 CREATE INDEX idx_emission_factors_type ON emission_factors(factor_type);
@@ -216,6 +248,11 @@ CREATE INDEX idx_emission_attribution_type ON emission_attribution(emission_type
 
 -- product_emissions 테이블
 CREATE UNIQUE INDEX idx_product_emissions_unique ON product_emissions(product_id);
+
+-- cbam_declaration 테이블
+CREATE INDEX idx_cbam_declaration_product ON cbam_declaration(product_id);
+CREATE INDEX idx_cbam_declaration_period ON cbam_declaration(declaration_period);
+CREATE INDEX idx_cbam_declaration_status ON cbam_declaration(declaration_status);
 ```
 
 ## 🎯 설계 원칙
@@ -226,22 +263,29 @@ CREATE UNIQUE INDEX idx_product_emissions_unique ON product_emissions(product_id
 - **산정경계 제한**: 사용자가 특정 사업장에서 노드를 추가할 때는 해당 사업장에 등록된 제품/공정만 선택 가능
 
 ### 2. 데이터 무결성 보장
-- 다른 사업장에서 쓰지 않는 제품·공정은 선택할 수 없어 데이터 무결성 보장
-- 각 사업장별로 생산 체계가 다르더라도, 미리 설정된 틀 안에서만 노드/엣지를 추가
+- **외래키 제약조건**: 모든 관계에 적절한 외래키 제약조건 설정
+- **체크 제약조건**: ENUM 타입과 CHECK 제약조건으로 데이터 유효성 검증
+- **UNIQUE 제약조건**: 중복 데이터 방지를 위한 고유성 제약조건
+- **CASCADE/SET NULL**: 적절한 참조 무결성 정책 적용
 
 ### 3. CBAM 규정 준수
-- 배출계수 기반 계산 시스템
-- 직접/간접/전구체 배출량 구분
-- 다양한 배분 방법 지원 (직접, 비례, 시간, 질량, 에너지 기반)
-- 측정 불확실성 및 데이터 품질 관리
+- **배출계수 기반 계산 시스템**: emission_factors 테이블을 통한 체계적 관리
+- **직접/간접/전구체 배출량 구분**: emission_type_enum으로 명확한 구분
+- **다양한 배분 방법 지원**: allocation_method_enum으로 배분 방법 표준화
+- **측정 불확실성 및 데이터 품질 관리**: process_input 테이블의 메타데이터 컬럼들
+
+### 4. 확장성 고려
+- **메타데이터 컬럼**: 모든 테이블에 created_at, updated_at 컬럼 추가
+- **상태 관리**: declaration_status 등 상태 추적을 위한 컬럼들
+- **유연한 관계**: product_process 테이블을 통한 다대다 관계 지원
 
 ## 🔧 최근 주요 변경사항
 
-1. **다대다 관계 도입**: product와 process 간의 관계를 product_process 중간 테이블로 변경
-2. **배출계수 시스템**: emission_factors 테이블을 통한 체계적인 배출계수 관리
-3. **배출량 귀속 시스템**: emission_attribution과 product_emissions 테이블을 통한 정밀한 배출량 계산
-4. **메타데이터 추가**: 모든 테이블에 created_at, updated_at 컬럼 추가
-5. **확장된 process_input**: CBAM 규정에 맞는 추가 컬럼들 (배분방법, 측정불확실성 등)
+1. **컬럼명 통일**: `input_amount` → `amount`, `direm` → `direm_emission` 등
+2. **ENUM 타입 정의**: `allocation_method_enum` 등 누락된 타입 정의 추가
+3. **외래키 제약조건**: 모든 관계에 적절한 참조 무결성 정책 적용
+4. **CBAM 신고 테이블**: CBAM 규정 준수를 위한 신고 관리 테이블 추가
+5. **인덱스 최적화**: 쿼리 성능 향상을 위한 전략적 인덱스 설계
 
 ## 📝 커서 명령어 예시
 

@@ -718,8 +718,8 @@ async def classify_data(data: dict):
             "error": str(e)
         }
 
-# 분류 데이터 삭제 엔드포인트
-@app.delete("/delete-classification")
+# 분류 데이터 삭제 엔드포인트 (API 경로)
+@app.delete("/api/datagather/delete-classification")
 async def delete_classification(data: dict):
     """데이터 분류를 삭제하는 엔드포인트"""
     try:

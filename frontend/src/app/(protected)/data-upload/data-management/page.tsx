@@ -293,11 +293,15 @@ export default function DataManagementPage() {
 
              const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
         
-              const response = await fetch(`${gatewayUrl}/api/datagather/delete-classification?source_table=${encodeURIComponent(row.source_table)}&source_id=${row.source_id}`, {
+              const response = await fetch(`${gatewayUrl}/api/datagather/delete-classification`, {
          method: 'DELETE',
          headers: {
            'Content-Type': 'application/json',
          },
+         body: JSON.stringify({
+           source_table: row.source_table,
+           source_id: row.source_id
+         }),
        });
 
       if (!response.ok) {

@@ -106,6 +106,7 @@ interface EditableRow {
     [key: string]: any;
   };
   isEditing: boolean;
+  isNewlyAdded?: boolean;
 }
 
 const InputDataPage: React.FC = () => {
@@ -119,10 +120,11 @@ const InputDataPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [preparedDataForDB, setPreparedDataForDB] = useState<any>(null);
   const [editReasons, setEditReasons] = useState<{ [key: string]: string }>({});
+  const [isSavingToDB, setIsSavingToDB] = useState(false);
+  const [dbSaveStatus, setDbSaveStatus] = useState<string>('');
 
   const inputFileRef = useRef<HTMLInputElement>(null);
-     const [isValidatingData, setIsValidatingData] = useState(false);
-   const [validationStatus, setValidationStatus] = useState<string>('');
+     
 
   // 행별 오류 상태 관리
   const [rowErrors, setRowErrors] = useState<{ [key: string]: { [column: string]: string } }>({});
@@ -435,18 +437,17 @@ const InputDataPage: React.FC = () => {
     }
   };
 
-  // 행 편집 토글 (수동으로 추가된 데이터만 편집 가능)
+  // 행 편집 토글 (Excel 데이터는 AI 추천답변만, 수동 데이터는 모든 필드 편집 가능)
   const toggleRowEdit = (rowId: string) => {
     const row = editableInputRows.find(r => r.id === rowId);
     if (!row) return;
     
-    // 수동으로 추가된 데이터인지 확인 (originalData가 비어있거나 모든 값이 빈 문자열)
-    const isManualData = !row.originalData || 
-      Object.values(row.originalData).every(val => val === '' || val === null || val === undefined);
+          // 수동으로 추가된 데이터인지 확인 (isNewlyAdded 속성으로 판단)
+      const isManualData = row.isNewlyAdded;
     
     if (!isManualData) {
-      setError('Excel에서 업로드된 데이터는 편집할 수 없습니다. AI 추천 답변만 수정 가능합니다.');
-      return;
+      // Excel 데이터인 경우 AI 추천답변 칼럼만 편집 가능
+      console.log('Excel 데이터 편집 모드 활성화 - AI 추천답변만 편집 가능');
     }
     
     setEditableInputRows(prev => 
@@ -463,10 +464,10 @@ const InputDataPage: React.FC = () => {
     const row = editableInputRows.find(r => r.id === rowId);
     if (!row) return;
 
-    if (isNewRow(row)) {
-      // 새로 추가된 행인 경우 완전히 제거
-      setEditableInputRows(prev => prev.filter(r => r.id !== rowId));
-    } else {
+         if (row.isNewlyAdded) {
+       // 새로 추가된 행인 경우 완전히 제거
+       setEditableInputRows(prev => prev.filter(r => r.id !== rowId));
+     } else {
       // 기존 행 편집 취소인 경우 원본 데이터로 복원
       setEditableInputRows(prev => 
         prev.map(r => 
@@ -478,7 +479,13 @@ const InputDataPage: React.FC = () => {
     }
 
     // 행별 오류도 제거
-    clearRowError(rowId, '');
+    setRowErrors(prev => {
+      const newErrors = { ...prev };
+      if (newErrors[rowId]) {
+        delete newErrors[rowId];
+      }
+      return newErrors;
+    });
   };
 
   // 행 확인 (DB 저장 없이 편집 완료)
@@ -486,11 +493,50 @@ const InputDataPage: React.FC = () => {
     const row = editableInputRows.find(r => r.id === rowId);
     if (!row) return;
 
-    // AI 추천 답변을 편집한 경우 수정 사유 확인
-    if (row.modifiedData['AI추천답변'] !== row.originalData['AI추천답변']) {
-      const reason = editReasons[rowId] || '';
-      if (!reason.trim()) {
-        setError('AI 추천 답변을 수정한 경우 수정 사유를 입력해주세요.');
+         // Excel 데이터의 AI 추천 답변 편집 시 수정 사유 확인
+     if (!row.isNewlyAdded) {
+       const reason = editReasons[rowId] || '';
+       if (!reason.trim()) {
+         setError('Excel 데이터의 AI 추천 답변을 편집할 때는 수정 사유를 입력해주세요.');
+         return;
+       }
+     }
+
+     // 수동으로 추가된 데이터인 경우 모든 필수 필드 검증
+     if (row.isNewlyAdded) {
+      const requiredFields = ['로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '투입물명', '수량', '단위'];
+      const missingFields = [];
+      const invalidFields = [];
+
+      for (const field of requiredFields) {
+        const value = row.modifiedData[field];
+        
+        // 빈 값 체크
+        if (!value || value.toString().trim() === '') {
+          missingFields.push(field);
+          continue;
+        }
+
+        // 유효성 검사
+        const { isValid, errorMessage } = validateInput(field, value.toString());
+        if (!isValid) {
+          invalidFields.push(field);
+          updateRowError(rowId, field, errorMessage);
+        } else {
+          clearRowError(rowId, field);
+        }
+      }
+
+      // 오류가 있으면 확인 거부
+      if (missingFields.length > 0 || invalidFields.length > 0) {
+        let errorMsg = '';
+        if (missingFields.length > 0) {
+          errorMsg += `필수 입력 항목: ${missingFields.join(', ')}`;
+        }
+        if (invalidFields.length > 0) {
+          errorMsg += `${missingFields.length > 0 ? ' | ' : ''}유효하지 않은 항목: ${invalidFields.join(', ')}`;
+        }
+        setError(`데이터 확인 실패: ${errorMsg}`);
         return;
       }
     }
@@ -516,7 +562,13 @@ const InputDataPage: React.FC = () => {
     });
 
     // 행별 오류 제거
-    clearRowError(rowId, '');
+    setRowErrors(prev => {
+      const newErrors = { ...prev };
+      if (newErrors[rowId]) {
+        delete newErrors[rowId];
+      }
+      return newErrors;
+    });
     setError(null);
     console.log('행 확인 완료:', row.modifiedData);
   };
@@ -630,7 +682,6 @@ const InputDataPage: React.FC = () => {
      const isNewRowData = isNewRow(row);
      const isExcelData = !isNewRowData; // Excel에서 업로드된 기존 데이터
      const isRequired = isNewRowData && ['로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '투입물명', '수량', '단위'].includes(column);
-     const hasValue = value && value.toString().trim() !== '';
     
     // Excel 데이터인 경우 AI 추천답변만 편집 가능
     if (isExcelData && column !== 'AI추천답변') {
@@ -866,9 +917,8 @@ const InputDataPage: React.FC = () => {
                maxLength={20}
                onChange={(e) => {
                  const newValue = e.target.value;
-                 // AI 추천 답변을 입력하면 투입물명에도 바로 적용
+                 // AI 추천 답변만 변경, 투입물명은 자동으로 변경하지 않음
                  handleInputChange(row.id, column, newValue);
-                 handleInputChange(row.id, '투입물명', newValue);
                }}
                placeholder={isNewRowData ? 'AI 추천 답변을 입력하세요' : 'AI 추천 답변을 수정하거나 입력하세요'}
                className={`w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
@@ -916,8 +966,8 @@ const InputDataPage: React.FC = () => {
        return;
      }
 
-     setIsValidatingData(true);
-     setValidationStatus('데이터 확인 중...');
+     setIsSavingToDB(true);
+     setDbSaveStatus('데이터 확인 중...');
      setError(null);
 
     try {
@@ -990,7 +1040,7 @@ const InputDataPage: React.FC = () => {
 
       const responseData = await response.json();
              if (responseData.success) {
-         setValidationStatus('✅ 데이터 확인이 완료되었습니다.');
+         setDbSaveStatus('✅ 데이터 확인이 완료되었습니다.');
          console.log('데이터 확인 성공:', responseData);
          
          // 확인 완료 후 편집 가능한 행 데이터 업데이트 (AI 추천 답변 적용된 상태로)
@@ -1018,9 +1068,9 @@ const InputDataPage: React.FC = () => {
      } catch (err) {
        console.error('데이터 확인 오류:', err);
        setError(`데이터 확인 중 오류가 발생했습니다: ${err}`);
-       setValidationStatus(`❌ 데이터 확인 실패: ${err}`);
+       setDbSaveStatus(`❌ 데이터 확인 실패: ${err}`);
      } finally {
-       setIsValidatingData(false);
+       setIsSavingToDB(false);
      }
   };
 
@@ -1058,9 +1108,125 @@ const InputDataPage: React.FC = () => {
         '단위': '',
         'AI추천답변': ''
       },
-      isEditing: true
+      isEditing: true,
+      isNewlyAdded: true
     };
     setEditableInputRows(prev => [...prev, newRow]);
+  };
+
+  // 데이터베이스 저장 핸들러
+  const handleSaveToDatabase = async () => {
+    if (!editableInputRows || editableInputRows.length === 0) {
+      setError('저장할 데이터가 없습니다.');
+      return;
+    }
+
+    setIsSavingToDB(true);
+    setDbSaveStatus('데이터베이스 저장 중...');
+    setError(null);
+
+    try {
+      // Excel 날짜를 PostgreSQL date 형식으로 변환하는 함수
+      const convertExcelDate = (excelDate: any): string | null => {
+        if (!excelDate || excelDate === '') return null;
+        
+        try {
+          // 이미 문자열 형태의 날짜인 경우
+          if (typeof excelDate === 'string') {
+            return excelDate;
+          }
+          
+          // Excel 날짜 숫자인 경우 (1900년 1월 1일부터의 일수)
+          if (typeof excelDate === 'number') {
+            const baseDate = new Date(1900, 0, 1); // JavaScript는 0부터 시작
+            const resultDate = new Date(baseDate.getTime() + (excelDate - 1) * 24 * 60 * 60 * 1000);
+            return resultDate.toISOString().split('T')[0]; // YYYY-MM-DD 형식
+          }
+          
+          return null;
+        } catch (error) {
+          console.warn('날짜 변환 실패:', excelDate, error);
+          return null;
+        }
+      };
+
+      // AI 추천 답변을 투입물명에 적용하여 저장할 데이터 준비
+      const dataToSave = editableInputRows.map(row => {
+        const aiRecommendation = row.modifiedData['AI추천답변'] || '';
+        const unit = row.modifiedData['단위'] && row.modifiedData['단위'].trim() ? row.modifiedData['단위'] : 't';
+        
+        // AI 추천 답변이 있으면 투입물명에 적용, 없으면 원본 투입물명 유지
+        let 투입물명 = aiRecommendation || row.modifiedData['투입물명'] || '';
+        
+        // 투입물명 길이 제한 (데이터베이스 컬럼 제한 고려)
+        if (투입물명.length > 100) {
+          투입물명 = 투입물명.substring(0, 100);
+          console.warn(`투입물명이 너무 길어서 자동으로 잘렸습니다: ${투입물명}`);
+        }
+        
+        return {
+          ...row.modifiedData,
+          // AI 추천 답변이 있으면 투입물명에 적용, 없으면 원본 투입물명 유지
+          '투입물명': 투입물명,
+          // 빈 단위 값은 't'로 설정
+          '단위': unit,
+          // Excel 날짜를 PostgreSQL date 형식으로 변환
+          '투입일': convertExcelDate(row.modifiedData['투입일']),
+          '종료일': convertExcelDate(row.modifiedData['종료일'])
+        };
+      });
+
+      const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
+      const response = await fetch(`${gatewayUrl}/save-processed-data`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filename: inputFile?.name || 'unknown',
+          data: dataToSave,
+          columns: Object.keys(dataToSave[0] || {})
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`데이터베이스 저장 실패: ${response.status}`);
+      }
+
+      const responseData = await response.json();
+      if (responseData.success) {
+        setDbSaveStatus('✅ 데이터베이스 저장이 완료되었습니다.');
+        console.log('데이터베이스 저장 성공:', responseData);
+        
+        // 저장 완료 후 편집 가능한 행 데이터 업데이트 (AI 추천 답변 적용된 상태로)
+        const updatedRows = editableInputRows.map(row => {
+          const aiRecommendation = row.modifiedData['AI추천답변'] || '';
+          return {
+            ...row,
+            originalData: {
+              ...row.modifiedData,
+              '투입물명': aiRecommendation || row.modifiedData['투입물명'] || ''
+            },
+            modifiedData: {
+              ...row.modifiedData,
+              '투입물명': aiRecommendation || row.modifiedData['투입물명'] || ''
+            }
+          };
+        });
+        
+        setEditableInputRows(updatedRows);
+        console.log('AI 추천 답변이 투입물명 컬럼에 성공적으로 적용되었습니다.');
+        
+      } else {
+        throw new Error(responseData.message || '데이터베이스 저장 실패');
+      }
+    } catch (err) {
+      console.error('데이터베이스 저장 오류:', err);
+      setError(`데이터베이스 저장 중 오류가 발생했습니다: ${err}`);
+      setDbSaveStatus(`❌ 데이터베이스 저장 실패: ${err}`);
+    } finally {
+      setIsSavingToDB(false);
+    }
   };
 
   return (
@@ -1267,24 +1433,33 @@ const InputDataPage: React.FC = () => {
                             </div>
                           ) : (
                             <div className='flex gap-2'>
-                              {/* 수동으로 추가된 데이터만 편집 가능 */}
-                              {(!row.originalData || Object.values(row.originalData).every(val => val === '' || val === null || val === undefined)) && (
+                              {/* 사용자가 직접 입력한 데이터인지 확인 */}
+                              {row.isNewlyAdded ? (
+                                // 사용자가 직접 입력한 데이터는 편집/삭제 모두 가능
+                                <>
+                                  <Button
+                                    onClick={() => toggleRowEdit(row.id)}
+                                    className='bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs'
+                                  >
+                                    <Edit3 className='w-3 h-3 mr-1' />
+                                    편집
+                                  </Button>
+                                  <Button
+                                    onClick={() => deleteRow(row.id)}
+                                    className='bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs'
+                                  >
+                                    <Trash2 className='w-3 h-3 mr-1' />
+                                    삭제
+                                  </Button>
+                                </>
+                              ) : (
+                                // Excel 데이터는 AI 추천답변만 편집 가능
                                 <Button
                                   onClick={() => toggleRowEdit(row.id)}
                                   className='bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs'
                                 >
                                   <Edit3 className='w-3 h-3 mr-1' />
                                   편집
-                                </Button>
-                              )}
-                              {/* 수동으로 추가된 데이터만 삭제 가능 */}
-                              {(!row.originalData || Object.values(row.originalData).every(val => val === '' || val === null || val === undefined)) && (
-                                <Button
-                                  onClick={() => deleteRow(row.id)}
-                                  className='bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs'
-                                >
-                                  <Trash2 className='w-3 h-3 mr-1' />
-                                  삭제
                                 </Button>
                               )}
                             </div>
@@ -1307,16 +1482,14 @@ const InputDataPage: React.FC = () => {
                 </Button>
               </div>
 
-              {/* 수정 사유 입력 (AI 추천 답변 편집 시에만) */}
-              {editableInputRows.some(row => row.isEditing && 
-                row.modifiedData['AI추천답변'] !== row.originalData['AI추천답변']) && (
-                <div className='mt-4 p-4 bg-white/5 rounded-lg'>
-                  <h4 className='text-sm font-medium text-white mb-2'>AI 추천 답변 수정 사유 입력</h4>
-                  <div className='flex gap-4'>
-                    {editableInputRows
-                      .filter(row => row.isEditing && 
-                        row.modifiedData['AI추천답변'] !== row.originalData['AI추천답변'])
-                      .map(row => (
+                             {/* 수정 사유 입력 (AI 추천 답변 편집 시에만) */}
+               {editableInputRows.some(row => row.isEditing && !row.isNewlyAdded) && (
+                 <div className='mt-4 p-4 bg-white/5 rounded-lg'>
+                   <h4 className='text-sm font-medium text-white mb-2'>AI 추천 답변 수정 사유 입력</h4>
+                   <div className='flex gap-4'>
+                     {editableInputRows
+                       .filter(row => row.isEditing && !row.isNewlyAdded)
+                       .map(row => (
                         <div key={row.id} className='flex-1'>
                           <label className='block text-xs text-white/60 mb-1'>
                             행 {row.id} 수정 사유
@@ -1376,30 +1549,30 @@ const InputDataPage: React.FC = () => {
                      {/* 데이터 확인 버튼 */}
            <div className='mt-4 flex items-center gap-4'>
                           <Button
-               onClick={handleDataValidation}
-               disabled={isValidatingData}
+               onClick={handleSaveToDatabase}
+               disabled={isSavingToDB}
                className='bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white px-6 py-2 rounded-lg flex items-center gap-2'
              >
-               {isValidatingData ? (
+               {isSavingToDB ? (
                  <>
                    <div className='w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin'></div>
-                   확인 중...
+                   저장 중...
                  </>
                ) : (
                  <>
-                   <CheckCircle className='w-4 h-4' />
-                   데이터 확인
+                   <Save className='w-4 h-4' />
+                   데이터 저장
                  </>
                )}
              </Button>
              
-             {validationStatus && (
+             {dbSaveStatus && (
                <div className={`text-sm px-3 py-2 rounded-lg ${
-                 validationStatus.includes('✅') 
+                 dbSaveStatus.includes('✅') 
                    ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
                    : 'bg-red-500/20 text-red-400 border border-red-500/30'
                }`}>
-                 {validationStatus}
+                 {dbSaveStatus}
                </div>
              )}
           </div>

@@ -722,8 +722,17 @@ const TransportDataPage: React.FC = () => {
     );
   };
 
-  // 행 편집 토글
+  // 행 편집 토글 (직접 입력한 데이터만 편집 가능)
   const toggleRowEdit = (rowId: string) => {
+    const row = editableInputRows.find(r => r.id === rowId);
+    if (!row) return;
+    
+    // Excel 데이터는 편집 불가능
+    if (!row.isNewlyAdded) {
+      setError('Excel 파일로 업로드된 데이터는 수정할 수 없습니다.');
+      return;
+    }
+    
     setEditableInputRows(prev => 
       prev.map(row => 
         row.id === rowId 
@@ -1017,21 +1026,27 @@ const TransportDataPage: React.FC = () => {
                             </div>
                           ) : (
                             <div className='flex gap-2'>
-                              <Button
-                                onClick={() => toggleRowEdit(row.id)}
-                                className='bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs'
-                              >
-                                <Edit3 className='w-3 h-3 mr-1' />
-                                편집
-                              </Button>
-                              {row.isNewlyAdded && (
-                                <Button
-                                  onClick={() => deleteRow(row.id)}
-                                  className='bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs'
-                                >
-                                  <Trash2 className='w-3 h-3 mr-1' />
-                                  삭제
-                                </Button>
+                              {/* 직접 입력한 데이터만 편집/삭제 가능 */}
+                              {row.isNewlyAdded ? (
+                                <>
+                                  <Button
+                                    onClick={() => toggleRowEdit(row.id)}
+                                    className='bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs'
+                                  >
+                                    <Edit3 className='w-3 h-3 mr-1' />
+                                    편집
+                                  </Button>
+                                  <Button
+                                    onClick={() => deleteRow(row.id)}
+                                    className='bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs'
+                                  >
+                                    <Trash2 className='w-3 h-3 mr-1' />
+                                    삭제
+                                  </Button>
+                                </>
+                              ) : (
+                                // Excel 데이터는 편집 불가능
+                                <span className='text-white/40 text-xs'>수정 불가</span>
                               )}
                             </div>
                           )}

@@ -182,7 +182,7 @@ async def save_processed_data(data: dict):
         
         from .database import get_db
         from sqlalchemy.orm import Session
-        from sqlalchemy import create_engine
+        from sqlalchemy import create_engine, text
         import os
         
         database_url = os.getenv("DATABASE_URL", "postgresql://postgres:lUAkUKpUxubYDvmqzGKxJLKgZCWMjaQy@switchyard.proxy.rlwy.net:51947/railway")
@@ -211,18 +211,23 @@ async def save_processed_data(data: dict):
                                 'source_file': filename
                             }
                             
-                            # None 값 제거
-                            input_data = {k: v for k, v in input_data.items() if v is not None}
+                            # None 값 제거 (빈 문자열은 유지)
+                            input_data = {k: v for k, v in input_data.items() if v is not None and v != ''}
                             
-                            cursor = session.execute("""
-                                INSERT INTO datagather_input 
-                                (lot_number, product_name, production_quantity, input_date, end_date, 
-                                 process_name, input_material, quantity, unit, ai_recommendation, source_file)
-                                VALUES (:lot_number, :product_name, :production_quantity, :input_date, :end_date,
-                                        :process_name, :input_material, :quantity, :unit, :ai_recommendation, :source_file)
-                            """, input_data)
-                            
-                            saved_count += 1
+                            # 필수 컬럼이 있는지 확인
+                            if input_data.get('process_name') or input_data.get('input_material'):
+                                cursor = session.execute(text("""
+                                    INSERT INTO datagather_input 
+                                    (lot_number, product_name, production_quantity, input_date, end_date, 
+                                     process_name, input_material, quantity, unit, ai_recommendation, source_file)
+                                    VALUES (:lot_number, :product_name, :production_quantity, :input_date, :end_date,
+                                            :process_name, :input_material, :quantity, :unit, :ai_recommendation, :source_file)
+                                """), input_data)
+                                
+                                saved_count += 1
+                                logger.info(f"행 {saved_count} 저장 성공: {input_data.get('process_name', '')} - {input_data.get('input_material', '')}")
+                            else:
+                                logger.warning(f"필수 데이터 부족으로 건너뜀: {row}")
                     
                     except Exception as row_error:
                         logger.error(f"행 데이터 저장 실패: {row_error}")
@@ -254,7 +259,7 @@ async def save_transport_data(data: dict):
         
         from .database import get_db
         from sqlalchemy.orm import Session
-        from sqlalchemy import create_engine
+        from sqlalchemy import create_engine, text
         import os
         
         database_url = os.getenv("DATABASE_URL", "postgresql://postgres:lUAkUKpUxubYDvmqzGKxJLKgZCWMjaQy@switchyard.proxy.rlwy.net:51947/railway")
@@ -282,13 +287,13 @@ async def save_transport_data(data: dict):
                         # None 값 제거
                         transport_record = {k: v for k, v in transport_record.items() if v is not None}
                         
-                        cursor = session.execute("""
+                        cursor = session.execute(text("""
                             INSERT INTO datagather_transport 
                             (transport_date, departure_location, arrival_location, transport_mode, 
                              transport_distance, transport_cost, transport_volume, unit, source_file)
                             VALUES (:transport_date, :departure_location, :arrival_location, :transport_mode,
                                     :transport_distance, :transport_cost, :transport_volume, :unit, :source_file)
-                        """, transport_record)
+                        """), transport_record)
                         
                         saved_count += 1
                     
@@ -322,7 +327,7 @@ async def save_process_data(data: dict):
         
         from .database import get_db
         from sqlalchemy.orm import Session
-        from sqlalchemy import create_engine
+        from sqlalchemy import create_engine, text
         import os
         
         database_url = os.getenv("DATABASE_URL", "postgresql://postgres:lUAkUKpUxubYDvmqzGKxJLKgZCWMjaQy@switchyard.proxy.rlwy.net:51947/railway")
@@ -347,11 +352,11 @@ async def save_process_data(data: dict):
                         # None 값 제거
                         process_record = {k: v for k, v in process_record.items() if v is not None}
                         
-                        cursor = session.execute("""
+                        cursor = session.execute(text("""
                             INSERT INTO datagather_process 
                             (process_name, process_description, process_type, process_stage, process_efficiency, source_file)
                             VALUES (:process_name, :process_description, :process_type, :process_stage, :process_efficiency, :source_file)
-                        """, process_record)
+                        """), process_record)
                         
                         saved_count += 1
                     

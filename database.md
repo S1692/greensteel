@@ -107,54 +107,56 @@ CREATE TABLE edge (
 ### 7. emission_factors 테이블 (배출계수)
 ```sql
 -- ENUM 타입 정의
-CREATE TYPE factor_type_enum AS ENUM ('fuel', 'electricity', 'process', 'precursor');
+CREATE TYPE factor_type_enum AS ENUM ('direct', 'indirect', 'precursor');
 
 CREATE TABLE emission_factors (
     id SERIAL PRIMARY KEY,
     factor_type factor_type_enum NOT NULL,
     material_name TEXT NOT NULL,
-    emission_factor DECIMAL(10,6) NOT NULL,
+    emission_factor NUMERIC NOT NULL,
     unit TEXT NOT NULL,
     source TEXT,
-    valid_from DATE DEFAULT CURRENT_DATE,
+    valid_from DATE,
     valid_to DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
-### 8. emission_attribution 테이블 (배출량 귀속)
+### 8. emission_attribution 테이블 (배출량 배분)
 ```sql
 -- ENUM 타입 정의
 CREATE TYPE emission_type_enum AS ENUM ('direct', 'indirect', 'precursor');
+CREATE TYPE attribution_method_enum AS ENUM ('activity', 'economic', 'physical');
 
 CREATE TABLE emission_attribution (
     id SERIAL PRIMARY KEY,
     product_id INTEGER REFERENCES product(id) ON DELETE CASCADE,
     process_id INTEGER REFERENCES process(id) ON DELETE CASCADE,
     emission_type emission_type_enum NOT NULL,
-    emission_amount DECIMAL(15,6) NOT NULL DEFAULT 0,
-    attribution_method allocation_method_enum NOT NULL,
-    allocation_ratio DECIMAL(5,4) DEFAULT 1.0,
-    calculation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    emission_amount NUMERIC NOT NULL,
+    attribution_method attribution_method_enum NOT NULL,
+    allocation_ratio NUMERIC,
+    calculation_date TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
-### 9. product_emissions 테이블 (제품별 총 배출량)
+### 9. product_emissions 테이블 (제품별 배출량)
 ```sql
 CREATE TABLE product_emissions (
     id SERIAL PRIMARY KEY,
-    product_id INTEGER UNIQUE NOT NULL REFERENCES product(id) ON DELETE CASCADE,
-    direct_emission DECIMAL(15,6) NOT NULL DEFAULT 0,
-    indirect_emission DECIMAL(15,6) NOT NULL DEFAULT 0,
-    precursor_emission DECIMAL(15,6) NOT NULL DEFAULT 0,
-    total_emission DECIMAL(15,6) NOT NULL DEFAULT 0,
-    emission_intensity DECIMAL(15,6), -- tCO2/ton
-    calculation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    product_id INTEGER NOT NULL REFERENCES product(id) ON DELETE CASCADE,
+    direct_emission NUMERIC NOT NULL,
+    indirect_emission NUMERIC NOT NULL,
+    precursor_emission NUMERIC NOT NULL,
+    total_emission NUMERIC NOT NULL,
+    emission_intensity NUMERIC,
+    calculation_date TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(product_id)
 );
 ```
 
@@ -163,14 +165,128 @@ CREATE TABLE product_emissions (
 CREATE TABLE cbam_declaration (
     id SERIAL PRIMARY KEY,
     product_id INTEGER NOT NULL REFERENCES product(id) ON DELETE CASCADE,
-    declaration_period TEXT NOT NULL, -- YYYY-MM 형식
-    total_emission DECIMAL(15,6) NOT NULL DEFAULT 0,
-    embedded_emission DECIMAL(15,6) NOT NULL DEFAULT 0,
-    carbon_price DECIMAL(10,2), -- EUR/ton CO2
-    declaration_status TEXT DEFAULT 'draft' CHECK (declaration_status IN ('draft', 'submitted', 'approved', 'rejected')),
+    declaration_period TEXT NOT NULL,
+    total_emission NUMERIC NOT NULL,
+    embedded_emission NUMERIC NOT NULL,
+    carbon_price NUMERIC,
+    declaration_status TEXT DEFAULT 'pending',
     submitted_at TIMESTAMP,
     approved_at TIMESTAMP,
     notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 11. companies 테이블 (회사 정보)
+```sql
+CREATE TABLE companies (
+    id SERIAL PRIMARY KEY,
+    company_name TEXT NOT NULL,
+    business_number TEXT UNIQUE,
+    address TEXT,
+    installation TEXT,
+    source_latitude DECIMAL(10, 8),
+    source_longitude DECIMAL(11, 8),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 12. users 테이블 (사용자 정보)
+```sql
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username TEXT UNIQUE NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    hashed_password TEXT NOT NULL,
+    company_id INTEGER REFERENCES companies(id) ON DELETE SET NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+## 🔄 DataGather Service 테이블들
+
+### 13. datagather_process 테이블 (데이터 수집용 공정)
+```sql
+CREATE TABLE datagather_process (
+    id SERIAL PRIMARY KEY,
+    process_name TEXT NOT NULL,
+    process_description TEXT,
+    process_type TEXT,
+    process_stage TEXT,
+    process_efficiency NUMERIC,
+    source_file TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 14. datagather_transport 테이블 (운송 데이터)
+```sql
+CREATE TABLE datagather_transport (
+    id SERIAL PRIMARY KEY,
+    transport_date DATE,
+    departure_location TEXT,
+    arrival_location TEXT,
+    transport_mode TEXT,
+    transport_distance NUMERIC,
+    transport_cost NUMERIC,
+    transport_volume NUMERIC,
+    unit TEXT,
+    source_file TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 15. datagather_input 테이블 (입력 데이터)
+```sql
+CREATE TABLE datagather_input (
+    id SERIAL PRIMARY KEY,
+    lot_number TEXT,
+    product_name TEXT,
+    production_quantity NUMERIC,
+    input_date DATE,
+    end_date DATE,
+    process_name TEXT,
+    input_material TEXT,
+    quantity NUMERIC,
+    unit TEXT,
+    ai_recommendation TEXT,
+    source_file TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 16. datagather_output 테이블 (출력 데이터)
+```sql
+CREATE TABLE datagather_output (
+    id SERIAL PRIMARY KEY,
+    output_name TEXT,
+    output_type TEXT,
+    output_quantity NUMERIC,
+    unit TEXT,
+    quality_grade TEXT,
+    source_file TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 17. datagather_performance 테이블 (성과 데이터)
+```sql
+CREATE TABLE datagather_performance (
+    id SERIAL PRIMARY KEY,
+    process_name TEXT,
+    production_amount NUMERIC,
+    unit TEXT,
+    efficiency_rate NUMERIC,
+    quality_score NUMERIC,
+    source_file TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

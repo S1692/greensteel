@@ -689,7 +689,8 @@ class CalculationRepository:
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                 cursor.execute("""
-                    SELECT * FROM process ORDER BY id
+                    SELECT id, process_name, start_period, end_period, created_at, updated_at
+                    FROM process ORDER BY id
                 """)
                 
                 results = cursor.fetchall()
@@ -701,11 +702,16 @@ class CalculationRepository:
                         process_dict['start_period'] = process_dict['start_period'].isoformat()
                     if 'end_period' in process_dict and process_dict['end_period']:
                         process_dict['end_period'] = process_dict['end_period'].isoformat()
+                    
+                    # product_id는 관계 테이블에서 조회하므로 None으로 설정
+                    process_dict['product_id'] = None
+                    
                     processes.append(process_dict)
                 
                 return processes
                 
         except Exception as e:
+            logger.error(f"Error in _get_processes_db: {e}")
             raise e
         finally:
             conn.close()

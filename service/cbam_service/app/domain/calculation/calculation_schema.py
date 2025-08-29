@@ -93,16 +93,16 @@ class ProcessCreateRequest(BaseModel):
     """프로세스 생성 요청"""
     product_id: Optional[int] = Field(None, description="제품 ID (선택사항)")
     process_name: str = Field(..., description="프로세스명")
-    start_period: date = Field(..., description="시작일")
-    end_period: date = Field(..., description="종료일")
+    start_period: Optional[str] = Field(None, description="시작일 (YYYY-MM-DD)")
+    end_period: Optional[str] = Field(None, description="종료일 (YYYY-MM-DD)")
 
 class ProcessResponse(BaseModel):
     """프로세스 응답"""
     id: int = Field(..., description="프로세스 ID")
     product_id: Optional[int] = Field(None, description="제품 ID (관계 테이블에서 조회)")
     process_name: str = Field(..., description="프로세스명")
-    start_period: date = Field(..., description="시작일")
-    end_period: date = Field(..., description="종료일")
+    start_period: str = Field(..., description="시작일 (ISO 문자열)")
+    end_period: str = Field(..., description="종료일 (ISO 문자열)")
     created_at: Optional[datetime] = Field(None, description="생성일")
     updated_at: Optional[datetime] = Field(None, description="수정일")
 
@@ -110,8 +110,8 @@ class ProcessUpdateRequest(BaseModel):
     """프로세스 수정 요청"""
     product_id: Optional[int] = Field(None, description="제품 ID (선택사항)")
     process_name: Optional[str] = Field(None, description="프로세스명")
-    start_period: Optional[date] = Field(None, description="시작일")
-    end_period: Optional[date] = Field(None, description="종료일")
+    start_period: Optional[str] = Field(None, description="시작일 (YYYY-MM-DD)")
+    end_period: Optional[str] = Field(None, description="종료일 (YYYY-MM-DD)")
 
 # ============================================================================
 # 📥 ProcessInput 관련 스키마

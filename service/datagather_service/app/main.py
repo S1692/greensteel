@@ -173,10 +173,10 @@ async def save_processed_data(data: dict):
     try:
         logger.info(f"DB 저장 요청 받음: {data.get('filename', 'unknown')}")
         filename = data.get('filename', '')
-        input_data = data.get('data', [])
+        input_data_rows = data.get('data', [])
         columns = data.get('columns', [])
         
-        if not input_data:
+        if not input_data_rows:
             return {"success": False, "message": "저장할 데이터가 없습니다.", "error": "No data provided"}
         
         from .database import get_db
@@ -187,15 +187,21 @@ async def save_processed_data(data: dict):
         database_url = os.getenv("DATABASE_URL", "postgresql://postgres:lUAkUKpUxubYDvmqzGKxJLKgZCWMjaQy@switchyard.proxy.rlwy.net:51947/railway")
         engine = create_engine(database_url)
         
+        # 데이터베이스에 저장
+        saved_count = 0
+        
         with Session(engine) as session:
             try:
-                saved_count = 0
-                
-                for row in input_data:
+                for row in input_data_rows:
                     try:
                         # input_data 테이블에 저장
                         if row.get('공정') or row.get('투입물명'):
-                            input_data = {
+                            # 단위 값 강제로 't'로 설정 (빈 문자열이나 None인 경우)
+                            unit_value = row.get('단위', '')
+                            if not unit_value or unit_value.strip() == '':
+                                unit_value = 't'
+                            
+                            row_data = {
                                 '로트번호': row.get('로트번호', ''),
                                 '생산품명': row.get('생산품명', ''),
                                 '생산수량': float(row.get('생산수량', 0)) if row.get('생산수량') else 0,
@@ -204,25 +210,25 @@ async def save_processed_data(data: dict):
                                 '공정': row.get('공정', ''),
                                 '투입물명': row.get('투입물명', ''),
                                 '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
-                                '단위': row.get('단위', 't') if row.get('단위') and row.get('단위').strip() else 't',  # 빈 문자열이면 't'로 설정
+                                '단위': unit_value,  # 강제로 't' 설정된 값
                                 'source_file': filename
                             }
                             
                             # None 값 제거 (빈 문자열은 유지하되 단위는 't'로 설정)
-                            input_data = {k: v for k, v in input_data.items() if v is not None}
+                            row_data = {k: v for k, v in row_data.items() if v is not None}
                             
                             # 필수 컬럼이 있는지 확인
-                            if input_data.get('공정') or input_data.get('투입물명'):
+                            if row_data.get('공정') or row_data.get('투입물명'):
                                 cursor = session.execute(text("""
                                     INSERT INTO input_data 
                                     (로트번호, 생산품명, 생산수량, 투입일, 종료일, 
                                      공정, 투입물명, 수량, 단위, source_file)
                                     VALUES (:로트번호, :생산품명, :생산수량, :투입일, :종료일,
                                             :공정, :투입물명, :수량, :단위, :source_file)
-                                """), input_data)
+                                """), row_data)
                                 
                                 saved_count += 1
-                                logger.info(f"행 {saved_count} 저장 성공: {input_data.get('공정', '')} - {input_data.get('투입물명', '')}")
+                                logger.info(f"행 {saved_count} 저장 성공: {row_data.get('공정', '')} - {row_data.get('투입물명', '')} (단위: {row_data.get('단위', '')})")
                             else:
                                 logger.warning(f"필수 데이터 부족으로 건너뜀: {row}")
                     
@@ -231,14 +237,13 @@ async def save_processed_data(data: dict):
                         # 개별 행 오류 시에도 계속 진행
                         continue
                 
-                # 모든 행 처리가 완료된 후 커밋
+                # 모든 행 처리 후 커밋
                 session.commit()
                 logger.info(f"DB 저장 완료: {saved_count}행 저장됨")
                 return {"success": True, "message": f"데이터베이스에 성공적으로 저장되었습니다. ({saved_count}행)", "saved_count": saved_count, "filename": filename}
                 
             except Exception as db_error:
                 logger.error(f"데이터베이스 저장 실패: {db_error}")
-                # 세션 롤백 시도
                 try:
                     session.rollback()
                 except:

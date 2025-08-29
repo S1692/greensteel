@@ -140,6 +140,52 @@ const ProcessDataPage: React.FC = () => {
     }
   };
 
+  // DB 저장 핸들러
+  const handleSaveToDatabase = async () => {
+    if (!inputData || inputData.data.length === 0) {
+      setError('저장할 데이터가 없습니다.');
+      return;
+    }
+
+    setIsSavingToDB(true);
+    setDbSaveStatus(null);
+    setError(null);
+
+    try {
+      const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
+      const response = await fetch(`${gatewayUrl}/save-process-data`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          filename: inputData.filename,
+          data: inputData.data,
+          columns: inputData.columns
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`데이터베이스 저장 실패: ${response.status}`);
+      }
+
+      const responseData = await response.json();
+      if (responseData.success) {
+        setDbSaveStatus({ success: true, message: '데이터베이스에 성공적으로 저장되었습니다.' });
+        console.log('데이터베이스 저장 성공:', responseData);
+      } else {
+        throw new Error(responseData.message || '데이터베이스 저장 실패');
+      }
+
+    } catch (err) {
+      console.error('데이터베이스 저장 오류:', err);
+      setError(`데이터베이스 저장 중 오류가 발생했습니다: ${err}`);
+      setDbSaveStatus({ success: false, message: `데이터베이스 저장 실패: ${err}` });
+    } finally {
+      setIsSavingToDB(false);
+    }
+  };
+
   // 입력 변경 핸들러
   const handleInputChange = (rowId: string, column: string, value: string) => {
     setEditableInputRows(prev => 

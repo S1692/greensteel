@@ -205,7 +205,7 @@ async def save_processed_data(data: dict):
                                 '공정': row.get('공정', ''),
                                 '투입물명': row.get('투입물명', ''),
                                 '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
-                                '단위': row.get('단위', '개'),  # 기본값 설정
+                                '단위': row.get('단위', 't'),  # 기본값 설정
                                 'source_file': filename
                             }
                             

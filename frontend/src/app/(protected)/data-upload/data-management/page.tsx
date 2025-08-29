@@ -19,7 +19,8 @@ import {
   Trash2,
   Eye,
   Tag,
-  X
+  X,
+  ArrowLeft
 } from 'lucide-react';
 
 interface DataRow {
@@ -54,9 +55,11 @@ interface ClassificationData {
 }
 
 type TabType = 'classification' | 'view';
+type ViewMode = 'overview' | 'fuel' | 'utility' | 'waste' | 'process_product';
 
 export default function DataManagementPage() {
   const [activeTab, setActiveTab] = useState<TabType>('classification');
+  const [viewMode, setViewMode] = useState<ViewMode>('overview');
   const [data, setData] = useState<DataRow[]>([]);
   const [filteredData, setFilteredData] = useState<DataRow[]>([]);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
@@ -303,6 +306,21 @@ export default function DataManagementPage() {
     };
     
     return colors[분류];
+  };
+
+  // 분류별 데이터 필터링
+  const getFilteredDataByClassification = (classification: ClassificationType) => {
+    return data.filter(row => row.분류 === classification);
+  };
+
+  // 분류별 통계 카드 클릭 핸들러
+  const handleClassificationCardClick = (classification: ClassificationType) => {
+    setViewMode(classification === '공정 생산품' ? 'process_product' : classification as ViewMode);
+  };
+
+  // 뒤로가기 핸들러
+  const handleBackToOverview = () => {
+    setViewMode('overview');
   };
 
   return (
@@ -572,83 +590,125 @@ export default function DataManagementPage() {
         {/* 분류 데이터 확인 탭 */}
         {activeTab === 'view' && (
           <div className="space-y-6">
-            {/* 분류별 통계 */}
-            <div className="grid grid-cols-4 gap-4">
-              {(['연료', '유틸리티', '폐기물', '공정 생산품'] as ClassificationType[]).map((type) => {
-                const count = data.filter(row => row.분류 === type).length;
-                return (
-                  <div key={type} className="bg-ecotrace-surface rounded-lg border border-ecotrace-border p-4">
-                    <div className="text-2xl font-bold text-ecotrace-accent">{count}</div>
-                    <div className="text-sm text-ecotrace-textSecondary">{type}</div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* 분류된 데이터 테이블 */}
-            <div className="bg-ecotrace-surface rounded-lg border border-ecotrace-border overflow-hidden">
-              <div className="p-4 border-b border-ecotrace-border">
-                <h3 className="text-lg font-semibold text-ecotrace-text">분류된 데이터 목록</h3>
-                <p className="text-sm text-ecotrace-textSecondary">분류된 데이터를 확인하고 관리할 수 있습니다.</p>
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-ecotrace-secondary/50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">분류</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입일</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">종료일</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">물질명</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">단위</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">작업</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-ecotrace-border">
-                    {data.filter(row => row.분류).map((row) => {
-                      const classificationDisplay = getClassificationDisplay(row.분류 || null);
-                      return (
-                        <tr key={row.id} className="hover:bg-ecotrace-secondary/30 transition-colors">
-                          <td className="px-4 py-3 text-sm">
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${classificationDisplay.bg} ${classificationDisplay.color}`}>
-                              {classificationDisplay.text}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-ecotrace-text">{row.로트번호}</td>
-                          <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산수량}</td>
-                          <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입일}</td>
-                          <td className="px-4 py-3 text-sm text-ecotrace-text">{row.종료일}</td>
-                          <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정}</td>
-                          <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입물명}</td>
-                          <td className="px-4 py-3 text-sm text-ecotrace-text">{row.수량}</td>
-                          <td className="px-4 py-3 text-sm text-ecotrace-text">{row.단위}</td>
-                          <td className="px-4 py-3 text-sm">
-                            <Button
-                              onClick={() => deleteClassification(row.id)}
-                              disabled={isDeleting}
-                              className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs flex items-center gap-1"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              분류 삭제
-                            </Button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              
-              {data.filter(row => row.분류).length === 0 && (
-                <div className="text-center py-8 text-ecotrace-textSecondary">
-                  <p>분류된 데이터가 없습니다.</p>
+            {/* 개요 모드 - 분류별 통계 카드 */}
+            {viewMode === 'overview' && (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-ecotrace-text">분류별 데이터 통계</h3>
+                  <p className="text-sm text-ecotrace-textSecondary">각 분류를 클릭하여 상세 데이터를 확인하세요</p>
                 </div>
-              )}
-            </div>
+                
+                <div className="grid grid-cols-4 gap-4">
+                  {(['연료', '유틸리티', '폐기물', '공정 생산품'] as ClassificationType[]).map((type) => {
+                    const count = data.filter(row => row.분류 === type).length;
+                    const classificationDisplay = getClassificationDisplay(type);
+                    return (
+                      <button
+                        key={type}
+                        onClick={() => handleClassificationCardClick(type)}
+                        className="bg-ecotrace-surface rounded-lg border border-ecotrace-border p-4 hover:bg-ecotrace-secondary/30 transition-all duration-200 hover:scale-105 cursor-pointer group"
+                      >
+                        <div className="text-2xl font-bold text-ecotrace-accent group-hover:text-white transition-colors">
+                          {count}
+                        </div>
+                        <div className={`text-sm font-medium ${classificationDisplay.color} group-hover:text-white transition-colors`}>
+                          {type}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {/* 개별 분류 모드 - 뒤로가기 버튼과 상세 데이터 */}
+            {viewMode !== 'overview' && (
+              <>
+                <div className="flex items-center gap-4 mb-6">
+                  <Button
+                    onClick={handleBackToOverview}
+                    className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    통계로 돌아가기
+                  </Button>
+                  <div>
+                    <h3 className="text-lg font-semibold text-ecotrace-text">
+                      {viewMode === 'fuel' && '연료 데이터'}
+                      {viewMode === 'utility' && '유틸리티 데이터'}
+                      {viewMode === 'waste' && '폐기물 데이터'}
+                      {viewMode === 'process_product' && '공정 생산품 데이터'}
+                    </h3>
+                    <p className="text-sm text-ecotrace-textSecondary">
+                      총 {getFilteredDataByClassification(
+                        viewMode === 'fuel' ? '연료' :
+                        viewMode === 'utility' ? '유틸리티' :
+                        viewMode === 'waste' ? '폐기물' : '공정 생산품'
+                      ).length}개 데이터
+                    </p>
+                  </div>
+                </div>
+
+                {/* 분류별 상세 데이터 테이블 */}
+                <div className="bg-ecotrace-surface rounded-lg border border-ecotrace-border overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-ecotrace-secondary/50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입일</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">종료일</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">물질명</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">단위</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">작업</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-ecotrace-border">
+                        {getFilteredDataByClassification(
+                          viewMode === 'fuel' ? '연료' :
+                          viewMode === 'utility' ? '유틸리티' :
+                          viewMode === 'waste' ? '폐기물' : '공정 생산품'
+                        ).map((row) => (
+                          <tr key={row.id} className="hover:bg-ecotrace-secondary/30 transition-colors">
+                            <td className="px-4 py-3 text-sm text-ecotrace-text">{row.로트번호}</td>
+                            <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산수량}</td>
+                            <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입일}</td>
+                            <td className="px-4 py-3 text-sm text-ecotrace-text">{row.종료일}</td>
+                            <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정}</td>
+                            <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입물명}</td>
+                            <td className="px-4 py-3 text-sm text-ecotrace-text">{row.수량}</td>
+                            <td className="px-4 py-3 text-sm text-ecotrace-text">{row.단위}</td>
+                                                       <td className="px-4 py-3 text-sm">
+                             <Button
+                               onClick={() => deleteClassification(row.id)}
+                               disabled={isDeleting}
+                               className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs flex items-center gap-1"
+                             >
+                               <Trash2 className="w-3 h-3" />
+                               분류 삭제
+                             </Button>
+                           </td>
+                         </tr>
+                       ))}
+                     </tbody>
+                    </table>
+                  </div>
+                  
+                  {getFilteredDataByClassification(
+                    viewMode === 'fuel' ? '연료' :
+                    viewMode === 'utility' ? '유틸리티' :
+                    viewMode === 'waste' ? '폐기물' : '공정 생산품'
+                  ).length === 0 && (
+                    <div className="text-center py-8 text-ecotrace-textSecondary">
+                      <p>해당 분류의 데이터가 없습니다.</p>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>

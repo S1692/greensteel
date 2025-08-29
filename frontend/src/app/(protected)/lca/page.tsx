@@ -73,6 +73,16 @@ interface ClassificationData {
   source_id: number;
 }
 
+interface OutputData {
+  id: number;
+  로트번호: string;
+  날짜: string;
+  사업장: string;
+  제품명: string;
+  수량: number;
+  단위: string;
+}
+
 export default function LcaPage() {
   const [activeTab, setActiveTab] = useState<LcaTabKey | 'manage'>('base');
   const [activeSegment, setActiveSegment] = useState<ManageSegment>('mat');
@@ -80,6 +90,7 @@ export default function LcaPage() {
   // 데이터 상태
   const [baseData, setBaseData] = useState<BaseData[]>([]);
   const [actualData, setActualData] = useState<ActualData[]>([]);
+  const [outputData, setOutputData] = useState<OutputData[]>([]);
   const [transportData, setTransportData] = useState<TransportData[]>([]);
   const [processData, setProcessData] = useState<ProcessData[]>([]);
   const [classificationData, setClassificationData] = useState<ClassificationData[]>([]);
@@ -93,14 +104,23 @@ export default function LcaPage() {
       
       // 각 탭별 데이터 로드
       if (activeTab === 'base') {
-        // 기준데이터 로드 (예시 데이터)
-        setBaseData([
-          { id: 1, 물질명: '석탄', 단위: 'kg', GWP: 2.5, AP: 0.8, EP: 0.3, POCP: 0.1, ADPE: 0.05, ADPF: 0.02 },
-          { id: 2, 물질명: '천연가스', 단위: 'kg', GWP: 2.1, AP: 0.6, EP: 0.2, POCP: 0.08, ADPE: 0.03, ADPF: 0.01 },
-          { id: 3, 물질명: '전기', 단위: 'kWh', GWP: 0.5, AP: 0.2, EP: 0.1, POCP: 0.05, ADPE: 0.02, ADPF: 0.01 },
-        ]);
+        // 실적정보 데이터 로드
+        const response = await fetch(`${gatewayUrl}/api/datagather/input-data`);
+        if (response.ok) {
+          const data = await response.json();
+          const baseDataArray = data.success ? data.data : [];
+          setBaseData(baseDataArray.map((item: any, index: number) => ({
+            id: index + 1,
+            로트번호: item.로트번호 || '',
+            날짜: item.날짜 || '',
+            사업장: item.사업장 || '',
+            제품명: item.제품명 || '',
+            수량: item.수량 || 0,
+            단위: item.단위 || 't'
+          })));
+        }
       } else if (activeTab === 'actual') {
-        // 실적데이터 로드
+        // 투입물 데이터 로드
         const response = await fetch(`${gatewayUrl}/api/datagather/input-data`);
         if (response.ok) {
           const data = await response.json();
@@ -108,16 +128,31 @@ export default function LcaPage() {
           setActualData(actualDataArray.map((item: any, index: number) => ({
             id: index + 1,
             로트번호: item.로트번호 || '',
-            공정: item.공정 || '',
-            투입물: item.투입물명 || '',
+            날짜: item.날짜 || '',
+            사업장: item.사업장 || '',
+            제품명: item.제품명 || '',
             수량: item.수량 || 0,
-            단위: item.단위 || 't',
-            분류: item.분류 || '미분류',
-            날짜: item.투입일 || ''
+            단위: item.단위 || 't'
+          })));
+        }
+      } else if (activeTab === 'output') {
+        // 산출물 데이터 로드
+        const response = await fetch(`${gatewayUrl}/api/datagather/output-data`);
+        if (response.ok) {
+          const data = await response.json();
+          const outputDataArray = data.success ? data.data : [];
+          setOutputData(outputDataArray.map((item: any, index: number) => ({
+            id: index + 1,
+            로트번호: item.로트번호 || '',
+            날짜: item.날짜 || '',
+            사업장: item.사업장 || '',
+            제품명: item.제품명 || '',
+            수량: item.수량 || 0,
+            단위: item.단위 || 't'
           })));
         }
       } else if (activeTab === 'transport') {
-        // 운송데이터 로드
+        // 운송정보 데이터 로드
         const response = await fetch(`${gatewayUrl}/api/datagather/transport-data`);
         if (response.ok) {
           const data = await response.json();
@@ -125,28 +160,27 @@ export default function LcaPage() {
           setTransportData(transportDataArray.map((item: any, index: number) => ({
             id: index + 1,
             로트번호: item.로트번호 || '',
-            운송물질: item.운송_물질 || '',
-            운송수량: item.운송_수량 || 0,
-            운송일자: item.운송_일자 || '',
+            운송일자: item.운송일자 || '',
+            운송수량: item.운송수량 || 0,
+            단위: item.단위 || 't',
             출발지: item.출발지 || '',
-            도착지: item.도착_공정 || '',
-            운송수단: item.이동_수단 || ''
+            도착지: item.도착지 || ''
           })));
         }
       } else if (activeTab === 'process') {
-        // 공정데이터 로드
+        // 공정정보 데이터 로드
         const response = await fetch(`${gatewayUrl}/api/datagather/process-data`);
         if (response.ok) {
           const data = await response.json();
           const processDataArray = data.success ? data.data : [];
           setProcessData(processDataArray.map((item: any, index: number) => ({
             id: index + 1,
+            로트번호: item.로트번호 || '',
             공정명: item.공정명 || '',
-            생산제품: item.생산제품 || '',
-            세부공정: item.세부공정 || '',
-            공정설명: item.공정_설명 || '',
-            에너지소비: 0, // 예시 데이터
-            단위: 'kWh'
+            시작일: item.시작일 || '',
+            종료일: item.종료일 || '',
+            투입물: item.투입물 || '',
+            산출물: item.산출물 || ''
           })));
         }
       } else if (activeTab === 'manage') {
@@ -323,6 +357,71 @@ export default function LcaPage() {
                 <div className="text-center py-8 text-ecotrace-textSecondary">
                   <FileText className="w-12 h-12 mx-auto mb-4 text-ecotrace-textSecondary/50" />
                   <p>실적데이터가 없습니다.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+        
+      case 'output':
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-ecotrace-text">산출물 데이터</h2>
+                <p className="text-ecotrace-text-secondary">
+                  산출물 데이터를 관리합니다.
+                </p>
+              </div>
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                산출물 데이터 추가
+              </Button>
+            </div>
+            
+            <div className="bg-ecotrace-surface border border-ecotrace-border rounded-lg overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-ecotrace-secondary/50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">날짜</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">사업장</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">제품명</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">단위</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">작업</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-ecotrace-border">
+                    {outputData.map((row) => (
+                      <tr key={row.id} className="hover:bg-ecotrace-secondary/30 transition-colors">
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.로트번호}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.날짜}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.사업장}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.제품명}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.수량}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.단위}</td>
+                        <td className="px-4 py-3 text-sm">
+                          <div className="flex gap-2">
+                            <Button className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs">
+                              <Edit3 className="w-3 h-3" />
+                            </Button>
+                            <Button className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs">
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              
+              {outputData.length === 0 && (
+                <div className="text-center py-8 text-ecotrace-textSecondary">
+                  <FileText className="w-12 h-12 mx-auto mb-4 text-ecotrace-textSecondary/50" />
+                  <p>산출물 데이터가 없습니다.</p>
                 </div>
               )}
             </div>

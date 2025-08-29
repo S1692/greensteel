@@ -18,11 +18,12 @@ const LcaTabsNav: React.FC<LcaTabsNavProps> = ({
   onSegmentChange 
 }) => {
   const mainTabs = [
-    { key: 'base', label: '기준데이터' },
-    { key: 'actual', label: '실적데이터' },
+    { key: 'base', label: '실적정보' },
+    { key: 'actual', label: '투입물' },
+    { key: 'output', label: '산출물' },
+    { key: 'transport', label: '운송정보' },
+    { key: 'process', label: '공정정보' },
     { key: 'manage', label: '데이터관리' },
-    { key: 'transport', label: '운송데이터' },
-    { key: 'process', label: '공정데이터' },
   ];
 
   const manageSubTabs = [

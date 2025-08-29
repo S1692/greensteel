@@ -631,10 +631,14 @@ const InputDataPage: React.FC = () => {
       // AI 추천 답변을 투입물명에 적용하여 저장할 데이터 준비
       const dataToSave = editableInputRows.map(row => {
         const aiRecommendation = row.modifiedData['AI추천답변'] || '';
+        const unit = row.modifiedData['단위'] && row.modifiedData['단위'].trim() ? row.modifiedData['단위'] : 't';
+        
         return {
           ...row.modifiedData,
           // AI 추천 답변이 있으면 투입물명에 적용, 없으면 원본 투입물명 유지
-          '투입물명': aiRecommendation || row.modifiedData['투입물명'] || ''
+          '투입물명': aiRecommendation || row.modifiedData['투입물명'] || '',
+          // 빈 단위 값은 't'로 설정
+          '단위': unit
         };
       });
 

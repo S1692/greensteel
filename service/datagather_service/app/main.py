@@ -189,7 +189,6 @@ async def save_processed_data(data: dict):
         
         with Session(engine) as session:
             try:
-                session.begin()
                 saved_count = 0
                 
                 for row in input_data:
@@ -205,11 +204,11 @@ async def save_processed_data(data: dict):
                                 '공정': row.get('공정', ''),
                                 '투입물명': row.get('투입물명', ''),
                                 '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
-                                '단위': row.get('단위', 't'),  # 기본값 설정
+                                '단위': row.get('단위', 't') if row.get('단위') and row.get('단위').strip() else 't',  # 빈 문자열이면 't'로 설정
                                 'source_file': filename
                             }
                             
-                            # None 값 제거 (빈 문자열은 유지)
+                            # None 값 제거 (빈 문자열은 유지하되 단위는 't'로 설정)
                             input_data = {k: v for k, v in input_data.items() if v is not None}
                             
                             # 필수 컬럼이 있는지 확인
@@ -229,15 +228,21 @@ async def save_processed_data(data: dict):
                     
                     except Exception as row_error:
                         logger.error(f"행 데이터 저장 실패: {row_error}")
+                        # 개별 행 오류 시에도 계속 진행
                         continue
                 
+                # 모든 행 처리가 완료된 후 커밋
                 session.commit()
                 logger.info(f"DB 저장 완료: {saved_count}행 저장됨")
                 return {"success": True, "message": f"데이터베이스에 성공적으로 저장되었습니다. ({saved_count}행)", "saved_count": saved_count, "filename": filename}
                 
             except Exception as db_error:
-                session.rollback()
                 logger.error(f"데이터베이스 저장 실패: {db_error}")
+                # 세션 롤백 시도
+                try:
+                    session.rollback()
+                except:
+                    pass
                 raise db_error
                 
     except Exception as e:

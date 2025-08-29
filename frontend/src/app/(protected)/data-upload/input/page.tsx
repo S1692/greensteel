@@ -628,6 +628,30 @@ const InputDataPage: React.FC = () => {
     setError(null);
 
     try {
+      // Excel 날짜를 PostgreSQL date 형식으로 변환하는 함수
+      const convertExcelDate = (excelDate: any): string | null => {
+        if (!excelDate || excelDate === '') return null;
+        
+        try {
+          // 이미 문자열 형태의 날짜인 경우
+          if (typeof excelDate === 'string') {
+            return excelDate;
+          }
+          
+          // Excel 날짜 숫자인 경우 (1900년 1월 1일부터의 일수)
+          if (typeof excelDate === 'number') {
+            const baseDate = new Date(1900, 0, 1); // JavaScript는 0부터 시작
+            const resultDate = new Date(baseDate.getTime() + (excelDate - 1) * 24 * 60 * 60 * 1000);
+            return resultDate.toISOString().split('T')[0]; // YYYY-MM-DD 형식
+          }
+          
+          return null;
+        } catch (error) {
+          console.warn('날짜 변환 실패:', excelDate, error);
+          return null;
+        }
+      };
+
       // AI 추천 답변을 투입물명에 적용하여 저장할 데이터 준비
       const dataToSave = editableInputRows.map(row => {
         const aiRecommendation = row.modifiedData['AI추천답변'] || '';
@@ -647,7 +671,10 @@ const InputDataPage: React.FC = () => {
           // AI 추천 답변이 있으면 투입물명에 적용, 없으면 원본 투입물명 유지
           '투입물명': 투입물명,
           // 빈 단위 값은 't'로 설정
-          '단위': unit
+          '단위': unit,
+          // Excel 날짜를 PostgreSQL date 형식으로 변환
+          '투입일': convertExcelDate(row.modifiedData['투입일']),
+          '종료일': convertExcelDate(row.modifiedData['종료일'])
         };
       });
 

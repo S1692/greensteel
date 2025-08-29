@@ -183,9 +183,33 @@ async def save_processed_data(data: dict):
         from sqlalchemy.orm import Session
         from sqlalchemy import create_engine, text
         import os
+        from datetime import datetime, timedelta
+        
+        def excel_date_to_postgres_date(excel_date):
+            """Excel 날짜 숫자를 PostgreSQL date로 변환"""
+            if excel_date is None or excel_date == '':
+                return None
+            
+            try:
+                # Excel 날짜는 1900년 1월 1일부터의 일수
+                # 1900년 1월 1일을 기준으로 날짜 계산
+                base_date = datetime(1900, 1, 1)
+                if isinstance(excel_date, (int, float)):
+                    # Excel의 날짜 계산 (1900년 1월 1일 = 1)
+                    days = int(excel_date) - 1
+                    result_date = base_date + timedelta(days=days)
+                    return result_date.strftime('%Y-%m-%d')
+                elif isinstance(excel_date, str):
+                    # 이미 문자열 형태의 날짜인 경우
+                    return excel_date
+                else:
+                    return None
+            except Exception as e:
+                logger.warning(f"날짜 변환 실패: {excel_date}, 오류: {e}")
+                return None
         
         # PostgreSQL Railway 데이터베이스 연결 설정
-        database_url = os.getenv("DATABASE_URL", "postgresql://postgres:lUAkUKpUxubYDvmqzGKxJLKgZCWMjaQy@switchyard.proxy.rlwy.net:51947/railway")
+        database_url = os.getenv("DATABASE_URL")
         
         # PostgreSQL 전용 엔진 설정
         engine = create_engine(
@@ -217,8 +241,8 @@ async def save_processed_data(data: dict):
                                 '로트번호': row.get('로트번호', ''),
                                 '생산품명': row.get('생산품명', ''),
                                 '생산수량': float(row.get('생산수량', 0)) if row.get('생산수량') else 0,
-                                '투입일': row.get('투입일', None),
-                                '종료일': row.get('종료일', None),
+                                '투입일': excel_date_to_postgres_date(row.get('투입일')),
+                                '종료일': excel_date_to_postgres_date(row.get('종료일')),
                                 '공정': row.get('공정', ''),
                                 '투입물명': row.get('투입물명', ''),
                                 '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
@@ -283,7 +307,7 @@ async def save_transport_data(data: dict):
         import os
         
         # PostgreSQL Railway 데이터베이스 연결 설정
-        database_url = os.getenv("DATABASE_URL", "postgresql://postgres:lUAkUKpUxubYDvmqzGKxJLKgZCWMjaQy@switchyard.proxy.rlwy.net:51947/railway")
+        database_url = os.getenv("DATABASE_URL")
         
         # PostgreSQL 전용 엔진 설정
         engine = create_engine(
@@ -363,7 +387,7 @@ async def save_process_data(data: dict):
         import os
         
         # PostgreSQL Railway 데이터베이스 연결 설정
-        database_url = os.getenv("DATABASE_URL", "postgresql://postgres:lUAkUKpUxubYDvmqzGKxJLKgZCWMjaQy@switchyard.proxy.rlwy.net:51947/railway")
+        database_url = os.getenv("DATABASE_URL")
         
         # PostgreSQL 전용 엔진 설정
         engine = create_engine(
@@ -437,7 +461,7 @@ async def save_output_data(data: dict):
         import os
         
         # PostgreSQL Railway 데이터베이스 연결 설정
-        database_url = os.getenv("DATABASE_URL", "postgresql://postgres:lUAkUKpUxubYDvmqzGKxJLKgZCWMjaQy@switchyard.proxy.rlwy.net:51947/railway")
+        database_url = os.getenv("DATABASE_URL")
         
         # PostgreSQL 전용 엔진 설정
         engine = create_engine(

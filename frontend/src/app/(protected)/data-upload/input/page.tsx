@@ -22,6 +22,20 @@ import { Input } from '@/components/atomic/atoms';
 import Link from 'next/link';
 
 // 타입 정의
+type DataRow = {
+  로트번호?: string | number;
+  생산품명?: string;
+  생산수량?: string | number;
+  투입일?: string | number;
+  종료일?: string | number;
+  공정?: string;
+  투입물명?: string;
+  수량?: string | number;
+  단위?: string;
+  AI추천답변?: string;
+  [key: string]: any;
+};
+
 interface DataPreview {
   filename: string;
   fileSize: string;
@@ -282,7 +296,7 @@ const InputDataPage: React.FC = () => {
       console.log('AI 처리 응답 데이터:', responseData);
       
       if (responseData.success) {
-        const processedData = responseData.data || [];
+        const processedData: DataRow[] = responseData.data || [];
         const unifiedColumns = responseData.columns || [];
         
         console.log('AI 처리 완료:', {

@@ -965,14 +965,20 @@ async def delete_classification_proxy(request: Request):
         
         body = await request.body()
         async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.delete(
-                url=target_url,
-                content=body,
-                headers={
+            # DELETE 요청에 body가 있는 경우 data 파라미터 사용
+            request_kwargs = {
+                "url": target_url,
+                "headers": {
                     "Content-Type": request.headers.get("content-type", "application/json"),
                     "X-Forwarded-By": GATEWAY_NAME
                 }
-            )
+            }
+            
+            # body가 있는 경우 data 파라미터로 전달
+            if body:
+                request_kwargs["data"] = body
+            
+            response = await client.delete(**request_kwargs)
             
             gateway_logger.log_info(f"DataGather 서비스 데이터 분류 삭제 응답: {response.status_code}")
             return Response(

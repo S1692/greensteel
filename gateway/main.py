@@ -965,8 +965,9 @@ async def delete_classification_proxy(request: Request):
         
         body = await request.body()
         async with httpx.AsyncClient(timeout=60.0) as client:
-            # DELETE 요청에 body가 있는 경우 data 파라미터 사용
+            # httpx의 delete 메서드는 본문을 지원하지 않으므로 request 메서드 사용
             request_kwargs = {
+                "method": "DELETE",
                 "url": target_url,
                 "headers": {
                     "Content-Type": request.headers.get("content-type", "application/json"),
@@ -974,11 +975,11 @@ async def delete_classification_proxy(request: Request):
                 }
             }
             
-            # body가 있는 경우 data 파라미터로 전달
+            # body가 있는 경우 content 파라미터로 전달
             if body:
-                request_kwargs["data"] = body
+                request_kwargs["content"] = body
             
-            response = await client.delete(**request_kwargs)
+            response = await client.request(**request_kwargs)
             
             gateway_logger.log_info(f"DataGather 서비스 데이터 분류 삭제 응답: {response.status_code}")
             return Response(

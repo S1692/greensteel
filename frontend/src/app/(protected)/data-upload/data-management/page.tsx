@@ -20,7 +20,9 @@ import {
   Eye,
   Tag,
   X,
-  ArrowLeft
+  ArrowLeft,
+  Edit3,
+  Plus
 } from 'lucide-react';
 
 interface DataRow {
@@ -71,6 +73,10 @@ export default function DataManagementPage() {
     type: 'success' | 'error' | 'info' | null;
     message: string;
   }>({ type: null, message: '' });
+  
+  // 편집 모드 상태 관리
+  const [editingRow, setEditingRow] = useState<string | null>(null);
+  const [editingData, setEditingData] = useState<DataRow | null>(null);
 
   // 데이터 로드
   const loadData = async () => {
@@ -362,6 +368,52 @@ export default function DataManagementPage() {
     setViewMode('overview');
   };
 
+  // 행 편집 시작
+  const handleEditRow = (rowId: string) => {
+    const row = data.find(r => r.id === rowId);
+    if (row) {
+      setEditingRow(rowId);
+      setEditingData({ ...row });
+    }
+  };
+
+  // 편집 취소
+  const handleCancelEdit = () => {
+    setEditingRow(null);
+    setEditingData(null);
+  };
+
+  // 편집 저장
+  const handleSaveEdit = async () => {
+    if (!editingData) return;
+
+    try {
+      // 여기서 실제 데이터베이스 업데이트 로직을 구현할 수 있습니다
+      setData(prev => prev.map(row => 
+        row.id === editingRow ? editingData : row
+      ));
+      
+      setStatus({ type: 'success', message: '데이터가 성공적으로 수정되었습니다.' });
+      setEditingRow(null);
+      setEditingData(null);
+    } catch (error) {
+      setStatus({ type: 'error', message: '데이터 수정 중 오류가 발생했습니다.' });
+    }
+  };
+
+  // 행 삭제
+  const handleDeleteRow = async (rowId: string) => {
+    if (!confirm('정말로 이 데이터를 삭제하시겠습니까?')) return;
+
+    try {
+      // 여기서 실제 데이터베이스 삭제 로직을 구현할 수 있습니다
+      setData(prev => prev.filter(row => row.id !== rowId));
+      setStatus({ type: 'success', message: '데이터가 성공적으로 삭제되었습니다.' });
+    } catch (error) {
+      setStatus({ type: 'error', message: '데이터 삭제 중 오류가 발생했습니다.' });
+    }
+  };
+
   return (
     <CommonShell>
       <div className="p-6 space-y-6">
@@ -461,6 +513,7 @@ export default function DataManagementPage() {
                         {inputData.map((row) => {
                           const classificationDisplay = getClassificationDisplay(row.분류 || null);
                           const isClassified = !!(row.분류);
+                          const isManualData = row.id.includes('manual_'); // 수동으로 추가된 데이터인지 확인
                           
                           return (
                             <tr key={row.id} className={`hover:bg-ecotrace-secondary/30 transition-colors ${
@@ -486,6 +539,26 @@ export default function DataManagementPage() {
                                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${classificationDisplay.bg} ${classificationDisplay.color}`}>
                                   {classificationDisplay.text}
                                 </span>
+                              </td>
+                              <td className="px-4 py-3 text-sm">
+                                <div className="flex gap-2">
+                                  <Button
+                                    onClick={() => handleEditRow(row.id)}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs flex items-center gap-1"
+                                  >
+                                    <Edit3 className="w-3 h-3" />
+                                    편집
+                                  </Button>
+                                  {isManualData && (
+                                    <Button
+                                      onClick={() => handleDeleteRow(row.id)}
+                                      className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs flex items-center gap-1"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                      삭제
+                                    </Button>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           );
@@ -535,6 +608,7 @@ export default function DataManagementPage() {
                         {outputData.map((row) => {
                           const classificationDisplay = getClassificationDisplay(row.분류 || null);
                           const isClassified = !!(row.분류);
+                          const isManualData = row.id.includes('manual_'); // 수동으로 추가된 데이터인지 확인
                           
                           return (
                             <tr key={row.id} className={`hover:bg-ecotrace-secondary/30 transition-colors ${
@@ -560,6 +634,26 @@ export default function DataManagementPage() {
                                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${classificationDisplay.bg} ${classificationDisplay.color}`}>
                                   {classificationDisplay.text}
                                 </span>
+                              </td>
+                              <td className="px-4 py-3 text-sm">
+                                <div className="flex gap-2">
+                                  <Button
+                                    onClick={() => handleEditRow(row.id)}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs flex items-center gap-1"
+                                  >
+                                    <Edit3 className="w-3 h-3" />
+                                    편집
+                                  </Button>
+                                  {isManualData && (
+                                    <Button
+                                      onClick={() => handleDeleteRow(row.id)}
+                                      className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs flex items-center gap-1"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                      삭제
+                                    </Button>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           );

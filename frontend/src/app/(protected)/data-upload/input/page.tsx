@@ -432,8 +432,20 @@ const InputDataPage: React.FC = () => {
     }
   };
 
-  // 행 편집 토글
+  // 행 편집 토글 (수동으로 추가된 데이터만 편집 가능)
   const toggleRowEdit = (rowId: string) => {
+    const row = editableInputRows.find(r => r.id === rowId);
+    if (!row) return;
+    
+    // 수동으로 추가된 데이터인지 확인 (originalData가 비어있거나 모든 값이 빈 문자열)
+    const isManualData = !row.originalData || 
+      Object.values(row.originalData).every(val => val === '' || val === null || val === undefined);
+    
+    if (!isManualData) {
+      setError('Excel에서 업로드된 데이터는 편집할 수 없습니다. AI 추천 답변만 수정 가능합니다.');
+      return;
+    }
+    
     setEditableInputRows(prev => 
       prev.map(row => 
         row.id === rowId 
@@ -622,6 +634,11 @@ const InputDataPage: React.FC = () => {
     // Excel 데이터인 경우 AI 추천답변만 편집 가능
     if (isExcelData && column !== 'AI추천답변') {
       return <span className='text-white/60'>{value || '-'}</span>;
+    }
+    
+    // 수동으로 추가된 데이터인 경우 모든 필드 편집 가능
+    if (isNewRow) {
+      // 모든 필드를 편집 가능하게 렌더링
     }
     
     const getInputClassName = () => {
@@ -1244,13 +1261,28 @@ const InputDataPage: React.FC = () => {
                               </Button>
                             </div>
                           ) : (
-                            <Button
-                              onClick={() => toggleRowEdit(row.id)}
-                              className='bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs'
-                            >
-                              <Edit3 className='w-3 h-3 mr-1' />
-                              편집
-                            </Button>
+                            <div className='flex gap-2'>
+                              {/* 수동으로 추가된 데이터만 편집 가능 */}
+                              {(!row.originalData || Object.values(row.originalData).every(val => val === '' || val === null || val === undefined)) && (
+                                <Button
+                                  onClick={() => toggleRowEdit(row.id)}
+                                  className='bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs'
+                                >
+                                  <Edit3 className='w-3 h-3 mr-1' />
+                                  편집
+                                </Button>
+                              )}
+                              {/* 수동으로 추가된 데이터만 삭제 가능 */}
+                              {(!row.originalData || Object.values(row.originalData).every(val => val === '' || val === null || val === undefined)) && (
+                                <Button
+                                  onClick={() => deleteRow(row.id)}
+                                  className='bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs'
+                                >
+                                  <Trash2 className='w-3 h-3 mr-1' />
+                                  삭제
+                                </Button>
+                              )}
+                            </div>
                           )}
                         </td>
                       </tr>

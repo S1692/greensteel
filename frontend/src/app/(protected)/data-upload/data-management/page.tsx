@@ -81,9 +81,13 @@ export default function DataManagementPage() {
       const inputData = await inputResponse.json();
       const outputData = await outputResponse.json();
 
+      // 백엔드 응답 구조에서 data 배열 추출
+      const inputDataArray = inputData.success ? inputData.data : [];
+      const outputDataArray = outputData.success ? outputData.data : [];
+
       // 데이터 통합 및 형식 변환
       const combinedData: DataRow[] = [
-        ...inputData.map((item: any) => ({
+        ...inputDataArray.map((item: any) => ({
           id: `input_${item.id}`,
           로트번호: item.로트번호,
           생산수량: item.생산수량,
@@ -96,7 +100,7 @@ export default function DataManagementPage() {
           source_table: 'input_data' as const,
           source_id: item.id
         })),
-        ...outputData.map((item: any) => ({
+        ...outputDataArray.map((item: any) => ({
           id: `output_${item.id}`,
           로트번호: item.로트번호,
           생산수량: item.생산수량,

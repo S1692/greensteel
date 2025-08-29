@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Button } from '@/components/ui/Button';
 import { SectionTitle } from '@/components/ui/SectionTitle';
+import CommonShell from '@/components/common/CommonShell';
 import { 
   Database, 
   Filter, 
@@ -204,172 +205,206 @@ export default function DataManagementPage() {
     loadData();
   }, []);
 
+  // 입력 데이터와 출력 데이터 분리
+  const inputData = data.filter(row => row.source_table === 'input_data');
+  const outputData = data.filter(row => row.source_table === 'output_data');
+
   return (
-    <div className="min-h-screen bg-ecotrace-background text-ecotrace-text">
-      {/* 헤더 */}
-      <header className="bg-ecotrace-surface border-b border-ecotrace-border">
-        <div className="px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-ecotrace-accent rounded-lg flex items-center justify-center">
-                  <Database className="w-5 h-5 text-white" />
-                </div>
-                <h1 className="text-xl font-bold text-ecotrace-text">데이터 관리</h1>
-              </div>
-              <div className="hidden md:block">
-                <p className="text-sm text-ecotrace-textSecondary">
-                  투입 데이터와 산출물 데이터를 통합하여 분류하고 관리합니다.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Button
-                onClick={loadData}
-                disabled={isLoading}
-                className="bg-ecotrace-accent hover:bg-ecotrace-accent/80 text-white px-4 py-2 rounded-lg transition-colors"
-              >
-                <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                {isLoading ? '로딩 중...' : '새로고침'}
-              </Button>
+    <CommonShell>
+      <div className="p-6 space-y-6">
+        {/* 상태 메시지 */}
+        {status.type && (
+          <div className={`p-4 rounded-lg ${
+            status.type === 'success' ? 'bg-green-900/20 text-green-100 border border-green-500/30' :
+            status.type === 'error' ? 'bg-red-900/20 text-red-100 border border-red-500/30' :
+            'bg-blue-900/20 text-blue-100 border border-blue-500/30'
+          }`}>
+            <div className="flex items-center gap-2">
+              {status.type === 'success' && <CheckCircle className="w-5 h-5" />}
+              {status.type === 'error' && <XCircle className="w-5 h-5" />}
+              {status.type === 'info' && <AlertCircle className="w-5 h-5" />}
+              <span>{status.message}</span>
             </div>
           </div>
-        </div>
-      </header>
+        )}
 
-      {/* 메인 컨텐츠 */}
-      <div className="flex">
-        {/* 사이드바 */}
-        <aside className="w-64 bg-ecotrace-surface border-r border-ecotrace-border min-h-screen">
-          <div className="p-6">
-            <h3 className="text-lg font-semibold text-ecotrace-text mb-4">데이터 관리</h3>
-            
-            {/* 상태 메시지 */}
-            {status.type && (
-              <div className={`p-3 rounded-lg mb-4 ${
-                status.type === 'success' ? 'bg-green-900/20 text-green-100 border border-green-500/30' :
-                status.type === 'error' ? 'bg-red-900/20 text-red-100 border border-red-500/30' :
-                'bg-blue-900/20 text-blue-100 border border-blue-500/30'
-              }`}>
-                <div className="flex items-center gap-2">
-                  {status.type === 'success' && <CheckCircle className="w-4 h-4" />}
-                  {status.type === 'error' && <XCircle className="w-4 h-4" />}
-                  {status.type === 'info' && <AlertCircle className="w-4 h-4" />}
-                  <span className="text-sm">{status.message}</span>
+        {/* 메인 컨텐츠 영역 */}
+        <div className="flex gap-6">
+          {/* 데이터 테이블 영역 */}
+          <div className="flex-1">
+            {/* 입력 데이터 섹션 */}
+            <div className="mb-8">
+              <h2 className="text-lg font-semibold text-ecotrace-text mb-4 flex items-center gap-2">
+                <Upload className="w-5 h-5 text-blue-400" />
+                입력 데이터
+              </h2>
+              <div className="bg-ecotrace-surface rounded-lg border border-ecotrace-border overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-ecotrace-secondary/50">
+                      <tr>
+                        <th className="px-4 py-3 text-left">
+                          <Checkbox
+                            checked={selectedRows.size === inputData.length && inputData.length > 0}
+                            onChange={() => {
+                              const inputIds = new Set(inputData.map(row => row.id));
+                              if (selectedRows.size === inputData.length) {
+                                setSelectedRows(new Set());
+                              } else {
+                                setSelectedRows(new Set(inputIds));
+                              }
+                            }}
+                            className="w-4 h-4"
+                          />
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입일</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">종료일</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입물명</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">단위</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-ecotrace-border">
+                      {inputData.map((row) => (
+                        <tr key={row.id} className="hover:bg-ecotrace-secondary/30 transition-colors">
+                          <td className="px-4 py-3">
+                            <Checkbox
+                              checked={selectedRows.has(row.id)}
+                              onChange={() => toggleRowSelection(row.id)}
+                              className="w-4 h-4"
+                            />
+                          </td>
+                          <td className="px-4 py-3 text-sm text-ecotrace-text">{row.로트번호}</td>
+                          <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산수량}</td>
+                          <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입일}</td>
+                          <td className="px-4 py-3 text-sm text-ecotrace-text">{row.종료일}</td>
+                          <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정}</td>
+                          <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입물명}</td>
+                          <td className="px-4 py-3 text-sm text-ecotrace-text">{row.수량}</td>
+                          <td className="px-4 py-3 text-sm text-ecotrace-text">{row.단위}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              </div>
-            )}
-
-            {/* 분류 선택 */}
-            <div className="mb-6">
-              <h4 className="text-sm font-medium text-ecotrace-textSecondary mb-3">분류 타입 선택</h4>
-              <div className="space-y-2">
-                {(['연료', '유틸리티', '폐기물', '공정 생산품'] as ClassificationType[]).map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => filterByClassification(type)}
-                    className={`w-full text-left p-3 rounded-lg transition-colors ${
-                      selectedClassification === type
-                        ? 'bg-ecotrace-accent text-white'
-                        : 'bg-ecotrace-secondary/50 text-ecotrace-textSecondary hover:bg-ecotrace-secondary hover:text-white'
-                    }`}
-                  >
-                    {type}
-                  </button>
-                ))}
+                
+                {inputData.length === 0 && (
+                  <div className="text-center py-8 text-ecotrace-textSecondary">
+                    <p>입력 데이터가 없습니다.</p>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* 선택된 데이터 정보 */}
-            <div className="bg-ecotrace-secondary/20 rounded-lg p-4">
+            {/* 출력 데이터 섹션 */}
+            <div>
+              <h2 className="text-lg font-semibold text-ecotrace-text mb-4 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-green-400" />
+                출력 데이터
+              </h2>
+              <div className="bg-ecotrace-surface rounded-lg border border-ecotrace-border overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-ecotrace-secondary/50">
+                      <tr>
+                        <th className="px-4 py-3 text-left">
+                          <Checkbox
+                            checked={selectedRows.size === outputData.length && outputData.length > 0}
+                            onChange={() => {
+                              const outputIds = new Set(outputData.map(row => row.id));
+                              if (selectedRows.size === outputData.length) {
+                                setSelectedRows(new Set());
+                              } else {
+                                setSelectedRows(new Set(outputIds));
+                              }
+                            }}
+                            className="w-4 h-4"
+                          />
+                        </th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입일</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">종료일</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">산출물명</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
+                        <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">단위</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-ecotrace-border">
+                      {outputData.map((row) => (
+                        <tr key={row.id} className="hover:bg-ecotrace-secondary/30 transition-colors">
+                          <td className="px-4 py-3">
+                            <Checkbox
+                              checked={selectedRows.has(row.id)}
+                              onChange={() => toggleRowSelection(row.id)}
+                              className="w-4 h-4"
+                            />
+                          </td>
+                          <td className="px-4 py-3 text-sm text-ecotrace-text">{row.로트번호}</td>
+                          <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산수량}</td>
+                          <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입일}</td>
+                          <td className="px-4 py-3 text-sm text-ecotrace-text">{row.종료일}</td>
+                          <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정}</td>
+                          <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입물명}</td>
+                          <td className="px-4 py-3 text-sm text-ecotrace-text">{row.수량}</td>
+                          <td className="px-4 py-3 text-sm text-ecotrace-text">{row.단위}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                {outputData.length === 0 && (
+                  <div className="text-center py-8 text-ecotrace-textSecondary">
+                    <p>출력 데이터가 없습니다.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 우측 분류 선택 박스 */}
+          <div className="w-80 bg-ecotrace-surface rounded-lg border border-ecotrace-border p-6 h-fit">
+            <h3 className="text-lg font-semibold text-ecotrace-text mb-4">분류 타입 선택</h3>
+            
+            <div className="space-y-3 mb-6">
+              {(['연료', '유틸리티', '폐기물', '공정 생산품'] as ClassificationType[]).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => filterByClassification(type)}
+                  className={`w-full text-left p-3 rounded-lg transition-colors ${
+                    selectedClassification === type
+                      ? 'bg-ecotrace-accent text-white'
+                      : 'bg-ecotrace-secondary/50 text-ecotrace-textSecondary hover:bg-ecotrace-secondary hover:text-white'
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+
+            <div className="bg-ecotrace-secondary/20 rounded-lg p-4 mb-6">
               <h4 className="text-sm font-medium text-ecotrace-textSecondary mb-2">선택된 데이터</h4>
               <div className="text-2xl font-bold text-ecotrace-accent">
                 {selectedRows.size}개
               </div>
             </div>
 
-            {/* 분류 저장 버튼 */}
-            <div className="mt-6">
-              <Button
-                onClick={saveClassification}
-                disabled={selectedRows.size === 0 || isClassifying}
-                className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {isClassifying ? '분류 중...' : `${selectedClassification}으로 분류하기`}
-              </Button>
-            </div>
+            <Button
+              onClick={saveClassification}
+              disabled={selectedRows.size === 0 || isClassifying}
+              className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {isClassifying ? '분류 중...' : `${selectedClassification}으로 분류하기`}
+            </Button>
           </div>
-        </aside>
-
-        {/* 메인 컨텐츠 영역 */}
-        <main className="flex-1 p-6">
-          {/* 데이터 테이블 */}
-          <div className="bg-ecotrace-surface rounded-lg border border-ecotrace-border overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-ecotrace-secondary/50">
-                  <tr>
-                    <th className="px-4 py-3 text-left">
-                      <Checkbox
-                        checked={selectedRows.size === filteredData.length && filteredData.length > 0}
-                        onChange={toggleAllSelection}
-                        className="w-4 h-4"
-                      />
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입일</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">종료일</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입물명</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">단위</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">출처</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-ecotrace-border">
-                  {filteredData.map((row) => (
-                    <tr key={row.id} className="hover:bg-ecotrace-secondary/30 transition-colors">
-                      <td className="px-4 py-3">
-                        <Checkbox
-                          checked={selectedRows.has(row.id)}
-                          onChange={() => toggleRowSelection(row.id)}
-                          className="w-4 h-4"
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-sm text-ecotrace-text">{row.로트번호}</td>
-                      <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산수량}</td>
-                      <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입일}</td>
-                      <td className="px-4 py-3 text-sm text-ecotrace-text">{row.종료일}</td>
-                      <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정}</td>
-                      <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입물명}</td>
-                      <td className="px-4 py-3 text-sm text-ecotrace-text">{row.수량}</td>
-                      <td className="px-4 py-3 text-sm text-ecotrace-text">{row.단위}</td>
-                      <td className="px-4 py-3 text-sm">
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          row.source_table === 'input_data' 
-                            ? 'bg-blue-600 text-blue-100' 
-                            : 'bg-green-600 text-green-100'
-                        }`}>
-                          {row.source_table === 'input_data' ? '투입' : '산출'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            
-            {filteredData.length === 0 && (
-              <div className="text-center py-12 text-ecotrace-textSecondary">
-                <Database className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>데이터가 없습니다.</p>
-              </div>
-            )}
-          </div>
-        </main>
+        </div>
       </div>
-    </div>
+    </CommonShell>
   );
 }

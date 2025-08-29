@@ -164,7 +164,7 @@ export default function DataManagementPage() {
 
       const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:3000';
       
-      const response = await fetch(`${gatewayUrl}/api/datagather/classify-data`, {
+      const response = await fetch(`${gatewayUrl}/classify-data`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

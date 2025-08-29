@@ -549,6 +549,224 @@ async def save_output_data(data: dict):
         logger.error(f"산출물 데이터 저장 엔드포인트 실패: {e}")
         return {"success": False, "message": f"산출물 데이터 저장 중 오류가 발생했습니다: {str(e)}", "error": str(e)}
 
+# 분류 데이터 저장 엔드포인트
+@app.post("/classify-data")
+async def classify_data(data: dict):
+    """선택된 데이터를 분류별로 저장하는 엔드포인트"""
+    try:
+        logger.info(f"분류 데이터 저장 요청 받음: {data.get('classification', 'unknown')}")
+        
+        # 요청 데이터 추출
+        classification = data.get('classification')
+        classification_data = data.get('data', [])
+        
+        if not classification or not classification_data:
+            return {
+                "success": False,
+                "message": "분류 정보 또는 데이터가 없습니다.",
+                "error": "Missing classification or data"
+            }
+        
+        if not isinstance(classification_data, list):
+            return {
+                "success": False,
+                "message": "데이터 형식이 올바르지 않습니다.",
+                "error": "Data must be a list"
+            }
+        
+        # 분류별 테이블명 매핑
+        table_mapping = {
+            '연료': 'fuel_data',
+            '유틸리티': 'utility_data',
+            '폐기물': 'waste_data',
+            '공정 생산품': 'process_product_data'
+        }
+        
+        if classification not in table_mapping:
+            return {
+                "success": False,
+                "message": f"지원하지 않는 분류입니다: {classification}",
+                "error": f"Unsupported classification: {classification}"
+            }
+        
+        target_table = table_mapping[classification]
+        
+        # PostgreSQL Railway 데이터베이스 연결 설정
+        database_url = os.getenv("DATABASE_URL")
+        
+        # PostgreSQL 전용 엔진 설정
+        engine = create_engine(
+            database_url,
+            pool_pre_ping=True,
+            pool_recycle=300,
+            echo=False,
+            connect_args={
+                "connect_timeout": 10,
+                "application_name": "datagather_service"
+            }
+        )
+        
+        with Session(engine) as session:
+            try:
+                session.begin()
+                saved_count = 0
+                
+                for row in classification_data:
+                    try:
+                        # 공통 필드 준비
+                        common_record = {
+                            '로트번호': row.get('로트번호', ''),
+                            '생산수량': float(row.get('생산수량', 0)) if row.get('생산수량') else 0,
+                            '투입일': excel_date_to_postgres_date(row.get('투입일')),
+                            '종료일': excel_date_to_postgres_date(row.get('종료일')),
+                            '공정': row.get('공정', ''),
+                            '투입물명': row.get('투입물명', ''),
+                            '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
+                            '단위': row.get('단위', 't') if row.get('단위') else 't',
+                            '분류': classification,
+                            'source_table': row.get('source_table', ''),
+                            'source_id': row.get('source_id', ''),
+                            'created_at': datetime.now().isoformat()
+                        }
+                        
+                        # None 값 제거
+                        common_record = {k: v for k, v in common_record.items() if v is not None}
+                        
+                        # 분류별 테이블에 데이터 삽입
+                        if classification == '연료':
+                            cursor = session.execute(text("""
+                                INSERT INTO fuel_data 
+                                (로트번호, 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위, 분류, source_table, source_id, created_at)
+                                VALUES (:로트번호, :생산수량, :투입일, :종료일, :공정, :투입물명, :수량, :단위, :분류, :source_table, :source_id, :created_at)
+                            """), common_record)
+                        
+                        elif classification == '유틸리티':
+                            cursor = session.execute(text("""
+                                INSERT INTO utility_data 
+                                (로트번호, 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위, 분류, source_table, source_id, created_at)
+                                VALUES (:로트번호, :생산수량, :투입일, :종료일, :공정, :투입물명, :수량, :단위, :분류, :source_table, :source_id, :created_at)
+                            """), common_record)
+                        
+                        elif classification == '폐기물':
+                            cursor = session.execute(text("""
+                                INSERT INTO waste_data 
+                                (로트번호, 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위, 분류, source_table, source_id, created_at)
+                                VALUES (:로트번호, :생산수량, :투입일, :종료일, :공정, :투입물명, :수량, :단위, :분류, :source_table, :source_id, :created_at)
+                            """), common_record)
+                        
+                        elif classification == '공정 생산품':
+                            cursor = session.execute(text("""
+                                INSERT INTO process_product_data 
+                                (로트번호, 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위, 분류, source_table, source_id, created_at)
+                                VALUES (:로트번호, :생산수량, :투입일, :종료일, :공정, :투입물명, :수량, :단위, :분류, :source_table, :source_id, :created_at)
+                            """), common_record)
+                        
+                        saved_count += 1
+                    
+                    except Exception as row_error:
+                        logger.error(f"분류 데이터 행 저장 실패: {row_error}")
+                        continue
+                
+                session.commit()
+                logger.info(f"분류 데이터 DB 저장 완료: {saved_count}행 저장됨 (테이블: {target_table})")
+                return {
+                    "success": True, 
+                    "message": f"{classification} 분류 데이터가 성공적으로 저장되었습니다. ({saved_count}행)", 
+                    "saved_count": saved_count, 
+                    "classification": classification,
+                    "target_table": target_table
+                }
+                
+            except Exception as db_error:
+                session.rollback()
+                logger.error(f"분류 데이터 데이터베이스 저장 실패: {db_error}")
+                raise db_error
+                
+    except Exception as e:
+        logger.error(f"분류 데이터 저장 엔드포인트 실패: {e}")
+        return {
+            "success": False, 
+            "message": f"분류 데이터 저장 중 오류가 발생했습니다: {str(e)}", 
+            "error": str(e)
+        }
+
+# 분류 데이터 조회 엔드포인트
+@app.get("/classified-data/{classification}")
+async def get_classified_data(classification: str):
+    """특정 분류의 데이터를 조회하는 엔드포인트"""
+    try:
+        # 분류별 테이블명 매핑
+        table_mapping = {
+            '연료': 'fuel_data',
+            '유틸리티': 'utility_data',
+            '폐기물': 'waste_data',
+            '공정 생산품': 'process_product_data'
+        }
+        
+        if classification not in table_mapping:
+            return {
+                "success": False,
+                "message": f"지원하지 않는 분류입니다: {classification}",
+                "error": f"Unsupported classification: {classification}"
+            }
+        
+        target_table = table_mapping[classification]
+        
+        # PostgreSQL Railway 데이터베이스 연결 설정
+        database_url = os.getenv("DATABASE_URL")
+        
+        engine = create_engine(
+            database_url,
+            pool_pre_ping=True,
+            pool_recycle=300,
+            echo=False,
+            connect_args={
+                "connect_timeout": 10,
+                "application_name": "datagather_service"
+            }
+        )
+        
+        with Session(engine) as session:
+            try:
+                # 해당 분류 테이블의 모든 데이터 조회
+                result = session.execute(text(f"SELECT * FROM {target_table} ORDER BY created_at DESC"))
+                rows = result.fetchall()
+                
+                # 결과를 딕셔너리 리스트로 변환
+                data = []
+                for row in rows:
+                    row_dict = dict(row._mapping)
+                    # datetime 객체를 문자열로 변환
+                    for key, value in row_dict.items():
+                        if hasattr(value, 'isoformat'):
+                            row_dict[key] = value.isoformat()
+                    data.append(row_dict)
+                
+                logger.info(f"{classification} 분류 데이터 조회 완료: {len(data)}행")
+                return {
+                    "success": True,
+                    "message": f"{classification} 분류 데이터 조회 완료",
+                    "data": data,
+                    "count": len(data),
+                    "classification": classification
+                }
+                
+            except Exception as db_error:
+                logger.error(f"{classification} 분류 데이터 조회 실패: {db_error}")
+                return {
+                    "success": False,
+                    "message": f"{classification} 분류 데이터 조회 중 오류가 발생했습니다: {str(db_error)}",
+                    "error": str(db_error)
+                }
+                
+    except Exception as e:
+        logger.error(f"분류 데이터 조회 엔드포인트 실패: {e}")
+        return {
+            "success": False,
+            "message": f"분류 데이터 조회 중 오류가 발생했습니다: {str(e)}",
+            "error": str(e)
+        }
+
 # 데이터 업로드 엔드포인트
 @app.post("/api/upload")
 async def upload_data(data: dict):

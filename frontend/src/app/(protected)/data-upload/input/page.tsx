@@ -464,18 +464,32 @@ const InputDataPage: React.FC = () => {
       }
     }
 
-    // 수량 데이터 타입 검증
-    const 생산수량 = parseFloat(row.modifiedData['생산수량']?.toString() || '0');
-    const 수량 = parseFloat(row.modifiedData['수량']?.toString() || '0');
+    // 수량 데이터 타입 검증 - 여러 가능한 칼럼명 시도
+    let 생산수량 = 0;
+    let 수량 = 0;
+    
+    // 생산수량 칼럼 찾기
+    if (row.modifiedData['생산수량'] !== undefined) {
+      생산수량 = parseFloat(row.modifiedData['생산수량']?.toString() || '0');
+    } else if (row.modifiedData['생산 수량'] !== undefined) {
+      생산수량 = parseFloat(row.modifiedData['생산 수량']?.toString() || '0');
+    }
+    
+    // 수량 칼럼 찾기
+    if (row.modifiedData['수량'] !== undefined) {
+      수량 = parseFloat(row.modifiedData['수량']?.toString() || '0');
+    } else if (row.modifiedData['투입수량'] !== undefined) {
+      수량 = parseFloat(row.modifiedData['투입수량']?.toString() || '0');
+    }
     
     if (생산수량 <= 0) {
       invalidFields.push('생산수량');
-      updateRowError(rowId, '생산수량', '생산수량은 0보다 큰 값이어야 합니다.');
+      updateRowError(rowId, '생산수량', `생산수량은 0보다 큰 값이어야 합니다. 현재 값: ${생산수량}`);
     }
     
     if (수량 <= 0) {
       invalidFields.push('수량');
-      updateRowError(rowId, '수량', '수량은 0보다 큰 값이어야 합니다.');
+      updateRowError(rowId, '수량', `수량은 0보다 큰 값이어야 합니다. 현재 값: ${수량}`);
     }
 
     // 오류가 있으면 확인 거부
@@ -1166,13 +1180,28 @@ const InputDataPage: React.FC = () => {
               console.warn(`투입물명이 너무 길어서 자동으로 잘렸습니다: ${투입물명}`);
             }
             
-            // 데이터 타입 변환 및 검증
-            const 생산수량 = parseFloat(row.modifiedData['생산수량']?.toString() || '0');
-            const 수량 = parseFloat(row.modifiedData['수량']?.toString() || '0');
+            // 데이터 타입 변환 및 검증 - 여러 가능한 칼럼명 시도
+            let 생산수량 = 0;
+            let 수량 = 0;
+            
+            // 생산수량 칼럼 찾기
+            if (row.modifiedData['생산수량'] !== undefined) {
+              생산수량 = parseFloat(row.modifiedData['생산수량']?.toString() || '0');
+            } else if (row.modifiedData['생산 수량'] !== undefined) {
+              생산수량 = parseFloat(row.modifiedData['생산 수량']?.toString() || '0');
+            }
+            
+            // 수량 칼럼 찾기
+            if (row.modifiedData['수량'] !== undefined) {
+              수량 = parseFloat(row.modifiedData['수량']?.toString() || '0');
+            } else if (row.modifiedData['투입수량'] !== undefined) {
+              수량 = parseFloat(row.modifiedData['투입수량']?.toString() || '0');
+            }
             
             // 수량이 0 이하인 경우 오류 처리
             if (생산수량 <= 0 || 수량 <= 0) {
-              throw new Error('생산수량과 수량은 0보다 큰 값이어야 합니다.');
+              console.error('수량 데이터:', row.modifiedData);
+              throw new Error(`생산수량(${생산수량})과 수량(${수량})은 0보다 큰 값이어야 합니다.`);
             }
             
             // DB에 저장할 데이터에서 AI추천답변 제거하고 투입물명만 포함

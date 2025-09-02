@@ -439,47 +439,44 @@ const TransportDataPage: React.FC = () => {
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       
-      // 더 간단하고 안정적인 방식으로 컬럼 읽기
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-        header: 1, // 첫 번째 행을 헤더로 사용
-        range: 0,  // 첫 번째 행부터 시작
+      // 첫 번째 행만 읽어서 컬럼명 확인
+      const firstRow = XLSX.utils.sheet_to_json(worksheet, {
+        header: 1,
+        range: 0,
         defval: ''
-      }) as any[][];
+      })[0] as any[];
       
-      if (jsonData.length < 2) {
-        throw new Error('데이터가 충분하지 않습니다. 헤더와 최소 1개의 데이터 행이 필요합니다.');
+      if (!firstRow || firstRow.length === 0) {
+        throw new Error('첫 번째 행을 읽을 수 없습니다.');
       }
       
-      // 첫 번째 행을 컬럼으로 사용
-      const columns = jsonData[0].map((col: any) => col?.toString().trim() || '');
+      // 첫 번째 행에서 컬럼명 추출 (빈 값 제거)
+      const columns = firstRow
+        .map((cell: any) => cell?.toString().trim())
+        .filter((col: string) => col && col.length > 0);
       
-      // 빈 컬럼 제거
-      const filteredColumns = columns.filter(col => col && col.length > 0);
-      
-      console.log('읽은 컬럼들:', filteredColumns);
+      console.log('읽은 컬럼들:', columns);
       
       // 필수 칼럼 구조 검증 (순서는 상관없음)
       const requiredColumns = [
         '주문처명', '오더번호', '생산품명', '로트번호'
       ];
       
-      const missingColumns = requiredColumns.filter(col => !filteredColumns.includes(col));
+      const missingColumns = requiredColumns.filter(col => !columns.includes(col));
       if (missingColumns.length > 0) {
         throw new Error(`필수 칼럼이 누락되었습니다: ${missingColumns.join(', ')}`);
       }
       
-      // 데이터 행 처리 (두 번째 행부터)
-      const dataRows = jsonData.slice(1).map((row: any[]) => {
-        const rowData: DataRow = {};
-        filteredColumns.forEach((col, index) => {
-          rowData[col] = row[index] || '';
-        });
-        return rowData;
-      });
+      // 데이터 읽기 (두 번째 행부터)
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+        header: columns,
+        range: 1,
+        defval: ''
+      }) as DataRow[];
       
-      console.log('처리된 데이터:', dataRows);
+      console.log('처리된 데이터:', jsonData);
       
-      const editableRows: EditableRow[] = dataRows.map((row: any, index) => ({
+      const editableRows: EditableRow[] = jsonData.map((row: any, index) => ({
         id: `transport-${index}`,
         originalData: row,
         modifiedData: { ...row },
@@ -490,8 +487,8 @@ const TransportDataPage: React.FC = () => {
       const inputData: DataPreview = {
         filename: inputFile.name,
         fileSize: (inputFile.size / 1024 / 1024).toFixed(2),
-        data: dataRows,
-        columns: filteredColumns
+        data: jsonData,
+        columns: columns
       };
 
       setInputData(inputData);

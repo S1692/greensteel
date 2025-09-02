@@ -635,23 +635,31 @@ const OutputDataPage: React.FC = () => {
         }
       };
 
-      // 날짜 변환 및 데이터 타입 변환을 적용한 데이터 준비 - 새로운 스키마 기반
-      const processedData = inputData.data.map((row: any) => {
-        // 수량을 숫자로 변환
-        const 산출수량 = parseFloat(row['산출수량']?.toString() || '0');
-        
-        // 수량이 0 이하인 경우 오류 처리
-        if (산출수량 <= 0) {
-          throw new Error('산출수량은 0보다 큰 값이어야 합니다.');
-        }
-        
-        return {
-          ...row,
-          '산출수량': 산출수량,
-          '투입일': convertExcelDate(row['투입일']),
-          '종료일': convertExcelDate(row['종료일'])
-        };
-      });
+             // 날짜 변환 및 데이터 타입 변환을 적용한 데이터 준비 - 새로운 스키마 기반
+       const processedData = inputData.data.map((row: any) => {
+         // 수량 칼럼을 찾기 (여러 가능한 칼럼명 시도)
+         let 수량 = 0;
+         if (row['수량'] !== undefined) {
+           수량 = parseFloat(row['수량']?.toString() || '0');
+         } else if (row['산출수량'] !== undefined) {
+           수량 = parseFloat(row['산출수량']?.toString() || '0');
+         } else if (row['생산수량'] !== undefined) {
+           수량 = parseFloat(row['생산수량']?.toString() || '0');
+         }
+         
+         // 수량이 0 이하인 경우 오류 처리
+         if (수량 <= 0) {
+           console.error('수량 데이터:', row);
+           throw new Error('수량은 0보다 큰 값이어야 합니다. 현재 값: ' + 수량);
+         }
+         
+         return {
+           ...row,
+           '수량': 수량,
+           '투입일': convertExcelDate(row['투입일']),
+           '종료일': convertExcelDate(row['종료일'])
+         };
+       });
 
       const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
       const response = await fetch(`${gatewayUrl}/save-output-data`, {

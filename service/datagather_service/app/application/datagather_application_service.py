@@ -117,7 +117,7 @@ class DataGatherApplicationService:
             if data_gather:
                 return {
                     "success": True,
-                    "data": data_gather.to_dict(),
+                    "data": data_gather,
                     "message": "데이터 수집 정보를 성공적으로 조회했습니다."
                 }
             else:
@@ -148,13 +148,13 @@ class DataGatherApplicationService:
             
             # 데이터 타입별 통계
             for data_gather in data_gathers:
-                data_type = getattr(data_gather, 'source_file', 'unknown')
+                data_type = data_gather.get('source_file', 'unknown')
                 if data_type not in summary["data_types"]:
                     summary["data_types"][data_type] = 0
                 summary["data_types"][data_type] += 1
             
             # 최근 데이터 (최대 10개)
-            summary["recent_data"] = [data_gather.to_dict() for data_gather in data_gathers[:10]]
+            summary["recent_data"] = data_gathers[:10]
             
             return {
                 "success": True,

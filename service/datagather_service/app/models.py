@@ -76,10 +76,12 @@ class OutputData(Base):
 # ============================================================================
 
 class TransportData(Base):
-    """운송 데이터 모델 (실제 DB 스키마)"""
+    """운송 데이터 모델 (이미지 칼럼 순서와 일치)"""
     __tablename__ = "transport_data"
     
     id = Column(Integer, primary_key=True, index=True)
+    주문처명 = Column(String(255), nullable=True)
+    오더번호 = Column(String(255), nullable=True)
     생산품명 = Column(String(255), nullable=False)
     로트번호 = Column(String(255), nullable=False, index=True)
     운송물질 = Column(String(255), nullable=False)
@@ -88,8 +90,6 @@ class TransportData(Base):
     도착공정 = Column(String(255), nullable=False)
     출발지 = Column(String(255), nullable=False)
     이동수단 = Column(String(255), nullable=False)
-    주문처명 = Column(String(255), nullable=True)
-    오더번호 = Column(String(255), nullable=True)
     created_at = Column(DateTime, nullable=True, server_default=func.now())
     updated_at = Column(DateTime, nullable=True, onupdate=func.now())
 

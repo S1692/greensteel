@@ -218,7 +218,7 @@ async def save_transport_data(data: dict):
                 
                 for row in transport_data:
                     try:
-                        # 새로운 스키마에 맞게 데이터 처리
+                        # 이미지 칼럼 순서에 맞게 데이터 처리
                         transport_record = {
                             '주문처명': row.get('주문처명', ''),
                             '오더번호': row.get('오더번호', ''),
@@ -232,15 +232,24 @@ async def save_transport_data(data: dict):
                             '이동수단': row.get('이동수단', '')
                         }
                         
-                        # None 값 제거
-                        transport_record = {k: v for k, v in transport_record.items() if v is not None}
+                        # 필수 필드가 있는지 확인하고 None 값 처리
+                        if not transport_record.get('생산품명') or not transport_record.get('로트번호'):
+                            logger.warning(f"필수 데이터 부족으로 건너뜀: {row}")
+                            continue
+                        
+                        # None 값 제거 (운송일자는 NULL 허용)
+                        transport_record = {k: v for k, v in transport_record.items() if v is not None or k == '운송일자'}
+                        
+                        # 운송일자가 None인 경우 NULL로 설정
+                        if transport_record.get('운송일자') is None:
+                            transport_record['운송일자'] = None
                         
                         cursor = session.execute(text("""
                             INSERT INTO transport_data 
-                            (생산품명, 로트번호, 운송물질, 운송수량, 운송일자, 
-                             도착공정, 출발지, 이동수단, 주문처명, 오더번호)
-                            VALUES (:생산품명, :로트번호, :운송물질, :운송수량, :운송일자,
-                                    :도착공정, :출발지, :이동수단, :주문처명, :오더번호)
+                            (주문처명, 오더번호, 생산품명, 로트번호, 운송물질, 운송수량, 운송일자, 
+                             도착공정, 출발지, 이동수단)
+                            VALUES (:주문처명, :오더번호, :생산품명, :로트번호, :운송물질, :운송수량, :운송일자,
+                                    :도착공정, :출발지, :이동수단)
                         """), transport_record)
                         
                         saved_count += 1

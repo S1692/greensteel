@@ -19,6 +19,8 @@ import Link from 'next/link';
 
 // 타입 정의 - 새로운 스키마 기반
 type DataRow = {
+  주문처명?: string;
+  오더번호?: string;
   생산품명?: string;
   로트번호?: string;
   운송물질?: string;
@@ -204,8 +206,30 @@ const TransportDataPage: React.FC = () => {
   const addNewRow = useCallback(() => {
     const newRow: EditableRow = {
       id: `transport-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      originalData: {},
-      modifiedData: {},
+      originalData: {
+        '주문처명': '',
+        '오더번호': '',
+        '생산품명': '',
+        '로트번호': '',
+        '운송물질': '',
+        '운송수량': 0,
+        '운송일자': '',
+        '도착공정': '',
+        '출발지': '',
+        '이동수단': ''
+      },
+      modifiedData: {
+        '주문처명': '',
+        '오더번호': '',
+        '생산품명': '',
+        '로트번호': '',
+        '운송물질': '',
+        '운송수량': 0,
+        '운송일자': '',
+        '도착공정': '',
+        '출발지': '',
+        '이동수단': ''
+      },
       isEditing: true,
       isNewlyAdded: true,
       errors: {}
@@ -328,6 +352,36 @@ const TransportDataPage: React.FC = () => {
       );
     }
     
+    // 주문처명
+    if (column === '주문처명') {
+      return (
+        <ControlledInput
+          type="text"
+          value={value}
+          onChange={handleChange}
+          placeholder="주문처명을 입력하세요"
+          maxLength={100}
+          required={false}
+          error={error}
+        />
+      );
+    }
+    
+    // 오더번호
+    if (column === '오더번호') {
+      return (
+        <ControlledInput
+          type="text"
+          value={value}
+          onChange={handleChange}
+          placeholder="오더번호를 입력하세요"
+          maxLength={50}
+          required={false}
+          error={error}
+        />
+      );
+    }
+    
     // 기타 텍스트 필드
     return (
       <ControlledInput
@@ -394,6 +448,29 @@ const TransportDataPage: React.FC = () => {
           columns.push(cell.v.toString().trim());
         }
       }
+      
+      // 필수 칼럼 구조 검증
+      const requiredColumns = [
+        '주문처명', '오더번호', '생산품명', '로트번호', '운송물질', 
+        '운송수량', '운송일자', '도착공정', '출발지', '이동수단'
+      ];
+      
+      const missingColumns = requiredColumns.filter(col => !columns.includes(col));
+      if (missingColumns.length > 0) {
+        throw new Error(`필수 칼럼이 누락되었습니다: ${missingColumns.join(', ')}`);
+      }
+      
+      // 칼럼 순서 검증
+      const expectedOrder = [
+        '주문처명', '오더번호', '생산품명', '로트번호', '운송물질', 
+        '운송수량', '운송일자', '도착공정', '출발지', '이동수단'
+      ];
+      
+      for (let i = 0; i < Math.min(columns.length, expectedOrder.length); i++) {
+        if (columns[i] !== expectedOrder[i]) {
+          throw new Error(`칼럼 순서가 올바르지 않습니다. ${expectedOrder[i]}이(가) ${i + 1}번째 위치에 있어야 합니다.`);
+        }
+      }
 
       const jsonData = XLSX.utils.sheet_to_json(worksheet, {
         header: columns,
@@ -422,7 +499,11 @@ const TransportDataPage: React.FC = () => {
 
     } catch (err) {
       console.error('파일 업로드 오류:', err);
-      setError('파일 업로드 중 오류가 발생했습니다.');
+      if (err instanceof Error) {
+        setError(`파일 업로드 실패: ${err.message}`);
+      } else {
+        setError('파일 업로드 중 오류가 발생했습니다.');
+      }
     } finally {
       setIsInputUploading(false);
     }
@@ -465,15 +546,18 @@ const TransportDataPage: React.FC = () => {
         // 운송수량을 숫자로 변환
         const 운송수량 = parseFloat(row['운송수량']?.toString() || '0');
         
-        // 운송수량이 0 이하인 경우 오류 처리
+        // 운송수량 검증 (0 이하인 경우 기본값 1로 설정)
         if (운송수량 <= 0) {
-          throw new Error('운송수량은 0보다 큰 값이어야 합니다.');
+          console.warn(`행 ${inputData.data.indexOf(row) + 1}: 운송수량이 0 이하입니다. 기본값 1로 설정됩니다.`);
+          운송수량 = 1;
         }
         
         return {
           ...row,
           '운송수량': 운송수량,
-          '운송일자': convertExcelDate(row['운송일자'])
+          '운송일자': convertExcelDate(row['운송일자']),
+          '주문처명': row['주문처명'] || '',
+          '오더번호': row['오더번호'] || ''
         };
       });
 

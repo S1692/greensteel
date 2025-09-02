@@ -1,566 +1,660 @@
-#!/usr/bin/env python3
-"""
-DataGather Service - 메인 애플리케이션
-"""
+# ============================================================================
+# 🚀 DataGather Service - Main Application
+# ============================================================================
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+import asyncio
 import logging
-from datetime import datetime
-import os
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import Session
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Optional, Dict, Any
+import uvicorn
 
-# 유틸리티 및 데이터베이스 import
-from .utils import excel_date_to_postgres_date
-from .database import init_db
+from .infrastructure.database import database
+from .infrastructure.config import settings
+from .application.datagather_application_service import DataGatherApplicationService
+from .application.process_application_service import ProcessApplicationService
+from .application.install_application_service import InstallApplicationService
+
+# 엔티티들을 import하여 테이블 생성 시 사용
+from .domain.datagather.datagather_entity import DataGather
+from .domain.process.process_entity import Process
+from .domain.install.install_entity import Install
 
 # 로깅 설정
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=getattr(logging, settings.log_level),
+    format=settings.log_format
+)
 logger = logging.getLogger(__name__)
 
-# 메인 FastAPI 애플리케이션 생성
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """애플리케이션 생명주기 관리"""
+    # 시작 시
+    logger.info("🚀 DataGather Service를 시작합니다...")
+    
+    # 설정 유효성 검증
+    if not settings.validate():
+        raise RuntimeError("설정 유효성 검증에 실패했습니다.")
+    
+    # 데이터베이스 초기화
+    await database.init_db()
+    
+    # 테이블 생성
+    await database.create_tables()
+    
+    logger.info("✅ DataGather Service가 성공적으로 시작되었습니다.")
+    
+    yield
+    
+    # 종료 시
+    logger.info("🛑 DataGather Service를 종료합니다...")
+    await database.close_db()
+    logger.info("✅ DataGather Service가 종료되었습니다.")
+
+# FastAPI 애플리케이션 생성
 app = FastAPI(
-    title="DataGather Service",
-    description="ESG 데이터 수집 및 처리 서비스",
-    version="1.0.0"
+    title=settings.app_name,
+    version=settings.app_version,
+    description="데이터 수집 서비스 - DDD 구조로 리팩토링된 버전",
+    lifespan=lifespan
 )
 
 # CORS 미들웨어 설정
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*"],
 )
 
-@app.on_event("startup")
-async def startup_event():
-    """서비스 시작 시 실행"""
-    try:
-        init_db()
-        logger.info("✅ DataGather 서비스 시작 완료")
-    except Exception as e:
-        logger.error(f"❌ 서비스 시작 실패: {e}")
+# 의존성 주입
+async def get_session() -> AsyncSession:
+    """데이터베이스 세션 의존성"""
+    async for session in database.get_session():
+        yield session
 
-# ==================== 엔드포인트들 ====================
+async def get_datagather_service(session: AsyncSession = Depends(get_session)) -> DataGatherApplicationService:
+    """DataGather 애플리케이션 서비스 의존성"""
+    return DataGatherApplicationService(session)
 
+async def get_process_service(session: AsyncSession = Depends(get_session)) -> ProcessApplicationService:
+    """Process 애플리케이션 서비스 의존성"""
+    return ProcessApplicationService(session)
+
+async def get_install_service(session: AsyncSession = Depends(get_session)) -> InstallApplicationService:
+    """Install 애플리케이션 서비스 의존성"""
+    return InstallApplicationService(session)
+
+# 헬스체크 엔드포인트
 @app.get("/health")
 async def health_check():
-    """헬스 체크 엔드포인트"""
-    return {
-        "status": "ok",
-        "service": "datagather",
-        "timestamp": datetime.now().isoformat(),
-        "version": "1.0.0"
-    }
-
-@app.get("/")
-async def root():
-    """루트 경로"""
-    return {
-        "service": "DataGather Service",
-        "version": "1.0.0",
-        "description": "Data Collection & Processing Service",
-        "endpoints": {
-            "health": "/health",
-            "documentation": "/docs"
-        }
-    }
-
-@app.post("/save-input-data")
-async def save_input_data(data: dict):
-    """투입물 데이터를 데이터베이스에 저장"""
+    """서비스 상태 확인"""
     try:
-        logger.info(f"투입물 데이터 저장 요청 받음: {data.get('filename', 'unknown')}")
-        filename = data.get('filename', '')
-        input_data_rows = data.get('data', [])
-        
-        if not input_data_rows:
-            return {"success": False, "message": "저장할 투입물 데이터가 없습니다.", "error": "No input data provided"}
-        
-        database_url = os.getenv("DATABASE_URL")
-        engine = create_engine(database_url, pool_pre_ping=True, pool_recycle=300, echo=False)
-        
-        saved_count = 0
-        
-        with Session(engine) as session:
-            try:
-                for row in input_data_rows:
-                    try:
-                        if row.get('공정') or row.get('투입물명'):
-                            unit_value = row.get('단위', '')
-                            if not unit_value or unit_value.strip() == '':
-                                unit_value = 't'
-                            
-                            ai_recommendation = row.get('AI추천답변', '')
-                            if not ai_recommendation or ai_recommendation.strip() == '':
-                                ai_recommendation = None
-                            
-                            row_data = {
-                                '로트번호': row.get('로트번호', ''),
-                                '생산품명': row.get('생산품명', ''),
-                                '생산수량': float(row.get('생산수량', 0)) if row.get('생산수량') else 0,
-                                '투입일': excel_date_to_postgres_date(row.get('투입일')),
-                                '종료일': excel_date_to_postgres_date(row.get('종료일')),
-                                '공정': row.get('공정', ''),
-                                '투입물명': row.get('투입물명', ''),
-                                '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
-                                '단위': unit_value,
-                                'ai추천답변': ai_recommendation
-                            }
-                            
-                            row_data = {k: v for k, v in row_data.items() if v is not None}
-                            
-                            if row_data.get('공정') or row_data.get('투입물명'):
-                                session.execute(text("""
-                                    INSERT INTO input_data 
-                                    (로트번호, 생산품명, 생산수량, 투입일, 종료일, 
-                                     공정, 투입물명, 수량, 단위, ai추천답변)
-                                    VALUES (:로트번호, :생산품명, :생산수량, :투입일, :종료일,
-                                            :공정, :투입물명, :수량, :단위, :ai추천답변)
-                                """), row_data)
-                                
-                                saved_count += 1
-                                logger.info(f"행 {saved_count} 저장 성공: {row_data.get('공정', '')} - {row_data.get('투입물명', '')}")
-                            else:
-                                logger.warning(f"필수 데이터 부족으로 건너뜀: {row}")
-                    
-                    except Exception as row_error:
-                        logger.error(f"행 데이터 저장 실패: {row_error}")
-                        continue
-                
-                session.commit()
-                logger.info(f"DB 저장 완료: {saved_count}행 저장됨")
-                return {"success": True, "message": f"데이터베이스에 성공적으로 저장되었습니다. ({saved_count}행)", "saved_count": saved_count, "filename": filename}
-                
-            except Exception as db_error:
-                logger.error(f"데이터베이스 저장 실패: {db_error}")
-                try:
-                    session.rollback()
-                except:
-                    pass
-                raise db_error
-                
-    except Exception as e:
-        logger.error(f"DB 저장 엔드포인트 실패: {e}")
-        return {"success": False, "message": f"데이터베이스 저장 중 오류가 발생했습니다: {str(e)}", "error": str(e)}
-
-@app.post("/save-transport-data")
-async def save_transport_data(data: dict):
-    """운송 데이터를 데이터베이스에 저장"""
-    try:
-        logger.info(f"운송 데이터 저장 요청 받음: {data.get('filename', 'unknown')}")
-        filename = data.get('filename', '')
-        transport_data = data.get('data', [])
-        
-        if not transport_data:
-            return {"success": False, "message": "저장할 운송 데이터가 없습니다.", "error": "No transport data provided"}
-        
-        database_url = os.getenv("DATABASE_URL")
-        engine = create_engine(database_url, pool_pre_ping=True, pool_recycle=300, echo=False)
-        
-        with Session(engine) as session:
-            try:
-                session.begin()
-                saved_count = 0
-                
-                for row in transport_data:
-                    try:
-                        transport_record = {
-                            '생산품명': row.get('생산품명', ''),
-                            '로트번호': row.get('로트번호', ''),
-                            '운송물질': row.get('운송 물질', ''),
-                            '운송수량': float(row.get('운송 수량', 0)) if row.get('운송 수량') else 0,
-                            '운송일자': excel_date_to_postgres_date(row.get('운송 일자')),
-                            '도착공정': row.get('도착 공정', ''),
-                            '출발지': row.get('출발지', ''),
-                            '이동수단': row.get('이동 수단', ''),
-                            '주문처명': row.get('주문처명', ''),
-                            '오더번호': row.get('오더번호', '')
-                        }
-                        
-                        if not transport_record.get('생산품명') or not transport_record.get('로트번호'):
-                            continue
-                        
-                        session.execute(text("""
-                            INSERT INTO transport_data 
-                            (생산품명, 로트번호, 운송물질, 운송수량, 운송일자, 
-                             도착공정, 출발지, 이동수단, 주문처명, 오더번호)
-                            VALUES (:생산품명, :로트번호, :운송물질, :운송수량, :운송일자,
-                                    :도착공정, :출발지, :이동수단, :주문처명, :오더번호)
-                        """), transport_record)
-                        
-                        saved_count += 1
-                    
-                    except Exception as row_error:
-                        logger.error(f"운송 데이터 행 저장 실패: {row_error}")
-                        continue
-                
-                session.commit()
-                return {"success": True, "message": f"운송 데이터가 성공적으로 저장되었습니다. ({saved_count}행)", "saved_count": saved_count, "filename": filename}
-                
-            except Exception as db_error:
-                session.rollback()
-                raise db_error
-                
-    except Exception as e:
-        logger.error(f"운송 데이터 저장 엔드포인트 실패: {e}")
-        return {"success": False, "message": f"운송 데이터 저장 중 오류가 발생했습니다: {str(e)}", "error": str(e)}
-
-@app.post("/save-process-data")
-async def save_process_data(data: dict):
-    """공정 데이터를 데이터베이스에 저장"""
-    try:
-        logger.info(f"공정 데이터 저장 요청 받음: {data.get('filename', 'unknown')}")
-        filename = data.get('filename', '')
-        process_data = data.get('data', [])
-        
-        if not process_data:
-            return {"success": False, "message": "저장할 공정 데이터가 없습니다.", "error": "No process data provided"}
-        
-        database_url = os.getenv("DATABASE_URL")
-        engine = create_engine(database_url, pool_pre_ping=True, pool_recycle=300, echo=False)
-        
-        with Session(engine) as session:
-            try:
-                session.begin()
-                saved_count = 0
-                
-                for row in process_data:
-                    try:
-                        # 디버깅을 위한 로그 추가
-                        logger.info(f"처리 중인 행 데이터: {row}")
-                        logger.info(f"행의 키들: {list(row.keys())}")
-                        
-                        process_record = {
-                            '공정명': row.get('공정명', ''),
-                            '생산제품': row.get('생산제품', ''),
-                            '세부공정': row.get('세부공정', ''),
-                            '공정_설명': row.get('공정 설명', '') or row.get('공정설명', '') or ''
-                        }
-                        
-                        logger.info(f"생성된 process_record: {process_record}")
-                        
-                        if not process_record['공정명']:
-                            continue
-                        
-                        session.execute(text("""
-                            INSERT INTO process_data 
-                            (공정명, 생산제품, 세부공정, "공정 설명")
-                            VALUES (:공정명, :생산제품, :세부공정, :공정_설명)
-                        """), process_record)
-                        
-                        saved_count += 1
-                    
-                    except Exception as row_error:
-                        logger.error(f"공정 데이터 행 저장 실패: {row_error}")
-                        continue
-                
-                session.commit()
-                return {"success": True, "message": f"공정 데이터가 성공적으로 저장되었습니다. ({saved_count}행)", "saved_count": saved_count, "filename": filename}
-                
-            except Exception as db_error:
-                session.rollback()
-                raise db_error
-                
-    except Exception as e:
-        logger.error(f"공정 데이터 저장 엔드포인트 실패: {e}")
-        return {"success": False, "message": f"공정 데이터 저장 중 오류가 발생했습니다: {str(e)}", "error": str(e)}
-
-@app.get("/api/datagather/input-data")
-async def get_input_data():
-    """실적정보(투입물) 조회"""
-    try:
-        database_url = os.getenv("DATABASE_URL")
-        engine = create_engine(database_url, pool_pre_ping=True, pool_recycle=300, echo=False)
-        
-        with Session(engine) as session:
-            try:
-                result = session.execute(text("SELECT * FROM input_data ORDER BY created_at DESC"))
-                rows = result.fetchall()
-                
-                data = []
-                for row in rows:
-                    row_dict = dict(row._mapping)
-                    for key, value in row_dict.items():
-                        if hasattr(value, 'isoformat'):
-                            row_dict[key] = value.isoformat()
-                    data.append(row_dict)
-                
-                return {
-                    "success": True,
-                    "message": "실적정보(투입물) 조회 완료",
-                    "data": data,
-                    "count": len(data)
-                }
-                
-            except Exception as db_error:
-                logger.error(f"실적정보(투입물) 조회 실패: {db_error}")
-                return {
-                    "success": False,
-                    "message": f"실적정보(투입물) 조회 중 오류가 발생했습니다: {str(db_error)}",
-                    "error": str(db_error)
-                }
-                
-    except Exception as e:
-        logger.error(f"실적정보(투입물) 조회 엔드포인트 실패: {e}")
+        db_healthy = await database.health_check()
         return {
-            "success": False,
-            "message": f"실적정보(투입물) 조회 중 오류가 발생했습니다: {str(e)}",
-            "error": str(e)
+            "status": "healthy" if db_healthy else "unhealthy",
+            "service": settings.app_name,
+            "version": settings.app_version,
+            "database": "connected" if db_healthy else "disconnected"
         }
-
-@app.get("/api/datagather/transport-data")
-async def get_transport_data():
-    """운송 데이터 조회"""
-    try:
-        logger.info("운송 데이터 조회 요청 받음")
-        database_url = os.getenv("DATABASE_URL")
-        
-        if not database_url:
-            return {
-                "success": False,
-                "message": "데이터베이스 연결 정보가 설정되지 않았습니다",
-                "error": "DATABASE_URL not set"
-            }
-        
-        engine = create_engine(database_url, pool_pre_ping=True, pool_recycle=300, echo=False)
-        
-        with Session(engine) as session:
-            try:
-                result = session.execute(text("SELECT * FROM transport_data ORDER BY created_at DESC"))
-                rows = result.fetchall()
-                
-                data = []
-                for row in rows:
-                    row_dict = dict(row._mapping)
-                    for key, value in row_dict.items():
-                        if hasattr(value, 'isoformat'):
-                            row_dict[key] = value.isoformat()
-                    data.append(row_dict)
-                
-                return {
-                    "success": True,
-                    "message": "운송 데이터 조회 완료",
-                    "data": data,
-                    "count": len(data)
-                }
-                
-            except Exception as db_error:
-                logger.error(f"운송 데이터 조회 실패: {db_error}")
-                return {
-                    "success": False,
-                    "message": f"운송 데이터 조회 중 오류가 발생했습니다: {str(db_error)}",
-                    "error": str(db_error)
-                }
-                
     except Exception as e:
-        logger.error(f"운송 데이터 조회 엔드포인트 실패: {e}")
-        return {
-            "success": False,
-            "message": f"운송 데이터 조회 중 오류가 발생했습니다: {str(e)}",
-            "error": str(e)
-        }
+        logger.error(f"헬스체크 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "error": str(e)}
+        )
 
-@app.get("/api/datagather/process-data")
-async def get_process_data():
-    """공정 데이터 조회"""
+# 데이터 수집 관련 엔드포인트
+@app.post(f"{settings.api_prefix}/datagather/upload")
+async def upload_file(
+    install_id: int = Form(...),
+    data_type: str = Form(...),
+    file: UploadFile = File(...),
+    process_id: Optional[int] = Form(None),
+    service: DataGatherApplicationService = Depends(get_datagather_service)
+):
+    """파일 업로드 처리"""
     try:
-        database_url = os.getenv("DATABASE_URL")
-        engine = create_engine(database_url, pool_pre_ping=True, pool_recycle=300, echo=False)
+        # 파일 유효성 검증
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="파일명이 없습니다.")
         
-        with Session(engine) as session:
-            try:
-                result = session.execute(text("SELECT * FROM process_data ORDER BY created_at DESC"))
-                rows = result.fetchall()
-                
-                data = []
-                for row in rows:
-                    row_dict = dict(row._mapping)
-                    for key, value in row_dict.items():
-                        if hasattr(value, 'isoformat'):
-                            row_dict[key] = value.isoformat()
-                    data.append(row_dict)
-                
-                return {
-                    "success": True,
-                    "message": "공정 데이터 조회 완료",
-                    "data": data,
-                    "count": len(data)
-                }
-                
-            except Exception as db_error:
-                logger.error(f"공정 데이터 조회 실패: {db_error}")
-                return {
-                    "success": False,
-                    "message": f"공정 데이터 조회 중 오류가 발생했습니다: {str(db_error)}",
-                    "error": str(db_error)
-                }
-                
-    except Exception as e:
-        logger.error(f"공정 데이터 조회 엔드포인트 실패: {e}")
-        return {
-            "success": False,
-            "message": f"공정 데이터 조회 중 오류가 발생했습니다: {str(e)}",
-            "error": str(e)
-        }
-
-@app.get("/api/datagather/output-data")
-async def get_output_data():
-    """출력 데이터 조회"""
-    try:
-        database_url = os.getenv("DATABASE_URL")
-        engine = create_engine(database_url, pool_pre_ping=True, pool_recycle=300, echo=False)
+        file_extension = file.filename.split(".")[-1].lower()
+        if file_extension not in settings.allowed_file_types:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"지원하지 않는 파일 형식입니다. 지원 형식: {', '.join(settings.allowed_file_types)}"
+            )
         
-        with Session(engine) as session:
-            try:
-                result = session.execute(text("SELECT * FROM output_data ORDER BY created_at DESC"))
-                rows = result.fetchall()
-                
-                data = []
-                for row in rows:
-                    row_dict = dict(row._mapping)
-                    for key, value in row_dict.items():
-                        if hasattr(value, 'isoformat'):
-                            row_dict[key] = value.isoformat()
-                    data.append(row_dict)
-                
-                return {
-                    "success": True,
-                    "message": "출력 데이터 조회 완료",
-                    "data": data,
-                    "count": len(data)
-                }
-                
-            except Exception as db_error:
-                logger.error(f"출력 데이터 조회 실패: {db_error}")
-                return {
-                    "success": False,
-                    "message": f"출력 데이터 조회 중 오류가 발생했습니다: {str(db_error)}",
-                    "error": str(db_error)
-                }
-                
-    except Exception as e:
-        logger.error(f"출력 데이터 조회 엔드포인트 실패: {e}")
-        return {
-            "success": False,
-            "message": f"출력 데이터 조회 중 오류가 발생했습니다: {str(e)}",
-            "error": str(e)
-        }
-
-@app.post("/classify-data")
-async def classify_data(data: dict):
-    """데이터를 분류하여 저장하는 엔드포인트"""
-    try:
-        logger.info("데이터 분류 요청 받음")
-        input_data = data.get('data', [])
+        # 파일 크기 검증
+        file_content = await file.read()
+        if len(file_content) > settings.max_file_size:
+            raise HTTPException(
+                status_code=400,
+                detail=f"파일 크기가 너무 큽니다. 최대 크기: {settings.max_file_size // (1024*1024)}MB"
+            )
         
-        if not input_data:
-            return {"success": False, "message": "분류할 데이터가 없습니다.", "error": "No data provided"}
+        # 파일 업로드 처리
+        result = await service.upload_file(
+            install_id=install_id,
+            file_data=file_content,
+            file_name=file.filename,
+            data_type=data_type,
+            process_id=process_id
+        )
         
-        logger.info(f"분류할 데이터: {len(input_data)}행")
-        classified_data = []
-        
-        for row in input_data:
-            try:
-                process_name = row.get('공정명', '')
-                product_name = row.get('생산제품', '')
-                detail_process = row.get('세부공정', '')
-                
-                classified_row = {
-                    '공정명': process_name,
-                    '생산제품': product_name,
-                    '세부공정': detail_process,
-                    '공정_설명': row.get('공정 설명', '')
-                }
-                
-                classified_data.append(classified_row)
-                
-            except Exception as row_error:
-                logger.error(f"행 분류 실패: {row_error}")
-                continue
-        
-        logger.info(f"데이터 분류 완료: {len(classified_data)}행 분류됨")
-        
-        if classified_data:
-            database_url = os.getenv("DATABASE_URL")
-            engine = create_engine(database_url, pool_pre_ping=True, pool_recycle=300, echo=False)
+        if result["success"]:
+            return JSONResponse(
+                status_code=201,
+                content=result
+            )
+        else:
+            return JSONResponse(
+                status_code=400,
+                content=result
+            )
             
-            with Session(engine) as session:
-                try:
-                    session.begin()
-                    saved_count = 0
-                    
-                    for row in classified_data:
-                        try:
-                            session.execute(text("""
-                                INSERT INTO process_data 
-                                (공정명, 생산제품, 세부공정, "공정 설명")
-                                VALUES (:공정명, :생산제품, :세부공정, :공정_설명)
-                            """), row)
-                            
-                            saved_count += 1
-                        
-                        except Exception as row_error:
-                            logger.error(f"분류된 데이터 저장 실패: {row_error}")
-                            continue
-                    
-                    session.commit()
-                    logger.info(f"분류된 데이터 DB 저장 완료: {saved_count}행 저장됨")
-                    
-                except Exception as db_error:
-                    session.rollback()
-                    logger.error(f"분류된 데이터 DB 저장 실패: {db_error}")
-                    raise db_error
-        
-        return {
-            "success": True, 
-            "message": f"데이터 분류 완료 ({len(classified_data)}행)",
-            "classified_count": len(classified_data),
-            "saved_count": len(classified_data) if classified_data else 0,
-            "classified_data": classified_data
-        }
-        
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"데이터 분류 실패: {e}")
-        return {"success": False, "message": f"데이터 분류 중 오류가 발생했습니다: {str(e)}", "error": str(e)}
+        logger.error(f"파일 업로드 처리 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "파일 업로드 처리 중 오류가 발생했습니다."
+            }
+        )
 
+@app.post(f"{settings.api_prefix}/datagather/api")
+async def process_api_data(
+    install_id: int,
+    data_type: str,
+    data: Dict[str, Any],
+    process_id: Optional[int] = None,
+    service: DataGatherApplicationService = Depends(get_datagather_service)
+):
+    """API 데이터 처리"""
+    try:
+        result = await service.process_api_data(
+            install_id=install_id,
+            api_data=data,
+            data_type=data_type,
+            process_id=process_id
+        )
+        
+        if result["success"]:
+            return JSONResponse(
+                status_code=201,
+                content=result
+            )
+        else:
+            return JSONResponse(
+                status_code=400,
+                content=result
+            )
+            
+    except Exception as e:
+        logger.error(f"API 데이터 처리 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "API 데이터 처리 중 오류가 발생했습니다."
+            }
+        )
+
+@app.post(f"{settings.api_prefix}/datagather/manual")
+async def process_manual_data(
+    install_id: int,
+    data_type: str,
+    data: Dict[str, Any],
+    process_id: Optional[int] = None,
+    service: DataGatherApplicationService = Depends(get_datagather_service)
+):
+    """수동 입력 데이터 처리"""
+    try:
+        result = await service.process_manual_data(
+            install_id=install_id,
+            manual_data=data,
+            data_type=data_type,
+            process_id=process_id
+        )
+        
+        if result["success"]:
+            return JSONResponse(
+                status_code=201,
+                content=result
+            )
+        else:
+            return JSONResponse(
+                status_code=400,
+                content=result
+            )
+            
+    except Exception as e:
+        logger.error(f"수동 데이터 처리 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "수동 데이터 처리 중 오류가 발생했습니다."
+            }
+        )
+
+@app.get(f"{settings.api_prefix}/datagather/{{data_gather_id}}")
+async def get_data_gather_info(
+    data_gather_id: int,
+    service: DataGatherApplicationService = Depends(get_datagather_service)
+):
+    """데이터 수집 정보 조회"""
+    try:
+        result = await service.get_data_gather_info(data_gather_id)
+        
+        if result["success"]:
+            return result
+        else:
+            return JSONResponse(
+                status_code=404,
+                content=result
+            )
+            
+    except Exception as e:
+        logger.error(f"데이터 수집 정보 조회 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "데이터 수집 정보 조회 중 오류가 발생했습니다."
+            }
+        )
+
+@app.get(f"{settings.api_prefix}/datagather/install/{{install_id}}/summary")
+async def get_install_data_summary(
+    install_id: int,
+    service: DataGatherApplicationService = Depends(get_datagather_service)
+):
+    """사업장별 데이터 수집 요약 조회"""
+    try:
+        result = await service.get_install_data_summary(install_id)
+        
+        if result["success"]:
+            return result
+        else:
+            return JSONResponse(
+                status_code=404,
+                content=result
+            )
+            
+    except Exception as e:
+        logger.error(f"사업장별 데이터 수집 요약 조회 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "사업장별 데이터 수집 요약 조회 중 오류가 발생했습니다."
+            }
+        )
+
+@app.put(f"{settings.api_prefix}/datagather/{{data_gather_id}}/status")
+async def update_processing_status(
+    data_gather_id: int,
+    status: str,
+    error_message: Optional[str] = None,
+    service: DataGatherApplicationService = Depends(get_datagather_service)
+):
+    """처리 상태 업데이트"""
+    try:
+        result = await service.update_processing_status(
+            data_gather_id, status, error_message
+        )
+        
+        if result["success"]:
+            return result
+        else:
+            return JSONResponse(
+                status_code=400,
+                content=result
+            )
+            
+    except Exception as e:
+        logger.error(f"처리 상태 업데이트 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "처리 상태 업데이트 중 오류가 발생했습니다."
+            }
+        )
+
+@app.put(f"{settings.api_prefix}/datagather/{{data_gather_id}}/complete")
+async def complete_data_processing(
+    data_gather_id: int,
+    processed_data: Dict[str, Any],
+    service: DataGatherApplicationService = Depends(get_datagather_service)
+):
+    """데이터 처리 완료"""
+    try:
+        result = await service.complete_data_processing(
+            data_gather_id, processed_data
+        )
+        
+        if result["success"]:
+            return result
+        else:
+            return JSONResponse(
+                status_code=400,
+                content=result
+            )
+            
+    except Exception as e:
+        logger.error(f"데이터 처리 완료 처리 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "데이터 처리 완료 처리 중 오류가 발생했습니다."
+            }
+        )
+
+# AI 처리 관련 엔드포인트
 @app.post("/ai-process")
-async def ai_process_data(data: dict):
+async def ai_process_data(
+    data: Dict[str, Any],
+    service: DataGatherApplicationService = Depends(get_datagather_service)
+):
     """AI 데이터 처리"""
     try:
         logger.info(f"🤖 AI 데이터 처리 요청: {data.get('data_type', 'unknown')}")
         
         # AI 처리 로직 (기본적인 데이터 검증 및 저장)
-        result = {
-            "success": True,
-            "message": "AI 데이터 처리가 완료되었습니다.",
-            "processed_data": data,
-            "ai_recommendations": {
-                "classification": "processed",
-                "confidence": 0.95,
-                "timestamp": datetime.now().isoformat()
-            }
-        }
+        result = await service.process_api_data(
+            install_id=data.get('install_id', 1),
+            api_data=data,
+            data_type=data.get('data_type', 'ai_processed'),
+            process_id=data.get('process_id')
+        )
         
-        logger.info("✅ AI 데이터 처리 성공")
-        return result
-        
+        if result["success"]:
+            logger.info("✅ AI 데이터 처리 성공")
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "success": True,
+                    "message": "AI 데이터 처리가 완료되었습니다.",
+                    "data_gather_id": result.get("data_gather_id"),
+                    "processed_data": data
+                }
+            )
+        else:
+            logger.error(f"❌ AI 데이터 처리 실패: {result}")
+            return JSONResponse(
+                status_code=400,
+                content=result
+            )
+            
     except Exception as e:
         logger.error(f"❌ AI 데이터 처리 중 오류: {e}")
-        return {
-            "success": False,
-            "error": str(e),
-            "message": "AI 데이터 처리 중 오류가 발생했습니다."
-        }
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "AI 데이터 처리 중 오류가 발생했습니다."
+            }
+        )
 
+@app.post(f"{settings.api_prefix}/datagather/ai-process")
+async def ai_process_data_with_prefix(
+    data: Dict[str, Any],
+    service: DataGatherApplicationService = Depends(get_datagather_service)
+):
+    """AI 데이터 처리 (API prefix 포함)"""
+    return await ai_process_data(data, service)
+
+# 공정 관련 엔드포인트
+@app.post(f"{settings.api_prefix}/process")
+async def create_process(
+    install_id: int,
+    process_name: str,
+    process_type: str,
+    process_description: Optional[str] = None,
+    parent_process_id: Optional[int] = None,
+    process_order: Optional[int] = None,
+    capacity: Optional[float] = None,
+    unit: Optional[str] = None,
+    efficiency: Optional[float] = None,
+    tags: Optional[str] = None,
+    metadata: Optional[str] = None,
+    service: ProcessApplicationService = Depends(get_process_service)
+):
+    """공정 생성"""
+    try:
+        result = await service.create_process(
+            install_id=install_id,
+            process_name=process_name,
+            process_type=process_type,
+            process_description=process_description,
+            parent_process_id=parent_process_id,
+            process_order=process_order,
+            capacity=capacity,
+            unit=unit,
+            efficiency=efficiency,
+            tags=tags,
+            metadata=metadata
+        )
+        
+        if result["success"]:
+            return JSONResponse(
+                status_code=201,
+                content=result
+            )
+        else:
+            return JSONResponse(
+                status_code=400,
+                content=result
+            )
+            
+    except Exception as e:
+        logger.error(f"공정 생성 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "공정 생성 중 오류가 발생했습니다."
+            }
+        )
+
+@app.get(f"{settings.api_prefix}/process/{{process_id}}")
+async def get_process(
+    process_id: int,
+    service: ProcessApplicationService = Depends(get_process_service)
+):
+    """공정 조회"""
+    try:
+        result = await service.get_process_by_id(process_id)
+        
+        if result["success"]:
+            return result
+        else:
+            return JSONResponse(
+                status_code=404,
+                content=result
+            )
+            
+    except Exception as e:
+        logger.error(f"공정 조회 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "공정 조회 중 오류가 발생했습니다."
+            }
+        )
+
+@app.get(f"{settings.api_prefix}/process/install/{{install_id}}")
+async def get_processes_by_install(
+    install_id: int,
+    limit: int = 100,
+    service: ProcessApplicationService = Depends(get_process_service)
+):
+    """사업장별 공정 목록 조회"""
+    try:
+        result = await service.get_processes_by_install(install_id, limit)
+        
+        if result["success"]:
+            return result
+        else:
+            return JSONResponse(
+                status_code=400,
+                content=result
+            )
+            
+    except Exception as e:
+        logger.error(f"사업장별 공정 목록 조회 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "사업장별 공정 목록 조회 중 오류가 발생했습니다."
+            }
+        )
+
+# 사업장 관련 엔드포인트
+@app.post(f"{settings.api_prefix}/install")
+async def create_install(
+    install_name: str,
+    company_name: str,
+    address: Optional[str] = None,
+    region: Optional[str] = None,
+    country: Optional[str] = None,
+    contact_person: Optional[str] = None,
+    contact_email: Optional[str] = None,
+    contact_phone: Optional[str] = None,
+    industry_type: Optional[str] = None,
+    size_category: Optional[str] = None,
+    established_date: Optional[str] = None,
+    tags: Optional[str] = None,
+    metadata: Optional[str] = None,
+    service: InstallApplicationService = Depends(get_install_service)
+):
+    """사업장 생성"""
+    try:
+        result = await service.create_install(
+            install_name=install_name,
+            company_name=company_name,
+            address=address,
+            region=region,
+            country=country,
+            contact_person=contact_person,
+            contact_email=contact_email,
+            contact_phone=contact_phone,
+            industry_type=industry_type,
+            size_category=size_category,
+            established_date=established_date,
+            tags=tags,
+            metadata=metadata
+        )
+        
+        if result["success"]:
+            return JSONResponse(
+                status_code=201,
+                content=result
+            )
+        else:
+            return JSONResponse(
+                status_code=400,
+                content=result
+            )
+            
+    except Exception as e:
+        logger.error(f"사업장 생성 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "사업장 생성 중 오류가 발생했습니다."
+            }
+        )
+
+@app.get(f"{settings.api_prefix}/install/{{install_id}}")
+async def get_install(
+    install_id: int,
+    service: InstallApplicationService = Depends(get_install_service)
+):
+    """사업장 조회"""
+    try:
+        result = await service.get_install_by_id(install_id)
+        
+        if result["success"]:
+            return result
+        else:
+            return JSONResponse(
+                status_code=404,
+                content=result
+            )
+            
+    except Exception as e:
+        logger.error(f"사업장 조회 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "사업장 조회 중 오류가 발생했습니다."
+            }
+        )
+
+@app.get(f"{settings.api_prefix}/install")
+async def get_all_installs(
+    limit: int = 100,
+    service: InstallApplicationService = Depends(get_install_service)
+):
+    """모든 사업장 목록 조회"""
+    try:
+        result = await service.get_all_installs(limit)
+        
+        if result["success"]:
+            return result
+        else:
+            return JSONResponse(
+                status_code=400,
+                content=result
+            )
+            
+    except Exception as e:
+        logger.error(f"사업장 목록 조회 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "사업장 목록 조회 중 오류가 발생했습니다."
+            }
+        )
+
+# 메인 실행
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(
-        "app.main:app",
-        host="0.0.0.0",
-        port=8083,
-        reload=True
+        "main_new:app",
+        host=settings.host,
+        port=settings.port,
+        reload=settings.debug,
+        log_level=settings.log_level.lower()
     )

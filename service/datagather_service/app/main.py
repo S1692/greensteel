@@ -613,6 +613,22 @@ async def save_process_data(
             
             for row in process_data_rows:
                 try:
+                    # 디버깅: Excel 데이터의 모든 필드명 확인
+                    logger.info(f"Excel 데이터 필드들: {list(row.keys())}")
+                    logger.info(f"공정설명 값: '{row.get('공정설명', '')}'")
+                    
+                    # 공정설명 필드 매핑 (여러 가능한 필드명 시도)
+                    process_description = (
+                        row.get('공정설명', '') or 
+                        row.get('공정 설명', '') or 
+                        row.get('설명', '') or 
+                        row.get('공정내용', '') or
+                        row.get('세부설명', '') or
+                        '공정 데이터'  # 기본값
+                    )
+                    
+                    logger.info(f"최종 공정설명 값: '{process_description}'")
+                    
                     session.execute(text("""
                         INSERT INTO process_data 
                         (공정명, 생산제품, 세부공정, "공정 설명")
@@ -621,7 +637,7 @@ async def save_process_data(
                         '공정명': row.get('공정명', ''),
                         '생산제품': row.get('생산제품', ''),
                         '세부공정': row.get('세부공정', ''),
-                        '공정설명': row.get('공정설명', '')
+                        '공정설명': process_description
                     })
                     saved_count += 1
                 except Exception as row_error:

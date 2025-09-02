@@ -570,7 +570,7 @@ const ProcessDataPage: React.FC = () => {
       console.log('=== 프론트엔드에서 전송할 데이터 ===');
       console.log('전송할 데이터 개수:', dataToSave.length);
       console.log('첫 번째 행 데이터:', dataToSave[0]);
-      console.log('공정설명 값들:', dataToSave.map(row => row.공정설명));
+      console.log('공정설명 값들:', dataToSave.map(row => row['공정 설명']));
       console.log('=== 전송 데이터 디버깅 완료 ===');
 
       if (dataToSave.length === 0) {

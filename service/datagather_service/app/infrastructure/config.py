@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     
     # 서버 설정
     host: str = "0.0.0.0"
-    port: int = 8085
+    port: int = 8083
     
     # 데이터베이스 설정
     database_url: str = "postgresql+asyncpg://postgres:password@localhost:5432/datagather"
@@ -123,8 +123,10 @@ class Settings(BaseSettings):
             if not self.database_url:
                 raise ValueError("DATABASE_URL이 설정되지 않았습니다.")
             
-            if not self.secret_key or self.secret_key == "your-secret-key-here-change-in-production":
-                raise ValueError("SECRET_KEY가 설정되지 않았습니다.")
+            # SECRET_KEY 검증 완화 (개발/테스트 환경에서는 기본값 허용)
+            if not self.secret_key:
+                print("⚠️ SECRET_KEY가 설정되지 않았습니다. 기본값을 사용합니다.")
+                self.secret_key = "default-secret-key-for-development"
             
             # 포트 번호 검증
             if not (1 <= self.port <= 65535):

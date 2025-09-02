@@ -739,6 +739,129 @@ async def ai_process_stream(data: dict):
             "error": str(e)
         }
 
+@app.post("/save-processed-data")
+async def save_processed_data(data: dict):
+    """AI 처리된 데이터를 데이터베이스에 저장"""
+    try:
+        logger.info(f"DB 저장 요청 받음: {data.get('filename', 'unknown')}")
+        filename = data.get('filename', '')
+        input_data_rows = data.get('data', [])
+        columns = data.get('columns', [])
+        
+        if not input_data_rows:
+            return {"success": False, "message": "저장할 데이터가 없습니다.", "error": "No data provided"}
+        
+        from .database import get_db
+        from sqlalchemy.orm import Session
+        from sqlalchemy import create_engine, text
+        import os
+        from datetime import datetime, timedelta
+        
+        def excel_date_to_postgres_date(excel_date):
+            """Excel 날짜 숫자를 PostgreSQL date로 변환"""
+            if excel_date is None or excel_date == '':
+                return None
+            
+            try:
+                # Excel 날짜는 1900년 1월 1일부터의 일수
+                # 1900년 1월 1일을 기준으로 날짜 계산
+                base_date = datetime(1900, 1, 1)
+                if isinstance(excel_date, (int, float)):
+                    # Excel의 날짜 계산 (1900년 1월 1일 = 1)
+                    days = int(excel_date) - 1
+                    result_date = base_date + timedelta(days=days)
+                    return result_date.strftime('%Y-%m-%d')
+                elif isinstance(excel_date, str):
+                    # 이미 문자열 형태의 날짜인 경우
+                    return excel_date
+                else:
+                    return None
+            except Exception as e:
+                logger.warning(f"날짜 변환 실패: {excel_date}, 오류: {e}")
+                return None
+        
+        # PostgreSQL Railway 데이터베이스 연결 설정
+        database_url = os.getenv("DATABASE_URL")
+        
+        # PostgreSQL 전용 엔진 설정
+        engine = create_engine(
+            database_url,
+            pool_pre_ping=True,  # 연결 상태 확인
+            pool_recycle=300,    # 5분마다 연결 재생성
+            echo=False,          # SQL 로그 비활성화
+            connect_args={
+                "connect_timeout": 10,  # 연결 타임아웃
+                "application_name": "datagather_service"  # 애플리케이션 이름
+            }
+        )
+        
+        # 데이터베이스에 저장
+        saved_count = 0
+        
+        with Session(engine) as session:
+            try:
+                for row in input_data_rows:
+                    try:
+                        # input_data 테이블에 저장
+                        if row.get('공정') or row.get('투입물명'):
+                            # 단위 값 강제로 't'로 설정 (빈 문자열이나 None인 경우)
+                            unit_value = row.get('단위', '')
+                            if not unit_value or unit_value.strip() == '':
+                                unit_value = 't'
+                            
+                            row_data = {
+                                '로트번호': row.get('로트번호', ''),
+                                '생산품명': row.get('생산품명', ''),
+                                '생산수량': float(row.get('생산수량', 0)) if row.get('생산수량') else 0,
+                                '투입일': excel_date_to_postgres_date(row.get('투입일')),
+                                '종료일': excel_date_to_postgres_date(row.get('종료일')),
+                                '공정': row.get('공정', ''),
+                                '투입물명': row.get('투입물명', ''),
+                                '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
+                                '단위': unit_value,  # 강제로 't' 설정된 값
+                                'source_file': filename
+                            }
+                            
+                            # None 값 제거 (빈 문자열은 유지하되 단위는 't'로 설정)
+                            row_data = {k: v for k, v in row_data.items() if v is not None}
+                            
+                            # 필수 컬럼이 있는지 확인
+                            if row_data.get('공정') or row_data.get('투입물명'):
+                                cursor = session.execute(text("""
+                                    INSERT INTO input_data 
+                                    (로트번호, 생산품명, 생산수량, 투입일, 종료일, 
+                                     공정, 투입물명, 수량, 단위, source_file)
+                                    VALUES (:로트번호, :생산품명, :생산수량, :투입일, :종료일,
+                                            :공정, :투입물명, :수량, :단위, :source_file)
+                                """), row_data)
+                                
+                                saved_count += 1
+                                logger.info(f"행 {saved_count} 저장 성공: {row_data.get('공정', '')} - {row_data.get('투입물명', '')} (단위: {row_data.get('단위', '')})")
+                            else:
+                                logger.warning(f"필수 데이터 부족으로 건너뜀: {row}")
+                    
+                    except Exception as row_error:
+                        logger.error(f"행 데이터 저장 실패: {row_error}")
+                        # 개별 행 오류 시에도 계속 진행
+                        continue
+                
+                # 모든 행 처리 후 커밋
+                session.commit()
+                logger.info(f"DB 저장 완료: {saved_count}행 저장됨")
+                return {"success": True, "message": f"데이터베이스에 성공적으로 저장되었습니다. ({saved_count}행)", "saved_count": saved_count, "filename": filename}
+                
+            except Exception as db_error:
+                logger.error(f"데이터베이스 저장 실패: {db_error}")
+                try:
+                    session.rollback()
+                except:
+                    pass
+                raise db_error
+                
+    except Exception as e:
+        logger.error(f"DB 저장 엔드포인트 실패: {e}")
+        return {"success": False, "message": f"데이터베이스 저장 중 오류가 발생했습니다: {str(e)}", "error": str(e)}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(

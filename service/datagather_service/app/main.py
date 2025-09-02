@@ -122,46 +122,24 @@ async def ai_process_data(data: Dict[str, Any]):
         # 입력 데이터에서 처리할 데이터 추출
         input_data = data.get('data', [])
         
-        # AI 처리 시뮬레이션 - 투입물명 기반 유사 단어 매핑
+        # AI 처리 시뮬레이션 - 자유로운 단어 생성
         processed_data = []
-        
-        # 투입물명 매핑 딕셔너리
-        material_mapping = {
-            "점결탄": "Coking Coal",
-            "코크스": "Coke",
-            "철광석": "Iron Ore",
-            "석회석": "Limestone",
-            "소결광": "Sinter",
-            "펠릿": "Pellet",
-            "슬래그": "Slag",
-            "전기": "Electricity",
-            "가스": "Gas",
-            "석탄": "Coal",
-            "원료": "Raw Material",
-            "재료": "Material",
-            "연료": "Fuel",
-            "화학": "Chemical",
-            "첨가": "Additive"
-        }
         
         for item in input_data:
             투입물명 = item.get('투입물명', '')
-            ai_추천답변 = ""
+            공정 = item.get('공정', '')
             
-            # 투입물명에서 유사한 단어 찾기
-            for korean, english in material_mapping.items():
-                if korean in 투입물명:
-                    ai_추천답변 = english
-                    break
-            
-            # 매핑되지 않은 경우 기본값
-            if not ai_추천답변:
-                ai_추천답변 = f"Standardized_{투입물명.replace(' ', '_')}"
+            # AI가 자유롭게 생성하는 추천 답변들
+            ai_추천답변_생산품명 = f"AI_생산품_{공정}_{투입물명}"
+            ai_추천답변_투입물명 = f"AI_투입물_{공정}_{투입물명}"
+            ai_추천답변_공정 = f"AI_공정_{투입물명}_처리"
             
             # 각 항목에 AI 처리 결과 추가
             processed_item = {
                 **item,
-                "AI추천답변": ai_추천답변,
+                "AI추천답변_생산품명": ai_추천답변_생산품명,
+                "AI추천답변_투입물명": ai_추천답변_투입물명,
+                "AI추천답변_공정": ai_추천답변_공정,
                 "ai_processed": True,
                 "classification": "processed",
                 "confidence": 0.95,

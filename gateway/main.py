@@ -880,9 +880,9 @@ async def ai_process_stream_proxy(request: Request):
 async def save_processed_data_proxy(request: Request):
     """AI 처리된 데이터를 데이터베이스에 저장하는 엔드포인트 - DataGather 서비스로 프록시"""
     try:
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL")
         if not datagather_service_url:
-            raise HTTPException(status_code=503, detail="DataGather 서비스 URL이 설정되지 않았습니다")
+            raise HTTPException(status_code=503, detail="DATAGATHER_SERVICE_URL 환경변수가 설정되지 않았습니다")
         gateway_logger.log_info(f"DB 저장 요청을 DataGather 서비스로 프록시: {datagather_service_url}")
         target_url = f"{datagather_service_url.rstrip('/')}/save-processed-data"
         body = await request.body()
@@ -1038,9 +1038,9 @@ async def save_transport_data_proxy(request: Request):
 async def save_process_data_proxy(request: Request):
     """공정 데이터를 데이터베이스에 저장하는 엔드포인트 - DataGather 서비스로 프록시"""
     try:
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL")
         if not datagather_service_url:
-            raise HTTPException(status_code=503, detail="DataGather 서비스 URL이 설정되지 않았습니다")
+            raise HTTPException(status_code=503, detail="DATAGATHER_SERVICE_URL 환경변수가 설정되지 않았습니다")
         gateway_logger.log_info(f"공정 데이터 저장 요청을 DataGather 서비스로 프록시: {datagather_service_url}")
         target_url = f"{datagather_service_url.rstrip('/')}/save-process-data"
         body = await request.body()
@@ -1071,9 +1071,9 @@ async def save_process_data_proxy(request: Request):
 async def save_output_data_proxy(request: Request):
     """산출물 데이터를 데이터베이스에 저장하는 엔드포인트 - DataGather 서비스로 프록시"""
     try:
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL")
         if not datagather_service_url:
-            raise HTTPException(status_code=503, detail="DataGather 서비스 URL이 설정되지 않았습니다")
+            raise HTTPException(status_code=503, detail="DATAGATHER_SERVICE_URL 환경변수가 설정되지 않았습니다")
         gateway_logger.log_info(f"산출물 데이터 저장 요청을 DataGather 서비스로 프록시: {datagather_service_url}")
         target_url = f"{datagather_service_url.rstrip('/')}/save-output-data"
         body = await request.body()

@@ -373,7 +373,9 @@ async def save_output_data(data: dict):
                             '공정': row.get('공정', ''),
                             '산출물명': row.get('산출물명', ''),
                             '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
-                            '단위': row.get('단위', '')
+                            '단위': row.get('단위', ''),
+                            '주문처명': row.get('주문처명', ''),
+                            '오더번호': row.get('오더번호', '')
                         }
                         
                         # None 값 제거

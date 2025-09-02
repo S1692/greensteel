@@ -23,6 +23,7 @@ class OutputData(Base):
     산출물명 = Column(String, nullable=False)
     수량 = Column(Numeric, nullable=False)
     단위 = Column(String, nullable=False, default='t')
+    source_file = Column(String, nullable=True)
     주문처명 = Column(String, nullable=True)
     오더번호 = Column(String, nullable=True)
     created_at = Column(DateTime, nullable=True, default=func.now())
@@ -44,6 +45,7 @@ class OutputData(Base):
             '산출물명': self.산출물명,
             '수량': float(self.수량) if self.수량 else 0,
             '단위': self.단위,
+            'source_file': self.source_file,
             '주문처명': self.주문처명,
             '오더번호': self.오더번호,
             'created_at': self.created_at.isoformat() if self.created_at else None,

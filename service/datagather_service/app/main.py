@@ -531,18 +531,18 @@ async def save_transport_data(
                     session.execute(text("""
                         INSERT INTO transport_data 
                         (생산품명, 로트번호, 운송물질, 운송수량, 운송일자, 
-                         운송거리, 운송수단, source_file, 주문처명, 오더번호)
+                         도착공정, 출발지, 이동수단, 주문처명, 오더번호)
                         VALUES (:생산품명, :로트번호, :운송물질, :운송수량, :운송일자,
-                                :운송거리, :운송수단, :source_file, :주문처명, :오더번호)
+                                :도착공정, :출발지, :이동수단, :주문처명, :오더번호)
                     """), {
                         '생산품명': row.get('생산품명', ''),
                         '로트번호': row.get('로트번호', ''),
                         '운송물질': row.get('투입물명', ''),  # 운송물질로 매핑
                         '운송수량': float(row.get('수량', 0)) if row.get('수량') else 0,
                         '운송일자': row.get('투입일'),
-                        '운송거리': float(row.get('운송거리', 0)) if row.get('운송거리') else 0,
-                        '운송수단': row.get('공정', ''),  # 운송수단으로 매핑
-                        'source_file': data.get('filename', 'transport_data'),
+                        '도착공정': row.get('공정', ''),  # 도착공정으로 매핑
+                        '출발지': row.get('출발지', ''),  # 출발지 정보
+                        '이동수단': row.get('이동수단', ''),  # 이동수단 정보
                         '주문처명': row.get('주문처명', ''),
                         '오더번호': row.get('오더번호', '')
                     })
@@ -604,22 +604,13 @@ async def save_process_data(
                 try:
                     session.execute(text("""
                         INSERT INTO process_data 
-                        (로트번호, 생산품명, 생산수량, 투입일, 종료일, 
-                         공정, 공정명, 공정설명, source_file, 주문처명, 오더번호)
-                        VALUES (:로트번호, :생산품명, :생산수량, :투입일, :종료일,
-                                :공정, :공정명, :공정설명, :source_file, :주문처명, :오더번호)
+                        (공정명, 생산제품, 세부공정, 공정_설명)
+                        VALUES (:공정명, :생산제품, :세부공정, :공정_설명)
                     """), {
-                        '로트번호': row.get('로트번호', ''),
-                        '생산품명': row.get('생산품명', ''),
-                        '생산수량': float(row.get('생산수량', 0)) if row.get('생산수량') else 0,
-                        '투입일': row.get('투입일'),
-                        '종료일': row.get('종료일'),
-                        '공정': row.get('공정', ''),
                         '공정명': row.get('투입물명', ''),  # 공정명으로 매핑
-                        '공정설명': row.get('공정설명', ''),
-                        'source_file': data.get('filename', 'process_data'),
-                        '주문처명': row.get('주문처명', ''),
-                        '오더번호': row.get('오더번호', '')
+                        '생산제품': row.get('생산품명', ''),  # 생산제품으로 매핑
+                        '세부공정': row.get('공정', ''),  # 세부공정으로 매핑
+                        '공정_설명': row.get('공정설명', '')  # 공정설명으로 매핑
                     })
                     saved_count += 1
                 except Exception as row_error:

@@ -618,10 +618,10 @@ async def save_process_data(
                     logger.info(f"전체 데이터: {row}")
                     logger.info(f"공정설명 값: '{row.get('공정설명', '')}'")
                     
-                    # 공정설명 필드 매핑 (여러 가능한 필드명 시도)
+                    # 공정설명 필드 매핑 (Excel의 실제 컬럼명 '공정 설명' 사용)
                     process_description = (
-                        row.get('공정설명', '') or 
                         row.get('공정 설명', '') or 
+                        row.get('공정설명', '') or 
                         row.get('설명', '') or 
                         row.get('공정내용', '') or
                         row.get('세부설명', '') or

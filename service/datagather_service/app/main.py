@@ -326,24 +326,24 @@ async def save_process_data(data: dict):
                 
                 for row in process_data:
                     try:
-                        # 실제 Excel 컬럼명에 맞게 데이터 처리
-                        process_record = {
-                            '공정명': row.get('공정명', ''),
-                            '생산제품': row.get('생산제품', ''),
-                            '세부공정': row.get('세부공정', ''),
-                            '공정설명': row.get('공정 설명', '')  # 공백 포함된 컬럼명 사용
-                        }
-                        
-                        # 필수 필드 검증
-                        if not process_record['공정명']:
-                            logger.warn(f"공정명이 비어있는 행 건너뜀: {row}")
-                            continue
-                        
-                        cursor = session.execute(text("""
-                            INSERT INTO process_data 
-                            (공정명, 생산제품, 세부공정, 공정설명)
-                            VALUES (:공정명, :생산제품, :세부공정, :공정설명)
-                        """), process_record)
+                                                                          # 이미지에 맞춰 Excel 컬럼명 처리
+                         process_record = {
+                             '공정명': row.get('공정명', ''),
+                             '생산제품': row.get('생산제품', ''),
+                             '세부공정': row.get('세부공정', ''),
+                             '공정설명': row.get('공정 설명', '') or row.get('공정설명', '')
+                         }
+                         
+                         # 필수 필드 검증
+                         if not process_record['공정명']:
+                             logger.warning(f"공정명이 비어있는 행 건너뜀: {row}")
+                             continue
+                         
+                         cursor = session.execute(text("""
+                             INSERT INTO process_data 
+                             (공정명, 생산제품, 세부공정, 공정설명)
+                             VALUES (:공정명, :생산제품, :세부공정, :공정설명)
+                         """), process_record)
                         
                         saved_count += 1
                     
@@ -909,15 +909,13 @@ async def classify_data(data: dict):
                 elif '압연' in process_name or '압연' in product_name:
                     category = '압연 공정'
                 
-                # 분류된 데이터 생성
-                classified_row = {
-                    '공정명': process_name,
-                    '생산제품': product_name,
-                    '세부공정': detail_process,
-                    '공정설명': row.get('공정 설명', ''),
-                    '분류카테고리': category,
-                    '분류일시': datetime.now().isoformat()
-                }
+                                 # 분류된 데이터 생성
+                 classified_row = {
+                     '공정명': process_name,
+                     '생산제품': product_name,
+                     '세부공정': detail_process,
+                     '공정설명': row.get('공정 설명', '')
+                 }
                 
                 classified_data.append(classified_row)
                 

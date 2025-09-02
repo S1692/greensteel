@@ -119,7 +119,22 @@ async def ai_process_data(data: Dict[str, Any]):
     try:
         logger.info(f"🤖 AI 데이터 처리 요청: {data.get('data_type', 'unknown')}")
         
-        # 간단한 AI 데이터 처리
+        # 입력 데이터에서 처리할 데이터 추출
+        input_data = data.get('data', [])
+        
+        # AI 처리 시뮬레이션 (실제로는 AI 모델을 사용)
+        processed_data = []
+        for item in input_data:
+            # 각 항목에 AI 처리 결과 추가
+            processed_item = {
+                **item,
+                "ai_processed": True,
+                "classification": "processed",
+                "confidence": 0.95,
+                "processed_at": "2024-01-01T00:00:00Z"
+            }
+            processed_data.append(processed_item)
+        
         logger.info("✅ AI 데이터 처리 성공")
         return JSONResponse(
             status_code=200,
@@ -127,8 +142,9 @@ async def ai_process_data(data: Dict[str, Any]):
                 "success": True,
                 "message": "AI 데이터 처리가 완료되었습니다.",
                 "data_type": data.get('data_type', 'ai_processed'),
-                "processed_count": len(data.get('data', [])),
-                "processed_data": data
+                "processed_count": len(processed_data),
+                "data": processed_data,  # 프론트엔드가 기대하는 배열 형태
+                "original_data": data
             }
         )
             
@@ -139,7 +155,8 @@ async def ai_process_data(data: Dict[str, Any]):
             content={
                 "success": False,
                 "error": str(e),
-                "message": "AI 데이터 처리 중 오류가 발생했습니다."
+                "message": "AI 데이터 처리 중 오류가 발생했습니다.",
+                "data": []  # 오류 시에도 빈 배열 반환
             }
         )
 

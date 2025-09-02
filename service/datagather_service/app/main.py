@@ -225,16 +225,16 @@ async def save_transport_data(data: dict):
                     try:
                         logger.info(f"행 {i+1} 처리 시작 - 원본 데이터: {row}")
                         
-                        # 이미지 칼럼 순서에 맞게 데이터 처리
+                        # 이미지 칼럼 순서에 맞게 데이터 처리 (Excel 컬럼명에 맞춤)
                         transport_record = {
                             '생산품명': row.get('생산품명', ''),
                             '로트번호': row.get('로트번호', ''),
-                            '운송물질': row.get('운송물질', ''),
-                            '운송수량': float(row.get('운송수량', 0)) if row.get('운송수량') else 0,
-                            '운송일자': excel_date_to_postgres_date(row.get('운송일자')),
-                            '도착공정': row.get('도착공정', ''),
+                            '운송물질': row.get('운송 물질', ''),  # 공백 포함된 컬럼명 사용
+                            '운송수량': float(row.get('운송 수량', 0)) if row.get('운송 수량') else 0,  # 공백 포함된 컬럼명 사용
+                            '운송일자': excel_date_to_postgres_date(row.get('운송 일자')),  # 공백 포함된 컬럼명 사용
+                            '도착공정': row.get('도착 공정', ''),  # 공백 포함된 컬럼명 사용
                             '출발지': row.get('출발지', ''),
-                            '이동수단': row.get('이동수단', ''),
+                            '이동수단': row.get('이동 수단', ''),  # 공백 포함된 컬럼명 사용
                             '주문처명': row.get('주문처명', ''),
                             '오더번호': row.get('오더번호', '')
                         }

@@ -149,6 +149,60 @@ export default function LcaPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // 필터 상태 추가
+  const [filters, setFilters] = useState({
+    주문처명: '',
+    제품명: '',
+    투입일시작: '',
+    투입일종료: '',
+    종료일시작: '',
+    종료일종료: ''
+  });
+
+  // 필터링된 데이터 계산
+  const filteredInputData = useMemo(() => {
+    if (activeTab === 'actual' || activeTab === 'base') {
+      return inputData.filter(item => {
+        const 주문처명Match = !filters.주문처명 || (item.주문처명 && item.주문처명.includes(filters.주문처명));
+        const 제품명Match = !filters.제품명 || item.생산품명.includes(filters.제품명);
+        const 투입일Match = !filters.투입일시작 || !filters.투입일종료 || 
+          (item.투입일 >= filters.투입일시작 && item.투입일 <= filters.투입일종료);
+        const 종료일Match = !filters.종료일시작 || !filters.종료일종료 || 
+          (item.종료일 >= filters.종료일시작 && item.종료일 <= filters.종료일종료);
+        return 주문처명Match && 제품명Match && 투입일Match && 종료일Match;
+      });
+    }
+    return inputData;
+  }, [inputData, filters, activeTab]);
+
+  const filteredOutputData = useMemo(() => {
+    if (activeTab === 'output') {
+      return outputData.filter(item => {
+        const 제품명Match = !filters.제품명 || item.생산품명.includes(filters.제품명);
+        const 투입일Match = !filters.투입일시작 || !filters.투입일종료 || 
+          (item.투입일 >= filters.투입일시작 && item.투입일 <= filters.투입일종료);
+        const 종료일Match = !filters.종료일시작 || !filters.종료일종료 || 
+          (item.종료일 >= filters.종료일시작 && item.종료일 <= filters.종료일종료);
+        return 제품명Match && 투입일Match && 종료일Match;
+      });
+    }
+    return outputData;
+  }, [outputData, filters, activeTab]);
+
+  const filteredTransportData = useMemo(() => {
+    if (activeTab === 'transport') {
+      return transportData.filter(item => {
+        const 제품명Match = !filters.제품명 || item.생산품명.includes(filters.제품명);
+        const 투입일Match = !filters.투입일시작 || !filters.투입일종료 || 
+          (item.운송일자 >= filters.투입일시작 && item.운송일자 <= filters.투입일종료);
+        const 종료일Match = !filters.종료일시작 || !filters.종료일종료 || 
+          (item.운송일자 >= filters.종료일시작 && item.운송일자 <= filters.종료일종료);
+        return 제품명Match && 투입일Match && 종료일Match;
+      });
+    }
+    return transportData;
+  }, [transportData, filters, activeTab]);
+
   const loadData = async () => {
     setIsLoading(true);
     setError(null); // 이전 에러 메시지 초기화
@@ -289,16 +343,137 @@ export default function LcaPage() {
     window.location.href = '/data-upload';
   };
 
+  // 필터 컴포넌트 렌더링
+  const renderFilters = () => {
+    if (activeTab === 'process') return null; // 공정 탭은 제외
+    
+    // 고유한 값들을 추출하여 드롭다운 옵션 생성
+    const unique주문처명 = [...new Set(inputData.map(item => item.주문처명).filter(Boolean))];
+    const unique제품명 = [...new Set([
+      ...inputData.map(item => item.생산품명),
+      ...outputData.map(item => item.생산품명),
+      ...transportData.map(item => item.생산품명)
+    ].filter(Boolean))];
+    
+    return (
+      <div className="bg-ecotrace-surface border border-ecotrace-border rounded-lg p-4 mb-6">
+        <div className="flex items-center gap-4 mb-4">
+          <Filter className="w-5 h-5 text-ecotrace-primary" />
+          <h3 className="text-lg font-semibold text-ecotrace-text">필터</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {activeTab === 'actual' || activeTab === 'base' ? (
+            <div>
+              <label className="block text-sm font-medium text-ecotrace-textSecondary mb-2">
+                주문처명
+              </label>
+              <select
+                value={filters.주문처명}
+                onChange={(e) => setFilters(prev => ({ ...prev, 주문처명: e.target.value }))}
+                className="w-full px-3 py-2 border border-ecotrace-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ecotrace-primary"
+              >
+                <option value="">전체</option>
+                {unique주문처명.map((name, index) => (
+                  <option key={index} value={name}>{name}</option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+          <div>
+            <label className="block text-sm font-medium text-ecotrace-textSecondary mb-2">
+              제품명
+            </label>
+            <select
+              value={filters.제품명}
+              onChange={(e) => setFilters(prev => ({ ...prev, 제품명: e.target.value }))}
+              className="w-full px-3 py-2 border border-ecotrace-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ecotrace-primary"
+            >
+              <option value="">전체</option>
+              {unique제품명.map((name, index) => (
+                <option key={index} value={name}>{name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+          <div>
+            <label className="block text-sm font-medium text-ecotrace-textSecondary mb-2">
+              투입일 시작
+            </label>
+            <input
+              type="date"
+              value={filters.투입일시작}
+              onChange={(e) => setFilters(prev => ({ ...prev, 투입일시작: e.target.value }))}
+              className="w-full px-3 py-2 border border-ecotrace-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ecotrace-primary"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-ecotrace-textSecondary mb-2">
+              투입일 종료
+            </label>
+            <input
+              type="date"
+              value={filters.투입일종료}
+              onChange={(e) => setFilters(prev => ({ ...prev, 투입일종료: e.target.value }))}
+              className="w-full px-3 py-2 border border-ecotrace-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ecotrace-primary"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-ecotrace-textSecondary mb-2">
+              종료일 시작
+            </label>
+            <input
+              type="date"
+              value={filters.종료일시작}
+              onChange={(e) => setFilters(prev => ({ ...prev, 종료일시작: e.target.value }))}
+              className="w-full px-3 py-2 border border-ecotrace-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ecotrace-primary"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-ecotrace-textSecondary mb-2">
+              종료일 종료
+            </label>
+            <input
+              type="date"
+              value={filters.종료일종료}
+              onChange={(e) => setFilters(prev => ({ ...prev, 종료일종료: e.target.value }))}
+              className="w-full px-3 py-2 border border-ecotrace-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ecotrace-primary"
+            />
+          </div>
+        </div>
+        
+        <div className="flex justify-end mt-4">
+          <Button
+            onClick={() => setFilters({ 
+              주문처명: '', 
+              제품명: '', 
+              투입일시작: '', 
+              투입일종료: '', 
+              종료일시작: '', 
+              종료일종료: '' 
+            })}
+            className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+          >
+            <X className="w-4 h-4" />
+            필터 초기화
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'base':
         return (
           <div className="space-y-6">
+            {renderFilters()}
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-bold text-ecotrace-text">실적정보 데이터</h2>
                 <p className="text-ecotrace-text-secondary">
-                  생산 실적 정보를 관리합니다.
+                  생산 실적 정보를 관리합니다. {filteredInputData.length > 0 && `(${filteredInputData.length}개 결과)`}
                 </p>
               </div>
               <div className="flex gap-3">
@@ -354,14 +529,14 @@ export default function LcaPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-ecotrace-border">
-                    {inputData.map((row) => (
+                    {filteredInputData.map((row) => (
                       <tr key={row.id} className="hover:bg-ecotrace-secondary/30 transition-colors">
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.로트번호 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산품명 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산수량 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입일 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.종료일 || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정 || '-'}</td>
+                        <td className="px-4 py-4 text-ecotrace-text">{row.공정 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입물명 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.수량 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.단위 || '-'}</td>
@@ -371,10 +546,10 @@ export default function LcaPage() {
                 </table>
               </div>
               
-              {inputData.length === 0 && (
+              {filteredInputData.length === 0 && (
                 <div className="text-center py-8 text-ecotrace-textSecondary">
                   <FileText className="w-12 h-12 mx-auto mb-4 text-ecotrace-textSecondary/50" />
-                  <p>실적정보 데이터가 없습니다.</p>
+                  <p>{inputData.length === 0 ? '실적정보 데이터가 없습니다.' : '필터 조건에 맞는 데이터가 없습니다.'}</p>
                 </div>
               )}
             </div>
@@ -384,11 +559,12 @@ export default function LcaPage() {
       case 'actual':
         return (
           <div className="space-y-6">
+            {renderFilters()}
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-bold text-ecotrace-text">투입물 데이터</h2>
                 <p className="text-ecotrace-text-secondary">
-                  생산에 투입되는 원자재 및 자재 정보를 관리합니다.
+                  생산에 투입되는 원자재 및 자재 정보를 관리합니다. {filteredInputData.length > 0 && `(${filteredInputData.length}개 결과)`}
                 </p>
               </div>
               <div className="flex gap-3">
@@ -427,7 +603,7 @@ export default function LcaPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-ecotrace-border">
-                    {inputData.map((row) => (
+                    {filteredInputData.map((row) => (
                       <tr key={row.id} className="hover:bg-ecotrace-secondary/30 transition-colors">
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.로트번호 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산품명 || '-'}</td>
@@ -444,10 +620,10 @@ export default function LcaPage() {
                 </table>
               </div>
               
-              {inputData.length === 0 && (
+              {filteredInputData.length === 0 && (
                 <div className="text-center py-8 text-ecotrace-textSecondary">
                   <Package className="w-12 h-12 mx-auto mb-4 text-ecotrace-textSecondary/50" />
-                  <p>투입물 데이터가 없습니다.</p>
+                  <p>{inputData.length === 0 ? '투입물 데이터가 없습니다.' : '필터 조건에 맞는 데이터가 없습니다.'}</p>
                 </div>
               )}
             </div>
@@ -457,11 +633,12 @@ export default function LcaPage() {
       case 'output':
         return (
           <div className="space-y-6">
+            {renderFilters()}
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-bold text-ecotrace-text">산출물 데이터</h2>
                 <p className="text-ecotrace-text-secondary">
-                  생산된 제품 및 산출물 정보를 관리합니다.
+                  생산된 제품 및 산출물 정보를 관리합니다. {filteredOutputData.length > 0 && `(${filteredInputData.length}개 결과)`}
                 </p>
               </div>
               <div className="flex gap-3">
@@ -500,7 +677,7 @@ export default function LcaPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-ecotrace-border">
-                    {outputData.map((row) => (
+                    {filteredOutputData.map((row) => (
                       <tr key={row.id} className="hover:bg-ecotrace-secondary/30 transition-colors">
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.로트번호 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산품명 || '-'}</td>
@@ -510,17 +687,17 @@ export default function LcaPage() {
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.산출물명 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.수량 || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.단위 || '-'}</td>
+                        <td className="px-3 text-sm text-ecotrace-text">{row.단위 || '-'}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
               
-              {outputData.length === 0 && (
+              {filteredOutputData.length === 0 && (
                 <div className="text-center py-8 text-ecotrace-textSecondary">
                   <FileText className="w-12 h-12 mx-auto mb-4 text-ecotrace-textSecondary/50" />
-                  <p>산출물 데이터가 없습니다.</p>
+                  <p>{outputData.length === 0 ? '산출물 데이터가 없습니다.' : '필터 조건에 맞는 데이터가 없습니다.'}</p>
                 </div>
               )}
             </div>
@@ -737,11 +914,12 @@ export default function LcaPage() {
       case 'transport':
         return (
           <div className="space-y-6">
+            {renderFilters()}
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-bold text-ecotrace-text">운송정보 데이터</h2>
                 <p className="text-ecotrace-text-secondary">
-                  원자재 및 제품의 운송 정보를 관리합니다.
+                  원자재 및 제품의 운송 정보를 관리합니다. {filteredTransportData.length > 0 && `(${filteredTransportData.length}개 결과)`}
                 </p>
               </div>
               <div className="flex gap-3">
@@ -779,7 +957,7 @@ export default function LcaPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-ecotrace-border">
-                    {transportData.map((row) => (
+                    {filteredTransportData.map((row) => (
                       <tr key={row.id} className="hover:bg-ecotrace-secondary/30 transition-colors">
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산품명 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.로트번호 || '-'}</td>
@@ -795,10 +973,10 @@ export default function LcaPage() {
                 </table>
               </div>
               
-              {transportData.length === 0 && (
+              {filteredTransportData.length === 0 && (
                 <div className="text-center py-8 text-ecotrace-textSecondary">
-                  <Truck className="w-12 h-12 mx-auto mb-4 text-ecotrace-textSecondary/50" />
-                  <p>운송정보 데이터가 없습니다.</p>
+                  <Truck className="w-4 h-12 mx-auto mb-4 text-ecotrace-textSecondary/50" />
+                  <p>{transportData.length === 0 ? '운송정보 데이터가 없습니다.' : '필터 조건에 맞는 데이터가 없습니다.'}</p>
                 </div>
               )}
             </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Plus, Save, Trash2, Settings } from 'lucide-react';
+import { Plus, Save, Trash2, Settings } from 'lucide-react';
 import ReactFlow, {
   Node,
   Edge,
@@ -17,8 +17,7 @@ import 'reactflow/dist/style.css';
 import axiosClient, { apiEndpoints } from '@/lib/axiosClient';
 
 interface BoundaryModalProps {
-  onClose: () => void;
-  onSuccess: () => void;
+  onSuccess?: () => void;
 }
 
 interface Install {
@@ -75,7 +74,7 @@ const nodeTypes: NodeTypes = {
   product: CustomProductNode,
 };
 
-export const BoundaryModal: React.FC<BoundaryModalProps> = ({ onClose, onSuccess }) => {
+export const BoundaryModal: React.FC<BoundaryModalProps> = ({ onSuccess }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [installs, setInstalls] = useState<Install[]>([]);
@@ -224,7 +223,7 @@ export const BoundaryModal: React.FC<BoundaryModalProps> = ({ onClose, onSuccess
       await axiosClient.post(apiEndpoints.cbam.edge.create, formData);
       setFormData({ install_id: '', process_id: '', product_id: '', description: '' });
       fetchBoundaries();
-      onSuccess();
+      onSuccess?.();
     } catch (error) {
       console.error('경계 생성 실패:', error);
     }
@@ -260,7 +259,7 @@ export const BoundaryModal: React.FC<BoundaryModalProps> = ({ onClose, onSuccess
       try {
         await axiosClient.delete(apiEndpoints.cbam.edge.delete(id));
         fetchBoundaries();
-        onSuccess();
+        onSuccess?.();
       } catch (error) {
         console.error('경계 삭제 실패:', error);
       }
@@ -275,133 +274,134 @@ export const BoundaryModal: React.FC<BoundaryModalProps> = ({ onClose, onSuccess
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-7xl max-h-[95vh] overflow-hidden">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">CBAM 경계 설정</h2>
-          <div className="flex space-x-2">
-            <button
-              onClick={handleSaveFlow}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
-            >
-              <Save className="h-4 w-4" />
-              <span>저장</span>
-            </button>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-              <X size={24} />
-            </button>
+    <div className="space-y-6">
+      {/* 헤더 */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-ecotrace-text">CBAM 경계 설정</h2>
+          <p className="text-ecotrace-text-secondary mt-1">사업장, 공정, 제품 간의 연결을 설정하여 CBAM 계산을 위한 경계를 정의하세요</p>
+        </div>
+        <div className="flex space-x-3">
+          <button
+            onClick={handleSaveFlow}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+          >
+            <Save className="h-4 w-4" />
+            <span>저장</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* 좌측 패널 - 경계 생성 폼 */}
+        <div className="lg:col-span-1 space-y-6">
+          <div className="bg-ecotrace-surface border border-ecotrace-border rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-ecotrace-text mb-4">새 경계 생성</h3>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-ecotrace-textSecondary mb-2">사업장</label>
+                <select
+                  value={formData.install_id}
+                  onChange={(e) => setFormData(prev => ({ ...prev, install_id: e.target.value }))}
+                  className="w-full px-3 py-2 border border-ecotrace-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-ecotrace-surface text-ecotrace-text transition-colors"
+                  required
+                >
+                  <option value="">사업장 선택</option>
+                  {installs.map((install) => (
+                    <option key={install.id} value={install.id}>
+                      {install.install_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-ecotrace-textSecondary mb-2">공정</label>
+                <select
+                  value={formData.process_id}
+                  onChange={(e) => setFormData(prev => ({ ...prev, process_id: e.target.value }))}
+                  className="w-full px-3 py-2 border border-ecotrace-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-ecotrace-surface text-ecotrace-text transition-colors"
+                  required
+                >
+                  <option value="">공정 선택</option>
+                  {processes.map((process) => (
+                    <option key={process.id} value={process.id}>
+                      {process.process_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-ecotrace-textSecondary mb-2">제품</label>
+                <select
+                  value={formData.product_id}
+                  onChange={(e) => setFormData(prev => ({ ...prev, product_id: e.target.value }))}
+                  className="w-full px-3 py-2 border border-ecotrace-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-ecotrace-surface text-ecotrace-text transition-colors"
+                  required
+                >
+                  <option value="">제품 선택</option>
+                  {products.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.product_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-ecotrace-textSecondary mb-2">설명</label>
+                <input
+                  type="text"
+                  placeholder="경계 설명"
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full px-3 py-2 border border-ecotrace-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-ecotrace-surface text-ecotrace-text transition-colors"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                경계 생성
+              </button>
+            </form>
+          </div>
+
+          {/* 경계 목록 */}
+          <div className="bg-ecotrace-surface border border-ecotrace-border rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-ecotrace-text mb-4">경계 목록</h3>
+            <div className="max-h-64 overflow-y-auto space-y-3">
+              {boundaries.map((boundary) => {
+                const install = installs.find(i => i.id === boundary.install_id);
+                const process = processes.find(p => p.id === boundary.process_id);
+                const product = products.find(p => p.id === boundary.product_id);
+                
+                return (
+                  <div key={boundary.id} className="p-3 bg-ecotrace-secondary/30 rounded-lg border border-ecotrace-border">
+                    <div className="font-medium text-ecotrace-text text-sm">
+                      {install?.install_name} → {process?.process_name} → {product?.product_name}
+                    </div>
+                    {boundary.description && (
+                      <div className="text-ecotrace-textSecondary text-xs mt-1">{boundary.description}</div>
+                    )}
+                    <button
+                      onClick={() => handleDeleteBoundary(boundary.id)}
+                      className="mt-2 text-red-600 hover:text-red-800 text-xs bg-red-50 px-2 py-1 rounded hover:bg-red-100 transition-colors"
+                    >
+                      삭제
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(95vh-120px)]">
-          {/* 좌측 패널 - 경계 생성 폼 */}
-          <div className="lg:col-span-1 space-y-4">
-            <div className="border border-gray-200 rounded-lg p-4">
-              <h3 className="font-medium text-gray-900 mb-4">새 경계 생성</h3>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">사업장</label>
-                  <select
-                    value={formData.install_id}
-                    onChange={(e) => setFormData(prev => ({ ...prev, install_id: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  >
-                    <option value="">사업장 선택</option>
-                    {installs.map((install) => (
-                      <option key={install.id} value={install.id}>
-                        {install.install_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">공정</label>
-                  <select
-                    value={formData.process_id}
-                    onChange={(e) => setFormData(prev => ({ ...prev, process_id: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  >
-                    <option value="">공정 선택</option>
-                    {processes.map((process) => (
-                      <option key={process.id} value={process.id}>
-                        {process.process_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">제품</label>
-                  <select
-                    value={formData.product_id}
-                    onChange={(e) => setFormData(prev => ({ ...prev, product_id: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  >
-                    <option value="">제품 선택</option>
-                    {products.map((product) => (
-                      <option key={product.id} value={product.id}>
-                        {product.product_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">설명</label>
-                  <input
-                    type="text"
-                    placeholder="경계 설명"
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  경계 생성
-                </button>
-              </form>
-            </div>
-
-            {/* 경계 목록 */}
-            <div className="border border-gray-200 rounded-lg p-4">
-              <h3 className="font-medium text-gray-900 mb-4">경계 목록</h3>
-              <div className="max-h-48 overflow-y-auto space-y-2">
-                {boundaries.map((boundary) => {
-                  const install = installs.find(i => i.id === boundary.install_id);
-                  const process = processes.find(p => p.id === boundary.process_id);
-                  const product = products.find(p => p.id === boundary.product_id);
-                  
-                  return (
-                    <div key={boundary.id} className="p-2 bg-gray-50 rounded border text-xs">
-                      <div className="font-medium">
-                        {install?.install_name} → {process?.process_name} → {product?.product_name}
-                      </div>
-                      {boundary.description && (
-                        <div className="text-gray-600">{boundary.description}</div>
-                      )}
-                      <button
-                        onClick={() => handleDeleteBoundary(boundary.id)}
-                        className="mt-1 text-red-600 hover:text-red-800 text-xs"
-                      >
-                        삭제
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* 우측 패널 - ReactFlow 캔버스 */}
-          <div className="lg:col-span-3 border border-gray-200 rounded-lg">
+        {/* 우측 패널 - ReactFlow 캔버스 */}
+        <div className="lg:col-span-3 bg-ecotrace-surface rounded-lg border border-ecotrace-border p-4">
+          <div className="h-[600px]">
             <ReactFlow
               nodes={nodes}
               edges={edges}
@@ -411,7 +411,7 @@ export const BoundaryModal: React.FC<BoundaryModalProps> = ({ onClose, onSuccess
               onNodeClick={onNodeClick}
               nodeTypes={nodeTypes}
               fitView
-              className="bg-gray-50"
+              className="bg-ecotrace-secondary/20"
             >
               <Controls />
               <Background />

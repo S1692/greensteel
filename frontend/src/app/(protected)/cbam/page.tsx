@@ -19,17 +19,14 @@ import { CalculationModal } from '@/components/cbam/modals/CalculationModal';
 import { BoundaryModal } from '@/components/cbam/modals/BoundaryModal';
 
 // ============================================================================
-// 🎯 CBAM 관리 페이지 - 아토믹 구조 적용
+// 🎯 CBAM 관리 페이지
 // ============================================================================
 
 export default function CBAMPage() {
-  const [activeTab, setActiveTab] = useState<
-    'overview' | 'install' | 'boundary' | 'reports' | 'settings'
-  >('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'install' | 'boundary'>('overview');
 
   // 모달 상태 관리
   const [showInstallModal, setShowInstallModal] = useState(false);
-  const [showBoundaryModal, setShowBoundaryModal] = useState(false);
   const [showProcessModal, setShowProcessModal] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
   const [showMappingModal, setShowMappingModal] = useState(false);
@@ -91,150 +88,56 @@ export default function CBAMPage() {
   // 🎯 탭 컴포넌트들
   // ============================================================================
 
-  // 경계 설정 탭
+  // 개요 탭 (기존 CBAMOverviewTab 사용)
+  const OverviewTab = () => (
+    <CBAMOverviewTab
+      installs={installs}
+      products={products}
+      processes={processes}
+      mappings={mappings}
+      onShowInstallModal={() => setShowInstallModal(true)}
+      onShowProductModal={() => setShowProductModal(true)}
+      onShowProcessModal={() => setShowProcessModal(true)}
+    />
+  );
+
+  // 사업장 관리 탭
+  const InstallTab = () => (
+    <CBAMInstallTab
+      installs={installs}
+      onShowInstallModal={() => setShowInstallModal(true)}
+    />
+  );
+
+  // 산정경계 설정 탭 (기존 BoundaryModal을 탭으로 사용)
   const BoundaryTab = () => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-gray-900">경계 설정</h2>
-        <button
-          onClick={() => setShowBoundaryModal(true)}
-          className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2"
-        >
-          <span>경계 설정</span>
-        </button>
-      </div>
-
-      <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
-        <div className="text-center text-gray-500">
-          <p className="text-lg font-medium">경계 설정이 필요합니다</p>
-          <p className="text-sm">사업장과 공정 간의 연결을 설정하여 CBAM 계산을 위한 경계를 정의하세요.</p>
-          <button
-            onClick={() => setShowBoundaryModal(true)}
-            className="mt-4 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
-          >
-            경계 설정 시작
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  // 보고서 탭
-  const ReportsTab = () => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-gray-900">CBAM 보고서</h2>
-        <div className="flex space-x-2">
-          <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
-            <span>내보내기</span>
-          </button>
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-            <span>계산 실행</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* 배출량 요약 */}
-        <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">배출량 요약</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600">총 배출량 (tCO2e)</span>
-              <span className="text-sm font-medium text-gray-900">0.00</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600">직접 배출량</span>
-              <span className="text-sm font-medium text-gray-900">0.00</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600">간접 배출량</span>
-              <span className="text-sm font-medium text-gray-900">0.00</span>
-            </div>
-          </div>
-        </div>
-
-        {/* 제품별 배출량 */}
-        <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">제품별 배출량</h3>
-          <div className="text-center text-gray-500 py-8">
-            <p className="text-sm">제품 데이터가 없습니다</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  // 설정 탭
-  const SettingsTab = () => (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-gray-900">CBAM 설정</h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* 일반 설정 */}
-        <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">일반 설정</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">기본 보고 연도</label>
-              <input
-                type="number"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                defaultValue={new Date().getFullYear()}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">기본 통화</label>
-              <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                <option value="KRW">KRW (원)</option>
-                <option value="USD">USD (달러)</option>
-                <option value="EUR">EUR (유로)</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* 계산 설정 */}
-        <div className="bg-white rounded-lg shadow border border-gray-200 p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">계산 설정</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">GWP 버전</label>
-              <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                <option value="AR6">AR6 (IPCC 6차 보고서)</option>
-                <option value="AR5">AR5 (IPCC 5차 보고서)</option>
-                <option value="AR4">AR4 (IPCC 4차 보고서)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">정밀도</label>
-              <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                <option value="4">소수점 4자리</option>
-                <option value="2">소수점 2자리</option>
-                <option value="0">정수</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <BoundaryModal onSuccess={() => {
+      // 경계 설정이 성공하면 데이터 새로고침
+      fetchInstalls();
+      fetchProducts();
+      fetchProcesses();
+      fetchMappings();
+    }} />
   );
 
   // ============================================================================
-  // 🎯 메인 렌더링
+  // 🎯 렌더링
   // ============================================================================
+
   return (
     <CommonShell>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-ecotrace-background">
         {/* 헤더 */}
-        <div className="bg-white shadow border-b border-gray-200">
+        <div className="bg-ecotrace-surface border-b border-ecotrace-border">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center py-6">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">CBAM 관리</h1>
-                <p className="text-sm text-gray-600">탄소국경조정메커니즘 통합 관리 시스템</p>
-              </div>
-              <div className="flex items-center space-x-3">
+            <div className="py-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold text-ecotrace-text">CBAM 관리</h1>
+                  <p className="mt-2 text-ecotrace-textSecondary">
+                    CBAM (Carbon Border Adjustment Mechanism) 데이터 관리 및 설정
+                  </p>
+                </div>
                 <button
                   onClick={() => {
                     fetchInstalls();
@@ -242,10 +145,10 @@ export default function CBAMPage() {
                     fetchProcesses();
                     fetchMappings();
                   }}
-                  className="bg-gray-100 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center space-x-2"
+                  className="inline-flex items-center px-4 py-2 border border-ecotrace-border rounded-lg shadow-sm text-sm font-medium text-ecotrace-text bg-ecotrace-surface hover:bg-ecotrace-secondary/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                 >
-                  <RefreshCw className="h-4 w-4" />
-                  <span>새로고침</span>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  새로고침
                 </button>
               </div>
             </div>
@@ -258,82 +161,63 @@ export default function CBAMPage() {
           onTabChange={setActiveTab}
         />
 
-        {/* 메인 콘텐츠 */}
+        {/* 탭 컨텐츠 */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {activeTab === 'overview' && (
-            <CBAMOverviewTab
-              installs={installs}
-              products={products}
-              processes={processes}
-              mappings={mappings}
-              onShowInstallModal={() => setShowInstallModal(true)}
-              onShowProductModal={() => setShowProductModal(true)}
-              onShowProcessModal={() => setShowProcessModal(true)}
-            />
-          )}
-          {activeTab === 'install' && (
-            <CBAMInstallTab
-              installs={installs}
-              onShowInstallModal={() => setShowInstallModal(true)}
-            />
-          )}
+          {activeTab === 'overview' && <OverviewTab />}
+          {activeTab === 'install' && <InstallTab />}
           {activeTab === 'boundary' && <BoundaryTab />}
-          {activeTab === 'reports' && <ReportsTab />}
-          {activeTab === 'settings' && <SettingsTab />}
         </div>
-
-        {/* 모달들 */}
-        {showInstallModal && (
-          <InstallModal
-            onClose={() => setShowInstallModal(false)}
-            onSuccess={fetchInstalls}
-          />
-        )}
-
-        {showProductModal && (
-          <ProductModal
-            onClose={() => setShowProductModal(false)}
-            onSuccess={fetchProducts}
-          />
-        )}
-
-        {showProcessModal && (
-          <ProcessModal
-            onClose={() => setShowProcessModal(false)}
-            onSuccess={fetchProcesses}
-          />
-        )}
-
-        {showMappingModal && (
-          <MappingModal
-            onClose={() => setShowMappingModal(false)}
-            onSuccess={fetchMappings}
-          />
-        )}
-
-        {showCalculationModal && (
-          <CalculationModal
-            onClose={() => setShowCalculationModal(false)}
-            onSuccess={() => {
-              fetchInstalls();
-              fetchProducts();
-              fetchProcesses();
-            }}
-          />
-        )}
-
-        {showBoundaryModal && (
-          <BoundaryModal
-            onClose={() => setShowBoundaryModal(false)}
-            onSuccess={() => {
-              fetchInstalls();
-              fetchProducts();
-              fetchProcesses();
-              fetchMappings();
-            }}
-          />
-        )}
       </div>
+
+      {/* 모달들 */}
+      {showInstallModal && (
+        <InstallModal
+          onClose={() => setShowInstallModal(false)}
+          onSuccess={() => {
+            setShowInstallModal(false);
+            fetchInstalls();
+          }}
+        />
+      )}
+
+      {showProductModal && (
+        <ProductModal
+          onClose={() => setShowProductModal(false)}
+          onSuccess={() => {
+            setShowProductModal(false);
+            fetchProducts();
+          }}
+        />
+      )}
+
+      {showProcessModal && (
+        <ProcessModal
+          onClose={() => setShowProcessModal(false)}
+          onSuccess={() => {
+            setShowProcessModal(false);
+            fetchProcesses();
+          }}
+        />
+      )}
+
+      {showMappingModal && (
+        <MappingModal
+          onClose={() => setShowMappingModal(false)}
+          onSuccess={() => {
+            setShowMappingModal(false);
+            fetchMappings();
+          }}
+        />
+      )}
+
+      {showCalculationModal && (
+        <CalculationModal
+          onClose={() => setShowCalculationModal(false)}
+          onSuccess={() => {
+            setShowCalculationModal(false);
+          }}
+        />
+      )}
     </CommonShell>
   );
 }

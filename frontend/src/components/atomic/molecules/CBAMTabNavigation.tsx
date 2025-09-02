@@ -1,44 +1,34 @@
 import React from 'react';
-import { BarChart3, Factory, Network, FileText, Settings, LucideIcon } from 'lucide-react';
 import { CBAMTabButton } from '../atoms/CBAMTabButton';
 
 interface CBAMTabNavigationProps {
-  activeTab: 'overview' | 'install' | 'boundary' | 'reports' | 'settings';
-  onTabChange: (tabId: 'overview' | 'install' | 'boundary' | 'reports' | 'settings') => void;
+  activeTab: 'overview' | 'install' | 'boundary';
+  onTabChange: (tab: 'overview' | 'install' | 'boundary') => void;
 }
 
 export const CBAMTabNavigation: React.FC<CBAMTabNavigationProps> = ({
   activeTab,
   onTabChange
 }) => {
-  const tabs: Array<{
-    id: 'overview' | 'install' | 'boundary' | 'reports' | 'settings';
-    name: string;
-    icon: LucideIcon;
-  }> = [
-    { id: 'overview', name: '개요', icon: BarChart3 },
-    { id: 'install', name: '사업장', icon: Factory },
-    { id: 'boundary', name: '경계설정', icon: Network },
-    { id: 'reports', name: '보고서', icon: FileText },
-    { id: 'settings', name: '설정', icon: Settings }
+  const tabs = [
+    { id: 'overview' as const, label: '개요' },
+    { id: 'install' as const, label: '사업장관리' },
+    { id: 'boundary' as const, label: '산정경계설정' }
   ];
 
   return (
-    <div className="bg-white border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <nav className="flex space-x-8">
-          {tabs.map((tab) => (
-            <CBAMTabButton
-              key={tab.id}
-              id={tab.id}
-              name={tab.name}
-              icon={tab.icon}
-              isActive={activeTab === tab.id}
-              onClick={onTabChange}
-            />
-          ))}
-        </nav>
-      </div>
+    <div className="bg-ecotrace-surface border-b border-ecotrace-border shadow-sm">
+      <nav className="flex space-x-8 px-6">
+        {tabs.map((tab) => (
+          <CBAMTabButton
+            key={tab.id}
+            isActive={activeTab === tab.id}
+            onClick={() => onTabChange(tab.id)}
+          >
+            {tab.label}
+          </CBAMTabButton>
+        ))}
+      </nav>
     </div>
   );
 };

@@ -20,29 +20,33 @@ export const CBAMStatsGrid: React.FC<CBAMStatsGridProps> = ({
       icon: Factory,
       title: '사업장',
       value: installs.length,
-      bgColor: 'bg-blue-100',
-      iconColor: 'text-blue-600'
+      bgColor: 'bg-blue-50',
+      iconColor: 'text-blue-600',
+      borderColor: 'border-blue-200'
     },
     {
       icon: Package,
       title: '제품',
       value: products.length,
-      bgColor: 'bg-green-100',
-      iconColor: 'text-green-600'
+      bgColor: 'bg-green-50',
+      iconColor: 'text-green-600',
+      borderColor: 'border-green-200'
     },
     {
       icon: Settings,
       title: '공정',
       value: processes.length,
-      bgColor: 'bg-purple-100',
-      iconColor: 'text-purple-600'
+      bgColor: 'bg-purple-50',
+      iconColor: 'text-purple-600',
+      borderColor: 'border-purple-200'
     },
     {
       icon: MapPin,
       title: '매핑',
       value: mappings.length,
-      bgColor: 'bg-orange-100',
-      iconColor: 'text-orange-600'
+      bgColor: 'bg-orange-50',
+      iconColor: 'text-orange-600',
+      borderColor: 'border-orange-200'
     }
   ];
 

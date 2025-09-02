@@ -17,12 +17,12 @@ import {
 import { Button } from '@/components/atomic/atoms';
 import Link from 'next/link';
 
-// 타입 정의
+// 타입 정의 - 새로운 스키마 기반
 type DataRow = {
   생산품명?: string;
   로트번호?: string;
   운송물질?: string;
-  운송수량?: string;
+  운송수량?: number;
   운송일자?: string;
   도착공정?: string;
   출발지?: string;
@@ -259,20 +259,27 @@ const TransportDataPage: React.FC = () => {
       );
     }
     
-    // 운송수량 - 숫자만 입력 + 즉시 필터링
+    // 운송수량 - 숫자만 입력 + 즉시 필터링 (소수점 허용)
     if (column === '운송수량') {
       return (
         <ControlledInput
           type="text"
           value={value}
           onChange={(newValue) => {
-            // 숫자만 허용
-            const filteredValue = newValue.replace(/[^\d]/g, '');
-            handleChange(filteredValue);
+            // 숫자와 소수점만 허용
+            const filteredValue = newValue.replace(/[^\d.]/g, '');
+            // 소수점이 여러 개 있는 경우 처리
+            const parts = filteredValue.split('.');
+            if (parts.length > 2) {
+              const finalValue = parts[0] + '.' + parts.slice(1).join('');
+              handleChange(finalValue);
+            } else {
+              handleChange(filteredValue);
+            }
           }}
           onKeyDown={(e) => {
-            // 숫자, 백스페이스, 삭제, 화살표 키만 허용
-            const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+            // 숫자, 소수점, 백스페이스, 삭제, 화살표 키만 허용
+            const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', '.'];
             if (!/\d/.test(e.key) && !allowedKeys.includes(e.key)) {
               e.preventDefault();
               return false;
@@ -281,7 +288,7 @@ const TransportDataPage: React.FC = () => {
           onPaste={(e) => {
             e.preventDefault();
             const pastedText = e.clipboardData.getData('text');
-            const filteredText = pastedText.replace(/[^\d]/g, '');
+            const filteredText = pastedText.replace(/[^\d.]/g, '');
             if (filteredText) {
               handleChange(filteredText);
             }
@@ -289,14 +296,14 @@ const TransportDataPage: React.FC = () => {
           onInput={(e: React.FormEvent<HTMLInputElement>) => {
             // 입력 이벤트에서도 필터링
             const target = e.target as HTMLInputElement;
-            const filteredValue = target.value.replace(/[^\d]/g, '');
+            const filteredValue = target.value.replace(/[^\d.]/g, '');
             if (target.value !== filteredValue) {
               target.value = filteredValue;
               handleChange(filteredValue);
             }
           }}
-          placeholder="숫자만 입력"
-          maxLength={10}
+          placeholder="숫자 입력 (소수점 허용)"
+          maxLength={15}
           required={isRequired}
           error={error}
         />
@@ -454,10 +461,21 @@ const TransportDataPage: React.FC = () => {
         }
       };
 
-      const processedData = inputData.data.map((row: any) => ({
-        ...row,
-        '운송일자': convertExcelDate(row['운송일자'])
-      }));
+      const processedData = inputData.data.map((row: any) => {
+        // 운송수량을 숫자로 변환
+        const 운송수량 = parseFloat(row['운송수량']?.toString() || '0');
+        
+        // 운송수량이 0 이하인 경우 오류 처리
+        if (운송수량 <= 0) {
+          throw new Error('운송수량은 0보다 큰 값이어야 합니다.');
+        }
+        
+        return {
+          ...row,
+          '운송수량': 운송수량,
+          '운송일자': convertExcelDate(row['운송일자'])
+        };
+      });
 
       const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
       const response = await fetch(`${gatewayUrl}/save-transport-data`, {

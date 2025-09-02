@@ -18,9 +18,8 @@ const LcaTabsNav: React.FC<LcaTabsNavProps> = ({
   onSegmentChange 
 }) => {
   const mainTabs = [
-    { key: 'base', label: '실적정보' },
-    { key: 'actual', label: '투입물' },
-    { key: 'output', label: '산출물' },
+    { key: 'actual', label: '실적데이터(투입물)' },
+    { key: 'output', label: '실적데이터(산출물)' },
     { key: 'transport', label: '운송정보' },
     { key: 'process', label: '공정정보' },
     { key: 'manage', label: '데이터관리' },
@@ -44,18 +43,19 @@ const LcaTabsNav: React.FC<LcaTabsNavProps> = ({
         className="mb-6"
       />
 
-      {/* 데이터관리 하위탭 */}
-      {activeTab === 'manage' && activeSegment && onSegmentChange && (
-        <div className="border-t border-gray-200 pt-4">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">데이터 분류</h3>
-          <Tabs
-            items={manageSubTabs}
-            value={activeSegment}
-            onChange={onSegmentChange}
-            variant="pills"
-          />
-        </div>
-      )}
+                                                       {/* 데이터관리 하위탭 */}
+         {activeTab === 'manage' && activeSegment && onSegmentChange && (
+           <div className="pt-2 mt-2">
+             <h3 className="text-lg font-semibold text-gray-900 mb-2">데이터 분류</h3>
+             <Tabs
+               items={manageSubTabs}
+               value={activeSegment}
+               onChange={onSegmentChange}
+               variant="pills"
+               className="flex-wrap"
+             />
+           </div>
+         )}
     </div>
   );
 };

@@ -22,12 +22,13 @@ import { Button } from '@/components/atomic/atoms';
 import { Input } from '@/components/atomic/atoms';
 import Link from 'next/link';
 
-// 타입 정의
+// 타입 정의 - 새로운 스키마에 맞게 수정
 type DataRow = {
-  공정명?: string;
-  생산제품?: string;
-  세부공정?: string;
-  공정설명?: string;
+  공정명: string;
+  공정설명: string;
+  공정유형: string;
+  공정단계: string;
+  공정효율: number;
   [key: string]: any;
 };
 
@@ -115,35 +116,119 @@ const ProcessDataPage: React.FC = () => {
 
   // 공정 데이터는 텍스트 기반이므로 숫자/날짜 입력 제한 불필요
 
-  // 입력 유효성 검사
-  const validateInput = (column: string, value: string): { isValid: boolean; errorMessage: string } => {
-    if (value.length > 100) {
-      console.log(`글자 수 초과: ${column} - ${value.length}글자`);
-      return { isValid: false, errorMessage: '100자 이하로 입력해주세요.' };
+  // 입력 검증 함수 - 새로운 스키마에 맞게 수정
+  const validateInput = (value: string, field: string): string | null => {
+    if (!value || value.trim() === '') {
+      return `${field}은(는) 필수 입력 항목입니다.`;
     }
-    
-    switch (column) {
+
+    switch (field) {
       case '공정명':
-      case '생산제품':
-      case '세부공정':
-      case '공정설명':
-        const isTextValid = /^[가-힣a-zA-Z0-9\s\-_()]*$/.test(value);
-        if (!isTextValid) {
-          console.log(`텍스트 입력 오류: ${column} - ${value}`);
-          return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자만 입력 가능합니다.' };
+        if (value.length > 100) {
+          return '공정명은 100자를 초과할 수 없습니다.';
         }
-        return { isValid: true, errorMessage: '' };
+        break;
+      case '공정설명':
+        if (value.length > 500) {
+          return '공정설명은 500자를 초과할 수 없습니다.';
+        }
+        break;
+      case '공정유형':
+        if (value.length > 50) {
+          return '공정유형은 50자를 초과할 수 없습니다.';
+        }
+        break;
+      case '공정단계':
+        if (value.length > 50) {
+          return '공정단계는 50자를 초과할 수 없습니다.';
+        }
+        break;
+      case '공정효율':
+        const numValue = parseFloat(value);
+        if (isNaN(numValue)) {
+          return '공정효율은 숫자여야 합니다.';
+        }
+        if (numValue < 0 || numValue > 100) {
+          return '공정효율은 0에서 100 사이의 값이어야 합니다.';
+        }
+        break;
       default:
-        return { isValid: true, errorMessage: '' };
+        break;
     }
+
+    return null;
+  };
+
+  // 행 확인 함수 - 새로운 스키마에 맞게 수정
+  const confirmRow = (rowId: string) => {
+    const row = editableInputRows.find(r => r.id === rowId);
+    if (!row) return;
+
+    const errors: { [column: string]: string } = {};
+    let hasErrors = false;
+
+    // 필수 필드 검증
+    const requiredFields = ['공정명', '공정유형', '공정단계'];
+    requiredFields.forEach(field => {
+      const error = validateInput(row.modifiedData[field] || '', field);
+      if (error) {
+        errors[field] = error;
+        hasErrors = true;
+      }
+    });
+
+    // 공정효율 검증 (선택사항이지만 입력된 경우)
+    if (row.modifiedData.공정효율 !== undefined && row.modifiedData.공정효율 !== null) {
+      const error = validateInput(row.modifiedData.공정효율.toString(), '공정효율');
+      if (error) {
+        errors['공정효율'] = error;
+        hasErrors = true;
+      }
+    }
+
+    if (hasErrors) {
+      setRowErrors(prev => ({
+        ...prev,
+        [rowId]: errors
+      }));
+      return;
+    }
+
+    // 오류가 없으면 행을 확인 상태로 변경
+    setEditableInputRows(prev => 
+      prev.map(r => 
+        r.id === rowId 
+          ? { ...r, isEditing: false, originalData: r.modifiedData }
+          : r
+      )
+    );
+
+    // 오류 상태 정리
+    clearRowError(rowId, '공정명');
+    clearRowError(rowId, '공정설명');
+    clearRowError(rowId, '공정유형');
+    clearRowError(rowId, '공정단계');
+    clearRowError(rowId, '공정효율');
   };
 
   // 새로운 행 추가 핸들러
   const addNewRow = () => {
     const newRow: EditableRow = {
       id: `process-${editableInputRows.length}`,
-      originalData: {},
-      modifiedData: {},
+      originalData: {
+        공정명: '',
+        공정설명: '',
+        공정유형: '',
+        공정단계: '',
+        공정효율: 0
+      },
+      modifiedData: {
+        공정명: '',
+        공정설명: '',
+        공정유형: '',
+        공정단계: '',
+        공정효율: 0
+      },
       isEditing: true,
       isNewlyAdded: true
     };
@@ -154,7 +239,7 @@ const ProcessDataPage: React.FC = () => {
   const renderInputField = (row: EditableRow, column: string) => {
     const value = row.modifiedData[column] || '';
     const isNewRow = row.isNewlyAdded;
-    const isRequired = isNewRow && ['공정명', '생산제품', '세부공정', '공정설명'].includes(column);
+    const isRequired = isNewRow && ['공정명', '공정유형', '공정단계'].includes(column);
     
     const getInputClassName = () => {
       let baseClass = 'w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
@@ -180,76 +265,16 @@ const ProcessDataPage: React.FC = () => {
               maxLength={50}
               onChange={(e) => {
                 const newValue = e.target.value;
-                const { isValid, errorMessage } = validateInput(column, newValue);
-                if (isValid) {
+                const error = validateInput(newValue, column);
+                if (!error) {
                   handleInputChange(row.id, column, newValue);
                   clearRowError(row.id, column);
                 } else {
                   handleInputChange(row.id, column, newValue);
-                  updateRowError(row.id, column, errorMessage);
+                  updateRowError(row.id, column, error);
                 }
               }}
               placeholder={isRequired ? '공정명을 입력하세요 *' : '공정명을 입력하세요'}
-              className={getInputClassName()}
-            />
-            {isRequired && (
-              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
-            )}
-            {rowErrors[row.id]?.[column] && (
-              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
-            )}
-          </div>
-        );
-      
-      case '생산제품':
-        return (
-          <div className='relative'>
-            <input
-              type='text'
-              value={value}
-              maxLength={50}
-              onChange={(e) => {
-                const newValue = e.target.value;
-                const { isValid, errorMessage } = validateInput(column, newValue);
-                if (isValid) {
-                  handleInputChange(row.id, column, newValue);
-                  clearRowError(row.id, column);
-                } else {
-                  handleInputChange(row.id, column, newValue);
-                  updateRowError(row.id, column, errorMessage);
-                }
-              }}
-              placeholder={isRequired ? '생산제품을 입력하세요 *' : '생산제품을 입력하세요'}
-              className={getInputClassName()}
-            />
-            {isRequired && (
-              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
-            )}
-            {rowErrors[row.id]?.[column] && (
-              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
-            )}
-          </div>
-        );
-      
-      case '세부공정':
-        return (
-          <div className='relative'>
-            <input
-              type='text'
-              value={value}
-              maxLength={50}
-              onChange={(e) => {
-                const newValue = e.target.value;
-                const { isValid, errorMessage } = validateInput(column, newValue);
-                if (isValid) {
-                  handleInputChange(row.id, column, newValue);
-                  clearRowError(row.id, column);
-                } else {
-                  handleInputChange(row.id, column, newValue);
-                  updateRowError(row.id, column, errorMessage);
-                }
-              }}
-              placeholder={isRequired ? '세부공정을 입력하세요 *' : '세부공정을 입력하세요'}
               className={getInputClassName()}
             />
             {isRequired && (
@@ -270,13 +295,13 @@ const ProcessDataPage: React.FC = () => {
               rows={3}
               onChange={(e) => {
                 const newValue = e.target.value;
-                const { isValid, errorMessage } = validateInput(column, newValue);
-                if (isValid) {
+                const error = validateInput(newValue, column);
+                if (!error) {
                   handleInputChange(row.id, column, newValue);
                   clearRowError(row.id, column);
                 } else {
                   handleInputChange(row.id, column, newValue);
-                  updateRowError(row.id, column, errorMessage);
+                  updateRowError(row.id, column, error);
                 }
               }}
               placeholder={isRequired ? '공정설명을 입력하세요 *' : '공정설명을 입력하세요'}
@@ -285,6 +310,92 @@ const ProcessDataPage: React.FC = () => {
             {isRequired && (
               <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
             )}
+            {rowErrors[row.id]?.[column] && (
+              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
+            )}
+          </div>
+        );
+      
+      case '공정유형':
+        return (
+          <div className='relative'>
+            <input
+              type='text'
+              value={value}
+              maxLength={50}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                const error = validateInput(newValue, column);
+                if (!error) {
+                  handleInputChange(row.id, column, newValue);
+                  clearRowError(row.id, column);
+                } else {
+                  handleInputChange(row.id, column, newValue);
+                  updateRowError(row.id, column, error);
+                }
+              }}
+              placeholder={isRequired ? '공정유형을 입력하세요 *' : '공정유형을 입력하세요'}
+              className={getInputClassName()}
+            />
+            {isRequired && (
+              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+            )}
+            {rowErrors[row.id]?.[column] && (
+              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
+            )}
+          </div>
+        );
+      
+      case '공정단계':
+        return (
+          <div className='relative'>
+            <input
+              type='text'
+              value={value}
+              maxLength={50}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                const error = validateInput(newValue, column);
+                if (!error) {
+                  handleInputChange(row.id, column, newValue);
+                  clearRowError(row.id, column);
+                } else {
+                  handleInputChange(row.id, column, newValue);
+                  updateRowError(row.id, column, error);
+                }
+              }}
+              placeholder={isRequired ? '공정단계를 입력하세요 *' : '공정단계를 입력하세요'}
+              className={getInputClassName()}
+            />
+            {isRequired && (
+              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+            )}
+            {rowErrors[row.id]?.[column] && (
+              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
+            )}
+          </div>
+        );
+      
+      case '공정효율':
+        return (
+          <div className='relative'>
+            <input
+              type='number'
+              value={value}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                const error = validateInput(newValue, column);
+                if (!error) {
+                  handleInputChange(row.id, column, newValue);
+                  clearRowError(row.id, column);
+                } else {
+                  handleInputChange(row.id, column, newValue);
+                  updateRowError(row.id, column, error);
+                }
+              }}
+              placeholder='공정효율 (0-100)'
+              className={getInputClassName()}
+            />
             {rowErrors[row.id]?.[column] && (
               <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
             )}
@@ -300,13 +411,13 @@ const ProcessDataPage: React.FC = () => {
               maxLength={50}
               onChange={(e) => {
                 const newValue = e.target.value;
-                const { isValid, errorMessage } = validateInput(column, newValue);
-                if (isValid) {
+                const error = validateInput(newValue, column);
+                if (!error) {
                   handleInputChange(row.id, column, newValue);
                   clearRowError(row.id, column);
                 } else {
                   handleInputChange(row.id, column, newValue);
-                  updateRowError(row.id, column, errorMessage);
+                  updateRowError(row.id, column, error);
                 }
               }}
               placeholder={isRequired ? `${column}을 입력하세요 *` : `${column}을 입력하세요`}
@@ -428,45 +539,60 @@ const ProcessDataPage: React.FC = () => {
 
   // DB 저장 핸들러
   const handleSaveToDatabase = async () => {
-    if (!inputData || inputData.data.length === 0) {
+    if (editableInputRows.length === 0) {
       setError('저장할 데이터가 없습니다.');
       return;
     }
 
     setIsSavingToDB(true);
-          setDbSaveStatus('');
     setError(null);
 
     try {
-      const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
-      const response = await fetch(`${gatewayUrl}/save-process-data`, {
+      // 수정된 데이터만 필터링
+      const dataToSave = editableInputRows
+        .filter(row => !row.isEditing)
+        .map(row => ({
+          공정명: row.modifiedData.공정명 || '',
+          공정설명: row.modifiedData.공정설명 || '',
+          공정유형: row.modifiedData.공정유형 || '',
+          공정단계: row.modifiedData.공정단계 || '',
+          공정효율: row.modifiedData.공정효율 !== undefined ? parseFloat(row.modifiedData.공정효율.toString()) : 0
+        }))
+        .filter(row => row.공정명 && row.공정유형 && row.공정단계); // 필수 필드가 있는 행만
+
+      if (dataToSave.length === 0) {
+        setError('저장할 유효한 데이터가 없습니다.');
+        return;
+      }
+
+      const response = await fetch('/save-process-data', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          filename: inputData.filename,
-          data: inputData.data,
-          columns: inputData.columns
+          filename: inputData?.filename || 'process_data.xlsx',
+          data: dataToSave
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`데이터베이스 저장 실패: ${response.status}`);
-      }
-
-      const responseData = await response.json();
-      if (responseData.success) {
-        setDbSaveStatus(`✅ ${responseData.message || '데이터베이스에 성공적으로 저장되었습니다.'}`);
-        console.log('데이터베이스 저장 성공:', responseData);
+      if (response.ok) {
+        const result = await response.json();
+        setDbSaveStatus(`데이터베이스 저장 완료: ${result.saved_count || dataToSave.length}행`);
+        
+        // 성공적으로 저장된 행들을 제거
+        setEditableInputRows([]);
+        setInputData(null);
+        setInputFile(null);
+        if (inputFileRef.current) {
+          inputFileRef.current.value = '';
+        }
       } else {
-        throw new Error(responseData.message || '데이터베이스 저장 실패');
+        const errorData = await response.json();
+        setError(`데이터베이스 저장 실패: ${errorData.message || '알 수 없는 오류'}`);
       }
-
     } catch (err) {
-      console.error('데이터베이스 저장 오류:', err);
-      setError(`데이터베이스 저장 중 오류가 발생했습니다: ${err}`);
-      setDbSaveStatus(`❌ 데이터베이스 저장 실패: ${err}`);
+      setError(`저장 중 오류 발생: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
     } finally {
       setIsSavingToDB(false);
     }

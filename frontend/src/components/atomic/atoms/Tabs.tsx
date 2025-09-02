@@ -40,19 +40,19 @@ const Tabs = <T extends string = string>({
       container: 'flex space-x-1 bg-gray-100 rounded-lg p-1',
       tab: 'px-3 py-2 text-sm font-medium rounded-md transition-colors',
       active: 'bg-white text-gray-900 shadow-sm',
-      inactive: 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+      inactive: 'text-gray-500 hover:text-gray-900 hover:bg-gray-200'
     },
     underline: {
-      container: 'flex space-x-8 border-b border-gray-200',
-      tab: 'px-1 py-4 text-sm font-medium transition-colors',
-      active: 'border-b-2 border-blue-500 text-blue-600',
-      inactive: 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
+      container: 'flex space-x-1 bg-gray-900 rounded-lg p-1',
+      tab: 'px-4 py-2 text-sm font-medium rounded-md transition-colors',
+      active: 'bg-gray-700 text-white shadow-sm',
+      inactive: 'text-gray-400 hover:text-gray-300 hover:bg-gray-800'
     },
     pills: {
-      container: 'flex space-x-2',
-      tab: 'px-4 py-2 text-sm font-medium rounded-full transition-colors',
+      container: 'flex flex-wrap gap-2',
+      tab: 'px-4 py-2 text-sm font-medium rounded-full transition-colors whitespace-nowrap',
       active: 'bg-blue-600 text-white',
-      inactive: 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+      inactive: 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
     }
   };
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import CommonShell from '@/components/common/CommonShell';
 import LcaTabsNav from '@/components/atomic/molecules/LcaTabsNav';
 import { LcaTabKey, ManageSegment } from '@/lib';
@@ -18,7 +18,9 @@ import {
   Package,
   Factory,
   BarChart3,
-  ArrowRight
+  ArrowRight,
+  Filter,
+  X
 } from 'lucide-react';
 
 // DB 테이블의 실제 칼럼에 맞춘 인터페이스
@@ -131,7 +133,7 @@ interface FuelData {
 }
 
 export default function LcaPage() {
-  const [activeTab, setActiveTab] = useState<LcaTabKey | 'manage'>('base');
+  const [activeTab, setActiveTab] = useState<LcaTabKey | 'manage'>('actual');
   const [activeSegment, setActiveSegment] = useState<ManageSegment>('mat');
   
   const [inputData, setInputData] = useState<InputData[]>([]);
@@ -231,6 +233,17 @@ export default function LcaPage() {
       setIsLoading(false);
     }
   };
+
+  // URL 쿼리 파라미터에서 탭 정보 읽기
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get('tab');
+      if (tabParam && (tabParam === 'actual' || tabParam === 'output' || tabParam === 'transport' || tabParam === 'process' || tabParam === 'manage')) {
+        setActiveTab(tabParam as LcaTabKey | 'manage');
+      }
+    }
+  }, []);
 
   useEffect(() => {
     loadData();

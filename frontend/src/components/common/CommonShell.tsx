@@ -36,11 +36,11 @@ const CommonShell: React.FC<CommonShellProps> = ({ children }) => {
       description: 'ESG 요약 및 최근 활동',
     },
     {
-      name: 'LCA',
-      href: '/lca',
-      icon: BarChart3,
-      current: pathname.startsWith('/lca'),
-      description: '생명주기 평가 프로젝트 관리',
+      name: '데이터 업로드',
+      href: '/data-upload',
+      icon: Upload,
+      current: pathname.startsWith('/data-upload'),
+      description: 'ESG 데이터 업로드 및 관리',
     },
     {
       name: 'CBAM',
@@ -50,11 +50,11 @@ const CommonShell: React.FC<CommonShellProps> = ({ children }) => {
       description: 'CBAM 보고서 및 계산',
     },
     {
-      name: '데이터 업로드',
-      href: '/data-upload',
-      icon: Upload,
-      current: pathname.startsWith('/data-upload'),
-      description: 'ESG 데이터 업로드 및 관리',
+      name: 'LCA',
+      href: '/lca',
+      icon: BarChart3,
+      current: pathname.startsWith('/lca'),
+      description: '생명주기 평가 프로젝트 관리',
     },
     {
       name: '설정',
@@ -68,18 +68,18 @@ const CommonShell: React.FC<CommonShellProps> = ({ children }) => {
   // 하위 페이지 정의
   const subPages = {
     '/lca': [
-      { name: '기준데이터', href: '/lca', description: 'LCA 기준 데이터 관리' },
-      { name: '실적데이터', href: '/lca', description: 'LCA 실적 데이터 관리' },
-      { name: '데이터관리', href: '/lca', description: 'LCA 데이터 분류 관리' },
-      { name: '운송데이터', href: '/lca', description: 'LCA 운송 데이터 관리' },
-      { name: '공정데이터', href: '/lca', description: 'LCA 공정 데이터 관리' },
+      { name: '투입물', href: '/lca?tab=actual', description: 'LCA 투입물 데이터 관리' },
+      { name: '산출물', href: '/lca?tab=output', description: 'LCA 산출물 데이터 관리' },
+      { name: '운송데이터', href: '/lca?tab=transport', description: 'LCA 운송 데이터 관리' },
+      { name: '공정데이터', href: '/lca?tab=process', description: 'LCA 공정 데이터 관리' },
+      { name: '데이터관리', href: '/lca?tab=manage', description: 'LCA 데이터 분류 관리' },
     ],
     '/cbam': [
-      { name: '개요', href: '/cbam', description: 'CBAM 개요 및 정보' },
-      { name: '프로세스 관리', href: '/cbam', description: 'CBAM 프로세스 플로우' },
-      { name: '계산', href: '/cbam', description: 'CBAM 계산 및 제품 관리' },
-      { name: '보고서', href: '/cbam', description: 'CBAM 보고서 생성' },
-      { name: '설정', href: '/cbam', description: 'CBAM 설정 관리' },
+      { name: '개요', href: '/cbam?tab=overview', description: 'CBAM 개요 및 정보' },
+      { name: '사업장관리', href: '/cbam?tab=install', description: 'CBAM 프로세스 플로우' },
+      { name: '산정경계설정', href: '/cbam?tab=boundary', description: 'CBAM 계산 및 제품 관리' },
+      { name: '보고서', href: '/cbam?tab=reports', description: 'CBAM 보고서 생성' },
+      { name: '설정', href: '/cbam?tab=settings', description: 'CBAM 설정 관리' },
     ],
     '/data-upload': [
       { name: '실적정보(투입물)', href: '/data-upload/input', description: '실적정보(투입물) 업로드' },

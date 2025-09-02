@@ -21,37 +21,25 @@ import { Button } from '@/components/atomic/atoms';
 import { Input } from '@/components/atomic/atoms';
 import Link from 'next/link';
 
-// 타입 정의
+// 타입 정의 - 새로운 스키마 기반 (AI추천답변은 frontend에서만 표시, DB에는 저장하지 않음)
 type DataRow = {
-  로트번호?: string | number;
+  로트번호?: string;
   생산품명?: string;
-  생산수량?: string | number;
-  투입일?: string | number;
-  종료일?: string | number;
+  생산수량?: number;
+  투입일?: string;
+  종료일?: string;
   공정?: string;
   투입물명?: string;
-  수량?: string | number;
+  수량?: number;
   단위?: string;
-  AI추천답변?: string;
+  AI추천답변?: string; // frontend에서만 표시, DB 저장 시 투입물명으로 대체
   [key: string]: any;
 };
 
 interface DataPreview {
   filename: string;
   fileSize: string;
-  data: Array<{
-    로트번호?: string | number;
-    생산품명?: string;
-    생산수량?: string | number;
-    투입일?: string | number;
-    종료일?: string | number;
-    공정?: string;
-    투입물명?: string;
-    수량?: string | number;
-    단위?: string;
-    AI추천답변?: string;
-    [key: string]: any;
-  }>;
+  data: Array<DataRow>;
   columns: string[];
 }
 
@@ -61,50 +49,14 @@ interface AIProcessedData {
   filename: string;
   total_rows: number;
   processed_rows: number;
-  data: Array<{
-    로트번호?: string | number;
-    생산품명?: string;
-    생산수량?: string | number;
-    투입일?: string | number;
-    종료일?: string | number;
-    공정?: string;
-    투입물명?: string;
-    수량?: string | number;
-    단위?: string;
-    AI추천답변?: string;
-    [key: string]: any;
-  }>;
+  data: Array<DataRow>;
   columns: string[];
 }
 
 interface EditableRow {
   id: string;
-  originalData: {
-    로트번호?: string | number;
-    생산품명?: string;
-    생산수량?: string | number;
-    투입일?: string | number;
-    종료일?: string | number;
-    공정?: string;
-    투입물명?: string;
-    수량?: string | number;
-    단위?: string;
-    AI추천답변?: string;
-    [key: string]: any;
-  };
-  modifiedData: {
-    로트번호?: string | number;
-    생산품명?: string;
-    생산수량?: string | number;
-    투입일?: string | number;
-    종료일?: string | number;
-    공정?: string;
-    투입물명?: string;
-    수량?: string | number;
-    단위?: string;
-    AI추천답변?: string;
-    [key: string]: any;
-  };
+  originalData: DataRow;
+  modifiedData: DataRow;
   isEditing: boolean;
   isNewlyAdded?: boolean;
 }
@@ -488,22 +440,22 @@ const InputDataPage: React.FC = () => {
     });
   };
 
-  // 행 확인 (DB 저장 없이 편집 완료)
+  // 행 확인 (DB 저장 없이 편집 완료) - 새로운 스키마 기반
   const confirmRow = async (rowId: string) => {
     const row = editableInputRows.find(r => r.id === rowId);
     if (!row) return;
 
-         // Excel 데이터의 AI 추천 답변 편집 시 수정 사유 확인
-     if (!row.isNewlyAdded) {
-       const reason = editReasons[rowId] || '';
-       if (!reason.trim()) {
-         setError('Excel 데이터의 AI 추천 답변을 편집할 때는 수정 사유를 입력해주세요.');
-         return;
-       }
-     }
+    // Excel 데이터의 AI 추천 답변 편집 시 수정 사유 확인
+    if (!row.isNewlyAdded) {
+      const reason = editReasons[rowId] || '';
+      if (!reason.trim()) {
+        setError('Excel 데이터의 AI 추천 답변을 편집할 때는 수정 사유를 입력해주세요.');
+        return;
+      }
+    }
 
-     // 수동으로 추가된 데이터인 경우 모든 필수 필드 검증
-     if (row.isNewlyAdded) {
+    // 수동으로 추가된 데이터인 경우 모든 필수 필드 검증
+    if (row.isNewlyAdded) {
       const requiredFields = ['로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '투입물명', '수량', '단위'];
       const missingFields = [];
       const invalidFields = [];
@@ -525,6 +477,20 @@ const InputDataPage: React.FC = () => {
         } else {
           clearRowError(rowId, field);
         }
+      }
+
+      // 추가 데이터 타입 검증
+      const 생산수량 = parseFloat(row.modifiedData['생산수량']?.toString() || '0');
+      const 수량 = parseFloat(row.modifiedData['수량']?.toString() || '0');
+      
+      if (생산수량 <= 0) {
+        invalidFields.push('생산수량');
+        updateRowError(rowId, '생산수량', '생산수량은 0보다 큰 값이어야 합니다.');
+      }
+      
+      if (수량 <= 0) {
+        invalidFields.push('수량');
+        updateRowError(rowId, '수량', '수량은 0보다 큰 값이어야 합니다.');
       }
 
       // 오류가 있으면 확인 거부
@@ -597,21 +563,32 @@ const InputDataPage: React.FC = () => {
     }
   };
 
-  // 입력 유효성 검사
+  // 입력 유효성 검사 - 새로운 스키마 기반
   const validateInput = (column: string, value: string): { isValid: boolean; errorMessage: string } => {
-    if (value.length > 20) {
+    if (value.length > 50) {
       console.log(`글자 수 초과: ${column} - ${value.length}글자`);
-      return { isValid: false, errorMessage: '20자 이하로 입력해주세요.' };
+      return { isValid: false, errorMessage: '50자 이하로 입력해주세요.' };
     }
     
     switch (column) {
       case '로트번호':
+        // 로트번호는 문자열로 처리
+        if (!value || value.trim() === '') {
+          return { isValid: false, errorMessage: '로트번호는 필수 입력 항목입니다.' };
+        }
+        return { isValid: true, errorMessage: '' };
       case '생산수량':
       case '수량':
-        const isNumberValid = /^\d*$/.test(value);
+        // 수량은 숫자만 입력 가능
+        const isNumberValid = /^\d+(\.\d+)?$/.test(value);
         if (!isNumberValid) {
           console.log(`숫자만 입력 가능: ${column} - ${value}`);
           return { isValid: false, errorMessage: '숫자만 입력 가능합니다.' };
+        }
+        // 0보다 큰 값인지 확인
+        const numValue = parseFloat(value);
+        if (numValue <= 0) {
+          return { isValid: false, errorMessage: '0보다 큰 값을 입력해주세요.' };
         }
         return { isValid: true, errorMessage: '' };
       case '투입일':
@@ -644,22 +621,11 @@ const InputDataPage: React.FC = () => {
         
         return { isValid: true, errorMessage: '' };
       case '생산품명':
-        const isProductNameValid = /^[가-힣a-zA-Z0-9\s\-_()]*$/.test(value);
-        if (!isProductNameValid) {
-          console.log(`텍스트 입력 오류: ${column} - ${value}`);
-          return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자만 입력 가능합니다.' };
-        }
-        return { isValid: true, errorMessage: '' };
-      case '공정':
-        const isProcessValid = /^[가-힣a-zA-Z0-9\s\-_()]*$/.test(value);
-        if (!isProcessValid) {
-          console.log(`텍스트 입력 오류: ${column} - ${value}`);
-          return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자만 입력 가능합니다.' };
-        }
-        return { isValid: true, errorMessage: '' };
       case '투입물명':
-        const isMaterialNameValid = /^[가-힣a-zA-Z0-9\s\-_()]*$/.test(value);
-        if (!isMaterialNameValid) {
+      case '공정':
+        // 한글, 영문, 숫자, 공백, 특수문자 허용
+        const isNameValid = /^[가-힣a-zA-Z0-9\s\-_()]*$/.test(value);
+        if (!isNameValid) {
           console.log(`텍스트 입력 오류: ${column} - ${value}`);
           return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자만 입력 가능합니다.' };
         }
@@ -809,7 +775,7 @@ const InputDataPage: React.FC = () => {
             <input
               type='text'
               value={value}
-              maxLength={20}
+              maxLength={50}
               onChange={(e) => {
                 const newValue = e.target.value;
                 const { isValid, errorMessage } = validateInput(column, newValue);
@@ -821,8 +787,7 @@ const InputDataPage: React.FC = () => {
                   updateRowError(row.id, column, errorMessage);
                 }
               }}
-              onKeyDown={(e) => handleNumericInput(e, column)}
-              placeholder={isRequired ? '한글/영문/숫자 입력 *' : '한글/영문/숫자 입력'}
+              placeholder={isRequired ? '공정명을 입력하세요 *' : '공정명을 입력하세요'}
               className={getInputClassName()}
             />
             {isRequired && (
@@ -995,31 +960,34 @@ const InputDataPage: React.FC = () => {
         }
       };
 
-      // AI 추천 답변을 투입물명에 적용하여 저장할 데이터 준비
-      const dataToSave = editableInputRows.map(row => {
-        const aiRecommendation = row.modifiedData['AI추천답변'] || '';
-        const unit = row.modifiedData['단위'] && row.modifiedData['단위'].trim() ? row.modifiedData['단위'] : 't';
-        
-        // AI 추천 답변이 있으면 투입물명에 적용, 없으면 원본 투입물명 유지
-        let 투입물명 = aiRecommendation || row.modifiedData['투입물명'] || '';
-        
-        // 투입물명 길이 제한 (데이터베이스 컬럼 제한 고려)
-        if (투입물명.length > 100) {
-          투입물명 = 투입물명.substring(0, 100);
-          console.warn(`투입물명이 너무 길어서 자동으로 잘렸습니다: ${투입물명}`);
-        }
-        
-        return {
-          ...row.modifiedData,
-          // AI 추천 답변이 있으면 투입물명에 적용, 없으면 원본 투입물명 유지
-          '투입물명': 투입물명,
-          // 빈 단위 값은 't'로 설정
-          '단위': unit,
-          // Excel 날짜를 PostgreSQL date 형식으로 변환
-          '투입일': convertExcelDate(row.modifiedData['투입일']),
-          '종료일': convertExcelDate(row.modifiedData['종료일'])
-        };
-      });
+             // AI 추천 답변을 투입물명에 적용하여 저장할 데이터 준비 - AI추천답변은 DB에 저장하지 않음
+       const dataToSave = editableInputRows.map(row => {
+         const aiRecommendation = row.modifiedData['AI추천답변'] || '';
+         const unit = row.modifiedData['단위'] && row.modifiedData['단위'].trim() ? row.modifiedData['단위'] : 't';
+         
+         // AI 추천 답변이 있으면 투입물명에 적용, 없으면 원본 투입물명 유지
+         let 투입물명 = aiRecommendation || row.modifiedData['투입물명'] || '';
+         
+         // 투입물명 길이 제한 (데이터베이스 컬럼 제한 고려)
+         if (투입물명.length > 100) {
+           투입물명 = 투입물명.substring(0, 100);
+           console.warn(`투입물명이 너무 길어서 자동으로 잘렸습니다: ${투입물명}`);
+         }
+         
+         // DB에 저장할 데이터에서 AI추천답변 제거하고 투입물명만 포함
+         const { AI추천답변, ...dataForDB } = row.modifiedData;
+         
+         return {
+           ...dataForDB,
+           // AI 추천 답변이 있으면 투입물명에 적용, 없으면 원본 투입물명 유지
+           '투입물명': 투입물명,
+           // 빈 단위 값은 't'로 설정
+           '단위': unit,
+           // Excel 날짜를 PostgreSQL date 형식으로 변환
+           '투입일': convertExcelDate(row.modifiedData['투입일']),
+           '종료일': convertExcelDate(row.modifiedData['종료일'])
+         };
+       });
 
       const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
       const response = await fetch(`${gatewayUrl}/save-processed-data`, {
@@ -1030,7 +998,7 @@ const InputDataPage: React.FC = () => {
         body: JSON.stringify({
           filename: inputFile?.name || 'unknown',
           data: dataToSave,
-          columns: Object.keys(dataToSave[0] || {})
+          columns: Object.keys(dataToSave[0] || {}).filter(col => col !== 'AI추천답변')
         }),
       });
 
@@ -1087,24 +1055,24 @@ const InputDataPage: React.FC = () => {
       originalData: {
         '로트번호': '',
         '생산품명': '',
-        '생산수량': '',
+        '생산수량': 0,
         '투입일': '',
         '종료일': '',
         '공정': '',
         '투입물명': '',
-        '수량': '',
+        '수량': 0,
         '단위': '',
         'AI추천답변': ''
       },
       modifiedData: {
         '로트번호': '',
         '생산품명': '',
-        '생산수량': '',
+        '생산수량': 0,
         '투입일': '',
         '종료일': '',
         '공정': '',
         '투입물명': '',
-        '수량': '',
+        '수량': 0,
         '단위': '',
         'AI추천답변': ''
       },
@@ -1150,31 +1118,46 @@ const InputDataPage: React.FC = () => {
         }
       };
 
-      // AI 추천 답변을 투입물명에 적용하여 저장할 데이터 준비
-      const dataToSave = editableInputRows.map(row => {
-        const aiRecommendation = row.modifiedData['AI추천답변'] || '';
-        const unit = row.modifiedData['단위'] && row.modifiedData['단위'].trim() ? row.modifiedData['단위'] : 't';
-        
-        // AI 추천 답변이 있으면 투입물명에 적용, 없으면 원본 투입물명 유지
-        let 투입물명 = aiRecommendation || row.modifiedData['투입물명'] || '';
-        
-        // 투입물명 길이 제한 (데이터베이스 컬럼 제한 고려)
-        if (투입물명.length > 100) {
-          투입물명 = 투입물명.substring(0, 100);
-          console.warn(`투입물명이 너무 길어서 자동으로 잘렸습니다: ${투입물명}`);
-        }
-        
-        return {
-          ...row.modifiedData,
-          // AI 추천 답변이 있으면 투입물명에 적용, 없으면 원본 투입물명 유지
-          '투입물명': 투입물명,
-          // 빈 단위 값은 't'로 설정
-          '단위': unit,
-          // Excel 날짜를 PostgreSQL date 형식으로 변환
-          '투입일': convertExcelDate(row.modifiedData['투입일']),
-          '종료일': convertExcelDate(row.modifiedData['종료일'])
-        };
-      });
+             // AI 추천 답변을 투입물명에 적용하여 저장할 데이터 준비 - AI추천답변은 DB에 저장하지 않음
+       const dataToSave = editableInputRows.map(row => {
+         const aiRecommendation = row.modifiedData['AI추천답변'] || '';
+         const unit = row.modifiedData['단위'] && row.modifiedData['단위'].trim() ? row.modifiedData['단위'] : 't';
+         
+         // AI 추천 답변이 있으면 투입물명에 적용, 없으면 원본 투입물명 유지
+         let 투입물명 = aiRecommendation || row.modifiedData['투입물명'] || '';
+         
+         // 투입물명 길이 제한 (데이터베이스 컬럼 제한 고려)
+         if (투입물명.length > 100) {
+           투입물명 = 투입물명.substring(0, 100);
+           console.warn(`투입물명이 너무 길어서 자동으로 잘렸습니다: ${투입물명}`);
+         }
+         
+         // 데이터 타입 변환 및 검증
+         const 생산수량 = parseFloat(row.modifiedData['생산수량']?.toString() || '0');
+         const 수량 = parseFloat(row.modifiedData['수량']?.toString() || '0');
+         
+         // 수량이 0 이하인 경우 오류 처리
+         if (생산수량 <= 0 || 수량 <= 0) {
+           throw new Error('생산수량과 수량은 0보다 큰 값이어야 합니다.');
+         }
+         
+         // DB에 저장할 데이터에서 AI추천답변 제거하고 투입물명만 포함
+         const { AI추천답변, ...dataForDB } = row.modifiedData;
+         
+         return {
+           ...dataForDB,
+           // AI 추천 답변이 있으면 투입물명에 적용, 없으면 원본 투입물명 유지
+           '투입물명': 투입물명,
+           // 빈 단위 값은 't'로 설정
+           '단위': unit,
+           // 수량을 숫자로 변환
+           '생산수량': 생산수량,
+           '수량': 수량,
+           // Excel 날짜를 PostgreSQL date 형식으로 변환
+           '투입일': convertExcelDate(row.modifiedData['투입일']),
+           '종료일': convertExcelDate(row.modifiedData['종료일'])
+         };
+       });
 
       const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
       const response = await fetch(`${gatewayUrl}/save-processed-data`, {
@@ -1185,7 +1168,7 @@ const InputDataPage: React.FC = () => {
         body: JSON.stringify({
           filename: inputFile?.name || 'unknown',
           data: dataToSave,
-          columns: Object.keys(dataToSave[0] || {})
+          columns: Object.keys(dataToSave[0] || {}).filter(col => col !== 'AI추천답변')
         }),
       });
 
@@ -1402,113 +1385,112 @@ const InputDataPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {editableInputRows.map((row) => (
-                      <tr key={row.id} className='border-b border-white/10 hover:bg-white/5'>
-                        {inputData.columns.map((column) => (
-                          <td key={column} className='border border-white/20 px-3 py-2 text-sm text-white'>
-                            {row.isEditing ? (
-                              renderInputField(row, column)
-                            ) : (
-                              <span>{row.modifiedData[column] || '-'}</span>
-                            )}
-                          </td>
-                        ))}
-                        <td className='border border-white/20 px-3 py-2 text-sm'>
-                          {row.isEditing ? (
-                            <div className='flex gap-2'>
-                              <Button
-                                onClick={() => confirmRow(row.id)}
-                                className='bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs'
-                              >
-                                <CheckCircle className='w-3 h-3 mr-1' />
-                                확인
-                              </Button>
-                              <Button
-                                onClick={() => cancelRowEdit(row.id)}
-                                className='bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-xs'
-                              >
-                                <X className='w-3 h-3 mr-1' />
-                                취소
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className='flex gap-2'>
-                              {/* 사용자가 직접 입력한 데이터인지 확인 */}
-                              {row.isNewlyAdded ? (
-                                // 사용자가 직접 입력한 데이터는 편집/삭제 모두 가능
-                                <>
-                                  <Button
-                                    onClick={() => toggleRowEdit(row.id)}
-                                    className='bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs'
-                                  >
-                                    <Edit3 className='w-3 h-3 mr-1' />
-                                    편집
-                                  </Button>
-                                  <Button
-                                    onClick={() => deleteRow(row.id)}
-                                    className='bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs'
-                                  >
-                                    <Trash2 className='w-3 h-3 mr-1' />
-                                    삭제
-                                  </Button>
-                                </>
-                              ) : (
-                                // Excel 데이터는 AI 추천답변만 편집 가능
-                                <Button
-                                  onClick={() => toggleRowEdit(row.id)}
-                                  className='bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs'
-                                >
-                                  <Edit3 className='w-3 h-3 mr-1' />
-                                  편집
-                                </Button>
-                              )}
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                                         {editableInputRows.map((row) => (
+                       <React.Fragment key={row.id}>
+                         <tr className='border-b border-white/10 hover:bg-white/5'>
+                           {inputData.columns.map((column) => (
+                             <td key={column} className='border border-white/20 px-3 py-2 text-sm text-white'>
+                               {row.isEditing ? (
+                                 renderInputField(row, column)
+                               ) : (
+                                 <span>{row.modifiedData[column] || '-'}</span>
+                               )}
+                             </td>
+                           ))}
+                           <td className='border border-white/20 px-3 py-2 text-sm'>
+                             {row.isEditing ? (
+                               <div className='flex gap-2'>
+                                 <Button
+                                   onClick={() => confirmRow(row.id)}
+                                   className='bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs'
+                                 >
+                                   <CheckCircle className='w-3 h-3 mr-1' />
+                                   확인
+                                 </Button>
+                                 <Button
+                                   onClick={() => cancelRowEdit(row.id)}
+                                   className='bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-xs'
+                                 >
+                                   <X className='w-3 h-3 mr-1' />
+                                   취소
+                                 </Button>
+                               </div>
+                             ) : (
+                               <div className='flex gap-2'>
+                                 {/* 사용자가 직접 입력한 데이터인지 확인 */}
+                                 {row.isNewlyAdded ? (
+                                   // 사용자가 직접 입력한 데이터는 편집/삭제 모두 가능
+                                   <>
+                                     <Button
+                                       onClick={() => toggleRowEdit(row.id)}
+                                       className='bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs'
+                                     >
+                                       <Edit3 className='w-3 h-3 mr-1' />
+                                       편집
+                                     </Button>
+                                     <Button
+                                       onClick={() => deleteRow(row.id)}
+                                       className='bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs'
+                                     >
+                                       <Trash2 className='w-3 h-3 mr-1' />
+                                       삭제
+                                     </Button>
+                                   </>
+                                 ) : (
+                                   // Excel 데이터는 AI 추천답변만 편집 가능
+                                   <Button
+                                     onClick={() => toggleRowEdit(row.id)}
+                                     className='bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs'
+                                   >
+                                     <Edit3 className='w-3 h-3 mr-1' />
+                                     편집
+                                   </Button>
+                                 )}
+                               </div>
+                             )}
+                           </td>
+                         </tr>
+                         
+                         {/* AI 추천 답변 수정 사유 입력 행 (편집 중이고 Excel 데이터인 경우에만) */}
+                         {row.isEditing && !row.isNewlyAdded && (
+                           <tr className='bg-white/5 border-b border-white/10'>
+                             <td colSpan={inputData.columns.length + 1} className='px-3 py-3'>
+                               <div className='flex items-center gap-3'>
+                                 <div className='flex-shrink-0'>
+                                   <span className='text-xs text-white/60 font-medium'>수정 사유:</span>
+                                 </div>
+                                 <div className='flex-1'>
+                                   <Input
+                                     type='text'
+                                     value={editReasons[row.id] || ''}
+                                     onChange={(e) => setEditReasons(prev => ({
+                                       ...prev,
+                                       [row.id]: e.target.value
+                                     }))}
+                                     placeholder='AI 추천 답변 수정 사유를 입력하세요'
+                                     className='w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary'
+                                   />
+                                 </div>
+                               </div>
+                             </td>
+                           </tr>
+                         )}
+                       </React.Fragment>
+                     ))}
                   </tbody>
                 </table>
               </div>
 
-              {/* 데이터 추가 버튼 */}
-              <div className='mt-4 flex justify-center'>
-                <Button
-                  onClick={addNewRow}
-                  className='bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center gap-2'
-                >
-                  <Plus className='w-4 h-4' />
-                  데이터 추가
-                </Button>
-              </div>
-
-                             {/* 수정 사유 입력 (AI 추천 답변 편집 시에만) */}
-               {editableInputRows.some(row => row.isEditing && !row.isNewlyAdded) && (
-                 <div className='mt-4 p-4 bg-white/5 rounded-lg'>
-                   <h4 className='text-sm font-medium text-white mb-2'>AI 추천 답변 수정 사유 입력</h4>
-                   <div className='flex gap-4'>
-                     {editableInputRows
-                       .filter(row => row.isEditing && !row.isNewlyAdded)
-                       .map(row => (
-                        <div key={row.id} className='flex-1'>
-                          <label className='block text-xs text-white/60 mb-1'>
-                            행 {row.id} 수정 사유
-                          </label>
-                          <Input
-                            type='text'
-                            value={editReasons[row.id] || ''}
-                            onChange={(e) => setEditReasons(prev => ({
-                              ...prev,
-                              [row.id]: e.target.value
-                            }))}
-                            placeholder='AI 추천 답변 수정 사유를 입력하세요'
-                            className='w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary'
-                          />
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              )}
+                             {/* 데이터 추가 버튼 */}
+               <div className='mt-4 flex justify-center'>
+                 <Button
+                   onClick={addNewRow}
+                   className='bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center gap-2'
+                 >
+                   <Plus className='w-4 h-4' />
+                   데이터 추가
+                 </Button>
+               </div>
 
                                            
             </div>

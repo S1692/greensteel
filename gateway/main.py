@@ -698,7 +698,7 @@ async def upload_input_data(data: dict):
         datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
-                f"{datagather_service_url.rstrip('/')}/input-data",
+                f"{datagather_service_url.rstrip('/')}/save-input-data",
                 json=data
             )
             
@@ -739,7 +739,7 @@ async def upload_output_data(data: dict):
         datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
-                f"{datagather_service_url.rstrip('/')}/output-data",
+                f"{datagather_service_url.rstrip('/')}/save-output-data",
                 json=data
             )
             
@@ -1146,6 +1146,139 @@ async def internal_error_handler(request: Request, exc):
     """500 에러 처리"""
     gateway_logger.log_error(f"Internal Server Error: {request.url.path}")
     return {"error": "Internal Server Error"}
+
+# 데이터 조회 엔드포인트들
+@app.get("/api/datagather/input-data")
+async def get_input_data_proxy():
+    """투입물 데이터 조회 - DataGather 서비스로 프록시"""
+    try:
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
+        if not datagather_service_url:
+            raise HTTPException(status_code=503, detail="DataGather 서비스 URL이 설정되지 않았습니다")
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(
+                f"{datagather_service_url.rstrip('/')}/api/datagather/input-data"
+            )
+            
+            if response.status_code == 200:
+                return Response(
+                    content=response.content,
+                    status_code=response.status_code,
+                    headers=dict(response.headers),
+                    media_type=response.headers.get("content-type")
+                )
+            else:
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"투입물 데이터 조회 오류: {response.text}"
+                )
+                
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="DataGather 서비스 연결 시간 초과")
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="DataGather 서비스에 연결할 수 없습니다")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"투입물 데이터 조회 오류: {str(e)}")
+
+@app.get("/api/datagather/output-data")
+async def get_output_data_proxy():
+    """산출물 데이터 조회 - DataGather 서비스로 프록시"""
+    try:
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
+        if not datagather_service_url:
+            raise HTTPException(status_code=503, detail="DataGather 서비스 URL이 설정되지 않았습니다")
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(
+                f"{datagather_service_url.rstrip('/')}/api/datagather/output-data"
+            )
+            
+            if response.status_code == 200:
+                return Response(
+                    content=response.content,
+                    status_code=response.status_code,
+                    headers=dict(response.headers),
+                    media_type=response.headers.get("content-type")
+                )
+            else:
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"산출물 데이터 조회 오류: {response.text}"
+                )
+                
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="DataGather 서비스 연결 시간 초과")
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="DataGather 서비스에 연결할 수 없습니다")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"산출물 데이터 조회 오류: {str(e)}")
+
+@app.get("/api/datagather/transport-data")
+async def get_transport_data_proxy():
+    """운송 데이터 조회 - DataGather 서비스로 프록시"""
+    try:
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
+        if not datagather_service_url:
+            raise HTTPException(status_code=503, detail="DataGather 서비스 URL이 설정되지 않았습니다")
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(
+                f"{datagather_service_url.rstrip('/')}/api/datagather/transport-data"
+            )
+            
+            if response.status_code == 200:
+                return Response(
+                    content=response.content,
+                    status_code=response.status_code,
+                    headers=dict(response.headers),
+                    media_type=response.headers.get("content-type")
+                )
+            else:
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"운송 데이터 조회 오류: {response.text}"
+                )
+                
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="DataGather 서비스 연결 시간 초과")
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="DataGather 서비스에 연결할 수 없습니다")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"운송 데이터 조회 오류: {str(e)}")
+
+@app.get("/api/datagather/process-data")
+async def get_process_data_proxy():
+    """공정 데이터 조회 - DataGather 서비스로 프록시"""
+    try:
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
+        if not datagather_service_url:
+            raise HTTPException(status_code=503, detail="DataGather 서비스 URL이 설정되지 않았습니다")
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(
+                f"{datagather_service_url.rstrip('/')}/api/datagather/process-data"
+            )
+            
+            if response.status_code == 200:
+                return Response(
+                    content=response.content,
+                    status_code=response.status_code,
+                    headers=dict(response.headers),
+                    media_type=response.headers.get("content-type")
+                )
+            else:
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"공정 데이터 조회 오류: {response.text}"
+                )
+                
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="DataGather 서비스 연결 시간 초과")
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="DataGather 서비스에 연결할 수 없습니다")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"공정 데이터 조회 오류: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

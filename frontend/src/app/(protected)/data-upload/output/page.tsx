@@ -21,16 +21,16 @@ import { Button } from '@/components/atomic/atoms';
 import { Input } from '@/components/atomic/atoms';
 import Link from 'next/link';
 
-// 타입 정의
+// 타입 정의 - 새로운 스키마 기반
 type DataRow = {
-  로트번호?: string | number;
+  로트번호?: string;
   생산품명?: string;
-  생산수량?: string | number;
-  투입일?: string | number;
-  종료일?: string | number;
+  생산수량?: number;
+  투입일?: string;
+  종료일?: string;
   공정?: string;
   산출물명?: string;
-  수량?: string | number;
+  수량?: number;
   단위?: string;
   [key: string]: any;
 };
@@ -162,21 +162,32 @@ const OutputDataPage: React.FC = () => {
     }
   };
 
-  // 입력 유효성 검사
+  // 입력 유효성 검사 - 새로운 스키마 기반
   const validateInput = (column: string, value: string): { isValid: boolean; errorMessage: string } => {
-    if (value.length > 20) {
+    if (value.length > 50) {
       console.log(`글자 수 초과: ${column} - ${value.length}글자`);
-      return { isValid: false, errorMessage: '20자 이하로 입력해주세요.' };
+      return { isValid: false, errorMessage: '50자 이하로 입력해주세요.' };
     }
     
     switch (column) {
       case '로트번호':
+        // 로트번호는 문자열로 처리
+        if (!value || value.trim() === '') {
+          return { isValid: false, errorMessage: '로트번호는 필수 입력 항목입니다.' };
+        }
+        return { isValid: true, errorMessage: '' };
       case '생산수량':
       case '수량':
-        const isNumberValid = /^\d*$/.test(value);
+        // 수량은 숫자만 입력 가능
+        const isNumberValid = /^\d+(\.\d+)?$/.test(value);
         if (!isNumberValid) {
           console.log(`숫자만 입력 가능: ${column} - ${value}`);
           return { isValid: false, errorMessage: '숫자만 입력 가능합니다.' };
+        }
+        // 0보다 큰 값인지 확인
+        const numValue = parseFloat(value);
+        if (numValue <= 0) {
+          return { isValid: false, errorMessage: '0보다 큰 값을 입력해주세요.' };
         }
         return { isValid: true, errorMessage: '' };
       case '투입일':
@@ -210,22 +221,11 @@ const OutputDataPage: React.FC = () => {
         
         return { isValid: true, errorMessage: '' };
       case '생산품명':
-        const isProductNameValid = /^[가-힣a-zA-Z0-9\s\-_()]*$/.test(value);
-        if (!isProductNameValid) {
-          console.log(`텍스트 입력 오류: ${column} - ${value}`);
-          return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자만 입력 가능합니다.' };
-        }
-        return { isValid: true, errorMessage: '' };
       case '공정':
-        const isProcessValid = /^[가-힣a-zA-Z0-9\s\-_()]*$/.test(value);
-        if (!isProcessValid) {
-          console.log(`텍스트 입력 오류: ${column} - ${value}`);
-          return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자만 입력 가능합니다.' };
-        }
-        return { isValid: true, errorMessage: '' };
       case '산출물명':
-        const isOutputMaterialValid = /^[가-힣a-zA-Z0-9\s\-_()]*$/.test(value);
-        if (!isOutputMaterialValid) {
+        // 한글, 영문, 숫자, 공백, 특수문자 허용
+        const isNameValid = /^[가-힣a-zA-Z0-9\s\-_()]*$/.test(value);
+        if (!isNameValid) {
           console.log(`텍스트 입력 오류: ${column} - ${value}`);
           return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자만 입력 가능합니다.' };
         }
@@ -635,12 +635,23 @@ const OutputDataPage: React.FC = () => {
         }
       };
 
-      // 날짜 변환을 적용한 데이터 준비
-      const processedData = inputData.data.map((row: any) => ({
-        ...row,
-        '투입일': convertExcelDate(row['투입일']),
-        '종료일': convertExcelDate(row['종료일'])
-      }));
+      // 날짜 변환 및 데이터 타입 변환을 적용한 데이터 준비 - 새로운 스키마 기반
+      const processedData = inputData.data.map((row: any) => {
+        // 수량을 숫자로 변환
+        const 산출수량 = parseFloat(row['산출수량']?.toString() || '0');
+        
+        // 수량이 0 이하인 경우 오류 처리
+        if (산출수량 <= 0) {
+          throw new Error('산출수량은 0보다 큰 값이어야 합니다.');
+        }
+        
+        return {
+          ...row,
+          '산출수량': 산출수량,
+          '투입일': convertExcelDate(row['투입일']),
+          '종료일': convertExcelDate(row['종료일'])
+        };
+      });
 
       const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
       const response = await fetch(`${gatewayUrl}/save-output-data`, {

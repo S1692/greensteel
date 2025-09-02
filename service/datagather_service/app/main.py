@@ -819,7 +819,8 @@ async def save_processed_data(data: dict):
                                 '투입물명': row.get('투입물명', ''),
                                 '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
                                 '단위': unit_value,  # 강제로 't' 설정된 값
-                                'source_file': filename
+                                'source_file': filename,
+                                'AI추천답변': row.get('AI추천답변', '')
                             }
                             
                             # None 값 제거 (빈 문자열은 유지하되 단위는 't'로 설정)
@@ -830,9 +831,9 @@ async def save_processed_data(data: dict):
                                 cursor = session.execute(text("""
                                     INSERT INTO input_data 
                                     (로트번호, 생산품명, 생산수량, 투입일, 종료일, 
-                                     공정, 투입물명, 수량, 단위, source_file)
+                                     공정, 투입물명, 수량, 단위, source_file, "AI추천답변")
                                     VALUES (:로트번호, :생산품명, :생산수량, :투입일, :종료일,
-                                            :공정, :투입물명, :수량, :단위, :source_file)
+                                            :공정, :투입물명, :수량, :단위, :source_file, :AI추천답변)
                                 """), row_data)
                                 
                                 saved_count += 1

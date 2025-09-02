@@ -37,7 +37,7 @@ const getDummyInputMaterial = (process: string, product: string): string => {
     '포장': '포장 공정에 적합한 자재',
     '기타': '일반 공정. 원료: 철, 수량: 100'
   };
-
+  
   return materialMap[process] || `일반 공정. 원료: ${product} 원료, 수량: 100`;
 };
 
@@ -45,6 +45,7 @@ export const useInputData = () => {
   const [data, setData] = useState<InputData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
 
   const fetchInputData = async () => {
     setLoading(true);
@@ -60,8 +61,10 @@ export const useInputData = () => {
           ...item,
           투입물명: item.투입물명 || getDummyInputMaterial(item.공정, item.생산품명)
         }));
-
+        
         setData(processedData);
+        setTotalCount(result.count || processedData.length);
+        console.log(`총 ${processedData.length}개의 투입물 데이터를 가져왔습니다.`);
       } else {
         setError(result.message || '데이터 조회에 실패했습니다.');
       }
@@ -81,6 +84,7 @@ export const useInputData = () => {
     data,
     loading,
     error,
+    totalCount,
     refetch: fetchInputData
   };
 };

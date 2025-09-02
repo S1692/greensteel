@@ -1,5 +1,5 @@
-import React from 'react';
-import { Plus, Eye, Edit, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, Eye, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CBAMStatsGrid } from '../molecules/CBAMStatsGrid';
 import { useInputData } from '@/hooks/useInputData';
 
@@ -22,7 +22,19 @@ export const CBAMOverviewTab: React.FC<CBAMOverviewTabProps> = ({
   onShowProductModal,
   onShowProcessModal
 }) => {
-  const { data: inputData, loading, error, refetch } = useInputData();
+  const { data: inputData, loading, error, totalCount, refetch } = useInputData();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20); // 페이지당 20개씩 표시
+
+  // 페이지네이션 계산
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentData = inputData.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
 
   return (
     <div className="space-y-6">
@@ -39,7 +51,9 @@ export const CBAMOverviewTab: React.FC<CBAMOverviewTabProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-medium text-ecotrace-text">투입물 데이터</h3>
-              <p className="text-sm text-ecotrace-textSecondary mt-1">실적정보(투입물) 데이터 현황</p>
+              <p className="text-sm text-ecotrace-textSecondary mt-1">
+                실적정보(투입물) 데이터 현황 - 총 {totalCount}개
+              </p>
             </div>
             <button
               onClick={refetch}
@@ -49,7 +63,7 @@ export const CBAMOverviewTab: React.FC<CBAMOverviewTabProps> = ({
             </button>
           </div>
         </div>
-        
+
         <div className="overflow-x-auto">
           {loading ? (
             <div className="p-6 text-center text-ecotrace-textSecondary">
@@ -60,113 +74,134 @@ export const CBAMOverviewTab: React.FC<CBAMOverviewTabProps> = ({
               {error}
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-ecotrace-border">
-              <thead className="bg-ecotrace-secondary/50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">로트번호</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">생산품명</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">생산수량</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">투입일</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">공정</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">투입물명</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">수량</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">단위</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">액션</th>
-                </tr>
-              </thead>
-              <tbody className="bg-ecotrace-surface divide-y divide-ecotrace-border">
-                {inputData.slice(0, 10).map((item) => (
-                  <tr key={item.id} className="hover:bg-ecotrace-secondary/30">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-text">{item.로트번호}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-text">{item.생산품명}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-text">{item.생산수량}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-textSecondary">
-                      {item.투입일 ? new Date(item.투입일).toLocaleDateString() : '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-text">{item.공정}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-text">{item.투입물명}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-text">{item.수량}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-textSecondary">{item.단위}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                      <button className="text-blue-600 hover:text-blue-900">
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button className="text-green-600 hover:text-green-900">
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button className="text-red-600 hover:text-red-900">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </td>
+            <>
+              <table className="min-w-full divide-y divide-ecotrace-border">
+                <thead className="bg-ecotrace-secondary/50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">로트번호</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">생산품명</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">생산수량</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">투입일</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">공정</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">투입물명</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">수량</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">단위</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">액션</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          
-          {inputData.length > 10 && (
-            <div className="px-6 py-3 border-t border-ecotrace-border text-center">
-              <span className="text-sm text-ecotrace-textSecondary">
-                총 {inputData.length}개 중 최근 10개 표시
-              </span>
-            </div>
+                </thead>
+                <tbody className="bg-ecotrace-surface divide-y divide-ecotrace-border">
+                  {currentData.map((item) => (
+                    <tr key={item.id} className="hover:bg-ecotrace-secondary/30">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-text">{item.로트번호}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-text">{item.생산품명}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-text">{item.생산수량}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-textSecondary">
+                        {item.투입일 ? new Date(item.투입일).toLocaleDateString() : '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-text">{item.공정}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-text">{item.투입물명}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-text">{item.수량}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-textSecondary">{item.단위}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                        <button className="text-blue-600 hover:text-blue-900">
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button className="text-green-600 hover:text-green-900">
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button className="text-red-600 hover:text-red-900">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* 페이지네이션 */}
+              {totalPages > 1 && (
+                <div className="px-6 py-4 border-t border-ecotrace-border">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-ecotrace-textSecondary">
+                      {startIndex + 1}-{Math.min(endIndex, totalCount)} / {totalCount}개
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1 text-sm border border-ecotrace-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-ecotrace-secondary/30 transition-colors"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => handlePageChange(pageNum)}
+                            className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                              currentPage === pageNum
+                                ? 'bg-blue-600 text-white'
+                                : 'border border-ecotrace-border hover:bg-ecotrace-secondary/30'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+
+                      <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-1 text-sm border border-ecotrace-border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-ecotrace-secondary/30 transition-colors"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
 
-      {/* 최근 활동 */}
-      <div className="bg-ecotrace-surface border border-ecotrace-border rounded-lg">
-        <div className="px-6 py-4 border-b border-ecotrace-border">
-          <h3 className="text-lg font-medium text-ecotrace-text">최근 활동</h3>
-        </div>
-        <div className="p-6">
-          <div className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <span className="text-sm text-ecotrace-textSecondary">새로운 사업장이 등록되었습니다.</span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-sm text-ecotrace-textSecondary">제품 매핑이 업데이트되었습니다.</span>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-              <span className="text-sm text-ecotrace-textSecondary">공정 데이터가 수정되었습니다.</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* 기존 모달 버튼들 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <button
+          onClick={onShowInstallModal}
+          className="flex items-center justify-center p-4 bg-ecotrace-surface border border-ecotrace-border rounded-lg hover:bg-ecotrace-secondary/30 transition-colors"
+        >
+          <Plus className="h-5 w-5 text-ecotrace-textSecondary mr-2" />
+          <span className="text-ecotrace-text">사업장 추가</span>
+        </button>
 
-      {/* 빠른 액션 */}
-      <div className="bg-ecotrace-surface border border-ecotrace-border rounded-lg">
-        <div className="px-6 py-4 border-b border-ecotrace-border">
-          <h3 className="text-lg font-medium text-ecotrace-text">빠른 액션</h3>
-        </div>
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button
-              onClick={onShowInstallModal}
-              className="flex items-center justify-center p-4 border-2 border-dashed border-ecotrace-border rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
-            >
-              <Plus className="h-5 w-5 text-ecotrace-textSecondary mr-2" />
-              <span className="text-sm font-medium text-ecotrace-textSecondary">사업장 추가</span>
-            </button>
-            <button
-              onClick={onShowProductModal}
-              className="flex items-center justify-center p-4 border-2 border-dashed border-ecotrace-border rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors"
-            >
-              <Plus className="h-5 w-5 text-ecotrace-textSecondary mr-2" />
-              <span className="text-sm font-medium text-ecotrace-textSecondary">제품 추가</span>
-            </button>
-            <button
-              onClick={onShowProcessModal}
-              className="flex items-center justify-center p-4 border-2 border-dashed border-ecotrace-border rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors"
-            >
-              <Plus className="h-5 w-5 text-ecotrace-textSecondary mr-2" />
-              <span className="text-sm font-medium text-ecotrace-textSecondary">공정 추가</span>
-            </button>
-          </div>
-        </div>
+        <button
+          onClick={onShowProductModal}
+          className="flex items-center justify-center p-4 bg-ecotrace-surface border border-ecotrace-border rounded-lg hover:bg-ecotrace-secondary/30 transition-colors"
+        >
+          <Plus className="h-5 w-5 text-ecotrace-textSecondary mr-2" />
+          <span className="text-ecotrace-text">제품 추가</span>
+        </button>
+
+        <button
+          onClick={onShowProcessModal}
+          className="flex items-center justify-center p-4 bg-ecotrace-surface border border-ecotrace-border rounded-lg hover:bg-ecotrace-secondary/30 transition-colors"
+        >
+          <Plus className="h-5 w-5 text-ecotrace-textSecondary mr-2" />
+          <span className="text-ecotrace-text">공정 추가</span>
+        </button>
       </div>
     </div>
   );

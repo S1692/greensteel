@@ -440,6 +440,15 @@ async def ai_process_data_with_prefix(
     """AI 데이터 처리 (API prefix 포함)"""
     return await ai_process_data(data, service)
 
+# Gateway에서 사용하는 경로 (API prefix 없이)
+@app.post("/api/datagather/ai-process")
+async def ai_process_data_gateway(
+    data: Dict[str, Any],
+    service: DataGatherApplicationService = Depends(get_datagather_service)
+):
+    """AI 데이터 처리 (Gateway 경로)"""
+    return await ai_process_data(data, service)
+
 # 공정 관련 엔드포인트
 @app.post(f"{settings.api_prefix}/process")
 async def create_process(

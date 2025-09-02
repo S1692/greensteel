@@ -1445,6 +1445,7 @@ const InputDataPage: React.FC = () => {
                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>종료일</th>
                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>공정</th>
                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>투입물명</th>
+                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>AI추천답변</th>
                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>수량</th>
                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>단위</th>
                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>작업</th>
@@ -1501,6 +1502,13 @@ const InputDataPage: React.FC = () => {
                                renderInputField(row, '투입물명')
                              ) : (
                                <span>{row.modifiedData['투입물명'] || '-'}</span>
+                             )}
+                           </td>
+                           <td className='border border-white/20 px-3 py-2 text-sm text-white'>
+                             {row.isEditing ? (
+                               renderInputField(row, 'AI추천답변')
+                             ) : (
+                               <span className='text-blue-300'>{row.modifiedData['AI추천답변'] || '-'}</span>
                              )}
                            </td>
                            <td className='border border-white/20 px-3 py-2 text-sm text-white'>
@@ -1584,7 +1592,7 @@ const InputDataPage: React.FC = () => {
                          {/* 수정 사유 입력 행 (Excel 데이터 편집 시에만) */}
                          {row.isEditing && !row.isNewlyAdded && (
                            <tr className='bg-white/5 border-b border-white/10'>
-                             <td colSpan={10} className='px-3 py-3'>
+                             <td colSpan={11} className='px-3 py-3'>
                                <div className='flex items-center gap-3'>
                                  <div className='flex-shrink-0'>
                                    <span className='text-xs text-white/60 font-medium'>수정 사유 (Excel 데이터 편집 시):</span>

@@ -90,6 +90,8 @@ interface ProcessProductData {
   투입물명: string;
   수량: number;
   단위: string;
+  주문처명?: string;
+  오더번호?: string;
   분류: string;
   source_table: string;
   source_id: number;
@@ -105,6 +107,8 @@ interface WasteData {
   투입물명: string;
   수량: number;
   단위: string;
+  주문처명?: string;
+  오더번호?: string;
   분류: string;
   source_table: string;
   source_id: number;
@@ -120,6 +124,8 @@ interface UtilityData {
   투입물명: string;
   수량: number;
   단위: string;
+  주문처명?: string;
+  오더번호?: string;
   분류: string;
   source_table: string;
   source_id: number;
@@ -135,6 +141,8 @@ interface FuelData {
   투입물명: string;
   수량: number;
   단위: string;
+  주문처명?: string;
+  오더번호?: string;
   분류: string;
   source_table: string;
   source_id: number;
@@ -213,12 +221,13 @@ export default function LcaPage() {
   const filteredProcessProductData = useMemo(() => {
     if (activeTab === 'manage' && activeSegment === 'mat') {
       return processProductData.filter(item => {
+        const 주문처명Match = !filters.주문처명 || (item.주문처명 && item.주문처명.includes(filters.주문처명));
         const 제품명Match = !filters.제품명 || item.투입물명.includes(filters.제품명);
         const 투입일Match = !filters.투입일시작 || !filters.투입일종료 || 
           (item.투입일 >= filters.투입일시작 && item.투입일 <= filters.투입일종료);
         const 종료일Match = !filters.종료일시작 || !filters.종료일종료 || 
           (item.종료일 >= filters.종료일시작 && item.종료일 <= filters.종료일종료);
-        return 제품명Match && 투입일Match && 종료일Match;
+        return 주문처명Match && 제품명Match && 투입일Match && 종료일Match;
       });
     }
     return processProductData;
@@ -227,12 +236,13 @@ export default function LcaPage() {
   const filteredWasteData = useMemo(() => {
     if (activeTab === 'manage' && activeSegment === 'waste') {
       return wasteData.filter(item => {
+        const 주문처명Match = !filters.주문처명 || (item.주문처명 && item.주문처명.includes(filters.주문처명));
         const 제품명Match = !filters.제품명 || item.투입물명.includes(filters.제품명);
         const 투입일Match = !filters.투입일시작 || !filters.투입일종료 || 
           (item.투입일 >= filters.투입일시작 && item.투입일 <= filters.투입일종료);
         const 종료일Match = !filters.종료일시작 || !filters.종료일종료 || 
           (item.종료일 >= filters.종료일시작 && item.종료일 <= filters.종료일종료);
-        return 제품명Match && 투입일Match && 종료일Match;
+        return 주문처명Match && 제품명Match && 투입일Match && 종료일Match;
       });
     }
     return wasteData;
@@ -241,12 +251,13 @@ export default function LcaPage() {
   const filteredUtilityData = useMemo(() => {
     if (activeTab === 'manage' && activeSegment === 'util') {
       return utilityData.filter(item => {
+        const 주문처명Match = !filters.주문처명 || (item.주문처명 && item.주문처명.includes(filters.주문처명));
         const 제품명Match = !filters.제품명 || item.투입물명.includes(filters.제품명);
         const 투입일Match = !filters.투입일시작 || !filters.투입일종료 || 
           (item.투입일 >= filters.투입일시작 && item.투입일 <= filters.투입일종료);
         const 종료일Match = !filters.종료일시작 || !filters.종료일종료 || 
           (item.종료일 >= filters.종료일시작 && item.종료일 <= filters.종료일종료);
-        return 제품명Match && 투입일Match && 종료일Match;
+        return 주문처명Match && 제품명Match && 투입일Match && 종료일Match;
       });
     }
     return utilityData;
@@ -255,12 +266,13 @@ export default function LcaPage() {
   const filteredFuelData = useMemo(() => {
     if (activeTab === 'manage' && activeSegment === 'source') {
       return fuelData.filter(item => {
+        const 주문처명Match = !filters.주문처명 || (item.주문처명 && item.주문처명.includes(filters.주문처명));
         const 제품명Match = !filters.제품명 || item.투입물명.includes(filters.제품명);
         const 투입일Match = !filters.투입일시작 || !filters.투입일종료 || 
           (item.투입일 >= filters.투입일시작 && item.투입일 <= filters.투입일종료);
         const 종료일Match = !filters.종료일시작 || !filters.종료일종료 || 
           (item.종료일 >= filters.종료일시작 && item.종료일 <= filters.종료일종료);
-        return 제품명Match && 투입일Match && 종료일Match;
+        return 주문처명Match && 제품명Match && 투입일Match && 종료일Match;
       });
     }
     return fuelData;

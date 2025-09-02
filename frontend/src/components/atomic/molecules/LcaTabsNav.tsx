@@ -26,10 +26,10 @@ const LcaTabsNav: React.FC<LcaTabsNavProps> = ({
   ];
 
   const manageSubTabs = [
-    { key: 'mat', label: '원료별' },
+    { key: 'mat', label: '공정 생산품별' },
     { key: 'util', label: '유틸리티별' },
     { key: 'waste', label: '폐기물별' },
-    { key: 'source', label: '데이터 출처별' },
+    { key: 'source', label: '연료별' },
   ];
 
   return (

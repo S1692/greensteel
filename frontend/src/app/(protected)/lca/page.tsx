@@ -23,61 +23,52 @@ import {
   X
 } from 'lucide-react';
 
-// DB 테이블의 실제 칼럼에 맞춘 인터페이스
+// DB 테이블의 실제 칼럼에 맞춘 인터페이스 (created_at, updated_at 제외)
 interface InputData {
   id: number;
-  lot_number: string;
-  product_name: string;
-  production_quantity: number;
-  input_date: string;
-  end_date: string;
-  process_name: string;
-  input_material: string;
-  quantity: number;
-  unit: string;
-  ai_recommendation: string;
-  source_file: string;
-  created_at: string;
-  updated_at: string;
+  로트번호: string;
+  생산품명: string;
+  생산수량: number;
+  투입일: string;
+  종료일: string;
+  공정: string;
+  투입물명: string;
+  수량: number;
+  단위: string;
 }
 
 interface OutputData {
   id: number;
-  output_name: string;
-  output_type: string;
-  output_quantity: number;
-  unit: string;
-  quality_grade: string;
-  source_file: string;
-  created_at: string;
-  updated_at: string;
+  로트번호: string;
+  생산품명: string;
+  생산수량: number;
+  투입일: string;
+  종료일: string;
+  공정: string;
+  산출물명: string;
+  수량: number;
+  단위: string;
 }
 
 interface ProcessData {
   id: number;
-  process_name: string;
-  process_description: string;
-  process_type: string;
-  process_stage: string;
-  process_efficiency: number;
-  source_file: string;
-  created_at: string;
-  updated_at: string;
+  공정명: string;
+  공정설명: string;
+  공정유형: string;
+  공정단계: string;
+  공정효율: number;
 }
 
 interface TransportData {
   id: number;
-  transport_date: string;
-  departure_location: string;
-  arrival_location: string;
-  transport_mode: string;
-  transport_distance: number;
-  transport_cost: number;
-  transport_volume: number;
-  unit: string;
-  source_file: string;
-  created_at: string;
-  updated_at: string;
+  생산품명: string;
+  로트번호: string;
+  운송물질: string;
+  운송수량: number;
+  운송일자: string;
+  도착공정: string;
+  출발지: string;
+  이동수단: string;
 }
 
 // 데이터 관리 탭용 인터페이스
@@ -302,30 +293,28 @@ export default function LcaPage() {
                   <thead className="bg-ecotrace-secondary/50">
                     <tr>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">제품명</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산품명</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">입력일</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입일</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">종료일</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정명</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입물</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">단위</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">AI추천</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입물명</th>
+                      <td className="px-4 py-3 text-sm text-ecotrace-textSecondary">수량</td>
+                      <td className="px-4 py-3 text-sm text-ecotrace-textSecondary">단위</td>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-ecotrace-border">
                     {inputData.map((row) => (
                       <tr key={row.id} className="hover:bg-ecotrace-secondary/30 transition-colors">
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.lot_number || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.product_name || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.production_quantity || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.input_date || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.end_date || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.process_name || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.input_material || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.quantity || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.unit || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.ai_recommendation || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.로트번호 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산품명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산수량 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입일 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.종료일 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입물명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.수량 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.단위 || '-'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -377,30 +366,28 @@ export default function LcaPage() {
                   <thead className="bg-ecotrace-secondary/50">
                     <tr>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">제품명</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산품명</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">입력일</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입일</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">종료일</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정명</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입물</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입물명</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">단위</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">AI추천</th>
+                      <th className="px-4 py-3 text-sm text-ecotrace-textSecondary">단위</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-ecotrace-border">
                     {inputData.map((row) => (
                       <tr key={row.id} className="hover:bg-ecotrace-secondary/30 transition-colors">
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.lot_number || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.product_name || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.production_quantity || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.input_date || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.end_date || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.process_name || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.input_material || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.quantity || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.unit || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.ai_recommendation || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.로트번호 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산품명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산수량 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입일 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.종료일 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입물명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.수량 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.단위 || '-'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -451,23 +438,29 @@ export default function LcaPage() {
                 <table className="w-full">
                   <thead className="bg-ecotrace-secondary/50">
                     <tr>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산품명</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입일</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">종료일</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">산출물명</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">산출물유형</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">산출수량</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">단위</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">품질등급</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">소스파일</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-ecotrace-border">
                     {outputData.map((row) => (
                       <tr key={row.id} className="hover:bg-ecotrace-secondary/30 transition-colors">
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.output_name || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.output_type || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.output_quantity || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.unit || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.quality_grade || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.source_file || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.로트번호 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산품명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산수량 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입일 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.종료일 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.산출물명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.수량 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.단위 || '-'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -699,27 +692,27 @@ export default function LcaPage() {
                 <table className="w-full">
                   <thead className="bg-ecotrace-secondary/50">
                     <tr>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산품명</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">운송물질</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">운송수량</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">운송일자</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">도착공정</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">출발지</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">도착지</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">운송수단</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">운송거리</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">운송비용</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">운송량</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">단위</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">이동수단</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-ecotrace-border">
                     {transportData.map((row) => (
                       <tr key={row.id} className="hover:bg-ecotrace-secondary/30 transition-colors">
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.transport_date || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.departure_location || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.arrival_location || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.transport_mode || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.transport_distance || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.transport_cost || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.transport_volume || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.unit || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산품명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.로트번호 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.운송물질 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.운송수량 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.운송일자 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.도착공정 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.출발지 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.이동수단 || '-'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -775,18 +768,16 @@ export default function LcaPage() {
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정유형</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정단계</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정효율</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">소스파일</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-ecotrace-border">
                     {processData.map((row) => (
                       <tr key={row.id} className="hover:bg-ecotrace-secondary/30 transition-colors">
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.process_name || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.process_description || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.process_type || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.process_stage || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.process_efficiency || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.source_file || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정설명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정유형 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정단계 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정효율 || '-'}</td>
                       </tr>
                     ))}
                   </tbody>

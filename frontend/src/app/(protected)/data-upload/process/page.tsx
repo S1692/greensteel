@@ -454,7 +454,7 @@ const ProcessDataPage: React.FC = () => {
       
       // 필수 칼럼 구조 검증 (순서는 상관없음)
       const requiredColumns = [
-        '공정명', '생산제품', '세부공정', '공정설명'
+        '공정명'
       ];
       
       const missingColumns = requiredColumns.filter(col => !filteredColumns.includes(col));

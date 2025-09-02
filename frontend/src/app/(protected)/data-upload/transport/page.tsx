@@ -460,8 +460,7 @@ const TransportDataPage: React.FC = () => {
       
       // 필수 칼럼 구조 검증 (순서는 상관없음)
       const requiredColumns = [
-        '주문처명', '오더번호', '생산품명', '로트번호', '운송물질', 
-        '운송수량', '운송일자', '도착공정', '출발지', '이동수단'
+        '주문처명', '오더번호', '생산품명', '로트번호'
       ];
       
       const missingColumns = requiredColumns.filter(col => !filteredColumns.includes(col));

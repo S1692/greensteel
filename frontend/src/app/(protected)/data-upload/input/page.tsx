@@ -310,14 +310,15 @@ const InputDataPage: React.FC = () => {
       console.log('AI 처리 응답 데이터:', responseData);
       
       if (responseData.success) {
-        const processedData: DataRow[] = responseData.processed_data || [];
-        const unifiedColumns = responseData.columns || [];
+        const processedData: DataRow[] = responseData.data || [];
+        const totalRows = processedData.length;
+        const processedRows = processedData.length;
         
         console.log('AI 처리 완료:', {
-          totalRows: responseData.total_rows,
-          processedRows: responseData.processed_rows,
+          totalRows: totalRows,
+          processedRows: processedRows,
           data: processedData,
-          columns: unifiedColumns
+          columns: inputData.columns
         });
         
         // AI 처리된 데이터로 상태 업데이트
@@ -325,10 +326,10 @@ const InputDataPage: React.FC = () => {
           status: 'completed',
           message: 'AI 처리가 완료되었습니다.',
           filename: inputData.filename,
-          total_rows: responseData.total_rows || 0,
-          processed_rows: responseData.processed_rows || 0,
+          total_rows: totalRows,
+          processed_rows: processedRows,
           data: processedData,
-          columns: unifiedColumns
+          columns: inputData.columns
         });
 
         // AI 추천 답변을 투입물명 컬럼에 적용

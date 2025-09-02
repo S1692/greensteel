@@ -125,6 +125,27 @@ async def health_check():
             content={"status": "error", "error": str(e)}
         )
 
+# 테이블 생성 엔드포인트 (개발/테스트용)
+@app.post("/create-tables")
+async def create_tables_endpoint():
+    """테이블 생성 (개발/테스트용)"""
+    try:
+        await database.create_tables()
+        return {
+            "success": True,
+            "message": "테이블이 성공적으로 생성되었습니다."
+        }
+    except Exception as e:
+        logger.error(f"테이블 생성 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "테이블 생성 중 오류가 발생했습니다."
+            }
+        )
+
 # 데이터 수집 관련 엔드포인트
 @app.post(f"{settings.api_prefix}/datagather/upload")
 async def upload_file(

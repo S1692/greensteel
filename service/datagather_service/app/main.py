@@ -909,15 +909,15 @@ async def classify_data(data: dict):
                 elif '압연' in process_name or '압연' in product_name:
                     category = '압연 공정'
                 
-                                 # 분류된 데이터 생성
+                 # 분류된 데이터 생성
                  classified_row = {
                      '공정명': process_name,
                      '생산제품': product_name,
                      '세부공정': detail_process,
                      '공정설명': row.get('공정 설명', '')
                  }
-                
-                classified_data.append(classified_row)
+                 
+                 classified_data.append(classified_row)
                 
             except Exception as row_error:
                 logger.error(f"행 분류 실패: {row_error}")

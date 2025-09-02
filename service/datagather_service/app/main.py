@@ -220,8 +220,6 @@ async def save_transport_data(data: dict):
                     try:
                         # 이미지 칼럼 순서에 맞게 데이터 처리
                         transport_record = {
-                            '주문처명': row.get('주문처명', ''),
-                            '오더번호': row.get('오더번호', ''),
                             '생산품명': row.get('생산품명', ''),
                             '로트번호': row.get('로트번호', ''),
                             '운송물질': row.get('운송물질', ''),
@@ -229,7 +227,9 @@ async def save_transport_data(data: dict):
                             '운송일자': excel_date_to_postgres_date(row.get('운송일자')),
                             '도착공정': row.get('도착공정', ''),
                             '출발지': row.get('출발지', ''),
-                            '이동수단': row.get('이동수단', '')
+                            '이동수단': row.get('이동수단', ''),
+                            '주문처명': row.get('주문처명', ''),
+                            '오더번호': row.get('오더번호', '')
                         }
                         
                         # 필수 필드가 있는지 확인하고 None 값 처리
@@ -246,10 +246,10 @@ async def save_transport_data(data: dict):
                         
                         cursor = session.execute(text("""
                             INSERT INTO transport_data 
-                            (주문처명, 오더번호, 생산품명, 로트번호, 운송물질, 운송수량, 운송일자, 
-                             도착공정, 출발지, 이동수단)
-                            VALUES (:주문처명, :오더번호, :생산품명, :로트번호, :운송물질, :운송수량, :운송일자,
-                                    :도착공정, :출발지, :이동수단)
+                            (생산품명, 로트번호, 운송물질, 운송수량, 운송일자, 
+                             도착공정, 출발지, 이동수단, 주문처명, 오더번호)
+                            VALUES (:생산품명, :로트번호, :운송물질, :운송수량, :운송일자,
+                                    :도착공정, :출발지, :이동수단, :주문처명, :오더번호)
                         """), transport_record)
                         
                         saved_count += 1

@@ -615,13 +615,13 @@ async def save_process_data(
                 try:
                     session.execute(text("""
                         INSERT INTO process_data 
-                        (공정명, 생산제품, 세부공정, 공정_설명)
-                        VALUES (:공정명, :생산제품, :세부공정, :공정_설명)
+                        (공정명, 생산제품, 세부공정, "공정 설명")
+                        VALUES (:공정명, :생산제품, :세부공정, :공정설명)
                     """), {
-                        '공정명': row.get('투입물명', ''),  # 공정명으로 매핑
-                        '생산제품': row.get('생산품명', ''),  # 생산제품으로 매핑
-                        '세부공정': row.get('공정', ''),  # 세부공정으로 매핑
-                        '공정_설명': row.get('공정설명', '')  # 공정설명으로 매핑
+                        '공정명': row.get('공정명', ''),
+                        '생산제품': row.get('생산제품', ''),
+                        '세부공정': row.get('세부공정', ''),
+                        '공정설명': row.get('공정설명', '')
                     })
                     saved_count += 1
                 except Exception as row_error:

@@ -389,18 +389,13 @@ const InputDataPage: React.FC = () => {
     }
   };
 
-  // 행 편집 토글 (Excel 데이터는 AI 추천답변만, 수동 데이터는 모든 필드 편집 가능)
+  // 행 편집 토글 (모든 데이터는 모든 필드 편집 가능)
   const toggleRowEdit = (rowId: string) => {
     const row = editableInputRows.find(r => r.id === rowId);
     if (!row) return;
     
-          // 수동으로 추가된 데이터인지 확인 (isNewlyAdded 속성으로 판단)
-      const isManualData = row.isNewlyAdded;
-    
-    if (!isManualData) {
-      // Excel 데이터인 경우 AI 추천답변 칼럼만 편집 가능
-      console.log('Excel 데이터 편집 모드 활성화 - AI 추천답변만 편집 가능');
-    }
+    // 모든 데이터는 모든 필드 편집 가능
+    console.log('편집 모드 활성화 - 모든 필드 편집 가능');
     
     setEditableInputRows(prev => 
       prev.map(row => 
@@ -445,66 +440,55 @@ const InputDataPage: React.FC = () => {
     const row = editableInputRows.find(r => r.id === rowId);
     if (!row) return;
 
-    // Excel 데이터의 AI 추천 답변 편집 시 수정 사유 확인
-    if (!row.isNewlyAdded) {
-      const reason = editReasons[rowId] || '';
-      if (!reason.trim()) {
-        setError('Excel 데이터의 AI 추천 답변을 편집할 때는 수정 사유를 입력해주세요.');
-        return;
+    // 모든 데이터에 대해 필수 필드 검증
+    const requiredFields = ['로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '투입물명', '수량', '단위'];
+    const missingFields = [];
+    const invalidFields = [];
+
+    for (const field of requiredFields) {
+      const value = row.modifiedData[field];
+      
+      // 빈 값 체크
+      if (!value || value.toString().trim() === '') {
+        missingFields.push(field);
+        continue;
+      }
+
+      // 유효성 검사
+      const { isValid, errorMessage } = validateInput(field, value.toString());
+      if (!isValid) {
+        invalidFields.push(field);
+        updateRowError(rowId, field, errorMessage);
+      } else {
+        clearRowError(rowId, field);
       }
     }
 
-    // 수동으로 추가된 데이터인 경우 모든 필수 필드 검증
-    if (row.isNewlyAdded) {
-      const requiredFields = ['로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '투입물명', '수량', '단위'];
-      const missingFields = [];
-      const invalidFields = [];
+    // 수량 데이터 타입 검증
+    const 생산수량 = parseFloat(row.modifiedData['생산수량']?.toString() || '0');
+    const 수량 = parseFloat(row.modifiedData['수량']?.toString() || '0');
+    
+    if (생산수량 <= 0) {
+      invalidFields.push('생산수량');
+      updateRowError(rowId, '생산수량', '생산수량은 0보다 큰 값이어야 합니다.');
+    }
+    
+    if (수량 <= 0) {
+      invalidFields.push('수량');
+      updateRowError(rowId, '수량', '수량은 0보다 큰 값이어야 합니다.');
+    }
 
-      for (const field of requiredFields) {
-        const value = row.modifiedData[field];
-        
-        // 빈 값 체크
-        if (!value || value.toString().trim() === '') {
-          missingFields.push(field);
-          continue;
-        }
-
-        // 유효성 검사
-        const { isValid, errorMessage } = validateInput(field, value.toString());
-        if (!isValid) {
-          invalidFields.push(field);
-          updateRowError(rowId, field, errorMessage);
-        } else {
-          clearRowError(rowId, field);
-        }
+    // 오류가 있으면 확인 거부
+    if (missingFields.length > 0 || invalidFields.length > 0) {
+      let errorMsg = '';
+      if (missingFields.length > 0) {
+        errorMsg += `필수 입력 항목: ${missingFields.join(', ')}`;
       }
-
-      // 추가 데이터 타입 검증
-      const 생산수량 = parseFloat(row.modifiedData['생산수량']?.toString() || '0');
-      const 수량 = parseFloat(row.modifiedData['수량']?.toString() || '0');
-      
-      if (생산수량 <= 0) {
-        invalidFields.push('생산수량');
-        updateRowError(rowId, '생산수량', '생산수량은 0보다 큰 값이어야 합니다.');
+      if (invalidFields.length > 0) {
+        errorMsg += `${missingFields.length > 0 ? ' | ' : ''}유효하지 않은 항목: ${invalidFields.join(', ')}`;
       }
-      
-      if (수량 <= 0) {
-        invalidFields.push('수량');
-        updateRowError(rowId, '수량', '수량은 0보다 큰 값이어야 합니다.');
-      }
-
-      // 오류가 있으면 확인 거부
-      if (missingFields.length > 0 || invalidFields.length > 0) {
-        let errorMsg = '';
-        if (missingFields.length > 0) {
-          errorMsg += `필수 입력 항목: ${missingFields.join(', ')}`;
-        }
-        if (invalidFields.length > 0) {
-          errorMsg += `${missingFields.length > 0 ? ' | ' : ''}유효하지 않은 항목: ${invalidFields.join(', ')}`;
-        }
-        setError(`데이터 확인 실패: ${errorMsg}`);
-        return;
-      }
+      setError(`데이터 확인 실패: ${errorMsg}`);
+      return;
     }
 
     // 편집 완료 상태로 변경
@@ -646,18 +630,14 @@ const InputDataPage: React.FC = () => {
    const renderInputField = (row: EditableRow, column: string) => {
      const value = row.modifiedData[column] || '';
      const isNewRowData = isNewRow(row);
-     const isExcelData = !isNewRowData; // Excel에서 업로드된 기존 데이터
-     const isRequired = isNewRowData && ['로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '투입물명', '수량', '단위'].includes(column);
+     const isRequired = ['로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '투입물명', '수량', '단위'].includes(column);
     
-    // Excel 데이터인 경우 AI 추천답변만 편집 가능
-    if (isExcelData && column !== 'AI추천답변') {
+    // 편집 모드가 아닌 경우 읽기 전용으로 표시
+    if (!row.isEditing) {
       return <span className='text-white/60'>{value || '-'}</span>;
     }
     
-         // 수동으로 추가된 데이터인 경우 모든 필드 편집 가능
-     if (isNewRowData) {
-       // 모든 필드를 편집 가능하게 렌더링
-     }
+    // 편집 모드인 경우 모든 필드를 편집 가능하게 렌더링
     
          const getInputClassName = () => {
        let baseClass = 'w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
@@ -1374,29 +1354,93 @@ const InputDataPage: React.FC = () => {
                 <table className='w-full border-collapse border border-white/20'>
                   <thead>
                     <tr className='bg-white/10'>
-                      {inputData.columns.map((column) => (
-                        <th key={column} className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>
-                          {column}
-                        </th>
-                      ))}
-                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>
-                        작업
-                      </th>
+                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>로트번호</th>
+                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>생산품명</th>
+                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>생산수량</th>
+                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>투입일</th>
+                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>종료일</th>
+                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>공정</th>
+                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>투입물명</th>
+                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>수량</th>
+                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>단위</th>
+                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>AI추천답변</th>
+                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>작업</th>
                     </tr>
                   </thead>
                   <tbody>
                                          {editableInputRows.map((row) => (
                        <React.Fragment key={row.id}>
                          <tr className='border-b border-white/10 hover:bg-white/5'>
-                           {inputData.columns.map((column) => (
-                             <td key={column} className='border border-white/20 px-3 py-2 text-sm text-white'>
-                               {row.isEditing ? (
-                                 renderInputField(row, column)
-                               ) : (
-                                 <span>{row.modifiedData[column] || '-'}</span>
-                               )}
-                             </td>
-                           ))}
+                           <td className='border border-white/20 px-3 py-2 text-sm text-white'>
+                             {row.isEditing ? (
+                               renderInputField(row, '로트번호')
+                             ) : (
+                               <span>{row.modifiedData['로트번호'] || '-'}</span>
+                             )}
+                           </td>
+                           <td className='border border-white/20 px-3 py-2 text-sm text-white'>
+                             {row.isEditing ? (
+                               renderInputField(row, '생산품명')
+                             ) : (
+                               <span>{row.modifiedData['생산품명'] || '-'}</span>
+                             )}
+                           </td>
+                           <td className='border border-white/20 px-3 py-2 text-sm text-white'>
+                             {row.isEditing ? (
+                               renderInputField(row, '생산수량')
+                             ) : (
+                               <span>{row.modifiedData['생산수량'] || '-'}</span>
+                             )}
+                           </td>
+                           <td className='border border-white/20 px-3 py-2 text-sm text-white'>
+                             {row.isEditing ? (
+                               renderInputField(row, '투입일')
+                             ) : (
+                               <span>{row.modifiedData['투입일'] || '-'}</span>
+                             )}
+                           </td>
+                           <td className='border border-white/20 px-3 py-2 text-sm text-white'>
+                             {row.isEditing ? (
+                               renderInputField(row, '종료일')
+                             ) : (
+                               <span>{row.modifiedData['종료일'] || '-'}</span>
+                             )}
+                           </td>
+                           <td className='border border-white/20 px-3 py-2 text-sm text-white'>
+                             {row.isEditing ? (
+                               renderInputField(row, '공정')
+                             ) : (
+                               <span>{row.modifiedData['공정'] || '-'}</span>
+                             )}
+                           </td>
+                           <td className='border border-white/20 px-3 py-2 text-sm text-white'>
+                             {row.isEditing ? (
+                               renderInputField(row, '투입물명')
+                             ) : (
+                               <span>{row.modifiedData['투입물명'] || '-'}</span>
+                             )}
+                           </td>
+                           <td className='border border-white/20 px-3 py-2 text-sm text-white'>
+                             {row.isEditing ? (
+                               renderInputField(row, '수량')
+                             ) : (
+                               <span>{row.modifiedData['수량'] || '-'}</span>
+                             )}
+                           </td>
+                           <td className='border border-white/20 px-3 py-2 text-sm text-white'>
+                             {row.isEditing ? (
+                               renderInputField(row, '단위')
+                             ) : (
+                               <span>{row.modifiedData['단위'] || '-'}</span>
+                             )}
+                           </td>
+                           <td className='border border-white/20 px-3 py-2 text-sm text-white'>
+                             {row.isEditing ? (
+                               renderInputField(row, 'AI추천답변')
+                             ) : (
+                               <span>{row.modifiedData['AI추천답변'] || '-'}</span>
+                             )}
+                           </td>
                            <td className='border border-white/20 px-3 py-2 text-sm'>
                              {row.isEditing ? (
                                <div className='flex gap-2'>
@@ -1437,27 +1481,36 @@ const InputDataPage: React.FC = () => {
                                      </Button>
                                    </>
                                  ) : (
-                                   // Excel 데이터는 AI 추천답변만 편집 가능
-                                   <Button
-                                     onClick={() => toggleRowEdit(row.id)}
-                                     className='bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs'
-                                   >
-                                     <Edit3 className='w-3 h-3 mr-1' />
-                                     편집
-                                   </Button>
+                                   // 모든 데이터는 편집 가능
+                                   <>
+                                     <Button
+                                       onClick={() => toggleRowEdit(row.id)}
+                                       className='bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs'
+                                     >
+                                       <Edit3 className='w-3 h-3 mr-1' />
+                                       편집
+                                     </Button>
+                                     <Button
+                                       onClick={() => deleteRow(row.id)}
+                                       className='bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs'
+                                     >
+                                       <Trash2 className='w-3 h-3 mr-1' />
+                                       삭제
+                                     </Button>
+                                   </>
                                  )}
                                </div>
                              )}
                            </td>
                          </tr>
                          
-                         {/* AI 추천 답변 수정 사유 입력 행 (편집 중이고 Excel 데이터인 경우에만) */}
-                         {row.isEditing && !row.isNewlyAdded && (
+                         {/* 수정 사유 입력 행 (편집 중인 모든 데이터에 대해) */}
+                         {row.isEditing && (
                            <tr className='bg-white/5 border-b border-white/10'>
-                             <td colSpan={inputData.columns.length + 1} className='px-3 py-3'>
+                             <td colSpan={11} className='px-3 py-3'>
                                <div className='flex items-center gap-3'>
                                  <div className='flex-shrink-0'>
-                                   <span className='text-xs text-white/60 font-medium'>수정 사유:</span>
+                                   <span className='text-xs text-white/60 font-medium'>수정 사유 (모든 필드 편집 시):</span>
                                  </div>
                                  <div className='flex-1'>
                                    <Input

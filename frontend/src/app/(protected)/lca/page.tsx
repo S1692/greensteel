@@ -303,9 +303,8 @@ export default function LcaPage() {
                     <tr>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산품명</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입일</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">종료일</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산 시작일</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산 종료일</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입물명</th>
                       <td className="px-4 py-3 text-sm text-ecotrace-textSecondary">수량</td>
@@ -377,8 +376,8 @@ export default function LcaPage() {
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산품명</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입일</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">종료일</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산 시작일</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산 종료일</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입물명</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
@@ -450,8 +449,8 @@ export default function LcaPage() {
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산품명</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입일</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">종료일</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산 시작일</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산 종료일</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">산출물명</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
@@ -523,8 +522,8 @@ export default function LcaPage() {
                        <tr>
                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량</th>
-                         <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입일</th>
-                         <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">종료일</th>
+                         <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산 시작일</th>
+                         <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산 종료일</th>
                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정</th>
                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입물명</th>
                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
@@ -567,8 +566,8 @@ export default function LcaPage() {
                        <tr>
                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량</th>
-                         <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입일</th>
-                         <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">종료일</th>
+                         <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산 시작일</th>
+                         <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산 종료일</th>
                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정</th>
                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입물명</th>
                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
@@ -611,8 +610,8 @@ export default function LcaPage() {
                        <tr>
                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량</th>
-                         <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입일</th>
-                         <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">종료일</th>
+                         <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산 시작일</th>
+                         <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산 종료일</th>
                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정</th>
                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입물명</th>
                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
@@ -655,8 +654,8 @@ export default function LcaPage() {
                        <tr>
                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량</th>
-                         <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입일</th>
-                         <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">종료일</th>
+                         <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산 시작일</th>
+                         <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산 종료일</th>
                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정</th>
                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입물명</th>
                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>

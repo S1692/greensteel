@@ -389,13 +389,18 @@ const InputDataPage: React.FC = () => {
     }
   };
 
-  // 행 편집 토글 (모든 데이터는 모든 필드 편집 가능)
+  // 행 편집 토글 (Excel 데이터는 AI 추천 답변만, 새로 추가된 데이터는 모든 필드 편집 가능)
   const toggleRowEdit = (rowId: string) => {
     const row = editableInputRows.find(r => r.id === rowId);
     if (!row) return;
     
-    // 모든 데이터는 모든 필드 편집 가능
-    console.log('편집 모드 활성화 - 모든 필드 편집 가능');
+    if (row.isNewlyAdded) {
+      // 새로 추가된 데이터는 모든 필드 편집 가능
+      console.log('편집 모드 활성화 - 새로 추가된 데이터, 모든 필드 편집 가능');
+    } else {
+      // Excel 데이터는 AI 추천 답변만 편집 가능
+      console.log('편집 모드 활성화 - Excel 데이터, AI 추천 답변만 편집 가능');
+    }
     
     setEditableInputRows(prev => 
       prev.map(row => 
@@ -640,32 +645,36 @@ const InputDataPage: React.FC = () => {
     }
   };
 
-     // 입력 필드 렌더링
-   const renderInputField = (row: EditableRow, column: string) => {
-     const value = row.modifiedData[column] || '';
-     const isNewRowData = isNewRow(row);
-     const isRequired = ['로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '투입물명', '수량', '단위'].includes(column);
-    
-    // 편집 모드가 아닌 경우 읽기 전용으로 표시
-    if (!row.isEditing) {
-      return <span className='text-white/60'>{value || '-'}</span>;
-    }
-    
-    // 편집 모드인 경우 모든 필드를 편집 가능하게 렌더링
-    
-         const getInputClassName = () => {
-       let baseClass = 'w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
-       
-       if (isNewRowData) {
-         baseClass += ' border-green-300 bg-green-50 text-black';
-       } else if (row.isEditing) {
-         baseClass += ' border-blue-300 bg-blue-50 text-black';
-       } else {
-         baseClass += ' border-gray-300 bg-white text-black';
-       }
-       
-       return baseClass;
-     };
+           // 입력 필드 렌더링
+    const renderInputField = (row: EditableRow, column: string) => {
+      const value = row.modifiedData[column] || '';
+      const isNewRowData = isNewRow(row);
+      const isRequired = ['로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '투입물명', '수량', '단위'].includes(column);
+      
+      // 편집 모드가 아닌 경우 읽기 전용으로 표시
+      if (!row.isEditing) {
+        return <span className='text-white/60'>{value || '-'}</span>;
+      }
+      
+      // Excel 데이터는 AI 추천 답변만 편집 가능, 새로 추가된 데이터는 모든 필드 편집 가능
+      if (!isNewRowData && column !== 'AI추천답변') {
+        // Excel 데이터의 다른 필드는 읽기 전용
+        return <span className='text-white/60'>{value || '-'}</span>;
+      }
+      
+      const getInputClassName = () => {
+        let baseClass = 'w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+        
+        if (isNewRowData) {
+          baseClass += ' border-green-300 bg-green-50 text-black';
+        } else if (row.isEditing) {
+          baseClass += ' border-blue-300 bg-blue-50 text-black';
+        } else {
+          baseClass += ' border-gray-300 bg-white text-black';
+        }
+        
+        return baseClass;
+      };
 
     switch (column) {
       case '로트번호':

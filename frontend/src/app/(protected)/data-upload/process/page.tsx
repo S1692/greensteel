@@ -22,13 +22,12 @@ import { Button } from '@/components/atomic/atoms';
 import { Input } from '@/components/atomic/atoms';
 import Link from 'next/link';
 
-// 타입 정의 - 새로운 스키마에 맞게 수정
+// 타입 정의 - 이미지와 동일한 스키마
 type DataRow = {
-  공정명: string;
-  공정설명: string;
-  공정유형: string;
-  공정단계: string;
-  공정효율: number;
+  공정명?: string;
+  생산제품?: string;
+  세부공정?: string;
+  공정설명?: string;
   [key: string]: any;
 };
 
@@ -116,7 +115,7 @@ const ProcessDataPage: React.FC = () => {
 
   // 공정 데이터는 텍스트 기반이므로 숫자/날짜 입력 제한 불필요
 
-  // 입력 검증 함수 - 새로운 스키마에 맞게 수정
+  // 입력 검증 함수 - 이미지와 동일한 스키마
   const validateInput = (value: string, field: string): string | null => {
     if (!value || value.trim() === '') {
       return `${field}은(는) 필수 입력 항목입니다.`;
@@ -128,28 +127,19 @@ const ProcessDataPage: React.FC = () => {
           return '공정명은 100자를 초과할 수 없습니다.';
         }
         break;
+      case '생산제품':
+        if (value.length > 100) {
+          return '생산제품은 100자를 초과할 수 없습니다.';
+        }
+        break;
+      case '세부공정':
+        if (value.length > 100) {
+          return '세부공정은 100자를 초과할 수 없습니다.';
+        }
+        break;
       case '공정설명':
         if (value.length > 500) {
           return '공정설명은 500자를 초과할 수 없습니다.';
-        }
-        break;
-      case '공정유형':
-        if (value.length > 50) {
-          return '공정유형은 50자를 초과할 수 없습니다.';
-        }
-        break;
-      case '공정단계':
-        if (value.length > 50) {
-          return '공정단계는 50자를 초과할 수 없습니다.';
-        }
-        break;
-      case '공정효율':
-        const numValue = parseFloat(value);
-        if (isNaN(numValue)) {
-          return '공정효율은 숫자여야 합니다.';
-        }
-        if (numValue < 0 || numValue > 100) {
-          return '공정효율은 0에서 100 사이의 값이어야 합니다.';
         }
         break;
       default:
@@ -168,7 +158,7 @@ const ProcessDataPage: React.FC = () => {
     let hasErrors = false;
 
     // 필수 필드 검증
-    const requiredFields = ['공정명', '공정유형', '공정단계'];
+    const requiredFields = ['공정명', '생산제품', '세부공정'];
     requiredFields.forEach(field => {
       const error = validateInput(row.modifiedData[field] || '', field);
       if (error) {
@@ -176,15 +166,6 @@ const ProcessDataPage: React.FC = () => {
         hasErrors = true;
       }
     });
-
-    // 공정효율 검증 (선택사항이지만 입력된 경우)
-    if (row.modifiedData.공정효율 !== undefined && row.modifiedData.공정효율 !== null) {
-      const error = validateInput(row.modifiedData.공정효율.toString(), '공정효율');
-      if (error) {
-        errors['공정효율'] = error;
-        hasErrors = true;
-      }
-    }
 
     if (hasErrors) {
       setRowErrors(prev => ({
@@ -205,10 +186,9 @@ const ProcessDataPage: React.FC = () => {
 
     // 오류 상태 정리
     clearRowError(rowId, '공정명');
+    clearRowError(rowId, '생산제품');
+    clearRowError(rowId, '세부공정');
     clearRowError(rowId, '공정설명');
-    clearRowError(rowId, '공정유형');
-    clearRowError(rowId, '공정단계');
-    clearRowError(rowId, '공정효율');
   };
 
   // 새로운 행 추가 핸들러
@@ -217,17 +197,15 @@ const ProcessDataPage: React.FC = () => {
       id: `process-${editableInputRows.length}`,
       originalData: {
         공정명: '',
-        공정설명: '',
-        공정유형: '',
-        공정단계: '',
-        공정효율: 0
+        생산제품: '',
+        세부공정: '',
+        공정설명: ''
       },
       modifiedData: {
         공정명: '',
-        공정설명: '',
-        공정유형: '',
-        공정단계: '',
-        공정효율: 0
+        생산제품: '',
+        세부공정: '',
+        공정설명: ''
       },
       isEditing: true,
       isNewlyAdded: true
@@ -316,7 +294,7 @@ const ProcessDataPage: React.FC = () => {
           </div>
         );
       
-      case '공정유형':
+      case '생산제품':
         return (
           <div className='relative'>
             <input
@@ -334,7 +312,7 @@ const ProcessDataPage: React.FC = () => {
                   updateRowError(row.id, column, error);
                 }
               }}
-              placeholder={isRequired ? '공정유형을 입력하세요 *' : '공정유형을 입력하세요'}
+              placeholder={isRequired ? '생산제품을 입력하세요 *' : '생산제품을 입력하세요'}
               className={getInputClassName()}
             />
             {isRequired && (
@@ -346,7 +324,7 @@ const ProcessDataPage: React.FC = () => {
           </div>
         );
       
-      case '공정단계':
+      case '세부공정':
         return (
           <div className='relative'>
             <input
@@ -364,7 +342,7 @@ const ProcessDataPage: React.FC = () => {
                   updateRowError(row.id, column, error);
                 }
               }}
-              placeholder={isRequired ? '공정단계를 입력하세요 *' : '공정단계를 입력하세요'}
+              placeholder={isRequired ? '세부공정을 입력하세요 *' : '세부공정을 입력하세요'}
               className={getInputClassName()}
             />
             {isRequired && (
@@ -376,31 +354,7 @@ const ProcessDataPage: React.FC = () => {
           </div>
         );
       
-      case '공정효율':
-        return (
-          <div className='relative'>
-            <input
-              type='number'
-              value={value}
-              onChange={(e) => {
-                const newValue = e.target.value;
-                const error = validateInput(newValue, column);
-                if (!error) {
-                  handleInputChange(row.id, column, newValue);
-                  clearRowError(row.id, column);
-                } else {
-                  handleInputChange(row.id, column, newValue);
-                  updateRowError(row.id, column, error);
-                }
-              }}
-              placeholder='공정효율 (0-100)'
-              className={getInputClassName()}
-            />
-            {rowErrors[row.id]?.[column] && (
-              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
-            )}
-          </div>
-        );
+
       
       default:
         return (
@@ -489,6 +443,27 @@ const ProcessDataPage: React.FC = () => {
           columns.push(cell.v.toString().trim());
         }
       }
+      
+      // 필수 칼럼 구조 검증
+      const requiredColumns = [
+        '공정명', '생산제품', '세부공정', '공정설명'
+      ];
+      
+      const missingColumns = requiredColumns.filter(col => !columns.includes(col));
+      if (missingColumns.length > 0) {
+        throw new Error(`필수 칼럼이 누락되었습니다: ${missingColumns.join(', ')}`);
+      }
+      
+      // 칼럼 순서 검증
+      const expectedOrder = [
+        '공정명', '생산제품', '세부공정', '공정설명'
+      ];
+      
+      for (let i = 0; i < Math.min(columns.length, expectedOrder.length); i++) {
+        if (columns[i] !== expectedOrder[i]) {
+          throw new Error(`칼럼 순서가 올바르지 않습니다. ${expectedOrder[i]}이(가) ${i + 1}번째 위치에 있어야 합니다.`);
+        }
+      }
 
       // 데이터 읽기 (첫 번째 행 제외)
       const jsonData = XLSX.utils.sheet_to_json(worksheet, {
@@ -531,7 +506,11 @@ const ProcessDataPage: React.FC = () => {
 
     } catch (err) {
       console.error('파일 업로드 오류:', err);
-      setError('파일 업로드 중 오류가 발생했습니다.');
+      if (err instanceof Error) {
+        setError(`파일 업로드 실패: ${err.message}`);
+      } else {
+        setError('파일 업로드 중 오류가 발생했습니다.');
+      }
     } finally {
       setIsInputUploading(false);
     }
@@ -553,12 +532,11 @@ const ProcessDataPage: React.FC = () => {
         .filter(row => !row.isEditing)
         .map(row => ({
           공정명: row.modifiedData.공정명 || '',
-          공정설명: row.modifiedData.공정설명 || '',
-          공정유형: row.modifiedData.공정유형 || '',
-          공정단계: row.modifiedData.공정단계 || '',
-          공정효율: row.modifiedData.공정효율 !== undefined ? parseFloat(row.modifiedData.공정효율.toString()) : 0
+          생산제품: row.modifiedData.생산제품 || '',
+          세부공정: row.modifiedData.세부공정 || '',
+          공정설명: row.modifiedData.공정설명 || ''
         }))
-        .filter(row => row.공정명 && row.공정유형 && row.공정단계); // 필수 필드가 있는 행만
+        .filter(row => row.공정명 && row.생산제품 && row.세부공정); // 필수 필드가 있는 행만
 
       if (dataToSave.length === 0) {
         setError('저장할 유효한 데이터가 없습니다.');

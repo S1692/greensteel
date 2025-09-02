@@ -561,7 +561,7 @@ async def process_data_to_datagather(data: dict):
         gateway_logger.log_info(f"JSON 데이터 처리 요청 받음: {data.get('filename', 'unknown')}")
         
         # DataGather 서비스로 JSON 데이터 전송 (환경변수 사용)
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 f"{datagather_service_url.rstrip('/')}/process-data",
@@ -602,7 +602,7 @@ async def ai_process_data(data: dict):
         gateway_logger.log_info(f"AI 모델 처리 요청 받음: {data.get('filename', 'unknown')}")
         
         # datagather_service로 AI 처리 요청 전송 (환경변수 사용)
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
                 f"{datagather_service_url.rstrip('/')}/ai-process",
@@ -652,7 +652,7 @@ async def process_feedback(feedback_data: dict):
         gateway_logger.log_info(f"피드백 데이터: {feedback_data}")
         
         # DataGather 서비스로 피드백 전송 (환경변수 사용)
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 f"{datagather_service_url.rstrip('/')}/feedback",
@@ -695,7 +695,7 @@ async def upload_input_data(data: dict):
         gateway_logger.log_info(f"Input 데이터 업로드 요청 받음: {data.get('filename', 'unknown')}")
         
         # DataGather 서비스로 Input 데이터 전송 (환경변수 사용)
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 f"{datagather_service_url.rstrip('/')}/save-input-data",
@@ -736,7 +736,7 @@ async def upload_output_data(data: dict):
         gateway_logger.log_info(f"Output 데이터 업로드 요청 받음: {data.get('filename', 'unknown')}")
         
         # DataGather 서비스로 Output 데이터 전송 (환경변수 사용)
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 f"{datagather_service_url.rstrip('/')}/save-output-data",
@@ -778,7 +778,9 @@ async def ai_process_stream(request: Request):
         
         # DataGather 서비스로 스트리밍 요청 전송
         # 환경변수에서 DataGather 서비스 URL 가져오기
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL")
+        if not datagather_service_url:
+            raise HTTPException(status_code=503, detail="DATAGATHER_SERVICE_URL 환경변수가 설정되지 않았습니다")
         
         # 요청 헤더 준비 (host 제거)
         headers = dict(request.headers)
@@ -831,8 +833,8 @@ async def ai_process_stream_proxy(request: Request):
     """AI 처리 스트리밍 엔드포인트 - DataGather 서비스로 프록시"""
     try:
         # DataGather 서비스로 스트리밍 요청 전송
-        # 환경변수에서 DataGather 서비스 URL 가져오기
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
+        # 환경변수에서 DataGather 서비스 URL 가져오기 (로컬 개발용으로 설정)
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")
         
         if not datagather_service_url:
             raise HTTPException(status_code=503, detail="DataGather 서비스 URL이 설정되지 않았습니다")
@@ -878,7 +880,7 @@ async def ai_process_stream_proxy(request: Request):
 async def save_processed_data_proxy(request: Request):
     """AI 처리된 데이터를 데이터베이스에 저장하는 엔드포인트 - DataGather 서비스로 프록시"""
     try:
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")
         if not datagather_service_url:
             raise HTTPException(status_code=503, detail="DataGather 서비스 URL이 설정되지 않았습니다")
         gateway_logger.log_info(f"DB 저장 요청을 DataGather 서비스로 프록시: {datagather_service_url}")
@@ -915,9 +917,9 @@ async def save_processed_data_proxy(request: Request):
 async def classify_data_proxy(request: Request):
     """데이터를 분류하여 저장하는 엔드포인트 - DataGather 서비스로 프록시"""
     try:
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL")
         if not datagather_service_url:
-            raise HTTPException(status_code=503, detail="DataGather 서비스 URL이 설정되지 않았습니다")
+            raise HTTPException(status_code=503, detail="DATAGATHER_SERVICE_URL 환경변수가 설정되지 않았습니다")
         
         gateway_logger.log_info(f"데이터 분류 요청을 DataGather 서비스로 프록시: {datagather_service_url}")
         target_url = f"{datagather_service_url.rstrip('/')}/classify-data"
@@ -956,9 +958,9 @@ async def classify_data_proxy(request: Request):
 async def delete_classification_proxy(request: Request):
     """데이터 분류를 삭제하는 엔드포인트 - DataGather 서비스로 프록시"""
     try:
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL")
         if not datagather_service_url:
-            raise HTTPException(status_code=503, detail="DataGather 서비스 URL이 설정되지 않았습니다")
+            raise HTTPException(status_code=503, detail="DATAGATHER_SERVICE_URL 환경변수가 설정되지 않았습니다")
         
         gateway_logger.log_info(f"데이터 분류 삭제 요청을 DataGather 서비스로 프록시: {datagather_service_url}")
         target_url = f"{datagather_service_url.rstrip('/')}/delete-classification"
@@ -1003,9 +1005,9 @@ async def delete_classification_proxy(request: Request):
 async def save_transport_data_proxy(request: Request):
     """운송 데이터를 데이터베이스에 저장하는 엔드포인트 - DataGather 서비스로 프록시"""
     try:
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL")
         if not datagather_service_url:
-            raise HTTPException(status_code=503, detail="DataGather 서비스 URL이 설정되지 않았습니다")
+            raise HTTPException(status_code=503, detail="DATAGATHER_SERVICE_URL 환경변수가 설정되지 않았습니다")
         gateway_logger.log_info(f"운송 데이터 저장 요청을 DataGather 서비스로 프록시: {datagather_service_url}")
         target_url = f"{datagather_service_url.rstrip('/')}/save-transport-data"
         body = await request.body()
@@ -1036,7 +1038,7 @@ async def save_transport_data_proxy(request: Request):
 async def save_process_data_proxy(request: Request):
     """공정 데이터를 데이터베이스에 저장하는 엔드포인트 - DataGather 서비스로 프록시"""
     try:
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")
         if not datagather_service_url:
             raise HTTPException(status_code=503, detail="DataGather 서비스 URL이 설정되지 않았습니다")
         gateway_logger.log_info(f"공정 데이터 저장 요청을 DataGather 서비스로 프록시: {datagather_service_url}")
@@ -1069,7 +1071,7 @@ async def save_process_data_proxy(request: Request):
 async def save_output_data_proxy(request: Request):
     """산출물 데이터를 데이터베이스에 저장하는 엔드포인트 - DataGather 서비스로 프록시"""
     try:
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")
         if not datagather_service_url:
             raise HTTPException(status_code=503, detail="DataGather 서비스 URL이 설정되지 않았습니다")
         gateway_logger.log_info(f"산출물 데이터 저장 요청을 DataGather 서비스로 프록시: {datagather_service_url}")
@@ -1152,9 +1154,9 @@ async def internal_error_handler(request: Request, exc):
 async def get_input_data_proxy():
     """투입물 데이터 조회 - DataGather 서비스로 프록시"""
     try:
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL")
         if not datagather_service_url:
-            raise HTTPException(status_code=503, detail="DataGather 서비스 URL이 설정되지 않았습니다")
+            raise HTTPException(status_code=503, detail="DATAGATHER_SERVICE_URL 환경변수가 설정되지 않았습니다")
         
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(
@@ -1185,9 +1187,9 @@ async def get_input_data_proxy():
 async def get_output_data_proxy():
     """산출물 데이터 조회 - DataGather 서비스로 프록시"""
     try:
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL")
         if not datagather_service_url:
-            raise HTTPException(status_code=503, detail="DataGather 서비스 URL이 설정되지 않았습니다")
+            raise HTTPException(status_code=503, detail="DATAGATHER_SERVICE_URL 환경변수가 설정되지 않았습니다")
         
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(
@@ -1218,9 +1220,9 @@ async def get_output_data_proxy():
 async def get_transport_data_proxy():
     """운송 데이터 조회 - DataGather 서비스로 프록시"""
     try:
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL")
         if not datagather_service_url:
-            raise HTTPException(status_code=503, detail="DataGather 서비스 URL이 설정되지 않았습니다")
+            raise HTTPException(status_code=503, detail="DATAGATHER_SERVICE_URL 환경변수가 설정되지 않았습니다")
         
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(
@@ -1251,9 +1253,9 @@ async def get_transport_data_proxy():
 async def get_process_data_proxy():
     """공정 데이터 조회 - DataGather 서비스로 프록시"""
     try:
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "https://datagather-service-production.up.railway.app")
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL")
         if not datagather_service_url:
-            raise HTTPException(status_code=503, detail="DataGather 서비스 URL이 설정되지 않았습니다")
+            raise HTTPException(status_code=503, detail="DATAGATHER_SERVICE_URL 환경변수가 설정되지 않았습니다")
         
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(
@@ -1283,7 +1285,7 @@ async def get_process_data_proxy():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
-        "app.main:app",
+        "main:app",
         host="0.0.0.0",
         port=8080,
         reload=False,

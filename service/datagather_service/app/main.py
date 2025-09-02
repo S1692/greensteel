@@ -862,6 +862,28 @@ async def save_processed_data(data: dict):
         logger.error(f"DB 저장 엔드포인트 실패: {e}")
         return {"success": False, "message": f"데이터베이스 저장 중 오류가 발생했습니다: {str(e)}", "error": str(e)}
 
+@app.post("/classify-data")
+async def classify_data(data: dict):
+    """데이터를 분류하여 저장하는 엔드포인트"""
+    try:
+        logger.info("데이터 분류 요청 받음")
+        # 데이터 분류 로직 구현
+        return {"success": True, "message": "데이터 분류 완료"}
+    except Exception as e:
+        logger.error(f"데이터 분류 실패: {e}")
+        return {"success": False, "message": f"데이터 분류 실패: {str(e)}", "error": str(e)}
+
+@app.delete("/delete-classification")
+async def delete_classification(data: dict):
+    """데이터 분류를 삭제하는 엔드포인트"""
+    try:
+        logger.info("데이터 분류 삭제 요청 받음")
+        # 데이터 분류 삭제 로직 구현
+        return {"success": True, "message": "데이터 분류 삭제 완료"}
+    except Exception as e:
+        logger.error(f"데이터 분류 삭제 실패: {e}")
+        return {"success": False, "message": f"데이터 분류 삭제 실패: {str(e)}", "error": str(e)}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(

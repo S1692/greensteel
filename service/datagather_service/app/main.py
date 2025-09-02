@@ -130,7 +130,7 @@ async def ai_process_data(data: Dict[str, Any]):
             공정 = item.get('공정', '')
             
             # AI가 투입물명만 자유롭게 생성하는 추천 답변
-            ai_추천답변 = f"AI_추천_{투입물명}_{공정}"
+            ai_추천답변 = f"AI_추천_{투입물명}"
             
             # 각 항목에 AI 처리 결과 추가
             processed_item = {

@@ -544,7 +544,7 @@ const TransportDataPage: React.FC = () => {
 
       const processedData = inputData.data.map((row: any) => {
         // 운송수량을 숫자로 변환
-        const 운송수량 = parseFloat(row['운송수량']?.toString() || '0');
+        let 운송수량 = parseFloat(row['운송수량']?.toString() || '0');
         
         // 운송수량 검증 (0 이하인 경우 기본값 1로 설정)
         if (운송수량 <= 0) {

@@ -528,6 +528,17 @@ async def save_transport_data(
             
             for row in transport_data_rows:
                 try:
+                    # Excel 필드명 매핑 (공백 포함 필드명 사용)
+                    transport_material = row.get('운송 물질', '') or row.get('운송물질', '')
+                    transport_quantity = row.get('운송 수량', 0) or row.get('운송수량', 0)
+                    transport_date = row.get('운송 일자') or row.get('운송일자')
+                    destination_process = row.get('도착 공정', '') or row.get('도착공정', '')
+                    transport_method = row.get('이동 수단', '') or row.get('이동수단', '')
+                    
+                    # 운송수량이 0이면 기본값 1로 설정 (체크 제약조건 위반 방지)
+                    if not transport_quantity or float(transport_quantity) <= 0:
+                        transport_quantity = 1
+                    
                     session.execute(text("""
                         INSERT INTO transport_data 
                         (생산품명, 로트번호, 운송물질, 운송수량, 운송일자, 
@@ -537,12 +548,12 @@ async def save_transport_data(
                     """), {
                         '생산품명': row.get('생산품명', ''),
                         '로트번호': row.get('로트번호', ''),
-                        '운송물질': row.get('투입물명', ''),  # 운송물질로 매핑
-                        '운송수량': float(row.get('수량', 0)) if row.get('수량') else 0,
-                        '운송일자': row.get('투입일'),
-                        '도착공정': row.get('공정', ''),  # 도착공정으로 매핑
-                        '출발지': row.get('출발지', ''),  # 출발지 정보
-                        '이동수단': row.get('이동수단', ''),  # 이동수단 정보
+                        '운송물질': transport_material,
+                        '운송수량': float(transport_quantity),
+                        '운송일자': transport_date,
+                        '도착공정': destination_process,
+                        '출발지': row.get('출발지', ''),
+                        '이동수단': transport_method,
                         '주문처명': row.get('주문처명', ''),
                         '오더번호': row.get('오더번호', '')
                     })

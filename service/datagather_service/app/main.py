@@ -90,6 +90,22 @@ async def get_install_service(session: AsyncSession = Depends(get_session)) -> I
     """Install 애플리케이션 서비스 의존성"""
     return InstallApplicationService(session)
 
+# 루트 엔드포인트
+@app.get("/")
+async def root():
+    """루트 경로"""
+    return {
+        "service": "DataGather Service",
+        "version": "1.0.0",
+        "description": "Data Collection & Processing Service - DDD Structure",
+        "endpoints": {
+            "health": "/health",
+            "ai_process": "/ai-process",
+            "ai_process_api": f"{settings.api_prefix}/datagather/ai-process",
+            "documentation": "/docs"
+        }
+    }
+
 # 헬스체크 엔드포인트
 @app.get("/health")
 async def health_check():

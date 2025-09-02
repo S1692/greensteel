@@ -879,7 +879,7 @@ async def save_processed_data(data: Dict[str, Any]):
 # 데이터 분류 저장
 @app.post("/api/datagather/classify-data")
 async def classify_data(data: Dict[str, Any]):
-    """데이터 분류 정보 저장"""
+    """데이터 분류 정보를 분류별 테이블에 저장"""
     try:
         logger.info(f"데이터 분류 저장 요청: {data}")
         
@@ -896,21 +896,89 @@ async def classify_data(data: Dict[str, Any]):
             
             for row in classification_data:
                 try:
-                    # 분류 데이터 저장
-                    session.execute(text("""
-                        INSERT INTO classified_data 
-                        (source_table, source_id, classification, created_at)
-                        VALUES (:source_table, :source_id, :classification, NOW())
-                        ON CONFLICT (source_table, source_id) 
-                        DO UPDATE SET 
-                            classification = EXCLUDED.classification,
-                            updated_at = NOW()
-                    """), {
-                        'source_table': row.get('source_table', ''),
-                        'source_id': row.get('source_id', 0),
-                        'classification': row.get('classification', '')
-                    })
+                    분류 = row.get('분류', '').strip()
+                    source_table = row.get('source_table', '')
+                    source_id = row.get('source_id', 0)
+                    
+                    # 분류에 따라 적절한 테이블에 저장
+                    if 분류 == '연료':
+                        # fuel_data 테이블에 저장
+                        session.execute(text("""
+                            INSERT INTO fuel_data 
+                            (로트번호, 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위, 
+                             분류, source_table, source_id, 주문처명, 오더번호, created_at)
+                            SELECT 로트번호, 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위,
+                                   '연료', :source_table, :source_id, 주문처명, 오더번호, NOW()
+                            FROM input_data 
+                            WHERE id = :source_id
+                            ON CONFLICT (source_table, source_id) 
+                            DO UPDATE SET 
+                                분류 = '연료',
+                                updated_at = NOW()
+                        """), {
+                            'source_table': source_table,
+                            'source_id': source_id
+                        })
+                        
+                    elif 분류 == '유틸리티':
+                        # utility_data 테이블에 저장
+                        session.execute(text("""
+                            INSERT INTO utility_data 
+                            (로트번호, 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위, 
+                             분류, source_table, source_id, 주문처명, 오더번호, created_at)
+                            SELECT 로트번호, 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위,
+                                   '유틸리티', :source_table, :source_id, 주문처명, 오더번호, NOW()
+                            FROM input_data 
+                            WHERE id = :source_id
+                            ON CONFLICT (source_table, source_id) 
+                            DO UPDATE SET 
+                                분류 = '유틸리티',
+                                updated_at = NOW()
+                        """), {
+                            'source_table': source_table,
+                            'source_id': source_id
+                        })
+                        
+                    elif 분류 == '폐기물':
+                        # waste_data 테이블에 저장
+                        session.execute(text("""
+                            INSERT INTO waste_data 
+                            (로트번호, 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위, 
+                             분류, source_table, source_id, 주문처명, 오더번호, created_at)
+                            SELECT 로트번호, 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위,
+                                   '폐기물', :source_table, :source_id, 주문처명, 오더번호, NOW()
+                            FROM input_data 
+                            WHERE id = :source_id
+                            ON CONFLICT (source_table, source_id) 
+                            DO UPDATE SET 
+                                분류 = '폐기물',
+                                updated_at = NOW()
+                        """), {
+                            'source_table': source_table,
+                            'source_id': source_id
+                        })
+                        
+                    elif 분류 == '공정 생산품':
+                        # process_product_data 테이블에 저장
+                        session.execute(text("""
+                            INSERT INTO process_product_data 
+                            (로트번호, 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위, 
+                             분류, source_table, source_id, 주문처명, 오더번호, created_at)
+                            SELECT 로트번호, 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위,
+                                   '공정 생산품', :source_table, :source_id, 주문처명, 오더번호, NOW()
+                            FROM input_data 
+                            WHERE id = :source_id
+                            ON CONFLICT (source_table, source_id) 
+                            DO UPDATE SET 
+                                분류 = '공정 생산품',
+                                updated_at = NOW()
+                        """), {
+                            'source_table': source_table,
+                            'source_id': source_id
+                        })
+                    
                     saved_count += 1
+                    
                 except Exception as row_error:
                     logger.error(f"분류 데이터 저장 실패: {row_error}, 데이터: {row}")
                     session.rollback()
@@ -956,77 +1024,61 @@ async def get_classified_data(classification: str):
         Session = sessionmaker(bind=engine)
         
         with Session() as session:
-            # 분류된 데이터와 원본 데이터를 조인하여 조회
-            query = """
+            # 분류에 따라 적절한 테이블에서 조회
+            if classification == '연료':
+                table_name = 'fuel_data'
+            elif classification == '유틸리티':
+                table_name = 'utility_data'
+            elif classification == '폐기물':
+                table_name = 'waste_data'
+            elif classification == '공정 생산품':
+                table_name = 'process_product_data'
+            else:
+                return JSONResponse(
+                    status_code=400,
+                    content={
+                        "success": False,
+                        "error": "Invalid classification",
+                        "message": f"지원하지 않는 분류입니다: {classification}"
+                    }
+                )
+            
+            # 해당 분류 테이블에서 데이터 조회
+            query = f"""
                 SELECT 
-                    CASE 
-                        WHEN cd.source_table = 'input_data' THEN 'input_data'
-                        WHEN cd.source_table = 'output_data' THEN 'output_data'
-                        ELSE cd.source_table
-                    END as source_table,
-                    cd.source_id,
-                    cd.classification,
-                    CASE 
-                        WHEN cd.source_table = 'input_data' THEN (
-                            SELECT json_build_object(
-                                'id', id,
-                                '로트번호', 로트번호,
-                                '생산품명', 생산품명,
-                                '생산수량', 생산수량,
-                                '투입일', 투입일,
-                                '종료일', 종료일,
-                                '공정', 공정,
-                                '투입물명', 투입물명,
-                                '수량', 수량,
-                                '단위', 단위,
-                                '주문처명', 주문처명,
-                                '오더번호', 오더번호
-                            )
-                            FROM input_data 
-                            WHERE id = cd.source_id
-                        )
-                        WHEN cd.source_table = 'output_data' THEN (
-                            SELECT json_build_object(
-                                'id', id,
-                                '로트번호', 로트번호,
-                                '생산품명', 생산품명,
-                                '생산수량', 생산수량,
-                                '투입일', 투입일,
-                                '종료일', 종료일,
-                                '공정', 공정,
-                                '산출물명', 산출물명,
-                                '수량', 수량,
-                                '단위', 단위,
-                                '주문처명', 주문처명,
-                                '오더번호', 오더번호
-                            )
-                            FROM output_data 
-                            WHERE id = cd.source_id
-                        )
-                        ELSE NULL
-                    END as data
-                FROM classified_data cd
-                WHERE cd.classification = :classification
-                ORDER BY cd.created_at DESC
+                    id,
+                    로트번호,
+                    생산수량,
+                    투입일,
+                    종료일,
+                    공정,
+                    투입물명,
+                    수량,
+                    단위,
+                    분류,
+                    source_table,
+                    source_id,
+                    주문처명,
+                    오더번호,
+                    created_at,
+                    updated_at
+                FROM {table_name}
+                ORDER BY created_at DESC
             """
             
-            result = session.execute(text(query), {"classification": classification})
+            result = session.execute(text(query))
             rows = result.fetchall()
             
             data = []
             for row in rows:
-                if row.data:  # data가 None이 아닌 경우에만 추가
-                    row_data = dict(row.data)
-                    row_data['source_table'] = row.source_table
-                    row_data['source_id'] = row.source_id
-                    row_data['분류'] = row.classification
-                    
-                    # 날짜 필드 처리
-                    for key, value in row_data.items():
-                        if hasattr(value, 'isoformat'):
-                            row_data[key] = value.isoformat()
-                    
-                    data.append(row_data)
+                row_dict = dict(row._mapping)
+                
+                # 날짜 필드 처리
+                for key, value in row_dict.items():
+                    if hasattr(value, 'isoformat'):
+                        row_dict[key] = value.isoformat()
+                
+                data.append(row_dict)
             
             logger.info(f"분류된 데이터 조회 완료: {len(data)}행 ({classification})")
             

@@ -902,77 +902,50 @@ async def classify_data(data: Dict[str, Any]):
                     
                     # 분류에 따라 적절한 테이블에 저장
                     if 분류 == '연료':
-                        # fuel_data 테이블에 저장
-                        session.execute(text("""
-                            INSERT INTO fuel_data 
-                            (로트번호, 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위, 
-                             분류, source_table, source_id, 주문처명, 오더번호, created_at)
-                            SELECT 로트번호, 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위,
-                                   '연료', :source_table, :source_id, 주문처명, 오더번호, NOW()
-                            FROM input_data 
-                            WHERE id = :source_id
-                            ON CONFLICT (source_table, source_id) 
-                            DO UPDATE SET 
-                                분류 = '연료',
-                                updated_at = NOW()
-                        """), {
-                            'source_table': source_table,
-                            'source_id': source_id
-                        })
-                        
+                        target_table = 'fuel_data'
                     elif 분류 == '유틸리티':
-                        # utility_data 테이블에 저장
-                        session.execute(text("""
-                            INSERT INTO utility_data 
-                            (로트번호, 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위, 
-                             분류, source_table, source_id, 주문처명, 오더번호, created_at)
-                            SELECT 로트번호, 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위,
-                                   '유틸리티', :source_table, :source_id, 주문처명, 오더번호, NOW()
-                            FROM input_data 
-                            WHERE id = :source_id
-                            ON CONFLICT (source_table, source_id) 
-                            DO UPDATE SET 
-                                분류 = '유틸리티',
-                                updated_at = NOW()
-                        """), {
-                            'source_table': source_table,
-                            'source_id': source_id
-                        })
-                        
+                        target_table = 'utility_data'
                     elif 분류 == '폐기물':
-                        # waste_data 테이블에 저장
-                        session.execute(text("""
-                            INSERT INTO waste_data 
+                        target_table = 'waste_data'
+                    elif 분류 == '공정 생산품':
+                        target_table = 'process_product_data'
+                    else:
+                        continue
+                    
+                    # source_table에 따라 적절한 테이블에서 데이터를 가져와서 저장
+                    if source_table == 'input_data':
+                        session.execute(text(f"""
+                            INSERT INTO {target_table} 
                             (로트번호, 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위, 
                              분류, source_table, source_id, 주문처명, 오더번호, created_at)
-                            SELECT 로트번호, 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위,
-                                   '폐기물', :source_table, :source_id, 주문처명, 오더번호, NOW()
+                            SELECT CAST(로트번호 AS INTEGER), 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위,
+                                   :분류, :source_table, :source_id, 주문처명, 오더번호, NOW()
                             FROM input_data 
                             WHERE id = :source_id
                             ON CONFLICT (source_table, source_id) 
                             DO UPDATE SET 
-                                분류 = '폐기물',
+                                분류 = :분류,
                                 updated_at = NOW()
                         """), {
+                            '분류': 분류,
                             'source_table': source_table,
                             'source_id': source_id
                         })
-                        
-                    elif 분류 == '공정 생산품':
-                        # process_product_data 테이블에 저장
-                        session.execute(text("""
-                            INSERT INTO process_product_data 
+                    elif source_table == 'output_data':
+                        session.execute(text(f"""
+                            INSERT INTO {target_table} 
                             (로트번호, 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위, 
                              분류, source_table, source_id, 주문처명, 오더번호, created_at)
-                            SELECT 로트번호, 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위,
-                                   '공정 생산품', :source_table, :source_id, 주문처명, 오더번호, NOW()
-                            FROM input_data 
+                            SELECT CAST(로트번호 AS INTEGER), 생산수량, 투입일, 종료일, 공정, 산출물명, 수량, 단위,
+                                   :분류, :source_table, :source_id, 주문처명, 오더번호, NOW()
+                            FROM output_data 
                             WHERE id = :source_id
                             ON CONFLICT (source_table, source_id) 
                             DO UPDATE SET 
-                                분류 = '공정 생산품',
+                                분류 = :분류,
                                 updated_at = NOW()
                         """), {
+                            '분류': 분류,
                             'source_table': source_table,
                             'source_id': source_id
                         })

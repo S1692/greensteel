@@ -53,6 +53,8 @@ interface ClassificationData {
   투입물명: string;
   수량: number;
   단위: string;
+  주문처명?: string;
+  오더번호?: string;
   분류: ClassificationType;
   source_table: 'input_data' | 'output_data';
   source_id: number;
@@ -75,6 +77,19 @@ export default function DataManagementPage() {
     type: 'success' | 'error' | 'info' | null;
     message: string;
   }>({ type: null, message: '' });
+  
+  // 분류된 데이터 상태 추가
+  const [classifiedData, setClassifiedData] = useState<{
+    fuel: ClassificationData[];
+    utility: ClassificationData[];
+    waste: ClassificationData[];
+    processProduct: ClassificationData[];
+  }>({
+    fuel: [],
+    utility: [],
+    waste: [],
+    processProduct: []
+  });
   
   // 편집 모드 상태 관리
   const [editingRow, setEditingRow] = useState<string | null>(null);
@@ -144,6 +159,14 @@ export default function DataManagementPage() {
       updateClassificationInfo(wasteDataArray, '폐기물');
       updateClassificationInfo(processProductDataArray, '공정 생산품');
 
+      // 분류된 데이터를 별도로 저장
+      setClassifiedData({
+        fuel: fuelDataArray,
+        utility: utilityDataArray,
+        waste: wasteDataArray,
+        processProduct: processProductDataArray
+      });
+
       // 데이터 통합 및 형식 변환
       const combinedData: DataRow[] = [
         ...inputDataArray.map((item: any) => ({
@@ -156,6 +179,8 @@ export default function DataManagementPage() {
           투입물명: item.투입물명,
           수량: item.수량,
           단위: item.단위,
+          주문처명: item.주문처명,
+          오더번호: item.오더번호,
           source_table: 'input_data' as const,
           source_id: item.id,
           분류: item.분류 || null
@@ -170,6 +195,8 @@ export default function DataManagementPage() {
           투입물명: item.산출물명, // output_data는 산출물명 컬럼 사용
           수량: item.수량,
           단위: item.단위,
+          주문처명: item.주문처명,
+          오더번호: item.오더번호,
           source_table: 'output_data' as const,
           source_id: item.id,
           분류: item.분류 || null

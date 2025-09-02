@@ -384,9 +384,9 @@ async def save_output_data(data: dict):
                         cursor = session.execute(text("""
                             INSERT INTO output_data 
                             (로트번호, 생산품명, 생산수량, 투입일, 종료일, 
-                             공정, 산출물명, 수량, 단위, 주문처명, 오더번호)
+                             공정, 산출물명, 수량, 단위)
                             VALUES (:로트번호, :생산품명, :생산수량, :투입일, :종료일,
-                                    :공정, :산출물명, :수량, :단위, :주문처명, :오더번호)
+                                    :공정, :산출물명, :수량, :단위)
                         """), output_record)
                         
                         saved_count += 1

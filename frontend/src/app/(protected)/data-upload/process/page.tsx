@@ -433,38 +433,48 @@ const ProcessDataPage: React.FC = () => {
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       
-      // 첫 번째 행에서 컬럼명 추출
-      const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
-      const columns: string[] = [];
-      for (let col = range.s.c; col <= range.e.c; col++) {
-        const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
-        const cell = worksheet[cellAddress];
-        if (cell && cell.v) {
-          columns.push(cell.v.toString().trim());
-        }
+      // 더 간단하고 안정적인 방식으로 컬럼 읽기
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+        header: 1, // 첫 번째 행을 헤더로 사용
+        range: 0,  // 첫 번째 행부터 시작
+        defval: ''
+      }) as any[][];
+      
+      if (jsonData.length < 2) {
+        throw new Error('데이터가 충분하지 않습니다. 헤더와 최소 1개의 데이터 행이 필요합니다.');
       }
+      
+      // 첫 번째 행을 컬럼으로 사용
+      const columns = jsonData[0].map((col: any) => col?.toString().trim() || '');
+      
+      // 빈 컬럼 제거
+      const filteredColumns = columns.filter(col => col && col.length > 0);
+      
+      console.log('읽은 컬럼들:', filteredColumns);
       
       // 필수 칼럼 구조 검증 (순서는 상관없음)
       const requiredColumns = [
         '공정명', '생산제품', '세부공정', '공정설명'
       ];
       
-      const missingColumns = requiredColumns.filter(col => !columns.includes(col));
+      const missingColumns = requiredColumns.filter(col => !filteredColumns.includes(col));
       if (missingColumns.length > 0) {
         throw new Error(`필수 칼럼이 누락되었습니다: ${missingColumns.join(', ')}`);
       }
       
-      // 칼럼 순서는 검증하지 않음 - 존재 여부만 확인
-
-      // 데이터 읽기 (첫 번째 행 제외)
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-        header: columns,
-        range: 1,
-        defval: ''
-      }) as DataRow[];
-
+      // 데이터 행 처리 (두 번째 행부터)
+      const dataRows = jsonData.slice(1).map((row: any[]) => {
+        const rowData: DataRow = {};
+        filteredColumns.forEach((col, index) => {
+          rowData[col] = row[index] || '';
+        });
+        return rowData;
+      });
+      
+      console.log('처리된 데이터:', dataRows);
+      
       // 편집 가능한 행 데이터 생성
-      const editableRows: EditableRow[] = jsonData.map((row: any, index) => ({
+      const editableRows: EditableRow[] = dataRows.map((row: any, index) => ({
         id: `process-${index}`,
         originalData: row,
         modifiedData: { ...row },
@@ -474,8 +484,8 @@ const ProcessDataPage: React.FC = () => {
       const inputData: DataPreview = {
         filename: inputFile.name,
         fileSize: (inputFile.size / 1024 / 1024).toFixed(2),
-        data: jsonData,
-        columns: columns
+        data: dataRows,
+        columns: filteredColumns
       };
 
       setInputData(inputData);
@@ -488,10 +498,10 @@ const ProcessDataPage: React.FC = () => {
           status: 'completed',
           message: '데이터 처리 완료',
           filename: inputFile.name,
-          total_rows: jsonData.length,
-          processed_rows: jsonData.length,
-          data: jsonData,
-          columns: columns
+          total_rows: dataRows.length,
+          processed_rows: dataRows.length,
+          data: dataRows,
+          columns: filteredColumns
         });
       }, 2000);
 

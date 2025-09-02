@@ -639,6 +639,50 @@ async def ai_process_data(data: dict):
         gateway_logger.log_error(f"AI 모델 처리 중 오류 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=f"AI 모델 처리 오류: {str(e)}")
 
+# API 경로를 통한 AI 처리 엔드포인트
+@app.post("/api/datagather/ai-process")
+async def api_ai_process_data(data: dict):
+    """API 경로를 통한 AI 모델 데이터 처리"""
+    try:
+        gateway_logger.log_info(f"API AI 모델 처리 요청 받음: {data.get('filename', 'unknown')}")
+        
+        # datagather_service로 AI 처리 요청 전송
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                f"{datagather_service_url.rstrip('/')}/ai-process",
+                json=data
+            )
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                gateway_logger.log_info(f"API AI 모델 처리 성공: {data.get('filename', 'unknown')}")
+                
+                return {
+                    "success": True,
+                    "message": "AI 처리가 완료되었습니다",
+                    "processed_data": response_data.get('data', []),
+                    "columns": response_data.get('columns', []),
+                    "total_rows": len(data.get('data', [])),
+                    "processed_rows": len(response_data.get('data', []))
+                }
+            else:
+                gateway_logger.log_error(f"API AI 모델 처리 오류: {response.status_code}")
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"AI 모델 처리 오류: {response.text}"
+                )
+                
+    except httpx.TimeoutException:
+        gateway_logger.log_error("API AI 모델 처리 시간 초과")
+        raise HTTPException(status_code=504, detail="AI 모델 처리 시간 초과")
+    except httpx.ConnectError:
+        gateway_logger.log_error("datagather_service 연결 실패")
+        raise HTTPException(status_code=503, detail="datagather_service에 연결할 수 없습니다")
+    except Exception as e:
+        gateway_logger.log_error(f"API AI 모델 처리 중 오류 발생: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"AI 모델 처리 오류: {str(e)}")
+
 # 사용자 피드백 처리 엔드포인트 (datagather 하위로 이동)
 @app.post("/datagather/feedback")
 async def process_feedback(feedback_data: dict):

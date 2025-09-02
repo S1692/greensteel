@@ -15,6 +15,8 @@ import uvicorn
 from .infrastructure.database import database
 from .infrastructure.config import settings
 from .application.datagather_application_service import DataGatherApplicationService
+from .application.process_application_service import ProcessApplicationService
+from .application.install_application_service import InstallApplicationService
 
 # 로깅 설정
 logging.basicConfig(
@@ -74,6 +76,14 @@ async def get_session() -> AsyncSession:
 async def get_datagather_service(session: AsyncSession = Depends(get_session)) -> DataGatherApplicationService:
     """DataGather 애플리케이션 서비스 의존성"""
     return DataGatherApplicationService(session)
+
+async def get_process_service(session: AsyncSession = Depends(get_session)) -> ProcessApplicationService:
+    """Process 애플리케이션 서비스 의존성"""
+    return ProcessApplicationService(session)
+
+async def get_install_service(session: AsyncSession = Depends(get_session)) -> InstallApplicationService:
+    """Install 애플리케이션 서비스 의존성"""
+    return InstallApplicationService(session)
 
 # 헬스체크 엔드포인트
 @app.get("/health")
@@ -351,6 +361,286 @@ async def complete_data_processing(
                 "success": False,
                 "error": str(e),
                 "message": "데이터 처리 완료 처리 중 오류가 발생했습니다."
+            }
+        )
+
+# AI 처리 관련 엔드포인트
+@app.post("/ai-process")
+async def ai_process_data(
+    data: Dict[str, Any],
+    service: DataGatherApplicationService = Depends(get_datagather_service)
+):
+    """AI 데이터 처리"""
+    try:
+        logger.info(f"🤖 AI 데이터 처리 요청: {data.get('data_type', 'unknown')}")
+        
+        # AI 처리 로직 (기본적인 데이터 검증 및 저장)
+        result = await service.process_api_data(
+            install_id=data.get('install_id', 1),
+            api_data=data,
+            data_type=data.get('data_type', 'ai_processed'),
+            process_id=data.get('process_id')
+        )
+        
+        if result["success"]:
+            logger.info("✅ AI 데이터 처리 성공")
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "success": True,
+                    "message": "AI 데이터 처리가 완료되었습니다.",
+                    "data_gather_id": result.get("data_gather_id"),
+                    "processed_data": data
+                }
+            )
+        else:
+            logger.error(f"❌ AI 데이터 처리 실패: {result}")
+            return JSONResponse(
+                status_code=400,
+                content=result
+            )
+            
+    except Exception as e:
+        logger.error(f"❌ AI 데이터 처리 중 오류: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "AI 데이터 처리 중 오류가 발생했습니다."
+            }
+        )
+
+@app.post(f"{settings.api_prefix}/datagather/ai-process")
+async def ai_process_data_with_prefix(
+    data: Dict[str, Any],
+    service: DataGatherApplicationService = Depends(get_datagather_service)
+):
+    """AI 데이터 처리 (API prefix 포함)"""
+    return await ai_process_data(data, service)
+
+# 공정 관련 엔드포인트
+@app.post(f"{settings.api_prefix}/process")
+async def create_process(
+    install_id: int,
+    process_name: str,
+    process_type: str,
+    process_description: Optional[str] = None,
+    parent_process_id: Optional[int] = None,
+    process_order: Optional[int] = None,
+    capacity: Optional[float] = None,
+    unit: Optional[str] = None,
+    efficiency: Optional[float] = None,
+    tags: Optional[str] = None,
+    metadata: Optional[str] = None,
+    service: ProcessApplicationService = Depends(get_process_service)
+):
+    """공정 생성"""
+    try:
+        result = await service.create_process(
+            install_id=install_id,
+            process_name=process_name,
+            process_type=process_type,
+            process_description=process_description,
+            parent_process_id=parent_process_id,
+            process_order=process_order,
+            capacity=capacity,
+            unit=unit,
+            efficiency=efficiency,
+            tags=tags,
+            metadata=metadata
+        )
+        
+        if result["success"]:
+            return JSONResponse(
+                status_code=201,
+                content=result
+            )
+        else:
+            return JSONResponse(
+                status_code=400,
+                content=result
+            )
+            
+    except Exception as e:
+        logger.error(f"공정 생성 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "공정 생성 중 오류가 발생했습니다."
+            }
+        )
+
+@app.get(f"{settings.api_prefix}/process/{{process_id}}")
+async def get_process(
+    process_id: int,
+    service: ProcessApplicationService = Depends(get_process_service)
+):
+    """공정 조회"""
+    try:
+        result = await service.get_process_by_id(process_id)
+        
+        if result["success"]:
+            return result
+        else:
+            return JSONResponse(
+                status_code=404,
+                content=result
+            )
+            
+    except Exception as e:
+        logger.error(f"공정 조회 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "공정 조회 중 오류가 발생했습니다."
+            }
+        )
+
+@app.get(f"{settings.api_prefix}/process/install/{{install_id}}")
+async def get_processes_by_install(
+    install_id: int,
+    limit: int = 100,
+    service: ProcessApplicationService = Depends(get_process_service)
+):
+    """사업장별 공정 목록 조회"""
+    try:
+        result = await service.get_processes_by_install(install_id, limit)
+        
+        if result["success"]:
+            return result
+        else:
+            return JSONResponse(
+                status_code=400,
+                content=result
+            )
+            
+    except Exception as e:
+        logger.error(f"사업장별 공정 목록 조회 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "사업장별 공정 목록 조회 중 오류가 발생했습니다."
+            }
+        )
+
+# 사업장 관련 엔드포인트
+@app.post(f"{settings.api_prefix}/install")
+async def create_install(
+    install_name: str,
+    company_name: str,
+    address: Optional[str] = None,
+    region: Optional[str] = None,
+    country: Optional[str] = None,
+    contact_person: Optional[str] = None,
+    contact_email: Optional[str] = None,
+    contact_phone: Optional[str] = None,
+    industry_type: Optional[str] = None,
+    size_category: Optional[str] = None,
+    established_date: Optional[str] = None,
+    tags: Optional[str] = None,
+    metadata: Optional[str] = None,
+    service: InstallApplicationService = Depends(get_install_service)
+):
+    """사업장 생성"""
+    try:
+        result = await service.create_install(
+            install_name=install_name,
+            company_name=company_name,
+            address=address,
+            region=region,
+            country=country,
+            contact_person=contact_person,
+            contact_email=contact_email,
+            contact_phone=contact_phone,
+            industry_type=industry_type,
+            size_category=size_category,
+            established_date=established_date,
+            tags=tags,
+            metadata=metadata
+        )
+        
+        if result["success"]:
+            return JSONResponse(
+                status_code=201,
+                content=result
+            )
+        else:
+            return JSONResponse(
+                status_code=400,
+                content=result
+            )
+            
+    except Exception as e:
+        logger.error(f"사업장 생성 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "사업장 생성 중 오류가 발생했습니다."
+            }
+        )
+
+@app.get(f"{settings.api_prefix}/install/{{install_id}}")
+async def get_install(
+    install_id: int,
+    service: InstallApplicationService = Depends(get_install_service)
+):
+    """사업장 조회"""
+    try:
+        result = await service.get_install_by_id(install_id)
+        
+        if result["success"]:
+            return result
+        else:
+            return JSONResponse(
+                status_code=404,
+                content=result
+            )
+            
+    except Exception as e:
+        logger.error(f"사업장 조회 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "사업장 조회 중 오류가 발생했습니다."
+            }
+        )
+
+@app.get(f"{settings.api_prefix}/install")
+async def get_all_installs(
+    limit: int = 100,
+    service: InstallApplicationService = Depends(get_install_service)
+):
+    """모든 사업장 목록 조회"""
+    try:
+        result = await service.get_all_installs(limit)
+        
+        if result["success"]:
+            return result
+        else:
+            return JSONResponse(
+                status_code=400,
+                content=result
+            )
+            
+    except Exception as e:
+        logger.error(f"사업장 목록 조회 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "사업장 목록 조회 중 오류가 발생했습니다."
             }
         )
 

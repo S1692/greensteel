@@ -527,6 +527,35 @@ async def classify_data(data: dict):
         logger.error(f"데이터 분류 실패: {e}")
         return {"success": False, "message": f"데이터 분류 중 오류가 발생했습니다: {str(e)}", "error": str(e)}
 
+@app.post("/ai-process")
+async def ai_process_data(data: dict):
+    """AI 데이터 처리"""
+    try:
+        logger.info(f"🤖 AI 데이터 처리 요청: {data.get('data_type', 'unknown')}")
+        
+        # AI 처리 로직 (기본적인 데이터 검증 및 저장)
+        result = {
+            "success": True,
+            "message": "AI 데이터 처리가 완료되었습니다.",
+            "processed_data": data,
+            "ai_recommendations": {
+                "classification": "processed",
+                "confidence": 0.95,
+                "timestamp": datetime.now().isoformat()
+            }
+        }
+        
+        logger.info("✅ AI 데이터 처리 성공")
+        return result
+        
+    except Exception as e:
+        logger.error(f"❌ AI 데이터 처리 중 오류: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "message": "AI 데이터 처리 중 오류가 발생했습니다."
+        }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(

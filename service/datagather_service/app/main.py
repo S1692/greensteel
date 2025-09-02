@@ -818,8 +818,7 @@ async def save_processed_data(data: dict):
                                 '공정': row.get('공정', ''),
                                 '투입물명': row.get('투입물명', ''),
                                 '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
-                                '단위': unit_value,  # 강제로 't' 설정된 값
-                                'source_file': filename
+                                '단위': unit_value  # 강제로 't' 설정된 값
                             }
                             
                             # None 값 제거 (빈 문자열은 유지하되 단위는 't'로 설정)
@@ -830,9 +829,9 @@ async def save_processed_data(data: dict):
                                 cursor = session.execute(text("""
                                     INSERT INTO input_data 
                                     (로트번호, 생산품명, 생산수량, 투입일, 종료일, 
-                                     공정, 투입물명, 수량, 단위, source_file)
+                                     공정, 투입물명, 수량, 단위)
                                     VALUES (:로트번호, :생산품명, :생산수량, :투입일, :종료일,
-                                            :공정, :투입물명, :수량, :단위, :source_file)
+                                            :공정, :투입물명, :수량, :단위)
                                 """), row_data)
                                 
                                 saved_count += 1
@@ -842,14 +841,7 @@ async def save_processed_data(data: dict):
                     
                     except Exception as row_error:
                         logger.error(f"행 데이터 저장 실패: {row_error}")
-                        # 개별 행 오류 시 트랜잭션 롤백 후 새 트랜잭션 시작
-                        try:
-                            session.rollback()
-                        except:
-                            pass
-                        # 새 세션으로 재시작
-                        session.close()
-                        session = Session(engine)
+                        # 개별 행 오류 시에도 계속 진행
                         continue
                 
                 # 모든 행 처리 후 커밋

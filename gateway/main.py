@@ -1044,6 +1044,47 @@ async def save_output_data_proxy(request: Request):
 # 🔄 DataGather 서비스 직접 프록시 엔드포인트 (catch-all 라우트보다 먼저 정의)
 # ============================================================================
 
+# save-input-data 엔드포인트 - DataGather 서비스로 프록시
+@app.post("/save-input-data")
+async def save_input_data_proxy(request: Request):
+    """Input 데이터를 DataGather 서비스로 프록시"""
+    try:
+        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL")
+        if not datagather_service_url:
+            raise HTTPException(status_code=503, detail="DATAGATHER_SERVICE_URL 환경변수가 설정되지 않았습니다")
+        
+        gateway_logger.log_info(f"save-input-data 요청을 DataGather 서비스로 프록시: {datagather_service_url}")
+        target_url = f"{datagather_service_url.rstrip('/')}/save-input-data"
+        
+        body = await request.body()
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                url=target_url,
+                content=body,
+                headers={
+                    "Content-Type": request.headers.get("content-type", "application/json"),
+                    "X-Forwarded-By": GATEWAY_NAME
+                }
+            )
+            
+            gateway_logger.log_info(f"DataGather 서비스 save-input-data 응답: {response.status_code}")
+            return Response(
+                content=response.content,
+                status_code=response.status_code,
+                headers=dict(response.headers),
+                media_type=response.headers.get("content-type")
+            )
+            
+    except httpx.TimeoutException:
+        gateway_logger.log_error("DataGather 서비스 save-input-data 연결 시간 초과")
+        raise HTTPException(status_code=504, detail="DataGather 서비스 save-input-data 연결 시간 초과")
+    except httpx.ConnectError:
+        gateway_logger.log_error("DataGather 서비스 save-input-data 연결 실패")
+        raise HTTPException(status_code=503, detail="DataGather 서비스 save-input-data에 연결할 수 없습니다")
+    except Exception as e:
+        gateway_logger.log_error(f"DataGather 서비스 save-input-data 중 오류 발생: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"DataGather 서비스 save-input-data 오류: {str(e)}")
+
 # 중복된 delete-classification 엔드포인트 제거됨 - 위쪽에 재정의됨
 
 # ============================================================================

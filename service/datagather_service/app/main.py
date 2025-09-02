@@ -795,6 +795,62 @@ async def delete_classification(data: dict):
         logger.error(f"데이터 분류 삭제 실패: {e}")
         return {"success": False, "message": f"데이터 분류 삭제 실패: {str(e)}", "error": str(e)}
 
+@app.post("/ai-process")
+async def ai_process(data: dict):
+    """AI 데이터 처리 엔드포인트"""
+    try:
+        logger.info("AI 데이터 처리 요청 받음")
+        
+        # 프론트엔드에서 전송된 데이터 추출
+        input_data = data.get('data', [])
+        if not input_data:
+            return {"success": False, "message": "처리할 데이터가 없습니다."}
+        
+        processed_data = []
+        
+        for row in input_data:
+            try:
+                # AI 처리 로직 (기존 로직 유지)
+                processed_row = {
+                    '로트번호': row.get('로트번호', ''),
+                    '생산품명': row.get('생산품명', ''),
+                    '생산수량': row.get('생산수량', 0),
+                    '투입일': row.get('투입일', ''),
+                    '종료일': row.get('종료일', ''),
+                    '공정': row.get('공정', ''),
+                    '투입물명': row.get('투입물명', ''),
+                    '수량': row.get('수량', 0),
+                    '단위': row.get('단위', 't'),
+                    'AI추천답변': row.get('AI추천답변', ''),
+                    '주문처명': row.get('주문처명', ''),
+                    '오더번호': row.get('오더번호', '')
+                }
+                
+                # AI 추천 답변이 있으면 투입물명을 대체
+                if processed_row['AI추천답변']:
+                    processed_row['투입물명'] = processed_row['AI추천답변']
+                
+                processed_data.append(processed_row)
+                
+            except Exception as row_error:
+                logger.error(f"행 처리 실패: {row_error}")
+                continue
+        
+        logger.info(f"AI 처리 완료: {len(processed_data)}행 처리됨")
+        return {
+            "success": True, 
+            "message": f"AI 처리 완료 ({len(processed_data)}행)",
+            "processed_data": processed_data
+        }
+        
+    except Exception as e:
+        logger.error(f"AI 처리 실패: {e}")
+        return {
+            "success": False, 
+            "message": f"AI 처리 중 오류가 발생했습니다: {str(e)}",
+            "error": str(e)
+        }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(

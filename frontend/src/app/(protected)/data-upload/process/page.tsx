@@ -541,7 +541,8 @@ const ProcessDataPage: React.FC = () => {
         return;
       }
 
-      const response = await fetch('/save-process-data', {
+      const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
+      const response = await fetch(`${gatewayUrl}/save-process-data`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

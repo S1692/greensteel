@@ -1255,7 +1255,7 @@ const InputDataPage: React.FC = () => {
         });
 
               const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
-        const response = await fetch(`${gatewayUrl}/save-processed-data`, {
+        const response = await fetch(`${gatewayUrl}/save-input-data`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

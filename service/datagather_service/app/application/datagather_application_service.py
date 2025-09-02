@@ -1,12 +1,11 @@
 # ============================================================================
-# 🚀 DataGather Application Service - 데이터 수집 애플리케이션 서비스
+# 🏗️ DataGather Application Service - 애플리케이션 서비스
 # ============================================================================
 
-from typing import List, Optional, Dict, Any
+from typing import Optional, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from ..domain.datagather.datagather_service import DataGatherService
-from ..domain.datagather.datagather_entity import DataGather
+from ..domain.datagather.datagather_repository import DataGatherRepository
 
 class DataGatherApplicationService:
     """데이터 수집 애플리케이션 서비스"""
@@ -14,19 +13,20 @@ class DataGatherApplicationService:
     def __init__(self, session: AsyncSession):
         self.session = session
         self.datagather_service = DataGatherService(session)
+        self.repository = DataGatherRepository(session)
     
     async def upload_file(
-        self,
-        install_id: int,
-        file_data: bytes,
-        file_name: str,
+        self, 
+        install_id: int, 
+        file_data: bytes, 
+        file_name: str, 
         data_type: str,
         process_id: Optional[int] = None
     ) -> Dict[str, Any]:
         """파일 업로드 처리"""
         try:
             # 파일 업로드 처리
-            data_gather = await self.datagather_service.process_file_upload(
+            result = await self.datagather_service.process_file_upload(
                 install_id=install_id,
                 file_data=file_data,
                 file_name=file_name,
@@ -34,11 +34,7 @@ class DataGatherApplicationService:
                 process_id=process_id
             )
             
-            return {
-                "success": True,
-                "data_gather_id": data_gather.id,
-                "message": "파일 업로드가 성공적으로 처리되었습니다."
-            }
+            return result
             
         except Exception as e:
             return {
@@ -48,9 +44,9 @@ class DataGatherApplicationService:
             }
     
     async def process_api_data(
-        self,
-        install_id: int,
-        api_data: Dict[str, Any],
+        self, 
+        install_id: int, 
+        api_data: Dict[str, Any], 
         data_type: str,
         process_id: Optional[int] = None
     ) -> Dict[str, Any]:
@@ -58,27 +54,20 @@ class DataGatherApplicationService:
         try:
             # 데이터 형식 검증
             validation_result = await self.datagather_service.validate_data_format(api_data, data_type)
+            if not validation_result["success"]:
+                return validation_result
             
-            if not validation_result["is_valid"]:
-                return {
-                    "success": False,
-                    "errors": validation_result["errors"],
-                    "message": "데이터 형식이 올바르지 않습니다."
-                }
-            
-            # API 데이터 처리
-            data_gather = await self.datagather_service.process_api_data(
+            # 데이터 수집 생성
+            result = await self.datagather_service.create_data_gather(
                 install_id=install_id,
-                api_data=api_data,
                 data_type=data_type,
+                data_source="api",
+                data_format="json",
+                raw_data=api_data,
                 process_id=process_id
             )
             
-            return {
-                "success": True,
-                "data_gather_id": data_gather.id,
-                "message": "API 데이터가 성공적으로 처리되었습니다."
-            }
+            return result
             
         except Exception as e:
             return {
@@ -88,9 +77,9 @@ class DataGatherApplicationService:
             }
     
     async def process_manual_data(
-        self,
-        install_id: int,
-        manual_data: Dict[str, Any],
+        self, 
+        install_id: int, 
+        manual_data: Dict[str, Any], 
         data_type: str,
         process_id: Optional[int] = None
     ) -> Dict[str, Any]:
@@ -98,52 +87,46 @@ class DataGatherApplicationService:
         try:
             # 데이터 형식 검증
             validation_result = await self.datagather_service.validate_data_format(manual_data, data_type)
+            if not validation_result["success"]:
+                return validation_result
             
-            if not validation_result["is_valid"]:
-                return {
-                    "success": False,
-                    "errors": validation_result["errors"],
-                    "message": "데이터 형식이 올바르지 않습니다."
-                }
-            
-            # 수동 데이터 처리
-            data_gather = await self.datagather_service.process_manual_data(
+            # 데이터 수집 생성
+            result = await self.datagather_service.create_data_gather(
                 install_id=install_id,
-                manual_data=manual_data,
                 data_type=data_type,
+                data_source="manual",
+                data_format="json",
+                raw_data=manual_data,
                 process_id=process_id
             )
             
-            return {
-                "success": True,
-                "data_gather_id": data_gather.id,
-                "message": "수동 입력 데이터가 성공적으로 처리되었습니다."
-            }
+            return result
             
         except Exception as e:
             return {
                 "success": False,
                 "error": str(e),
-                "message": "수동 입력 데이터 처리 중 오류가 발생했습니다."
+                "message": "수동 데이터 처리 중 오류가 발생했습니다."
             }
     
     async def get_data_gather_info(self, data_gather_id: int) -> Dict[str, Any]:
         """데이터 수집 정보 조회"""
         try:
-            data_gather = await self.datagather_service.get_data_gather_by_id(data_gather_id)
+            data_gather = await self.repository.get_by_id(data_gather_id)
             
-            if not data_gather:
+            if data_gather:
+                return {
+                    "success": True,
+                    "data": data_gather.to_dict(),
+                    "message": "데이터 수집 정보를 성공적으로 조회했습니다."
+                }
+            else:
                 return {
                     "success": False,
-                    "message": "데이터 수집 정보를 찾을 수 없습니다."
+                    "error": "데이터를 찾을 수 없습니다.",
+                    "message": f"ID {data_gather_id}에 해당하는 데이터가 없습니다."
                 }
-            
-            return {
-                "success": True,
-                "data": data_gather.to_dict(),
-                "message": "데이터 수집 정보를 성공적으로 조회했습니다."
-            }
-            
+                
         except Exception as e:
             return {
                 "success": False,
@@ -151,80 +134,84 @@ class DataGatherApplicationService:
                 "message": "데이터 수집 정보 조회 중 오류가 발생했습니다."
             }
     
-    async def get_install_data_summary(self, install_id: int) -> Dict[str, Any]:
-        """사업장별 데이터 수집 요약 조회"""
+    async def get_install_summary(self, install_id: int) -> Dict[str, Any]:
+        """사업장별 요약 정보 조회"""
         try:
-            # 데이터 수집 통계 조회
-            statistics = await self.datagather_service.get_statistics(install_id)
+            data_gathers = await self.repository.get_by_install_id(install_id)
             
-            # 사업장별 데이터 수집 목록 조회
-            data_gather_list = await self.datagather_service.get_data_gather_by_install(install_id, limit=50)
+            summary = {
+                "install_id": install_id,
+                "total_count": len(data_gathers),
+                "data_types": {},
+                "recent_data": []
+            }
+            
+            # 데이터 타입별 통계
+            for data_gather in data_gathers:
+                data_type = getattr(data_gather, 'source_file', 'unknown')
+                if data_type not in summary["data_types"]:
+                    summary["data_types"][data_type] = 0
+                summary["data_types"][data_type] += 1
+            
+            # 최근 데이터 (최대 10개)
+            summary["recent_data"] = [data_gather.to_dict() for data_gather in data_gathers[:10]]
             
             return {
                 "success": True,
-                "statistics": statistics,
-                "recent_data": [dg.to_dict() for dg in data_gather_list],
-                "message": "사업장별 데이터 수집 요약을 성공적으로 조회했습니다."
+                "data": summary,
+                "message": "사업장별 요약 정보를 성공적으로 조회했습니다."
             }
             
         except Exception as e:
             return {
                 "success": False,
                 "error": str(e),
-                "message": "사업장별 데이터 수집 요약 조회 중 오류가 발생했습니다."
+                "message": "사업장별 요약 정보 조회 중 오류가 발생했습니다."
             }
     
-    async def update_processing_status(
-        self,
-        data_gather_id: int,
-        status: str,
+    async def update_status(
+        self, 
+        data_gather_id: int, 
+        status: str, 
         error_message: Optional[str] = None
     ) -> Dict[str, Any]:
         """처리 상태 업데이트"""
         try:
-            success = await self.datagather_service.update_processing_status(
-                data_gather_id, status, error_message
-            )
+            success = await self.repository.update_status(data_gather_id, status, error_message)
             
             if success:
                 return {
                     "success": True,
-                    "message": "처리 상태가 성공적으로 업데이트되었습니다."
+                    "message": "상태가 성공적으로 업데이트되었습니다."
                 }
             else:
                 return {
                     "success": False,
-                    "message": "처리 상태 업데이트에 실패했습니다."
+                    "error": "상태 업데이트 실패",
+                    "message": "상태 업데이트 중 오류가 발생했습니다."
                 }
                 
         except Exception as e:
             return {
                 "success": False,
                 "error": str(e),
-                "message": "처리 상태 업데이트 중 오류가 발생했습니다."
+                "message": "상태 업데이트 중 오류가 발생했습니다."
             }
     
-    async def complete_data_processing(
-        self,
-        data_gather_id: int,
-        processed_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def complete_processing(self, data_gather_id: int, processed_data: Dict[str, Any]) -> Dict[str, Any]:
         """데이터 처리 완료"""
         try:
-            success = await self.datagather_service.complete_processing(
-                data_gather_id, processed_data
-            )
+            # 상태를 completed로 업데이트
+            result = await self.update_status(data_gather_id, "completed")
             
-            if success:
+            if result["success"]:
                 return {
                     "success": True,
-                    "message": "데이터 처리가 성공적으로 완료되었습니다."
+                    "message": "데이터 처리가 성공적으로 완료되었습니다.",
+                    "processed_data": processed_data
                 }
             else:
-                return {
-                    "success": False,
-                    "message": "데이터 처리 완료 처리에 실패했습니다."
-                }
+                return result
                 
         except Exception as e:
             return {

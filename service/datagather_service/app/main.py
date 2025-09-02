@@ -809,6 +809,10 @@ async def save_processed_data(data: dict):
                             if not unit_value or unit_value.strip() == '':
                                 unit_value = 't'
                             
+                            # AI 추천 답변이 있으면 투입물명을 대체
+                            ai_recommendation = row.get('AI추천답변', '')
+                            final_input_name = ai_recommendation if ai_recommendation else row.get('투입물명', '')
+                            
                             row_data = {
                                 '로트번호': row.get('로트번호', ''),
                                 '생산품명': row.get('생산품명', ''),
@@ -816,7 +820,7 @@ async def save_processed_data(data: dict):
                                 '투입일': excel_date_to_postgres_date(row.get('투입일')),
                                 '종료일': excel_date_to_postgres_date(row.get('종료일')),
                                 '공정': row.get('공정', ''),
-                                '투입물명': row.get('투입물명', ''),
+                                '투입물명': final_input_name,  # AI 추천 답변으로 대체된 값
                                 '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
                                 '단위': unit_value,  # 강제로 't' 설정된 값
                                 'source_file': filename

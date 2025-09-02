@@ -89,6 +89,7 @@ async def root():
             "get_output_data": "/api/datagather/output-data",
             "get_transport_data": "/api/datagather/transport-data",
             "get_process_data": "/api/datagather/process-data",
+            "classify_data": "/api/datagather/classify-data",
             "documentation": "/docs"
         }
     }
@@ -871,6 +872,71 @@ async def save_processed_data(data: Dict[str, Any]):
                 "success": False,
                 "error": str(e),
                 "message": "처리된 데이터 분류 중 오류가 발생했습니다."
+            }
+        )
+
+# 데이터 분류 저장
+@app.post("/api/datagather/classify-data")
+async def classify_data(data: Dict[str, Any]):
+    """데이터 분류 정보 저장"""
+    try:
+        logger.info(f"데이터 분류 저장 요청: {data}")
+        
+        # 데이터베이스 연결
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.orm import sessionmaker
+        
+        engine = create_engine(settings.database_url.replace("postgresql+asyncpg://", "postgresql://"))
+        Session = sessionmaker(bind=engine)
+        
+        saved_count = 0
+        with Session() as session:
+            classification_data = data.get('data', [])
+            
+            for row in classification_data:
+                try:
+                    # 분류 데이터 저장
+                    session.execute(text("""
+                        INSERT INTO classified_data 
+                        (source_table, source_id, classification, created_at)
+                        VALUES (:source_table, :source_id, :classification, NOW())
+                        ON CONFLICT (source_table, source_id) 
+                        DO UPDATE SET 
+                            classification = EXCLUDED.classification,
+                            updated_at = NOW()
+                    """), {
+                        'source_table': row.get('source_table', ''),
+                        'source_id': row.get('source_id', 0),
+                        'classification': row.get('classification', '')
+                    })
+                    saved_count += 1
+                except Exception as row_error:
+                    logger.error(f"분류 데이터 저장 실패: {row_error}, 데이터: {row}")
+                    session.rollback()
+                    continue
+            
+            session.commit()
+        
+        logger.info(f"분류 데이터 저장 완료: {saved_count}행 저장됨")
+        
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": True,
+                "message": f"분류 데이터가 성공적으로 저장되었습니다. ({saved_count}행)",
+                "saved_count": saved_count,
+                "total_rows": len(classification_data)
+            }
+        )
+            
+    except Exception as e:
+        logger.error(f"분류 데이터 저장 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "분류 데이터 저장 중 오류가 발생했습니다."
             }
         )
 

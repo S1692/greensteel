@@ -624,15 +624,20 @@ async def save_process_data(
                         if '설명' in key or '공정' in key:
                             logger.info(f"관련 필드 {key}: '{value}'")
                     
-                    # 공정설명 필드 매핑 (프론트엔드에서 변환된 컬럼명 우선 사용)
+                    # 공정설명 필드 매핑 (강제로 텍스트 저장)
                     process_description = (
                         row.get('공정설명', '') or 
                         row.get('공정 설명', '') or 
                         row.get('설명', '') or 
                         row.get('공정내용', '') or
                         row.get('세부설명', '') or
-                        f"{row.get('공정명', '')} 공정"  # 공정명을 사용한 의미있는 기본값
+                        # 강제로 상세한 설명 생성
+                        f"{row.get('공정명', '')} 공정: {row.get('생산제품', '')} 생산을 위한 {row.get('세부공정', '')} 공정입니다."
                     )
+                    
+                    # 텍스트가 너무 짧으면 더 상세하게 만들기
+                    if len(process_description) < 10:
+                        process_description = f"{row.get('공정명', '')} 공정 - {row.get('생산제품', '')} 생산을 위한 {row.get('세부공정', '')} 공정으로, 원료를 가공하여 최종 제품을 생산하는 과정입니다."
                     
                     logger.info(f"최종 공정설명 값: '{process_description}'")
                     

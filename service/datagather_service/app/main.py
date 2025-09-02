@@ -344,8 +344,8 @@ async def save_process_data(data: dict):
                              (공정명, 생산제품, 세부공정, 공정설명)
                              VALUES (:공정명, :생산제품, :세부공정, :공정설명)
                          """), process_record)
-                        
-                        saved_count += 1
+                         
+                         saved_count += 1
                     
                     except Exception as row_error:
                         logger.error(f"공정 데이터 행 저장 실패: {row_error}")

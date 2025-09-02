@@ -118,19 +118,25 @@ async def ai_process_data(data: Dict[str, Any]):
     """AI 데이터 처리"""
     try:
         logger.info(f"🤖 AI 데이터 처리 요청: {data.get('data_type', 'unknown')}")
+        logger.info(f"📊 전체 요청 데이터: {data}")
         
         # 입력 데이터에서 처리할 데이터 추출
         input_data = data.get('data', [])
+        logger.info(f"📥 입력 데이터 개수: {len(input_data)}")
+        logger.info(f"📥 입력 데이터 샘플: {input_data[:2] if input_data else '빈 데이터'}")
         
         # AI 처리 시뮬레이션 - 자유로운 단어 생성
         processed_data = []
         
-        for item in input_data:
+        for i, item in enumerate(input_data):
+            logger.info(f"🔄 처리 중인 항목 {i+1}: {item}")
             투입물명 = item.get('투입물명', '')
             공정 = item.get('공정', '')
+            logger.info(f"   - 투입물명: '{투입물명}', 공정: '{공정}'")
             
             # AI가 투입물명만 자유롭게 생성하는 추천 답변
             ai_추천답변 = f"AI_추천_{투입물명}"
+            logger.info(f"   - 생성된 AI 추천답변: '{ai_추천답변}'")
             
             # 각 항목에 AI 처리 결과 추가
             processed_item = {
@@ -142,6 +148,9 @@ async def ai_process_data(data: Dict[str, Any]):
                 "processed_at": "2024-01-01T00:00:00Z"
             }
             processed_data.append(processed_item)
+            logger.info(f"   ✅ 항목 {i+1} 처리 완료")
+        
+        logger.info(f"📊 최종 처리된 데이터 개수: {len(processed_data)}")
         
         # 간단한 응답 구조 - 핵심 데이터만 반환
         response_data = {
@@ -151,6 +160,7 @@ async def ai_process_data(data: Dict[str, Any]):
         }
         
         logger.info("✅ AI 데이터 처리 성공")
+        logger.info(f"📤 응답 데이터: {response_data}")
         return JSONResponse(
             status_code=200,
             content=response_data

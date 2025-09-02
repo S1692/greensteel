@@ -19,9 +19,14 @@ from .application.process_application_service import ProcessApplicationService
 from .application.install_application_service import InstallApplicationService
 
 # 엔티티들을 import하여 테이블 생성 시 사용
-from .domain.datagather.datagather_entity import DataGather
-from .domain.process.process_entity import Process
-from .domain.install.install_entity import Install
+from .domain.datagather.input_data_entity import InputData
+from .domain.datagather.output_data_entity import OutputData
+from .domain.datagather.transport_data_entity import TransportData
+from .domain.datagather.process_data_entity import ProcessData
+from .domain.datagather.utility_data_entity import UtilityData
+from .domain.datagather.waste_data_entity import WasteData
+from .domain.datagather.fuel_data_entity import FuelData
+from .domain.datagather.process_product_data_entity import ProcessProductData
 
 # 로깅 설정
 logging.basicConfig(
@@ -408,38 +413,73 @@ async def complete_data_processing(
 
 # AI 처리 관련 엔드포인트
 @app.post("/ai-process")
-async def ai_process_data(
-    data: Dict[str, Any],
-    service: DataGatherApplicationService = Depends(get_datagather_service)
-):
-    """AI 데이터 처리"""
+async def ai_process_data(data: Dict[str, Any]):
+    """AI 데이터 처리 - input_data 테이블에 저장"""
     try:
         logger.info(f"🤖 AI 데이터 처리 요청: {data.get('data_type', 'unknown')}")
         
-        # AI 처리 로직 (기본적인 데이터 검증 및 저장)
-        result = await service.process_api_data(
-            install_id=data.get('install_id', 1),
-            api_data=data,
-            data_type=data.get('data_type', 'ai_processed'),
-            process_id=data.get('process_id')
-        )
+        # 데이터베이스 연결
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.orm import sessionmaker
         
-        if result["success"]:
-            logger.info("✅ AI 데이터 처리 성공")
+        engine = create_engine(settings.database_url.replace("postgresql+asyncpg://", "postgresql://"))
+        Session = sessionmaker(bind=engine)
+        
+        with Session() as session:
+            # AI 처리된 데이터를 input_data 테이블에 저장
+            input_data_rows = data.get('data', [])
+            saved_count = 0
+            
+            for row in input_data_rows:
+                try:
+                    if row.get('공정') or row.get('투입물명'):
+                        # AI 추천 답변 처리
+                        ai_recommendation = row.get('AI추천답변', '')
+                        if not ai_recommendation or ai_recommendation.strip() == '':
+                            ai_recommendation = None
+                        
+                        # 데이터 삽입
+                        session.execute(text("""
+                            INSERT INTO input_data 
+                            (로트번호, 생산품명, 생산수량, 투입일, 종료일, 
+                             공정, 투입물명, 수량, 단위, source_file, 주문처명, 오더번호)
+                            VALUES (:로트번호, :생산품명, :생산수량, :투입일, :종료일,
+                                    :공정, :투입물명, :수량, :단위, :source_file, :주문처명, :오더번호)
+                        """), {
+                            '로트번호': row.get('로트번호', ''),
+                            '생산품명': row.get('생산품명', ''),
+                            '생산수량': float(row.get('생산수량', 0)) if row.get('생산수량') else 0,
+                            '투입일': row.get('투입일'),
+                            '종료일': row.get('종료일'),
+                            '공정': row.get('공정', ''),
+                            '투입물명': row.get('투입물명', ''),
+                            '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
+                            '단위': row.get('단위', 't'),
+                            'source_file': data.get('filename', 'ai_processed'),
+                            '주문처명': row.get('주문처명', ''),
+                            '오더번호': row.get('오더번호', '')
+                        })
+                        
+                        saved_count += 1
+                        logger.info(f"행 {saved_count} 저장 성공: {row.get('공정', '')} - {row.get('투입물명', '')}")
+                    else:
+                        logger.warning(f"필수 데이터 부족으로 건너뜀: {row}")
+                
+                except Exception as row_error:
+                    logger.error(f"행 데이터 저장 실패: {row_error}")
+                    continue
+            
+            session.commit()
+            logger.info(f"DB 저장 완료: {saved_count}행 저장됨")
+            
             return JSONResponse(
                 status_code=200,
                 content={
                     "success": True,
-                    "message": "AI 데이터 처리가 완료되었습니다.",
-                    "data_gather_id": result.get("data_gather_id"),
+                    "message": f"AI 데이터 처리가 완료되었습니다. ({saved_count}행 저장)",
+                    "saved_count": saved_count,
                     "processed_data": data
                 }
-            )
-        else:
-            logger.error(f"❌ AI 데이터 처리 실패: {result}")
-            return JSONResponse(
-                status_code=400,
-                content=result
             )
             
     except Exception as e:
@@ -454,21 +494,15 @@ async def ai_process_data(
         )
 
 @app.post(f"{settings.api_prefix}/datagather/ai-process")
-async def ai_process_data_with_prefix(
-    data: Dict[str, Any],
-    service: DataGatherApplicationService = Depends(get_datagather_service)
-):
+async def ai_process_data_with_prefix(data: Dict[str, Any]):
     """AI 데이터 처리 (API prefix 포함)"""
-    return await ai_process_data(data, service)
+    return await ai_process_data(data)
 
 # Gateway에서 사용하는 경로 (API prefix 없이)
 @app.post("/api/datagather/ai-process")
-async def ai_process_data_gateway(
-    data: Dict[str, Any],
-    service: DataGatherApplicationService = Depends(get_datagather_service)
-):
+async def ai_process_data_gateway(data: Dict[str, Any]):
     """AI 데이터 처리 (Gateway 경로)"""
-    return await ai_process_data(data, service)
+    return await ai_process_data(data)
 
 # 공정 관련 엔드포인트
 @app.post(f"{settings.api_prefix}/process")

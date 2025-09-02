@@ -2,12 +2,16 @@
 # 📊 DataGather 도메인
 # ============================================================================
 
-from .datagather_entity import DataGather
-from .datagather_repository import DataGatherRepository
-from .datagather_service import DataGatherService
+from .input_data_entity import InputData
+from .output_data_entity import OutputData
+from .transport_data_entity import TransportData
+from .process_data_entity import ProcessData
+from .utility_data_entity import UtilityData
+from .waste_data_entity import WasteData
+from .fuel_data_entity import FuelData
+from .process_product_data_entity import ProcessProductData
 
 __all__ = [
-    "DataGather",
-    "DataGatherRepository", 
-    "DataGatherService"
+    "InputData", "OutputData", "TransportData", "ProcessData",
+    "UtilityData", "WasteData", "FuelData", "ProcessProductData"
 ]

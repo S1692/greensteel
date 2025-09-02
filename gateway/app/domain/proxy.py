@@ -39,6 +39,7 @@ class ProxyController:
             
             # ESG 관리 도메인
             "/cbam": self._clean_service_url(os.getenv("CBAM_SERVICE_URL", "http://localhost:8082")),
+            "/api/v1/cbam": self._clean_service_url(os.getenv("CBAM_SERVICE_URL", "http://localhost:8082")),
             "/datagather": self._clean_service_url(os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")),
             "/api/datagather": self._clean_service_url(os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")),
             "/lci": self._clean_service_url(os.getenv("LCI_SERVICE_URL", "https://lca-service-production.up.railway.app")),
@@ -301,7 +302,7 @@ class ProxyController:
             return "geo-information"
         elif path.startswith("/countries") or path.startswith("/api/v1/countries") or path.startswith("/api"):
             return "identity-access"  # 기존 호환성
-        elif path.startswith("/cbam"):
+        elif path.startswith("/cbam") or path.startswith("/api/v1/cbam"):
             return "carbon-border"
         elif path.startswith("/datagather"):
             return "data-collection"
@@ -407,8 +408,21 @@ class ProxyController:
                 # /chatbot으로 시작하는 다른 경로들도 /api/v1/chatbot으로 매핑
                 target_url = f"{target_service}/api/v1{path}"
                 gateway_logger.log_info(f"CHATBOT OTHER: {path} → {target_url}")
+        elif path.startswith("/api/v1/cbam"):
+            gateway_logger.log_info(f"✓ Path '{path}' starts with '/api/v1/cbam'")
+            # /api/v1/cbam/install → /install/
+            # /api/v1/cbam/product → /product/
+            # /api/v1/cbam/process → /process/
+            # 등등...
+            cbam_path = path.replace("/api/v1/cbam", "")
+            target_url = f"{target_service}{cbam_path}"
+            gateway_logger.log_info(f"CBAM API: {path} → {target_url}")
+        elif path.startswith("/cbam"):
+            gateway_logger.log_info(f"✓ Path '{path}' starts with '/cbam'")
+            target_url = f"{target_service}{path}"
+            gateway_logger.log_info(f"CBAM: {path} → {target_url}")
         else:
-            gateway_logger.log_info(f"✗ Path '{path}' does NOT start with '/chatbot'")
+            gateway_logger.log_info(f"✗ Path '{path}' does NOT start with '/chatbot' or '/cbam'")
             target_url = f"{target_service}{path}"
             
         if request.url.query:

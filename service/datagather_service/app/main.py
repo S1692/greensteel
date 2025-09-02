@@ -220,6 +220,8 @@ async def save_transport_data(data: dict):
                     try:
                         # 새로운 스키마에 맞게 데이터 처리
                         transport_record = {
+                            '주문처명': row.get('주문처명', ''),
+                            '오더번호': row.get('오더번호', ''),
                             '생산품명': row.get('생산품명', ''),
                             '로트번호': row.get('로트번호', ''),
                             '운송물질': row.get('운송물질', ''),
@@ -248,6 +250,12 @@ async def save_transport_data(data: dict):
                         continue
                 
                 session.commit()
+                
+                # 0행 저장 시 실패로 처리
+                if saved_count == 0:
+                    logger.error("운송 데이터 저장 실패: 저장된 행이 없습니다")
+                    return {"success": False, "message": "운송 데이터 저장에 실패했습니다. 저장된 행이 없습니다.", "saved_count": 0, "filename": filename}
+                
                 logger.info(f"운송 데이터 DB 저장 완료: {saved_count}행 저장됨")
                 return {"success": True, "message": f"운송 데이터가 성공적으로 저장되었습니다. ({saved_count}행)", "saved_count": saved_count, "filename": filename}
                 
@@ -318,6 +326,12 @@ async def save_process_data(data: dict):
                         continue
                 
                 session.commit()
+                
+                # 0행 저장 시 실패로 처리
+                if saved_count == 0:
+                    logger.error("공정 데이터 저장 실패: 저장된 행이 없습니다")
+                    return {"success": False, "message": "공정 데이터 저장에 실패했습니다. 저장된 행이 없습니다.", "saved_count": 0, "filename": filename}
+                
                 logger.info(f"공정 데이터 DB 저장 완료: {saved_count}행 저장됨")
                 return {"success": True, "message": f"공정 데이터가 성공적으로 저장되었습니다. ({saved_count}행)", "saved_count": saved_count, "filename": filename}
                 

@@ -64,6 +64,10 @@ class Settings(BaseSettings):
         self.secret_key = os.getenv("SECRET_KEY", self.secret_key)
         self.host = os.getenv("HOST", self.host)
         self.port = int(os.getenv("PORT", self.port))
+        
+        # 데이터베이스 URL을 비동기용으로 변환
+        if self.database_url.startswith("postgresql://"):
+            self.database_url = self.database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
     
     def get_database_config(self) -> dict:
         """데이터베이스 설정 반환"""

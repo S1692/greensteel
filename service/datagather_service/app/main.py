@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+"""
+DataGather Service - 메인 애플리케이션
+"""
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
@@ -6,7 +11,8 @@ import os
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
-# 데이터베이스 및 모델 import
+# 유틸리티 및 데이터베이스 import
+from .utils import excel_date_to_postgres_date
 from .database import init_db
 
 # 로깅 설정
@@ -38,7 +44,8 @@ async def startup_event():
     except Exception as e:
         logger.error(f"❌ 서비스 시작 실패: {e}")
 
-# 헬스 체크 엔드포인트
+# ==================== 엔드포인트들 ====================
+
 @app.get("/health")
 async def health_check():
     """헬스 체크 엔드포인트"""
@@ -49,7 +56,6 @@ async def health_check():
         "version": "1.0.0"
     }
 
-# 루트 경로
 @app.get("/")
 async def root():
     """루트 경로"""
@@ -63,30 +69,6 @@ async def root():
         }
     }
 
-def excel_date_to_postgres_date(excel_date):
-    """Excel 날짜 숫자를 PostgreSQL date로 변환"""
-    if excel_date is None or excel_date == '':
-        return None
-    
-    try:
-        from datetime import datetime, timedelta
-        # Excel 날짜는 1900년 1월 1일부터의 일수
-        # 1900년 1월 1일을 기준으로 날짜 계산
-        base_date = datetime(1900, 1, 1)
-        if isinstance(excel_date, (int, float)):
-            # Excel의 날짜 계산 (1900년 1월 1일 = 1)
-            days = int(excel_date) - 1
-            result_date = base_date + timedelta(days=days)
-            return result_date.strftime('%Y-%m-%d')
-        elif isinstance(excel_date, str):
-            # 이미 문자열 형태의 날짜인 경우
-            return excel_date
-        else:
-            return None
-    except Exception as e:
-        logger.warning(f"날짜 변환 실패: {excel_date}, 오류: {e}")
-        return None
-
 @app.post("/save-input-data")
 async def save_input_data(data: dict):
     """투입물 데이터를 데이터베이스에 저장"""
@@ -98,20 +80,8 @@ async def save_input_data(data: dict):
         if not input_data_rows:
             return {"success": False, "message": "저장할 투입물 데이터가 없습니다.", "error": "No input data provided"}
         
-        # PostgreSQL Railway 데이터베이스 연결 설정
         database_url = os.getenv("DATABASE_URL")
-        
-        # PostgreSQL 전용 엔진 설정
-        engine = create_engine(
-            database_url,
-            pool_pre_ping=True,  # 연결 상태 확인
-            pool_recycle=300,    # 5분마다 연결 재생성
-            echo=False,          # SQL 로그 비활성화
-            connect_args={
-                "connect_timeout": 10,  # 연결 타임아웃
-                "application_name": "datagather_service"  # 애플리케이션 이름
-            }
-        )
+        engine = create_engine(database_url, pool_pre_ping=True, pool_recycle=300, echo=False)
         
         saved_count = 0
         
@@ -119,14 +89,11 @@ async def save_input_data(data: dict):
             try:
                 for row in input_data_rows:
                     try:
-                        # 새로운 스키마에 맞게 데이터 처리
                         if row.get('공정') or row.get('투입물명'):
-                            # 단위 값 강제로 't'로 설정 (빈 문자열이나 None인 경우)
                             unit_value = row.get('단위', '')
                             if not unit_value or unit_value.strip() == '':
                                 unit_value = 't'
                             
-                            # AI 추천 답변 처리
                             ai_recommendation = row.get('AI추천답변', '')
                             if not ai_recommendation or ai_recommendation.strip() == '':
                                 ai_recommendation = None
@@ -144,12 +111,10 @@ async def save_input_data(data: dict):
                                 'ai추천답변': ai_recommendation
                             }
                             
-                            # None 값 제거 (빈 문자열은 유지하되 단위는 't'로 설정)
                             row_data = {k: v for k, v in row_data.items() if v is not None}
                             
-                            # 필수 컬럼이 있는지 확인
                             if row_data.get('공정') or row_data.get('투입물명'):
-                                cursor = session.execute(text("""
+                                session.execute(text("""
                                     INSERT INTO input_data 
                                     (로트번호, 생산품명, 생산수량, 투입일, 종료일, 
                                      공정, 투입물명, 수량, 단위, ai추천답변)
@@ -158,16 +123,14 @@ async def save_input_data(data: dict):
                                 """), row_data)
                                 
                                 saved_count += 1
-                                logger.info(f"행 {saved_count} 저장 성공: {row_data.get('공정', '')} - {row_data.get('투입물명', '')} (단위: {row_data.get('단위', '')})")
+                                logger.info(f"행 {saved_count} 저장 성공: {row_data.get('공정', '')} - {row_data.get('투입물명', '')}")
                             else:
                                 logger.warning(f"필수 데이터 부족으로 건너뜀: {row}")
                     
                     except Exception as row_error:
                         logger.error(f"행 데이터 저장 실패: {row_error}")
-                        # 개별 행 오류 시에도 계속 진행
                         continue
                 
-                # 모든 행 처리 후 커밋
                 session.commit()
                 logger.info(f"DB 저장 완료: {saved_count}행 저장됨")
                 return {"success": True, "message": f"데이터베이스에 성공적으로 저장되었습니다. ({saved_count}행)", "saved_count": saved_count, "filename": filename}
@@ -221,7 +184,7 @@ async def save_transport_data(data: dict):
                         if not transport_record.get('생산품명') or not transport_record.get('로트번호'):
                             continue
                         
-                        cursor = session.execute(text("""
+                        session.execute(text("""
                             INSERT INTO transport_data 
                             (생산품명, 로트번호, 운송물질, 운송수량, 운송일자, 
                              도착공정, 출발지, 이동수단, 주문처명, 오더번호)
@@ -267,17 +230,23 @@ async def save_process_data(data: dict):
                 
                 for row in process_data:
                     try:
+                        # 디버깅을 위한 로그 추가
+                        logger.info(f"처리 중인 행 데이터: {row}")
+                        logger.info(f"행의 키들: {list(row.keys())}")
+                        
                         process_record = {
                             '공정명': row.get('공정명', ''),
                             '생산제품': row.get('생산제품', ''),
                             '세부공정': row.get('세부공정', ''),
-                            '공정_설명': row.get('공정 설명', '') or row.get('공정설명', '')
+                            '공정_설명': row.get('공정 설명', '') or row.get('공정설명', '') or ''
                         }
+                        
+                        logger.info(f"생성된 process_record: {process_record}")
                         
                         if not process_record['공정명']:
                             continue
                         
-                        cursor = session.execute(text("""
+                        session.execute(text("""
                             INSERT INTO process_data 
                             (공정명, 생산제품, 세부공정, "공정 설명")
                             VALUES (:공정명, :생산제품, :세부공정, :공정_설명)
@@ -483,7 +452,7 @@ async def classify_data(data: dict):
                     
                     for row in classified_data:
                         try:
-                            cursor = session.execute(text("""
+                            session.execute(text("""
                                 INSERT INTO process_data 
                                 (공정명, 생산제품, 세부공정, "공정 설명")
                                 VALUES (:공정명, :생산제품, :세부공정, :공정_설명)

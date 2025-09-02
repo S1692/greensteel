@@ -437,7 +437,7 @@ async def create_process(
     unit: Optional[str] = None,
     efficiency: Optional[float] = None,
     tags: Optional[str] = None,
-    metadata: Optional[str] = None,
+    meta_data: Optional[str] = None,
     service: ProcessApplicationService = Depends(get_process_service)
 ):
     """공정 생성"""
@@ -453,7 +453,7 @@ async def create_process(
             unit=unit,
             efficiency=efficiency,
             tags=tags,
-            metadata=metadata
+            meta_data=meta_data
         )
         
         if result["success"]:
@@ -550,7 +550,7 @@ async def create_install(
     size_category: Optional[str] = None,
     established_date: Optional[str] = None,
     tags: Optional[str] = None,
-    metadata: Optional[str] = None,
+    meta_data: Optional[str] = None,
     service: InstallApplicationService = Depends(get_install_service)
 ):
     """사업장 생성"""
@@ -568,7 +568,7 @@ async def create_install(
             size_category=size_category,
             established_date=established_date,
             tags=tags,
-            metadata=metadata
+            meta_data=meta_data
         )
         
         if result["success"]:

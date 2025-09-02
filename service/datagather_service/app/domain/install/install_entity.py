@@ -45,7 +45,7 @@ class Install(Base):
     # 메타데이터
     description = Column(Text, nullable=True, comment="사업장 설명")
     tags = Column(Text, nullable=True, comment="태그 (JSON 형태)")
-    metadata = Column(Text, nullable=True, comment="추가 메타데이터 (JSON 형태)")
+    meta_data = Column(Text, nullable=True, comment="추가 메타데이터 (JSON 형태)")
     
     # 시간 정보
     created_at = Column(DateTime(timezone=True), server_default=func.now(), comment="생성 시간")
@@ -86,7 +86,7 @@ class Install(Base):
             'status': self.status,
             'description': self.description,
             'tags': self.tags,
-            'metadata': self.metadata,
+            'metadata': self.meta_data,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
@@ -112,5 +112,5 @@ class Install(Base):
             status=data.get('status', 'active'),
             description=data.get('description'),
             tags=data.get('tags'),
-            metadata=data.get('metadata')
+            meta_data=data.get('metadata')
         )

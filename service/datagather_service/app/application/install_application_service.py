@@ -28,7 +28,7 @@ class InstallApplicationService:
         size_category: Optional[str] = None,
         established_date: Optional[str] = None,
         tags: Optional[str] = None,
-        metadata: Optional[str] = None
+        meta_data: Optional[str] = None
     ) -> Dict[str, Any]:
         """사업장 생성"""
         try:
@@ -46,7 +46,7 @@ class InstallApplicationService:
                 "size_category": size_category,
                 "established_date": established_date,
                 "tags": tags,
-                "metadata": metadata
+                "meta_data": meta_data
             }
             
             validation_result = await self.install_service.validate_install_data(install_data)
@@ -72,7 +72,7 @@ class InstallApplicationService:
                 size_category=size_category,
                 established_date=established_date,
                 tags=tags,
-                metadata=metadata
+                meta_data=meta_data
             )
             
             return {
@@ -127,7 +127,7 @@ class InstallApplicationService:
                     "status": install.status,
                     "is_active": install.is_active,
                     "tags": install.tags,
-                    "metadata": install.metadata,
+                    "metadata": install.meta_data,
                     "created_at": install.created_at.isoformat() if install.created_at else None,
                     "updated_at": install.updated_at.isoformat() if install.updated_at else None
                 }

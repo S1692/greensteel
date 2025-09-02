@@ -29,7 +29,7 @@ class InstallService:
         size_category: Optional[str] = None,
         established_date: Optional[str] = None,
         tags: Optional[str] = None,
-        metadata: Optional[str] = None
+        meta_data: Optional[str] = None
     ) -> Install:
         """사업장 엔티티 생성"""
         
@@ -47,7 +47,7 @@ class InstallService:
             size_category=size_category,
             established_date=established_date,
             tags=tags,
-            metadata=metadata
+            meta_data=meta_data
         )
         
         return await self.repository.create(install)

@@ -27,7 +27,7 @@ class ProcessService:
         unit: Optional[str] = None,
         efficiency: Optional[float] = None,
         tags: Optional[str] = None,
-        metadata: Optional[str] = None
+        meta_data: Optional[str] = None
     ) -> Process:
         """공정 엔티티 생성"""
         
@@ -43,7 +43,7 @@ class ProcessService:
             unit=unit,
             efficiency=efficiency,
             tags=tags,
-            metadata=metadata
+            meta_data=meta_data
         )
         
         return await self.repository.create(process)

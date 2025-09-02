@@ -26,7 +26,7 @@ class ProcessApplicationService:
         unit: Optional[str] = None,
         efficiency: Optional[float] = None,
         tags: Optional[str] = None,
-        metadata: Optional[str] = None
+        meta_data: Optional[str] = None
     ) -> Dict[str, Any]:
         """공정 생성"""
         try:
@@ -41,7 +41,7 @@ class ProcessApplicationService:
                 "unit": unit,
                 "efficiency": efficiency,
                 "tags": tags,
-                "metadata": metadata
+                "meta_data": meta_data
             }
             
             validation_result = await self.process_service.validate_process_data(process_data)
@@ -65,7 +65,7 @@ class ProcessApplicationService:
                 unit=unit,
                 efficiency=efficiency,
                 tags=tags,
-                metadata=metadata
+                meta_data=meta_data
             )
             
             return {
@@ -118,7 +118,7 @@ class ProcessApplicationService:
                     "status": process.status,
                     "is_active": process.is_active,
                     "tags": process.tags,
-                    "metadata": process.metadata,
+                    "metadata": process.meta_data,
                     "created_at": process.created_at.isoformat() if process.created_at else None,
                     "updated_at": process.updated_at.isoformat() if process.updated_at else None
                 }

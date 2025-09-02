@@ -32,6 +32,8 @@ type DataRow = {
   산출물명?: string;
   수량?: number;
   단위?: string;
+  주문처명?: string;
+  오더번호?: string;
   [key: string]: any;
 };
 
@@ -246,8 +248,32 @@ const OutputDataPage: React.FC = () => {
   const addNewRow = () => {
     const newRow: EditableRow = {
       id: `output-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      originalData: {},
-      modifiedData: {},
+      originalData: {
+        '로트번호': '',
+        '생산품명': '',
+        '생산수량': 0,
+        '투입일': '',
+        '종료일': '',
+        '공정': '',
+        '산출물명': '',
+        '수량': 0,
+        '단위': 't',
+        '주문처명': '',
+        '오더번호': ''
+      },
+      modifiedData: {
+        '로트번호': '',
+        '생산품명': '',
+        '생산수량': 0,
+        '투입일': '',
+        '종료일': '',
+        '공정': '',
+        '산출물명': '',
+        '수량': 0,
+        '단위': 't',
+        '주문처명': '',
+        '오더번호': ''
+      },
       isEditing: true,
       isNewlyAdded: true
     };
@@ -489,6 +515,40 @@ const OutputDataPage: React.FC = () => {
           </div>
         );
       
+      case '주문처명':
+        return (
+          <div className='relative'>
+            <input
+              type='text'
+              value={value}
+              maxLength={100}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                handleInputChange(row.id, column, newValue);
+              }}
+              placeholder='주문처명을 입력하세요'
+              className={getInputClassName()}
+            />
+          </div>
+        );
+      
+      case '오더번호':
+        return (
+          <div className='relative'>
+            <input
+              type='text'
+              value={value}
+              maxLength={50}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                handleInputChange(row.id, column, newValue);
+              }}
+              placeholder='오더번호를 입력하세요'
+              className={getInputClassName()}
+            />
+          </div>
+        );
+      
       default:
         return (
           <span>{value || '-'}</span>
@@ -551,6 +611,14 @@ const OutputDataPage: React.FC = () => {
           columns.push(cell.v.toString().trim());
         }
       }
+      
+      // 기본 컬럼이 없는 경우 추가
+      const requiredColumns = ['로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '산출물명', '수량', '단위', '주문처명', '오더번호'];
+      requiredColumns.forEach(col => {
+        if (!columns.includes(col)) {
+          columns.push(col);
+        }
+      });
 
       // 데이터 읽기 (첫 번째 행 제외)
       const jsonData = XLSX.utils.sheet_to_json(worksheet, {
@@ -558,6 +626,13 @@ const OutputDataPage: React.FC = () => {
         range: 1,
         defval: ''
       }) as DataRow[];
+      
+      // 누락된 컬럼에 기본값 설정
+      jsonData.forEach(row => {
+        if (!row.주문처명) row.주문처명 = '';
+        if (!row.오더번호) row.오더번호 = '';
+        if (!row.단위) row.단위 = 't';
+      });
 
       // 편집 가능한 행 데이터 생성
       const editableRows: EditableRow[] = jsonData.map((row: any, index) => ({
@@ -657,7 +732,9 @@ const OutputDataPage: React.FC = () => {
            ...row,
            '수량': 수량,
            '투입일': convertExcelDate(row['투입일']),
-           '종료일': convertExcelDate(row['종료일'])
+           '종료일': convertExcelDate(row['종료일']),
+           '주문처명': row['주문처명'] || '',
+           '오더번호': row['오더번호'] || ''
          };
        });
 

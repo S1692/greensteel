@@ -311,6 +311,24 @@ export default function LcaPage() {
                   {isLoading ? '로딩 중...' : '새로고침'}
                 </Button>
                 <Button 
+                  onClick={async () => {
+                    try {
+                      const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
+                      const response = await fetch(`${gatewayUrl}/api/datagather/table-schema`);
+                      const data = await response.json();
+                      if (data.success) {
+                        console.log('테이블 스키마:', data.schema);
+                        console.log('샘플 데이터:', data.sample_data);
+                      }
+                    } catch (error) {
+                      console.error('스키마 조회 실패:', error);
+                    }
+                  }}
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                >
+                  스키마 확인
+                </Button>
+                <Button 
                   onClick={handleEditRedirect}
                   className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
                 >

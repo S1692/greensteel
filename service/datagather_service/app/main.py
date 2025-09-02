@@ -193,6 +193,11 @@ async def save_transport_data(data: dict):
         filename = data.get('filename', '')
         transport_data = data.get('data', [])
         
+        logger.info(f"받은 데이터 구조: {type(transport_data)}, 길이: {len(transport_data) if transport_data else 0}")
+        if transport_data:
+            logger.info(f"첫 번째 행 원본 데이터: {transport_data[0]}")
+            logger.info(f"첫 번째 행의 모든 키: {list(transport_data[0].keys()) if transport_data[0] else []}")
+        
         if not transport_data:
             return {"success": False, "message": "저장할 운송 데이터가 없습니다.", "error": "No transport data provided"}
         
@@ -216,8 +221,10 @@ async def save_transport_data(data: dict):
                 session.begin()
                 saved_count = 0
                 
-                for row in transport_data:
+                for i, row in enumerate(transport_data):
                     try:
+                        logger.info(f"행 {i+1} 처리 시작 - 원본 데이터: {row}")
+                        
                         # 이미지 칼럼 순서에 맞게 데이터 처리
                         transport_record = {
                             '생산품명': row.get('생산품명', ''),
@@ -232,6 +239,10 @@ async def save_transport_data(data: dict):
                             '오더번호': row.get('오더번호', '')
                         }
                         
+                        logger.info(f"행 {i+1} - 처리된 데이터: {transport_record}")
+                        logger.info(f"행 {i+1} - 운송수량 원본값: {row.get('운송수량')}, 변환된 값: {transport_record['운송수량']}")
+                        logger.info(f"행 {i+1} - 운송일자 원본값: {row.get('운송일자')}, 변환된 값: {transport_record['운송일자']}")
+                        
                         # 필수 필드가 있는지 확인하고 None 값 처리
                         if not transport_record.get('생산품명') or not transport_record.get('로트번호'):
                             logger.warning(f"필수 데이터 부족으로 건너뜀: {row}")
@@ -244,6 +255,8 @@ async def save_transport_data(data: dict):
                         if transport_record.get('운송일자') is None:
                             transport_record['운송일자'] = None
                         
+                        logger.info(f"행 {i+1} - 최종 저장할 데이터: {transport_record}")
+                        
                         cursor = session.execute(text("""
                             INSERT INTO transport_data 
                             (생산품명, 로트번호, 운송물질, 운송수량, 운송일자, 
@@ -253,9 +266,11 @@ async def save_transport_data(data: dict):
                         """), transport_record)
                         
                         saved_count += 1
+                        logger.info(f"행 {i+1} 저장 성공")
                     
                     except Exception as row_error:
-                        logger.error(f"운송 데이터 행 저장 실패: {row_error}")
+                        logger.error(f"운송 데이터 행 {i+1} 저장 실패: {row_error}")
+                        logger.error(f"행 {i+1} 원본 데이터: {row}")
                         continue
                 
                 session.commit()
@@ -568,8 +583,19 @@ async def get_output_data():
 async def get_transport_data():
     """운송 데이터 조회"""
     try:
+        logger.info("운송 데이터 조회 요청 받음")
+        
         # PostgreSQL Railway 데이터베이스 연결 설정
         database_url = os.getenv("DATABASE_URL")
+        if not database_url:
+            logger.error("DATABASE_URL 환경변수가 설정되지 않았습니다")
+            return {
+                "success": False,
+                "message": "데이터베이스 연결 정보가 설정되지 않았습니다",
+                "error": "DATABASE_URL not set"
+            }
+        
+        logger.info(f"데이터베이스 연결 시도: {database_url[:20]}...")
         
         engine = create_engine(
             database_url,
@@ -584,19 +610,56 @@ async def get_transport_data():
         
         with Session(engine) as session:
             try:
+                # 테이블 존재 여부 확인
+                table_exists = session.execute(text("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_name = 'transport_data'
+                    )
+                """)).scalar()
+                
+                if not table_exists:
+                    logger.error("transport_data 테이블이 존재하지 않습니다")
+                    return {
+                        "success": False,
+                        "message": "transport_data 테이블이 존재하지 않습니다",
+                        "error": "Table not found"
+                    }
+                
+                # 테이블 구조 확인
+                table_info = session.execute(text("""
+                    SELECT column_name, data_type 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'transport_data' 
+                    ORDER BY ordinal_position
+                """))
+                columns_info = table_info.fetchall()
+                logger.info(f"transport_data 테이블 컬럼 정보: {columns_info}")
+                
                 # transport_data 테이블의 모든 데이터 조회
                 result = session.execute(text("SELECT * FROM transport_data ORDER BY created_at DESC"))
                 rows = result.fetchall()
                 
+                logger.info(f"조회된 원시 데이터: {len(rows)}행")
+                
                 # 결과를 딕셔너리 리스트로 변환
                 data = []
-                for row in rows:
-                    row_dict = dict(row._mapping)
-                    # datetime 객체를 문자열로 변환
-                    for key, value in row_dict.items():
-                        if hasattr(value, 'isoformat'):
-                            row_dict[key] = value.isoformat()
-                    data.append(row_dict)
+                for i, row in enumerate(rows):
+                    try:
+                        row_dict = dict(row._mapping)
+                        # datetime 객체를 문자열로 변환
+                        for key, value in row_dict.items():
+                            if hasattr(value, 'isoformat'):
+                                row_dict[key] = value.isoformat()
+                        data.append(row_dict)
+                        
+                        # 첫 번째 행 로깅
+                        if i == 0:
+                            logger.info(f"첫 번째 행 데이터: {row_dict}")
+                            logger.info(f"첫 번째 행의 모든 컬럼명: {list(row_dict.keys())}")
+                    except Exception as row_error:
+                        logger.error(f"행 {i} 변환 실패: {row_error}")
+                        continue
                 
                 logger.info(f"운송 데이터 조회 완료: {len(data)}행")
                 return {

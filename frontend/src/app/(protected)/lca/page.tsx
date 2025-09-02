@@ -299,13 +299,27 @@ export default function LcaPage() {
         }
       } else if (activeTab === 'transport') {
         // transport_data 테이블 데이터 로드
+        console.log('운송 데이터 로드 시작...');
         const response = await fetch(`${gatewayUrl}/api/datagather/transport-data`);
+        console.log('운송 데이터 응답 상태:', response.status, response.statusText);
+        
         if (response.ok) {
           const data = await response.json();
-          const transportDataArray = data.success ? data.data : [];
-          setTransportData(transportDataArray);
+          console.log('운송 데이터 응답:', data);
+          
+          if (data.success) {
+            const transportDataArray = data.data || [];
+            console.log('운송 데이터 배열:', transportDataArray);
+            console.log('운송 데이터 개수:', transportDataArray.length);
+            setTransportData(transportDataArray);
+          } else {
+            console.error('운송 데이터 응답 실패:', data.message, data.error);
+            throw new Error(`운송 데이터 응답 실패: ${data.message || '알 수 없는 오류'}`);
+          }
         } else {
-          throw new Error(`transport_data 데이터 로드 실패: ${response.statusText}`);
+          const errorText = await response.text();
+          console.error('운송 데이터 HTTP 오류:', response.status, errorText);
+          throw new Error(`transport_data 데이터 로드 실패: ${response.status} ${response.statusText}`);
         }
       } else if (activeTab === 'process') {
         // process_data 테이블 데이터 로드

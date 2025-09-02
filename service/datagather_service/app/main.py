@@ -196,14 +196,56 @@ async def save_input_data(data: Dict[str, Any]):
     try:
         logger.info(f"투입물 데이터 저장 요청: {data.get('filename', 'unknown')}")
         
-        # 간단한 데이터 저장 처리
+        # 데이터베이스 연결
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.orm import sessionmaker
+        
+        engine = create_engine(settings.database_url.replace("postgresql+asyncpg://", "postgresql://"))
+        Session = sessionmaker(bind=engine)
+        
+        saved_count = 0
+        with Session() as session:
+            input_data_rows = data.get('data', [])
+            
+            for row in input_data_rows:
+                try:
+                    session.execute(text("""
+                        INSERT INTO input_data 
+                        (로트번호, 생산품명, 생산수량, 투입일, 종료일, 
+                         공정, 투입물명, 수량, 단위, source_file, 주문처명, 오더번호)
+                        VALUES (:로트번호, :생산품명, :생산수량, :투입일, :종료일,
+                                :공정, :투입물명, :수량, :단위, :source_file, :주문처명, :오더번호)
+                    """), {
+                        '로트번호': row.get('로트번호', ''),
+                        '생산품명': row.get('생산품명', ''),
+                        '생산수량': float(row.get('생산수량', 0)) if row.get('생산수량') else 0,
+                        '투입일': row.get('투입일'),
+                        '종료일': row.get('종료일'),
+                        '공정': row.get('공정', ''),
+                        '투입물명': row.get('투입물명', ''),
+                        '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
+                        '단위': row.get('단위', 't'),
+                        'source_file': data.get('filename', 'input_data'),
+                        '주문처명': row.get('주문처명', ''),
+                        '오더번호': row.get('오더번호', '')
+                    })
+                    saved_count += 1
+                except Exception as row_error:
+                    logger.error(f"행 저장 실패: {row_error}, 데이터: {row}")
+                    continue
+            
+            session.commit()
+        
+        logger.info(f"투입물 데이터 저장 완료: {saved_count}행 저장됨")
+        
         return JSONResponse(
             status_code=200,
             content={
                 "success": True,
-                "message": f"투입물 데이터가 성공적으로 저장되었습니다. ({len(data.get('data', []))}행)",
-                "saved_count": len(data.get('data', [])),
-                "filename": data.get('filename', '')
+                "message": f"투입물 데이터가 성공적으로 저장되었습니다. ({saved_count}행)",
+                "saved_count": saved_count,
+                "filename": data.get('filename', ''),
+                "total_rows": len(input_data_rows)
             }
         )
             
@@ -392,14 +434,56 @@ async def save_output_data(
     try:
         logger.info(f"산출물 데이터 저장 요청: {data.get('filename', 'unknown')}")
         
-        # 간단한 데이터 저장 처리
+        # 데이터베이스 연결
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.orm import sessionmaker
+        
+        engine = create_engine(settings.database_url.replace("postgresql+asyncpg://", "postgresql://"))
+        Session = sessionmaker(bind=engine)
+        
+        saved_count = 0
+        with Session() as session:
+            output_data_rows = data.get('data', [])
+            
+            for row in output_data_rows:
+                try:
+                    session.execute(text("""
+                        INSERT INTO output_data 
+                        (로트번호, 생산품명, 생산수량, 투입일, 종료일, 
+                         공정, 산출물명, 수량, 단위, source_file, 주문처명, 오더번호)
+                        VALUES (:로트번호, :생산품명, :생산수량, :투입일, :종료일,
+                                :공정, :산출물명, :수량, :단위, :source_file, :주문처명, :오더번호)
+                    """), {
+                        '로트번호': row.get('로트번호', ''),
+                        '생산품명': row.get('생산품명', ''),
+                        '생산수량': float(row.get('생산수량', 0)) if row.get('생산수량') else 0,
+                        '투입일': row.get('투입일'),
+                        '종료일': row.get('종료일'),
+                        '공정': row.get('공정', ''),
+                        '산출물명': row.get('투입물명', ''),  # 산출물명으로 매핑
+                        '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
+                        '단위': row.get('단위', 't'),
+                        'source_file': data.get('filename', 'output_data'),
+                        '주문처명': row.get('주문처명', ''),
+                        '오더번호': row.get('오더번호', '')
+                    })
+                    saved_count += 1
+                except Exception as row_error:
+                    logger.error(f"행 저장 실패: {row_error}, 데이터: {row}")
+                    continue
+            
+            session.commit()
+        
+        logger.info(f"산출물 데이터 저장 완료: {saved_count}행 저장됨")
+        
         return JSONResponse(
             status_code=200,
             content={
                 "success": True,
-                "message": f"산출물 데이터가 성공적으로 저장되었습니다. ({len(data.get('data', []))}행)",
-                "saved_count": len(data.get('data', [])),
-                "filename": data.get('filename', '')
+                "message": f"산출물 데이터가 성공적으로 저장되었습니다. ({saved_count}행)",
+                "saved_count": saved_count,
+                "filename": data.get('filename', ''),
+                "total_rows": len(output_data_rows)
             }
         )
             
@@ -424,14 +508,54 @@ async def save_transport_data(
     try:
         logger.info(f"운송 데이터 저장 요청: {data.get('filename', 'unknown')}")
         
-        # 간단한 데이터 저장 처리
+        # 데이터베이스 연결
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.orm import sessionmaker
+        
+        engine = create_engine(settings.database_url.replace("postgresql+asyncpg://", "postgresql://"))
+        Session = sessionmaker(bind=engine)
+        
+        saved_count = 0
+        with Session() as session:
+            transport_data_rows = data.get('data', [])
+            
+            for row in transport_data_rows:
+                try:
+                    session.execute(text("""
+                        INSERT INTO transport_data 
+                        (생산품명, 로트번호, 운송물질, 운송수량, 운송일자, 
+                         운송거리, 운송수단, source_file, 주문처명, 오더번호)
+                        VALUES (:생산품명, :로트번호, :운송물질, :운송수량, :운송일자,
+                                :운송거리, :운송수단, :source_file, :주문처명, :오더번호)
+                    """), {
+                        '생산품명': row.get('생산품명', ''),
+                        '로트번호': row.get('로트번호', ''),
+                        '운송물질': row.get('투입물명', ''),  # 운송물질로 매핑
+                        '운송수량': float(row.get('수량', 0)) if row.get('수량') else 0,
+                        '운송일자': row.get('투입일'),
+                        '운송거리': float(row.get('운송거리', 0)) if row.get('운송거리') else 0,
+                        '운송수단': row.get('공정', ''),  # 운송수단으로 매핑
+                        'source_file': data.get('filename', 'transport_data'),
+                        '주문처명': row.get('주문처명', ''),
+                        '오더번호': row.get('오더번호', '')
+                    })
+                    saved_count += 1
+                except Exception as row_error:
+                    logger.error(f"행 저장 실패: {row_error}, 데이터: {row}")
+                    continue
+            
+            session.commit()
+        
+        logger.info(f"운송 데이터 저장 완료: {saved_count}행 저장됨")
+        
         return JSONResponse(
             status_code=200,
             content={
                 "success": True,
-                "message": f"운송 데이터가 성공적으로 저장되었습니다. ({len(data.get('data', []))}행)",
-                "saved_count": len(data.get('data', [])),
-                "filename": data.get('filename', '')
+                "message": f"운송 데이터가 성공적으로 저장되었습니다. ({saved_count}행)",
+                "saved_count": saved_count,
+                "filename": data.get('filename', ''),
+                "total_rows": len(transport_data_rows)
             }
         )
             
@@ -456,14 +580,55 @@ async def save_process_data(
     try:
         logger.info(f"공정 데이터 저장 요청: {data.get('filename', 'unknown')}")
         
-        # 간단한 데이터 저장 처리
+        # 데이터베이스 연결
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.orm import sessionmaker
+        
+        engine = create_engine(settings.database_url.replace("postgresql+asyncpg://", "postgresql://"))
+        Session = sessionmaker(bind=engine)
+        
+        saved_count = 0
+        with Session() as session:
+            process_data_rows = data.get('data', [])
+            
+            for row in process_data_rows:
+                try:
+                    session.execute(text("""
+                        INSERT INTO process_data 
+                        (로트번호, 생산품명, 생산수량, 투입일, 종료일, 
+                         공정, 공정명, 공정설명, source_file, 주문처명, 오더번호)
+                        VALUES (:로트번호, :생산품명, :생산수량, :투입일, :종료일,
+                                :공정, :공정명, :공정설명, :source_file, :주문처명, :오더번호)
+                    """), {
+                        '로트번호': row.get('로트번호', ''),
+                        '생산품명': row.get('생산품명', ''),
+                        '생산수량': float(row.get('생산수량', 0)) if row.get('생산수량') else 0,
+                        '투입일': row.get('투입일'),
+                        '종료일': row.get('종료일'),
+                        '공정': row.get('공정', ''),
+                        '공정명': row.get('투입물명', ''),  # 공정명으로 매핑
+                        '공정설명': row.get('공정설명', ''),
+                        'source_file': data.get('filename', 'process_data'),
+                        '주문처명': row.get('주문처명', ''),
+                        '오더번호': row.get('오더번호', '')
+                    })
+                    saved_count += 1
+                except Exception as row_error:
+                    logger.error(f"행 저장 실패: {row_error}, 데이터: {row}")
+                    continue
+            
+            session.commit()
+        
+        logger.info(f"공정 데이터 저장 완료: {saved_count}행 저장됨")
+        
         return JSONResponse(
             status_code=200,
             content={
                 "success": True,
-                "message": f"공정 데이터가 성공적으로 저장되었습니다. ({len(data.get('data', []))}행)",
-                "saved_count": len(data.get('data', [])),
-                "filename": data.get('filename', '')
+                "message": f"공정 데이터가 성공적으로 저장되었습니다. ({saved_count}행)",
+                "saved_count": saved_count,
+                "filename": data.get('filename', ''),
+                "total_rows": len(process_data_rows)
             }
         )
             

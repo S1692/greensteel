@@ -43,7 +43,6 @@ class InputData(Base):
     수량 = Column(Numeric, nullable=False)
     단위 = Column(String(50), nullable=False, default='t')
     source_file = Column(String(255), nullable=True)
-    AI추천답변 = Column(Text, nullable=True)
     주문처명 = Column(String(255), nullable=True)
     오더번호 = Column(String(255), nullable=True)
     created_at = Column(DateTime, nullable=True, server_default=func.now())
@@ -99,15 +98,14 @@ class TransportData(Base):
 # ============================================================================
 
 class ProcessData(Base):
-    """공정 데이터 모델 (실제 DB 스키마)"""
+    """공정 데이터 모델 (이미지와 동일한 스키마)"""
     __tablename__ = "process_data"
     
     id = Column(Integer, primary_key=True, index=True)
     공정명 = Column(String(255), nullable=False)
+    생산제품 = Column(String(255), nullable=False)
+    세부공정 = Column(String(255), nullable=False)
     공정설명 = Column(Text, nullable=True)
-    공정유형 = Column(String(255), nullable=False)
-    공정단계 = Column(String(255), nullable=False)
-    공정효율 = Column(Numeric, nullable=True)
     created_at = Column(DateTime, nullable=True, server_default=func.now())
     updated_at = Column(DateTime, nullable=True, onupdate=func.now())
 

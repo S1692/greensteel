@@ -301,8 +301,6 @@ async def root():
             "routing": "/routing",
             "architecture": "/architecture",
             "documentation": "/docs",
-            "ai_processing": "/datagather/ai-process",
-            "ai_process_stream": "/ai-process-stream",
             "feedback": "/datagather/feedback",
             "data_upload": "/input-data, /output-data",
             "chatbot_chat": "/chatbot/chat",
@@ -769,63 +767,7 @@ async def upload_output_data(data: dict):
         gateway_logger.log_error(f"Output 데이터 업로드 중 오류 발생: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Output 데이터 업로드 오류: {str(e)}")
 
-# AI 처리 스트리밍 엔드포인트 (catch-all 라우트 이전에 배치)
-@app.api_route("/ai-process-stream", methods=["POST", "OPTIONS"])
-async def ai_process_stream(request: Request):
-    """AI 처리 스트리밍 엔드포인트 - DataGather 서비스로 프록시"""
-    try:
-        gateway_logger.log_info(f"AI 처리 스트리밍 요청 받음: {request.method} /ai-process-stream")
-        
-        # DataGather 서비스로 스트리밍 요청 전송
-        # 환경변수에서 DataGather 서비스 URL 가져오기
-        datagather_service_url = os.getenv("DATAGATHER_SERVICE_URL")
-        if not datagather_service_url:
-            raise HTTPException(status_code=503, detail="DATAGATHER_SERVICE_URL 환경변수가 설정되지 않았습니다")
-        
-        # 요청 헤더 준비 (host 제거)
-        headers = dict(request.headers)
-        headers.pop("host", None)
-        headers["X-Forwarded-By"] = GATEWAY_NAME
-        
-        # 요청 바디 읽기
-        body = await request.body()
-        
-        # DataGather 서비스로 프록시 요청
-        target_url = f"{datagather_service_url.rstrip('/')}/ai-process-stream"
-        
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(
-                target_url,
-                headers=headers,
-                content=body
-            )
-            
-            gateway_logger.log_info(f"AI 처리 스트리밍 응답: {response.status_code}")
-            
-            # hop-by-hop 헤더 제거
-            for h in ["content-length", "transfer-encoding", "connection"]:
-                try:
-                    response.headers.pop(h, None)
-                except Exception:
-                    pass
-            
-            # 응답 반환
-            return Response(
-                content=response.content,
-                status_code=response.status_code,
-                headers=dict(response.headers),
-                media_type=response.headers.get("content-type")
-            )
-            
-    except httpx.TimeoutException:
-        gateway_logger.log_error("AI 처리 스트리밍 시간 초과")
-        raise HTTPException(status_code=504, detail="AI 처리 스트리밍 시간 초과")
-    except httpx.ConnectError:
-        gateway_logger.log_error("DataGather 서비스 연결 실패")
-        raise HTTPException(status_code=503, detail="DataGather 서비스에 연결할 수 없습니다")
-    except Exception as e:
-        gateway_logger.log_error(f"AI 처리 스트리밍 중 오류 발생: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"AI 처리 스트리밍 오류: {str(e)}")
+
 
 
 

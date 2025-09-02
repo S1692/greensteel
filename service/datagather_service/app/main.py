@@ -271,7 +271,7 @@ async def save_process_data(data: dict):
                             '공정명': row.get('공정명', ''),
                             '생산제품': row.get('생산제품', ''),
                             '세부공정': row.get('세부공정', ''),
-                            '공정 설명': row.get('공정 설명', '') or row.get('공정설명', '')
+                            '공정_설명': row.get('공정 설명', '') or row.get('공정설명', '')
                         }
                         
                         if not process_record['공정명']:
@@ -280,7 +280,7 @@ async def save_process_data(data: dict):
                         cursor = session.execute(text("""
                             INSERT INTO process_data 
                             (공정명, 생산제품, 세부공정, "공정 설명")
-                            VALUES (:공정명, :생산제품, :세부공정, :"공정 설명")
+                            VALUES (:공정명, :생산제품, :세부공정, :공정_설명)
                         """), process_record)
                         
                         saved_count += 1
@@ -461,7 +461,7 @@ async def classify_data(data: dict):
                     '공정명': process_name,
                     '생산제품': product_name,
                     '세부공정': detail_process,
-                    '공정 설명': row.get('공정 설명', '')
+                    '공정_설명': row.get('공정 설명', '')
                 }
                 
                 classified_data.append(classified_row)
@@ -486,7 +486,7 @@ async def classify_data(data: dict):
                             cursor = session.execute(text("""
                                 INSERT INTO process_data 
                                 (공정명, 생산제품, 세부공정, "공정 설명")
-                                VALUES (:공정명, :생산제품, :세부공정, :"공정 설명")
+                                VALUES (:공정명, :생산제품, :세부공정, :공정_설명)
                             """), row)
                             
                             saved_count += 1

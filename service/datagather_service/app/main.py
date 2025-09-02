@@ -82,6 +82,16 @@ async def root():
             "health": "/health",
             "ai_process": "/ai-process",
             "ai_process_api": f"{settings.api_prefix}/datagather/ai-process",
+            "ai_process_gateway": "/api/datagather/ai-process",
+            "save_input_data": "/save-input-data",
+            "save_output_data": "/save-output-data",
+            "save_transport_data": "/save-transport-data",
+            "save_process_data": "/save-process-data",
+            "save_processed_data": "/save-processed-data",
+            "get_input_data": "/api/datagather/input-data",
+            "get_output_data": "/api/datagather/output-data",
+            "get_transport_data": "/api/datagather/transport-data",
+            "get_process_data": "/api/datagather/process-data",
             "documentation": "/docs"
         }
     }
@@ -169,6 +179,395 @@ async def ai_process_data_gateway(
 ):
     """AI 데이터 처리 (Gateway 경로)"""
     return await ai_process_data(data, service)
+
+# 투입물 데이터 저장 (기존 엔드포인트)
+@app.post("/save-input-data")
+async def save_input_data(
+    data: Dict[str, Any],
+    service: DataGatherApplicationService = Depends(get_datagather_service)
+):
+    """투입물 데이터를 데이터베이스에 저장"""
+    try:
+        logger.info(f"투입물 데이터 저장 요청: {data.get('filename', 'unknown')}")
+        
+        # DDD 구조를 사용한 API 데이터 처리
+        result = await service.process_api_data(
+            install_id=data.get('install_id', 1),
+            api_data=data,
+            data_type='input_data',
+            process_id=data.get('process_id')
+        )
+        
+        if result["success"]:
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "success": True,
+                    "message": f"데이터베이스에 성공적으로 저장되었습니다. ({result.get('saved_count', 0)}행)",
+                    "saved_count": result.get('saved_count', 0),
+                    "filename": data.get('filename', '')
+                }
+            )
+        else:
+            return JSONResponse(
+                status_code=400,
+                content=result
+            )
+            
+    except Exception as e:
+        logger.error(f"투입물 데이터 저장 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "투입물 데이터 저장 중 오류가 발생했습니다."
+            }
+        )
+
+# 투입물 데이터 조회
+@app.get("/api/datagather/input-data")
+async def get_input_data():
+    """투입물 데이터 조회"""
+    try:
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.orm import sessionmaker
+        
+        engine = create_engine(settings.database_url.replace("postgresql+asyncpg://", "postgresql://"))
+        Session = sessionmaker(bind=engine)
+        
+        with Session() as session:
+            result = session.execute(text("SELECT * FROM input_data ORDER BY created_at DESC"))
+            rows = result.fetchall()
+            
+            data = []
+            for row in rows:
+                row_dict = dict(row._mapping)
+                for key, value in row_dict.items():
+                    if hasattr(value, 'isoformat'):
+                        row_dict[key] = value.isoformat()
+                data.append(row_dict)
+            
+            return {
+                "success": True,
+                "message": "투입물 데이터 조회 완료",
+                "data": data,
+                "count": len(data)
+            }
+            
+    except Exception as e:
+        logger.error(f"투입물 데이터 조회 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "투입물 데이터 조회 중 오류가 발생했습니다."
+            }
+        )
+
+# 산출물 데이터 조회
+@app.get("/api/datagather/output-data")
+async def get_output_data():
+    """산출물 데이터 조회"""
+    try:
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.orm import sessionmaker
+        
+        engine = create_engine(settings.database_url.replace("postgresql+asyncpg://", "postgresql://"))
+        Session = sessionmaker(bind=engine)
+        
+        with Session() as session:
+            result = session.execute(text("SELECT * FROM output_data ORDER BY created_at DESC"))
+            rows = result.fetchall()
+            
+            data = []
+            for row in rows:
+                row_dict = dict(row._mapping)
+                for key, value in row_dict.items():
+                    if hasattr(value, 'isoformat'):
+                        row_dict[key] = value.isoformat()
+                data.append(row_dict)
+            
+            return {
+                "success": True,
+                "message": "산출물 데이터 조회 완료",
+                "data": data,
+                "count": len(data)
+            }
+            
+    except Exception as e:
+        logger.error(f"산출물 데이터 조회 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "산출물 데이터 조회 중 오류가 발생했습니다."
+            }
+        )
+
+# 운송 데이터 조회
+@app.get("/api/datagather/transport-data")
+async def get_transport_data():
+    """운송 데이터 조회"""
+    try:
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.orm import sessionmaker
+        
+        engine = create_engine(settings.database_url.replace("postgresql+asyncpg://", "postgresql://"))
+        Session = sessionmaker(bind=engine)
+        
+        with Session() as session:
+            result = session.execute(text("SELECT * FROM transport_data ORDER BY created_at DESC"))
+            rows = result.fetchall()
+            
+            data = []
+            for row in rows:
+                row_dict = dict(row._mapping)
+                for key, value in row_dict.items():
+                    if hasattr(value, 'isoformat'):
+                        row_dict[key] = value.isoformat()
+                data.append(row_dict)
+            
+            return {
+                "success": True,
+                "message": "운송 데이터 조회 완료",
+                "data": data,
+                "count": len(data)
+            }
+            
+    except Exception as e:
+        logger.error(f"운송 데이터 조회 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "운송 데이터 조회 중 오류가 발생했습니다."
+            }
+        )
+
+# 공정 데이터 조회
+@app.get("/api/datagather/process-data")
+async def get_process_data():
+    """공정 데이터 조회"""
+    try:
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.orm import sessionmaker
+        
+        engine = create_engine(settings.database_url.replace("postgresql+asyncpg://", "postgresql://"))
+        Session = sessionmaker(bind=engine)
+        
+        with Session() as session:
+            result = session.execute(text("SELECT * FROM process_data ORDER BY created_at DESC"))
+            rows = result.fetchall()
+            
+            data = []
+            for row in rows:
+                row_dict = dict(row._mapping)
+                for key, value in row_dict.items():
+                    if hasattr(value, 'isoformat'):
+                        row_dict[key] = value.isoformat()
+                data.append(row_dict)
+            
+            return {
+                "success": True,
+                "message": "공정 데이터 조회 완료",
+                "data": data,
+                "count": len(data)
+            }
+            
+    except Exception as e:
+        logger.error(f"공정 데이터 조회 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "공정 데이터 조회 중 오류가 발생했습니다."
+            }
+        )
+
+# 산출물 데이터 저장
+@app.post("/save-output-data")
+async def save_output_data(
+    data: Dict[str, Any],
+    service: DataGatherApplicationService = Depends(get_datagather_service)
+):
+    """산출물 데이터를 데이터베이스에 저장"""
+    try:
+        logger.info(f"산출물 데이터 저장 요청: {data.get('filename', 'unknown')}")
+        
+        # DDD 구조를 사용한 API 데이터 처리
+        result = await service.process_api_data(
+            install_id=data.get('install_id', 1),
+            api_data=data,
+            data_type='output_data',
+            process_id=data.get('process_id')
+        )
+        
+        if result["success"]:
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "success": True,
+                    "message": f"산출물 데이터가 성공적으로 저장되었습니다. ({result.get('saved_count', 0)}행)",
+                    "saved_count": result.get('saved_count', 0),
+                    "filename": data.get('filename', '')
+                }
+            )
+        else:
+            return JSONResponse(
+                status_code=400,
+                content=result
+            )
+            
+    except Exception as e:
+        logger.error(f"산출물 데이터 저장 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "산출물 데이터 저장 중 오류가 발생했습니다."
+            }
+        )
+
+# 운송 데이터 저장
+@app.post("/save-transport-data")
+async def save_transport_data(
+    data: Dict[str, Any],
+    service: DataGatherApplicationService = Depends(get_datagather_service)
+):
+    """운송 데이터를 데이터베이스에 저장"""
+    try:
+        logger.info(f"운송 데이터 저장 요청: {data.get('filename', 'unknown')}")
+        
+        # DDD 구조를 사용한 API 데이터 처리
+        result = await service.process_api_data(
+            install_id=data.get('install_id', 1),
+            api_data=data,
+            data_type='transport_data',
+            process_id=data.get('process_id')
+        )
+        
+        if result["success"]:
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "success": True,
+                    "message": f"운송 데이터가 성공적으로 저장되었습니다. ({result.get('saved_count', 0)}행)",
+                    "saved_count": result.get('saved_count', 0),
+                    "filename": data.get('filename', '')
+                }
+            )
+        else:
+            return JSONResponse(
+                status_code=400,
+                content=result
+            )
+            
+    except Exception as e:
+        logger.error(f"운송 데이터 저장 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "운송 데이터 저장 중 오류가 발생했습니다."
+            }
+        )
+
+# 공정 데이터 저장
+@app.post("/save-process-data")
+async def save_process_data(
+    data: Dict[str, Any],
+    service: DataGatherApplicationService = Depends(get_datagather_service)
+):
+    """공정 데이터를 데이터베이스에 저장"""
+    try:
+        logger.info(f"공정 데이터 저장 요청: {data.get('filename', 'unknown')}")
+        
+        # DDD 구조를 사용한 API 데이터 처리
+        result = await service.process_api_data(
+            install_id=data.get('install_id', 1),
+            api_data=data,
+            data_type='process_data',
+            process_id=data.get('process_id')
+        )
+        
+        if result["success"]:
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "success": True,
+                    "message": f"공정 데이터가 성공적으로 저장되었습니다. ({result.get('saved_count', 0)}행)",
+                    "saved_count": result.get('saved_count', 0),
+                    "filename": data.get('filename', '')
+                }
+            )
+        else:
+            return JSONResponse(
+                status_code=400,
+                content=result
+            )
+            
+    except Exception as e:
+        logger.error(f"공정 데이터 저장 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "공정 데이터 저장 중 오류가 발생했습니다."
+            }
+        )
+
+# 처리된 데이터 저장 (통합 엔드포인트)
+@app.post("/save-processed-data")
+async def save_processed_data(
+    data: Dict[str, Any],
+    service: DataGatherApplicationService = Depends(get_datagather_service)
+):
+    """처리된 데이터를 데이터베이스에 저장 (통합 엔드포인트)"""
+    try:
+        logger.info(f"처리된 데이터 저장 요청: {data.get('filename', 'unknown')}")
+        
+        # DDD 구조를 사용한 API 데이터 처리
+        result = await service.process_api_data(
+            install_id=data.get('install_id', 1),
+            api_data=data,
+            data_type=data.get('data_type', 'processed_data'),
+            process_id=data.get('process_id')
+        )
+        
+        if result["success"]:
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "success": True,
+                    "message": f"처리된 데이터가 성공적으로 저장되었습니다. ({result.get('saved_count', 0)}행)",
+                    "saved_count": result.get('saved_count', 0),
+                    "filename": data.get('filename', '')
+                }
+            )
+        else:
+            return JSONResponse(
+                status_code=400,
+                content=result
+            )
+            
+    except Exception as e:
+        logger.error(f"처리된 데이터 저장 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "처리된 데이터 저장 중 오류가 발생했습니다."
+            }
+        )
 
 if __name__ == "__main__":
     uvicorn.run(

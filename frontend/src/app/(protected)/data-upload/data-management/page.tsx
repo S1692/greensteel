@@ -35,6 +35,8 @@ interface DataRow {
   투입물명: string;
   수량: number;
   단위: string;
+  주문처명?: string;
+  오더번호?: string;
   source_table: 'input_data' | 'output_data';
   source_id: number;
   분류?: ClassificationType | null;
@@ -514,6 +516,8 @@ export default function DataManagementPage() {
                           <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입물명</th>
                           <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
                           <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">단위</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">주문처명</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">오더번호</th>
                           <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">분류 상태</th>
                         </tr>
                       </thead>
@@ -543,6 +547,8 @@ export default function DataManagementPage() {
                               <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입물명}</td>
                               <td className="px-4 py-3 text-sm text-ecotrace-text">{row.수량}</td>
                               <td className="px-4 py-3 text-sm text-ecotrace-text">{row.단위}</td>
+                              <td className="px-4 py-3 text-sm text-ecotrace-text">{row.주문처명 || '-'}</td>
+                              <td className="px-4 py-3 text-sm text-ecotrace-text">{row.오더번호 || '-'}</td>
                               <td className="px-4 py-3 text-sm">
                                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${classificationDisplay.bg} ${classificationDisplay.color}`}>
                                   {classificationDisplay.text}
@@ -600,6 +606,8 @@ export default function DataManagementPage() {
                           <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">산출물명</th>
                           <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
                           <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">단위</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">주문처명</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">오더번호</th>
                           <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">분류 상태</th>
                         </tr>
                       </thead>
@@ -629,6 +637,8 @@ export default function DataManagementPage() {
                               <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입물명}</td>
                               <td className="px-4 py-3 text-sm text-ecotrace-text">{row.수량}</td>
                               <td className="px-4 py-3 text-sm text-ecotrace-text">{row.단위}</td>
+                              <td className="px-4 py-3 text-sm text-ecotrace-text">{row.주문처명 || '-'}</td>
+                              <td className="px-4 py-3 text-sm text-ecotrace-text">{row.오더번호 || '-'}</td>
                               <td className="px-4 py-3 text-sm">
                                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${classificationDisplay.bg} ${classificationDisplay.color}`}>
                                   {classificationDisplay.text}
@@ -788,6 +798,8 @@ export default function DataManagementPage() {
                           <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">물질명</th>
                           <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
                           <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">단위</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">주문처명</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">오더번호</th>
                           <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">작업</th>
                         </tr>
                       </thead>
@@ -809,6 +821,8 @@ export default function DataManagementPage() {
                               <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입물명}</td>
                               <td className="px-4 py-3 text-sm text-ecotrace-text">{row.수량}</td>
                               <td className="px-4 py-3 text-sm text-ecotrace-text">{row.단위}</td>
+                              <td className="px-4 py-3 text-sm text-ecotrace-text">{row.주문처명 || '-'}</td>
+                              <td className="px-4 py-3 text-sm text-ecotrace-text">{row.오더번호 || '-'}</td>
                               <td className="px-4 py-3 text-sm">
                                 <Button
                                   onClick={() => deleteClassification(row.id)}

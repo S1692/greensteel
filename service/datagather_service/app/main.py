@@ -326,13 +326,12 @@ async def save_process_data(data: dict):
                 
                 for row in process_data:
                     try:
-                        # 새로운 스키마에 맞게 데이터 처리
+                        # 실제 Excel 컬럼명에 맞게 데이터 처리
                         process_record = {
                             '공정명': row.get('공정명', ''),
-                            '공정설명': row.get('공정설명', ''),
-                            '공정유형': row.get('공정유형', ''),
-                            '공정단계': row.get('공정단계', ''),
-                            '공정효율': float(row.get('공정효율', 0)) if row.get('공정효율') else 0.0  # 기본값 0.0으로 설정
+                            '생산제품': row.get('생산제품', ''),
+                            '세부공정': row.get('세부공정', ''),
+                            '공정설명': row.get('공정 설명', '')  # 공백 포함된 컬럼명 사용
                         }
                         
                         # 필수 필드 검증
@@ -342,8 +341,8 @@ async def save_process_data(data: dict):
                         
                         cursor = session.execute(text("""
                             INSERT INTO process_data 
-                            (공정명, 공정설명, 공정유형, 공정단계, 공정효율)
-                            VALUES (:공정명, :공정설명, :공정유형, :공정단계, :공정효율)
+                            (공정명, 생산제품, 세부공정, 공정설명)
+                            VALUES (:공정명, :생산제품, :세부공정, :공정설명)
                         """), process_record)
                         
                         saved_count += 1

@@ -880,11 +880,107 @@ async def classify_data(data: dict):
     """데이터를 분류하여 저장하는 엔드포인트"""
     try:
         logger.info("데이터 분류 요청 받음")
+        
+        # 입력 데이터 추출
+        input_data = data.get('data', [])
+        if not input_data:
+            return {"success": False, "message": "분류할 데이터가 없습니다.", "error": "No data provided"}
+        
+        logger.info(f"분류할 데이터: {len(input_data)}행")
+        
         # 데이터 분류 로직 구현
-        return {"success": True, "message": "데이터 분류 완료"}
+        classified_data = []
+        
+        for row in input_data:
+            try:
+                # 기본 분류 로직 (공정명, 생산제품, 세부공정 기반)
+                process_name = row.get('공정명', '')
+                product_name = row.get('생산제품', '')
+                detail_process = row.get('세부공정', '')
+                
+                # 분류 카테고리 결정
+                category = '기타'
+                if '코크스' in process_name or '코크스' in product_name:
+                    category = '코크스 공정'
+                elif '소결' in process_name or '소결' in product_name:
+                    category = '소결 공정'
+                elif '제철' in process_name or '제철' in product_name:
+                    category = '제철 공정'
+                elif '압연' in process_name or '압연' in product_name:
+                    category = '압연 공정'
+                
+                # 분류된 데이터 생성
+                classified_row = {
+                    '공정명': process_name,
+                    '생산제품': product_name,
+                    '세부공정': detail_process,
+                    '공정설명': row.get('공정 설명', ''),
+                    '분류카테고리': category,
+                    '분류일시': datetime.now().isoformat()
+                }
+                
+                classified_data.append(classified_row)
+                
+            except Exception as row_error:
+                logger.error(f"행 분류 실패: {row_error}")
+                continue
+        
+        logger.info(f"데이터 분류 완료: {len(classified_data)}행 분류됨")
+        
+        # 분류된 데이터를 process_data 테이블에 저장
+        if classified_data:
+            # PostgreSQL Railway 데이터베이스 연결 설정
+            database_url = os.getenv("DATABASE_URL")
+            
+            engine = create_engine(
+                database_url,
+                pool_pre_ping=True,
+                pool_recycle=300,
+                echo=False,
+                connect_args={
+                    "connect_timeout": 10,
+                    "application_name": "datagather_service"
+                }
+            )
+            
+            with Session(engine) as session:
+                try:
+                    session.begin()
+                    saved_count = 0
+                    
+                    for row in classified_data:
+                        try:
+                            cursor = session.execute(text("""
+                                INSERT INTO process_data 
+                                (공정명, 생산제품, 세부공정, 공정설명)
+                                VALUES (:공정명, :생산제품, :세부공정, :공정설명)
+                            """), row)
+                            
+                            saved_count += 1
+                        
+                        except Exception as row_error:
+                            logger.error(f"분류된 데이터 저장 실패: {row_error}")
+                            continue
+                    
+                    session.commit()
+                    logger.info(f"분류된 데이터 DB 저장 완료: {saved_count}행 저장됨")
+                    
+                except Exception as db_error:
+                    session.rollback()
+                    logger.error(f"분류된 데이터 DB 저장 실패: {db_error}")
+                    raise db_error
+        
+        return {
+            "success": True, 
+            "message": f"데이터 분류 완료 ({len(classified_data)}행)",
+            "classified_count": len(classified_data),
+            "saved_count": len(classified_data) if classified_data else 0,
+            "classified_data": classified_data
+        }
+        
     except Exception as e:
         logger.error(f"데이터 분류 실패: {e}")
-        return {"success": False, "message": f"데이터 분류 실패: {str(e)}", "error": str(e)}
+        return {"success": False, "message": f"데이터 분류 중 오류가 발생했습니다: {str(e)}", "error": str(e)}
 
 @app.delete("/delete-classification")
 async def delete_classification(data: dict):

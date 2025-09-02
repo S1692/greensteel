@@ -455,9 +455,9 @@ async def save_output_data(
                     session.execute(text("""
                         INSERT INTO output_data 
                         (로트번호, 생산품명, 생산수량, 투입일, 종료일, 
-                         공정, 산출물명, 수량, 단위, source_file, 주문처명, 오더번호)
+                         공정, 산출물명, 수량, 단위, 주문처명, 오더번호)
                         VALUES (:로트번호, :생산품명, :생산수량, :투입일, :종료일,
-                                :공정, :산출물명, :수량, :단위, :source_file, :주문처명, :오더번호)
+                                :공정, :산출물명, :수량, :단위, :주문처명, :오더번호)
                     """), {
                         '로트번호': row.get('로트번호', ''),
                         '생산품명': row.get('생산품명', ''),
@@ -468,7 +468,6 @@ async def save_output_data(
                         '산출물명': output_name,
                         '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
                         '단위': row.get('단위', 't'),
-                        'source_file': data.get('filename', 'output_data'),
                         '주문처명': row.get('주문처명', ''),
                         '오더번호': row.get('오더번호', '')
                     })

@@ -624,10 +624,10 @@ async def save_process_data(
                         if '설명' in key or '공정' in key:
                             logger.info(f"관련 필드 {key}: '{value}'")
                     
-                    # 공정설명 필드 매핑 (강제로 텍스트 저장)
+                    # 공정설명 필드 매핑 (공정 설명 필드 우선 사용)
                     process_description = (
-                        row.get('공정설명', '') or 
                         row.get('공정 설명', '') or 
+                        row.get('공정설명', '') or 
                         row.get('설명', '') or 
                         row.get('공정내용', '') or
                         row.get('세부설명', '') or

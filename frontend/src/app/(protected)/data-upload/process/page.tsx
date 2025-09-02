@@ -561,8 +561,8 @@ const ProcessDataPage: React.FC = () => {
           공정명: row.modifiedData.공정명 || '',
           생산제품: row.modifiedData.생산제품 || '',
           세부공정: row.modifiedData.세부공정 || '',
-          // 공정 설명 필드 매핑 수정 (공백 포함 필드명 사용)
-          공정설명: row.modifiedData['공정 설명'] || row.modifiedData.공정설명 || ''
+          // 공정 설명 필드를 그대로 전송 (공백 포함)
+          '공정 설명': row.modifiedData['공정 설명'] || row.modifiedData.공정설명 || ''
         }))
         .filter(row => row.공정명 && row.생산제품 && row.세부공정); // 필수 필드가 있는 행만
 

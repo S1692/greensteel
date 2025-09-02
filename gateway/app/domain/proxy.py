@@ -44,6 +44,9 @@ class ProxyController:
             
             # AI 어시스턴트 도메인
             "/chatbot": self._clean_service_url(os.getenv("CHATBOT_SERVICE_URL", "http://localhost:8084")),
+            
+            # AI 처리 엔드포인트
+            "/api/datagather/ai-process": self._clean_service_url(os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")),
         }
         
         # 서비스 맵 로깅

@@ -223,7 +223,7 @@ const InputDataPage: React.FC = () => {
       setError(null);
 
       // AI 처리 즉시 시작
-      await handleAIProcessImmediate(inputData);
+      // AI 처리 제거됨 - 직접 데이터베이스 저장으로 변경
 
     } catch (err) {
       console.error('파일 업로드 오류:', err);
@@ -287,7 +287,7 @@ const InputDataPage: React.FC = () => {
       console.log('게이트웨이 URL:', gatewayUrl);
       console.log('전송할 데이터:', inputData);
       
-      const response = await fetch(`${gatewayUrl}/ai-process-stream`, {
+             const response = await fetch(`${gatewayUrl}/api/datagather/ai-process`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

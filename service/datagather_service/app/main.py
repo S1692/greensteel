@@ -129,17 +129,13 @@ async def ai_process_data(data: Dict[str, Any]):
             투입물명 = item.get('투입물명', '')
             공정 = item.get('공정', '')
             
-            # AI가 자유롭게 생성하는 추천 답변들
-            ai_추천답변_생산품명 = f"AI_생산품_{공정}_{투입물명}"
-            ai_추천답변_투입물명 = f"AI_투입물_{공정}_{투입물명}"
-            ai_추천답변_공정 = f"AI_공정_{투입물명}_처리"
+            # AI가 투입물명만 자유롭게 생성하는 추천 답변
+            ai_추천답변 = f"AI_추천_{투입물명}_{공정}"
             
             # 각 항목에 AI 처리 결과 추가
             processed_item = {
                 **item,
-                "AI추천답변_생산품명": ai_추천답변_생산품명,
-                "AI추천답변_투입물명": ai_추천답변_투입물명,
-                "AI추천답변_공정": ai_추천답변_공정,
+                "AI추천답변": ai_추천답변,
                 "ai_processed": True,
                 "classification": "processed",
                 "confidence": 0.95,

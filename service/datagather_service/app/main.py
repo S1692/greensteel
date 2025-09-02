@@ -617,6 +617,12 @@ async def save_process_data(
                     logger.info(f"Excel 데이터 필드들: {list(row.keys())}")
                     logger.info(f"전체 데이터: {row}")
                     logger.info(f"공정설명 값: '{row.get('공정설명', '')}'")
+                    logger.info(f"공정 설명 값: '{row.get('공정 설명', '')}'")
+                    
+                    # 모든 필드의 값 확인
+                    for key, value in row.items():
+                        if '설명' in key or '공정' in key:
+                            logger.info(f"관련 필드 {key}: '{value}'")
                     
                     # 공정설명 필드 매핑 (프론트엔드에서 변환된 컬럼명 우선 사용)
                     process_description = (

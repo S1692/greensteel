@@ -475,12 +475,17 @@ const ProcessDataPage: React.FC = () => {
           // 공정 설명 컬럼 특별 처리
           if (col === '공정 설명') {
             dataRow['공정설명'] = row[index] || '';
+            console.log(`공정 설명 컬럼 처리: "${col}" -> "${row[index]}"`);
           } else {
             dataRow[col] = row[index] || '';
           }
         });
         return dataRow;
       });
+      
+      console.log('컬럼명들:', columns);
+      console.log('원본 데이터 (첫 번째 행):', jsonData[0]);
+      console.log('처리된 데이터 (첫 번째 행):', processedData[0]);
       
       console.log('처리된 데이터:', processedData);
       

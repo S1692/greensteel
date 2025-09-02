@@ -524,48 +524,193 @@ async def save_process_data(
             }
         )
 
-# 처리된 데이터 저장 (통합 엔드포인트)
+# 처리된 데이터 분류 및 저장
 @app.post("/save-processed-data")
-async def save_processed_data(
-    data: Dict[str, Any],
-    service: DataGatherApplicationService = Depends(get_datagather_service)
-):
-    """처리된 데이터를 데이터베이스에 저장 (통합 엔드포인트)"""
+async def save_processed_data(data: Dict[str, Any]):
+    """처리된 데이터를 분류하여 적절한 테이블에 저장"""
     try:
-        logger.info(f"처리된 데이터 저장 요청: {data.get('filename', 'unknown')}")
+        logger.info(f"처리된 데이터 분류 요청: {data.get('filename', 'unknown')}")
         
-        # DDD 구조를 사용한 API 데이터 처리
-        result = await service.process_api_data(
-            install_id=data.get('install_id', 1),
-            api_data=data,
-            data_type=data.get('data_type', 'processed_data'),
-            process_id=data.get('process_id')
-        )
+        # 데이터베이스 연결
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.orm import sessionmaker
         
-        if result["success"]:
+        engine = create_engine(settings.database_url.replace("postgresql+asyncpg://", "postgresql://"))
+        Session = sessionmaker(bind=engine)
+        
+        with Session() as session:
+            input_data_rows = data.get('data', [])
+            classified_data = {
+                'input_data': [],
+                'output_data': [],
+                'transport_data': [],
+                'process_data': [],
+                'utility_data': [],
+                'waste_data': [],
+                'fuel_data': [],
+                'process_product_data': []
+            }
+            
+            # 데이터 분류
+            for row in input_data_rows:
+                try:
+                    # 분류 로직
+                    분류 = row.get('분류', '').lower()
+                    투입물명 = row.get('투입물명', '').lower()
+                    공정 = row.get('공정', '').lower()
+                    
+                    if '연료' in 분류 or any(fuel in 투입물명 for fuel in ['석탄', '가스', '오일', '연료', 'fuel']):
+                        classified_data['fuel_data'].append(row)
+                    elif '폐기물' in 분류 or any(waste in 투입물명 for waste in ['폐기물', 'waste', '슬래그', '재']):
+                        classified_data['waste_data'].append(row)
+                    elif '유틸리티' in 분류 or any(util in 투입물명 for util in ['전기', '증기', '냉각수', 'utility']):
+                        classified_data['utility_data'].append(row)
+                    elif '산출물' in 분류 or '생산품' in 분류 or any(output in 투입물명 for output in ['제품', '생산품', '산출물']):
+                        classified_data['output_data'].append(row)
+                    elif '운송' in 분류 or any(transport in 투입물명 for transport in ['운송', 'transport', '이동']):
+                        classified_data['transport_data'].append(row)
+                    elif '공정' in 분류 or any(process in 공정 for process in ['제련', '압연', '가공', '공정']):
+                        classified_data['process_product_data'].append(row)
+                    else:
+                        # 기본적으로 투입물로 분류
+                        classified_data['input_data'].append(row)
+                
+                except Exception as row_error:
+                    logger.error(f"행 분류 실패: {row_error}")
+                    continue
+            
+            # 분류된 데이터를 각 테이블에 저장
+            total_saved = 0
+            save_results = {}
+            
+            for table_name, rows in classified_data.items():
+                if rows:
+                    saved_count = 0
+                    for row in rows:
+                        try:
+                            if table_name == 'input_data':
+                                session.execute(text("""
+                                    INSERT INTO input_data 
+                                    (로트번호, 생산품명, 생산수량, 투입일, 종료일, 
+                                     공정, 투입물명, 수량, 단위, source_file, 주문처명, 오더번호)
+                                    VALUES (:로트번호, :생산품명, :생산수량, :투입일, :종료일,
+                                            :공정, :투입물명, :수량, :단위, :source_file, :주문처명, :오더번호)
+                                """), {
+                                    '로트번호': row.get('로트번호', ''),
+                                    '생산품명': row.get('생산품명', ''),
+                                    '생산수량': float(row.get('생산수량', 0)) if row.get('생산수량') else 0,
+                                    '투입일': row.get('투입일'),
+                                    '종료일': row.get('종료일'),
+                                    '공정': row.get('공정', ''),
+                                    '투입물명': row.get('투입물명', ''),
+                                    '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
+                                    '단위': row.get('단위', 't'),
+                                    'source_file': data.get('filename', 'processed'),
+                                    '주문처명': row.get('주문처명', ''),
+                                    '오더번호': row.get('오더번호', '')
+                                })
+                            elif table_name == 'output_data':
+                                session.execute(text("""
+                                    INSERT INTO output_data 
+                                    (로트번호, 생산품명, 생산수량, 투입일, 종료일, 
+                                     공정, 산출물명, 수량, 단위, 주문처명, 오더번호)
+                                    VALUES (:로트번호, :생산품명, :생산수량, :투입일, :종료일,
+                                            :공정, :산출물명, :수량, :단위, :주문처명, :오더번호)
+                                """), {
+                                    '로트번호': row.get('로트번호', ''),
+                                    '생산품명': row.get('생산품명', ''),
+                                    '생산수량': float(row.get('생산수량', 0)) if row.get('생산수량') else 0,
+                                    '투입일': row.get('투입일'),
+                                    '종료일': row.get('종료일'),
+                                    '공정': row.get('공정', ''),
+                                    '산출물명': row.get('투입물명', ''),  # 산출물명으로 매핑
+                                    '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
+                                    '단위': row.get('단위', 't'),
+                                    '주문처명': row.get('주문처명', ''),
+                                    '오더번호': row.get('오더번호', '')
+                                })
+                            elif table_name == 'transport_data':
+                                session.execute(text("""
+                                    INSERT INTO transport_data 
+                                    (생산품명, 로트번호, 운송물질, 운송수량, 운송일자, 
+                                     도착공정, 출발지, 이동수단, 주문처명, 오더번호)
+                                    VALUES (:생산품명, :로트번호, :운송물질, :운송수량, :운송일자,
+                                            :도착공정, :출발지, :이동수단, :주문처명, :오더번호)
+                                """), {
+                                    '생산품명': row.get('생산품명', ''),
+                                    '로트번호': row.get('로트번호', ''),
+                                    '운송물질': row.get('투입물명', ''),
+                                    '운송수량': float(row.get('수량', 0)) if row.get('수량') else 0,
+                                    '운송일자': row.get('투입일'),
+                                    '도착공정': row.get('공정', ''),
+                                    '출발지': row.get('주문처명', ''),
+                                    '이동수단': row.get('분류', ''),
+                                    '주문처명': row.get('주문처명', ''),
+                                    '오더번호': row.get('오더번호', '')
+                                })
+                            elif table_name == 'process_data':
+                                session.execute(text("""
+                                    INSERT INTO process_data 
+                                    (공정명, 생산제품, 세부공정, 공정_설명)
+                                    VALUES (:공정명, :생산제품, :세부공정, :공정_설명)
+                                """), {
+                                    '공정명': row.get('공정', ''),
+                                    '생산제품': row.get('생산품명', ''),
+                                    '세부공정': row.get('투입물명', ''),
+                                    '공정_설명': row.get('분류', '')
+                                })
+                            else:
+                                # utility_data, waste_data, fuel_data, process_product_data
+                                session.execute(text(f"""
+                                    INSERT INTO {table_name} 
+                                    (로트번호, 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위, 분류, 주문처명, 오더번호)
+                                    VALUES (:로트번호, :생산수량, :투입일, :종료일, :공정, :투입물명, :수량, :단위, :분류, :주문처명, :오더번호)
+                                """), {
+                                    '로트번호': int(row.get('로트번호', 0)) if row.get('로트번호') else 0,
+                                    '생산수량': float(row.get('생산수량', 0)) if row.get('생산수량') else 0,
+                                    '투입일': row.get('투입일'),
+                                    '종료일': row.get('종료일'),
+                                    '공정': row.get('공정', ''),
+                                    '투입물명': row.get('투입물명', ''),
+                                    '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
+                                    '단위': row.get('단위', 't'),
+                                    '분류': row.get('분류', table_name.replace('_data', '')),
+                                    '주문처명': row.get('주문처명', ''),
+                                    '오더번호': row.get('오더번호', '')
+                                })
+                            
+                            saved_count += 1
+                            total_saved += 1
+                        
+                        except Exception as row_error:
+                            logger.error(f"행 저장 실패 ({table_name}): {row_error}")
+                            continue
+                    
+                    save_results[table_name] = saved_count
+                    logger.info(f"{table_name} 테이블에 {saved_count}행 저장")
+            
+            session.commit()
+            logger.info(f"분류 및 저장 완료: 총 {total_saved}행 저장됨")
+            
             return JSONResponse(
                 status_code=200,
                 content={
                     "success": True,
-                    "message": f"처리된 데이터가 성공적으로 저장되었습니다. ({result.get('saved_count', 0)}행)",
-                    "saved_count": result.get('saved_count', 0),
+                    "message": f"데이터가 성공적으로 분류되어 저장되었습니다. (총 {total_saved}행)",
+                    "total_saved": total_saved,
+                    "classification_results": save_results,
                     "filename": data.get('filename', '')
                 }
             )
-        else:
-            return JSONResponse(
-                status_code=400,
-                content=result
-            )
             
     except Exception as e:
-        logger.error(f"처리된 데이터 저장 실패: {e}")
+        logger.error(f"처리된 데이터 분류 실패: {e}")
         return JSONResponse(
             status_code=500,
             content={
                 "success": False,
                 "error": str(e),
-                "message": "처리된 데이터 저장 중 오류가 발생했습니다."
+                "message": "처리된 데이터 분류 중 오류가 발생했습니다."
             }
         )
 

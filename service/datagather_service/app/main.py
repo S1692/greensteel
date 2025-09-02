@@ -122,12 +122,46 @@ async def ai_process_data(data: Dict[str, Any]):
         # 입력 데이터에서 처리할 데이터 추출
         input_data = data.get('data', [])
         
-        # AI 처리 시뮬레이션 (실제로는 AI 모델을 사용)
+        # AI 처리 시뮬레이션 - 투입물명 기반 유사 단어 매핑
         processed_data = []
+        
+        # 투입물명 매핑 딕셔너리
+        material_mapping = {
+            "점결탄": "Coking Coal",
+            "코크스": "Coke",
+            "철광석": "Iron Ore",
+            "석회석": "Limestone",
+            "소결광": "Sinter",
+            "펠릿": "Pellet",
+            "슬래그": "Slag",
+            "전기": "Electricity",
+            "가스": "Gas",
+            "석탄": "Coal",
+            "원료": "Raw Material",
+            "재료": "Material",
+            "연료": "Fuel",
+            "화학": "Chemical",
+            "첨가": "Additive"
+        }
+        
         for item in input_data:
+            투입물명 = item.get('투입물명', '')
+            ai_추천답변 = ""
+            
+            # 투입물명에서 유사한 단어 찾기
+            for korean, english in material_mapping.items():
+                if korean in 투입물명:
+                    ai_추천답변 = english
+                    break
+            
+            # 매핑되지 않은 경우 기본값
+            if not ai_추천답변:
+                ai_추천답변 = f"Standardized_{투입물명.replace(' ', '_')}"
+            
             # 각 항목에 AI 처리 결과 추가
             processed_item = {
                 **item,
+                "AI추천답변": ai_추천답변,
                 "ai_processed": True,
                 "classification": "processed",
                 "confidence": 0.95,

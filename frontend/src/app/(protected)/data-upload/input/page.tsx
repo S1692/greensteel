@@ -940,34 +940,58 @@ const InputDataPage: React.FC = () => {
         }
       };
 
-             // AI 추천 답변을 투입물명에 적용하여 저장할 데이터 준비 - AI추천답변은 DB에 저장하지 않음
-       const dataToSave = editableInputRows.map(row => {
-         const aiRecommendation = row.modifiedData['AI추천답변'] || '';
-         const unit = row.modifiedData['단위'] && row.modifiedData['단위'].trim() ? row.modifiedData['단위'] : 't';
-         
-         // AI 추천 답변이 있으면 투입물명에 적용, 없으면 원본 투입물명 유지
-         let 투입물명 = aiRecommendation || row.modifiedData['투입물명'] || '';
-         
-         // 투입물명 길이 제한 (데이터베이스 컬럼 제한 고려)
-         if (투입물명.length > 100) {
-           투입물명 = 투입물명.substring(0, 100);
-           console.warn(`투입물명이 너무 길어서 자동으로 잘렸습니다: ${투입물명}`);
-         }
-         
-         // DB에 저장할 데이터에서 AI추천답변 제거하고 투입물명만 포함
-         const { AI추천답변, ...dataForDB } = row.modifiedData;
-         
-         return {
-           ...dataForDB,
-           // AI 추천 답변이 있으면 투입물명에 적용, 없으면 원본 투입물명 유지
-           '투입물명': 투입물명,
-           // 빈 단위 값은 't'로 설정
-           '단위': unit,
-           // Excel 날짜를 PostgreSQL date 형식으로 변환
-           '투입일': convertExcelDate(row.modifiedData['투입일']),
-           '종료일': convertExcelDate(row.modifiedData['종료일'])
-         };
-       });
+                           // 저장할 데이터 준비 - 사용자 직접 입력 데이터는 투입물명 직접 저장, Excel 데이터는 AI 추천 답변 적용
+        const dataToSave = editableInputRows.map(row => {
+          const unit = row.modifiedData['단위'] && row.modifiedData['단위'].trim() ? row.modifiedData['단위'] : 't';
+          
+          // 사용자가 직접 입력한 데이터인지 확인
+          if (row.isNewlyAdded) {
+            // 사용자 직접 입력 데이터: 투입물명을 직접 사용
+            let 투입물명 = row.modifiedData['투입물명'] || '';
+            
+            // 투입물명 길이 제한 (데이터베이스 컬럼 제한 고려)
+            if (투입물명.length > 100) {
+              투입물명 = 투입물명.substring(0, 100);
+              console.warn(`투입물명이 너무 길어서 자동으로 잘렸습니다: ${투입물명}`);
+            }
+            
+            return {
+              '로트번호': row.modifiedData['로트번호'],
+              '생산품명': row.modifiedData['생산품명'],
+              '생산수량': parseFloat(row.modifiedData['생산수량']?.toString() || '0'),
+              '투입일': convertExcelDate(row.modifiedData['투입일']),
+              '종료일': convertExcelDate(row.modifiedData['종료일']),
+              '공정': row.modifiedData['공정'],
+              '투입물명': 투입물명,
+              '수량': parseFloat(row.modifiedData['수량']?.toString() || '0'),
+              '단위': unit
+            };
+          } else {
+            // Excel 데이터: AI 추천 답변이 있으면 투입물명에 적용
+            const aiRecommendation = row.modifiedData['AI추천답변'] || '';
+            let 투입물명 = aiRecommendation || row.modifiedData['투입물명'] || '';
+            
+            // 투입물명 길이 제한 (데이터베이스 컬럼 제한 고려)
+            if (투입물명.length > 100) {
+              투입물명 = 투입물명.substring(0, 100);
+              console.warn(`투입물명이 너무 길어서 자동으로 잘렸습니다: ${투입물명}`);
+            }
+            
+            // DB에 저장할 데이터에서 AI추천답변 제거하고 투입물명만 포함
+            const { AI추천답변, ...dataForDB } = row.modifiedData;
+            
+            return {
+              ...dataForDB,
+              // AI 추천 답변이 있으면 투입물명에 적용, 없으면 원본 투입물명 유지
+              '투입물명': 투입물명,
+              // 빈 단위 값은 't'로 설정
+              '단위': unit,
+              // Excel 날짜를 PostgreSQL date 형식으로 변환
+              '투입일': convertExcelDate(row.modifiedData['투입일']),
+              '종료일': convertExcelDate(row.modifiedData['종료일'])
+            };
+          }
+        });
 
       const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
       const response = await fetch(`${gatewayUrl}/save-processed-data`, {
@@ -978,7 +1002,7 @@ const InputDataPage: React.FC = () => {
         body: JSON.stringify({
           filename: inputFile?.name || 'unknown',
           data: dataToSave,
-          columns: Object.keys(dataToSave[0] || {}).filter(col => col !== 'AI추천답변')
+          columns: Object.keys(dataToSave[0] || {})
         }),
       });
 
@@ -1041,8 +1065,7 @@ const InputDataPage: React.FC = () => {
         '공정': '',
         '투입물명': '',
         '수량': 0,
-        '단위': '',
-        'AI추천답변': ''
+        '단위': ''
       },
       modifiedData: {
         '로트번호': '',
@@ -1053,8 +1076,7 @@ const InputDataPage: React.FC = () => {
         '공정': '',
         '투입물명': '',
         '수량': 0,
-        '단위': '',
-        'AI추천답변': ''
+        '단위': ''
       },
       isEditing: true,
       isNewlyAdded: true
@@ -1098,59 +1120,92 @@ const InputDataPage: React.FC = () => {
         }
       };
 
-             // AI 추천 답변을 투입물명에 적용하여 저장할 데이터 준비 - AI추천답변은 DB에 저장하지 않음
-       const dataToSave = editableInputRows.map(row => {
-         const aiRecommendation = row.modifiedData['AI추천답변'] || '';
-         const unit = row.modifiedData['단위'] && row.modifiedData['단위'].trim() ? row.modifiedData['단위'] : 't';
-         
-         // AI 추천 답변이 있으면 투입물명에 적용, 없으면 원본 투입물명 유지
-         let 투입물명 = aiRecommendation || row.modifiedData['투입물명'] || '';
-         
-         // 투입물명 길이 제한 (데이터베이스 컬럼 제한 고려)
-         if (투입물명.length > 100) {
-           투입물명 = 투입물명.substring(0, 100);
-           console.warn(`투입물명이 너무 길어서 자동으로 잘렸습니다: ${투입물명}`);
-         }
-         
-         // 데이터 타입 변환 및 검증
-         const 생산수량 = parseFloat(row.modifiedData['생산수량']?.toString() || '0');
-         const 수량 = parseFloat(row.modifiedData['수량']?.toString() || '0');
-         
-         // 수량이 0 이하인 경우 오류 처리
-         if (생산수량 <= 0 || 수량 <= 0) {
-           throw new Error('생산수량과 수량은 0보다 큰 값이어야 합니다.');
-         }
-         
-         // DB에 저장할 데이터에서 AI추천답변 제거하고 투입물명만 포함
-         const { AI추천답변, ...dataForDB } = row.modifiedData;
-         
-         return {
-           ...dataForDB,
-           // AI 추천 답변이 있으면 투입물명에 적용, 없으면 원본 투입물명 유지
-           '투입물명': 투입물명,
-           // 빈 단위 값은 't'로 설정
-           '단위': unit,
-           // 수량을 숫자로 변환
-           '생산수량': 생산수량,
-           '수량': 수량,
-           // Excel 날짜를 PostgreSQL date 형식으로 변환
-           '투입일': convertExcelDate(row.modifiedData['투입일']),
-           '종료일': convertExcelDate(row.modifiedData['종료일'])
-         };
-       });
+                           // 저장할 데이터 준비 - 사용자 직접 입력 데이터는 투입물명 직접 저장, Excel 데이터는 AI 추천 답변 적용
+        const dataToSave = editableInputRows.map(row => {
+          const unit = row.modifiedData['단위'] && row.modifiedData['단위'].trim() ? row.modifiedData['단위'] : 't';
+          
+          // 사용자가 직접 입력한 데이터인지 확인
+          if (row.isNewlyAdded) {
+            // 사용자 직접 입력 데이터: 투입물명을 직접 사용
+            let 투입물명 = row.modifiedData['투입물명'] || '';
+            
+            // 투입물명 길이 제한 (데이터베이스 컬럼 제한 고려)
+            if (투입물명.length > 100) {
+              투입물명 = 투입물명.substring(0, 100);
+              console.warn(`투입물명이 너무 길어서 자동으로 잘렸습니다: ${투입물명}`);
+            }
+            
+            // 데이터 타입 변환 및 검증
+            const 생산수량 = parseFloat(row.modifiedData['생산수량']?.toString() || '0');
+            const 수량 = parseFloat(row.modifiedData['수량']?.toString() || '0');
+            
+            // 수량이 0 이하인 경우 오류 처리
+            if (생산수량 <= 0 || 수량 <= 0) {
+              throw new Error('생산수량과 수량은 0보다 큰 값이어야 합니다.');
+            }
+            
+            return {
+              '로트번호': row.modifiedData['로트번호'],
+              '생산품명': row.modifiedData['생산품명'],
+              '생산수량': 생산수량,
+              '투입일': convertExcelDate(row.modifiedData['투입일']),
+              '종료일': convertExcelDate(row.modifiedData['종료일']),
+              '공정': row.modifiedData['공정'],
+              '투입물명': 투입물명,
+              '수량': 수량,
+              '단위': unit
+            };
+          } else {
+            // Excel 데이터: AI 추천 답변이 있으면 투입물명에 적용
+            const aiRecommendation = row.modifiedData['AI추천답변'] || '';
+            let 투입물명 = aiRecommendation || row.modifiedData['투입물명'] || '';
+            
+            // 투입물명 길이 제한 (데이터베이스 컬럼 제한 고려)
+            if (투입물명.length > 100) {
+              투입물명 = 투입물명.substring(0, 100);
+              console.warn(`투입물명이 너무 길어서 자동으로 잘렸습니다: ${투입물명}`);
+            }
+            
+            // 데이터 타입 변환 및 검증
+            const 생산수량 = parseFloat(row.modifiedData['생산수량']?.toString() || '0');
+            const 수량 = parseFloat(row.modifiedData['수량']?.toString() || '0');
+            
+            // 수량이 0 이하인 경우 오류 처리
+            if (생산수량 <= 0 || 수량 <= 0) {
+              throw new Error('생산수량과 수량은 0보다 큰 값이어야 합니다.');
+            }
+            
+            // DB에 저장할 데이터에서 AI추천답변 제거하고 투입물명만 포함
+            const { AI추천답변, ...dataForDB } = row.modifiedData;
+            
+            return {
+              ...dataForDB,
+              // AI 추천 답변이 있으면 투입물명에 적용, 없으면 원본 투입물명 유지
+              '투입물명': 투입물명,
+              // 빈 단위 값은 't'로 설정
+              '단위': unit,
+              // 수량을 숫자로 변환
+              '생산수량': 생산수량,
+              '수량': 수량,
+              // Excel 날짜를 PostgreSQL date 형식으로 변환
+              '투입일': convertExcelDate(row.modifiedData['투입일']),
+              '종료일': convertExcelDate(row.modifiedData['종료일'])
+            };
+          }
+        });
 
-      const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
-      const response = await fetch(`${gatewayUrl}/save-processed-data`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          filename: inputFile?.name || 'unknown',
-          data: dataToSave,
-          columns: Object.keys(dataToSave[0] || {}).filter(col => col !== 'AI추천답변')
-        }),
-      });
+              const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
+        const response = await fetch(`${gatewayUrl}/save-processed-data`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            filename: inputFile?.name || 'unknown',
+            data: dataToSave,
+            columns: Object.keys(dataToSave[0] || {})
+          }),
+        });
 
       if (!response.ok) {
         throw new Error(`데이터베이스 저장 실패: ${response.status}`);
@@ -1363,7 +1418,6 @@ const InputDataPage: React.FC = () => {
                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>투입물명</th>
                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>수량</th>
                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>단위</th>
-                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>AI추천답변</th>
                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>작업</th>
                     </tr>
                   </thead>
@@ -1434,13 +1488,7 @@ const InputDataPage: React.FC = () => {
                                <span>{row.modifiedData['단위'] || '-'}</span>
                              )}
                            </td>
-                           <td className='border border-white/20 px-3 py-2 text-sm text-white'>
-                             {row.isEditing ? (
-                               renderInputField(row, 'AI추천답변')
-                             ) : (
-                               <span>{row.modifiedData['AI추천답변'] || '-'}</span>
-                             )}
-                           </td>
+
                            <td className='border border-white/20 px-3 py-2 text-sm'>
                              {row.isEditing ? (
                                <div className='flex gap-2'>
@@ -1504,13 +1552,13 @@ const InputDataPage: React.FC = () => {
                            </td>
                          </tr>
                          
-                         {/* 수정 사유 입력 행 (편집 중인 모든 데이터에 대해) */}
-                         {row.isEditing && (
+                         {/* 수정 사유 입력 행 (Excel 데이터 편집 시에만) */}
+                         {row.isEditing && !row.isNewlyAdded && (
                            <tr className='bg-white/5 border-b border-white/10'>
-                             <td colSpan={11} className='px-3 py-3'>
+                             <td colSpan={10} className='px-3 py-3'>
                                <div className='flex items-center gap-3'>
                                  <div className='flex-shrink-0'>
-                                   <span className='text-xs text-white/60 font-medium'>수정 사유 (모든 필드 편집 시):</span>
+                                   <span className='text-xs text-white/60 font-medium'>수정 사유 (Excel 데이터 편집 시):</span>
                                  </div>
                                  <div className='flex-1'>
                                    <Input

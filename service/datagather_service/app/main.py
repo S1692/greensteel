@@ -90,6 +90,7 @@ async def root():
             "get_transport_data": "/api/datagather/transport-data",
             "get_process_data": "/api/datagather/process-data",
             "classify_data": "/api/datagather/classify-data",
+            "get_classified_data": "/api/datagather/classified-data",
             "documentation": "/docs"
         }
     }
@@ -937,6 +938,114 @@ async def classify_data(data: Dict[str, Any]):
                 "success": False,
                 "error": str(e),
                 "message": "분류 데이터 저장 중 오류가 발생했습니다."
+            }
+        )
+
+# 분류된 데이터 조회
+@app.get("/api/datagather/classified-data/{classification}")
+async def get_classified_data(classification: str):
+    """분류된 데이터 조회 (연료, 유틸리티, 폐기물, 공정 생산품)"""
+    try:
+        logger.info(f"분류된 데이터 조회 요청: {classification}")
+        
+        # 데이터베이스 연결
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.orm import sessionmaker
+        
+        engine = create_engine(settings.database_url.replace("postgresql+asyncpg://", "postgresql://"))
+        Session = sessionmaker(bind=engine)
+        
+        with Session() as session:
+            # 분류된 데이터와 원본 데이터를 조인하여 조회
+            query = """
+                SELECT 
+                    CASE 
+                        WHEN cd.source_table = 'input_data' THEN 'input_data'
+                        WHEN cd.source_table = 'output_data' THEN 'output_data'
+                        ELSE cd.source_table
+                    END as source_table,
+                    cd.source_id,
+                    cd.classification,
+                    CASE 
+                        WHEN cd.source_table = 'input_data' THEN (
+                            SELECT json_build_object(
+                                'id', id,
+                                '로트번호', 로트번호,
+                                '생산품명', 생산품명,
+                                '생산수량', 생산수량,
+                                '투입일', 투입일,
+                                '종료일', 종료일,
+                                '공정', 공정,
+                                '투입물명', 투입물명,
+                                '수량', 수량,
+                                '단위', 단위,
+                                '주문처명', 주문처명,
+                                '오더번호', 오더번호
+                            )
+                            FROM input_data 
+                            WHERE id = cd.source_id
+                        )
+                        WHEN cd.source_table = 'output_data' THEN (
+                            SELECT json_build_object(
+                                'id', id,
+                                '로트번호', 로트번호,
+                                '생산품명', 생산품명,
+                                '생산수량', 생산수량,
+                                '투입일', 투입일,
+                                '종료일', 종료일,
+                                '공정', 공정,
+                                '산출물명', 산출물명,
+                                '수량', 수량,
+                                '단위', 단위,
+                                '주문처명', 주문처명,
+                                '오더번호', 오더번호
+                            )
+                            FROM output_data 
+                            WHERE id = cd.source_id
+                        )
+                        ELSE NULL
+                    END as data
+                FROM classified_data cd
+                WHERE cd.classification = :classification
+                ORDER BY cd.created_at DESC
+            """
+            
+            result = session.execute(text(query), {"classification": classification})
+            rows = result.fetchall()
+            
+            data = []
+            for row in rows:
+                if row.data:  # data가 None이 아닌 경우에만 추가
+                    row_data = dict(row.data)
+                    row_data['source_table'] = row.source_table
+                    row_data['source_id'] = row.source_id
+                    row_data['분류'] = row.classification
+                    
+                    # 날짜 필드 처리
+                    for key, value in row_data.items():
+                        if hasattr(value, 'isoformat'):
+                            row_data[key] = value.isoformat()
+                    
+                    data.append(row_data)
+            
+            logger.info(f"분류된 데이터 조회 완료: {len(data)}행 ({classification})")
+            
+            return {
+                "success": True,
+                "message": f"{classification} 분류 데이터 조회 완료",
+                "data": data,
+                "count": len(data),
+                "classification": classification
+            }
+            
+    except Exception as e:
+        logger.error(f"분류된 데이터 조회 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": f"{classification} 분류 데이터 조회 중 오류가 발생했습니다."
             }
         )
 

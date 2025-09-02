@@ -236,9 +236,9 @@ async def save_transport_data(data: dict):
                         cursor = session.execute(text("""
                             INSERT INTO transport_data 
                             (생산품명, 로트번호, 운송물질, 운송수량, 운송일자, 
-                             도착공정, 출발지, 이동수단)
+                             도착공정, 출발지, 이동수단, 주문처명, 오더번호)
                             VALUES (:생산품명, :로트번호, :운송물질, :운송수량, :운송일자,
-                                    :도착공정, :출발지, :이동수단)
+                                    :도착공정, :출발지, :이동수단, :주문처명, :오더번호)
                         """), transport_record)
                         
                         saved_count += 1
@@ -384,9 +384,9 @@ async def save_output_data(data: dict):
                         cursor = session.execute(text("""
                             INSERT INTO output_data 
                             (로트번호, 생산품명, 생산수량, 투입일, 종료일, 
-                             공정, 산출물명, 수량, 단위)
+                             공정, 산출물명, 수량, 단위, 주문처명, 오더번호)
                             VALUES (:로트번호, :생산품명, :생산수량, :투입일, :종료일,
-                                    :공정, :산출물명, :수량, :단위)
+                                    :공정, :산출물명, :수량, :단위, :주문처명, :오더번호)
                         """), output_record)
                         
                         saved_count += 1
@@ -648,82 +648,6 @@ async def get_process_data():
         return {
             "success": False,
             "message": f"공정 데이터 조회 중 오류가 발생했습니다: {str(e)}",
-            "error": str(e)
-        }
-
-# DB 스키마 확인 엔드포인트
-@app.get("/api/datagather/table-schema")
-async def get_table_schema():
-    """테이블 스키마 확인"""
-    try:
-        database_url = os.getenv("DATABASE_URL")
-        
-        engine = create_engine(
-            database_url,
-            pool_pre_ping=True,
-            pool_recycle=300,
-            echo=False,
-            connect_args={
-                "connect_timeout": 10,
-                "application_name": "datagather_service"
-            }
-        )
-        
-        with Session(engine) as session:
-            try:
-                # input_data 테이블 스키마 조회
-                result = session.execute(text("""
-                    SELECT column_name, data_type, is_nullable, column_default
-                    FROM information_schema.columns 
-                    WHERE table_name = 'input_data'
-                    ORDER BY ordinal_position
-                """))
-                columns = result.fetchall()
-                
-                # input_data 테이블의 실제 데이터 샘플 조회
-                sample_result = session.execute(text("SELECT * FROM input_data LIMIT 3"))
-                sample_rows = sample_result.fetchall()
-                
-                # 결과를 딕셔너리 리스트로 변환
-                schema_data = []
-                for col in columns:
-                    schema_data.append({
-                        'column_name': col[0],
-                        'data_type': col[1],
-                        'is_nullable': col[2],
-                        'column_default': col[3]
-                    })
-                
-                sample_data = []
-                for row in sample_rows:
-                    row_dict = dict(row._mapping)
-                    # datetime 객체를 문자열로 변환
-                    for key, value in row_dict.items():
-                        if hasattr(value, 'isoformat'):
-                            row_dict[key] = value.isoformat()
-                    sample_data.append(row_dict)
-                
-                logger.info(f"테이블 스키마 조회 완료: {len(schema_data)}컬럼")
-                return {
-                    "success": True,
-                    "message": "테이블 스키마 조회 완료",
-                    "schema": schema_data,
-                    "sample_data": sample_data
-                }
-                
-            except Exception as db_error:
-                logger.error(f"테이블 스키마 조회 실패: {db_error}")
-                return {
-                    "success": False,
-                    "message": f"테이블 스키마 조회 중 오류가 발생했습니다: {str(db_error)}",
-                    "error": str(db_error)
-                }
-                
-    except Exception as e:
-        logger.error(f"테이블 스키마 조회 엔드포인트 실패: {e}")
-        return {
-            "success": False,
-            "message": f"테이블 스키마 조회 중 오류가 발생했습니다: {str(e)}",
             "error": str(e)
         }
 

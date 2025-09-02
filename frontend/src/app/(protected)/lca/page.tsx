@@ -145,9 +145,11 @@ export default function LcaPage() {
   const [utilityData, setUtilityData] = useState<UtilityData[]>([]);
   const [fuelData, setFuelData] = useState<FuelData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadData = async () => {
     setIsLoading(true);
+    setError(null); // 이전 에러 메시지 초기화
     try {
       const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:8080';
       
@@ -158,6 +160,8 @@ export default function LcaPage() {
           const data = await response.json();
           const inputDataArray = data.success ? data.data : [];
           setInputData(inputDataArray);
+        } else {
+          throw new Error(`input_data 데이터 로드 실패: ${response.statusText}`);
         }
       } else if (activeTab === 'actual') {
         // input_data 테이블 데이터 로드 (투입물)
@@ -166,6 +170,8 @@ export default function LcaPage() {
           const data = await response.json();
           const inputDataArray = data.success ? data.data : [];
           setInputData(inputDataArray);
+        } else {
+          throw new Error(`input_data 데이터 로드 실패: ${response.statusText}`);
         }
       } else if (activeTab === 'output') {
         // output_data 테이블 데이터 로드
@@ -174,6 +180,8 @@ export default function LcaPage() {
           const data = await response.json();
           const outputDataArray = data.success ? data.data : [];
           setOutputData(outputDataArray);
+        } else {
+          throw new Error(`output_data 데이터 로드 실패: ${response.statusText}`);
         }
       } else if (activeTab === 'transport') {
         // transport_data 테이블 데이터 로드
@@ -182,6 +190,8 @@ export default function LcaPage() {
           const data = await response.json();
           const transportDataArray = data.success ? data.data : [];
           setTransportData(transportDataArray);
+        } else {
+          throw new Error(`transport_data 데이터 로드 실패: ${response.statusText}`);
         }
       } else if (activeTab === 'process') {
         // process_data 테이블 데이터 로드
@@ -190,6 +200,8 @@ export default function LcaPage() {
           const data = await response.json();
           const processDataArray = data.success ? data.data : [];
           setProcessData(processDataArray);
+        } else {
+          throw new Error(`process_data 데이터 로드 실패: ${response.statusText}`);
         }
       } else if (activeTab === 'manage') {
         // 데이터 관리 탭 - 세그먼트별 데이터 로드
@@ -200,6 +212,8 @@ export default function LcaPage() {
             const data = await response.json();
             const processProductArray = data.success ? data.data : [];
             setProcessProductData(processProductArray);
+          } else {
+            throw new Error(`공정생산품 데이터 로드 실패: ${response.statusText}`);
           }
         } else if (activeSegment === 'waste') {
           // waste_data
@@ -208,6 +222,8 @@ export default function LcaPage() {
             const data = await response.json();
             const wasteArray = data.success ? data.data : [];
             setWasteData(wasteArray);
+          } else {
+            throw new Error(`폐기물 데이터 로드 실패: ${response.statusText}`);
           }
         } else if (activeSegment === 'util') {
           // utility_data
@@ -216,6 +232,8 @@ export default function LcaPage() {
             const data = await response.json();
             const utilityArray = data.success ? data.data : [];
             setUtilityData(utilityArray);
+          } else {
+            throw new Error(`유틸리티 데이터 로드 실패: ${response.statusText}`);
           }
         } else if (activeSegment === 'source') {
           // fuel_data
@@ -224,11 +242,14 @@ export default function LcaPage() {
             const data = await response.json();
             const fuelArray = data.success ? data.data : [];
             setFuelData(fuelArray);
+          } else {
+            throw new Error(`연료 데이터 로드 실패: ${response.statusText}`);
           }
         }
       }
-    } catch (error) {
-      console.error('데이터 로드 오류:', error);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
+      console.error('데이터 로드 오류:', err);
     } finally {
       setIsLoading(false);
     }
@@ -850,7 +871,31 @@ export default function LcaPage() {
           onSegmentChange={handleSegmentChange}
         />
 
-        {renderTabContent()}
+        {/* 로딩 상태 표시 */}
+        {isLoading && (
+          <div className="text-center py-8">
+            <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-ecotrace-textSecondary" />
+            <p className="text-ecotrace-textSecondary">데이터를 불러오는 중...</p>
+          </div>
+        )}
+
+        {/* 에러 메시지 표시 */}
+        {error && !isLoading && (
+          <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                <X className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-red-400">데이터 로드 오류</h3>
+                <p className="text-sm text-red-300">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 탭 콘텐츠 렌더링 */}
+        {!isLoading && !error && renderTabContent()}
       </div>
     </CommonShell>
   );

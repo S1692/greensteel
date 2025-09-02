@@ -40,6 +40,7 @@ class ProxyController:
             # ESG 관리 도메인
             "/cbam": self._clean_service_url(os.getenv("CBAM_SERVICE_URL", "http://localhost:8082")),
             "/datagather": self._clean_service_url(os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")),
+            "/api/datagather": self._clean_service_url(os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")),
             "/lci": self._clean_service_url(os.getenv("LCI_SERVICE_URL", "https://lca-service-production.up.railway.app")),
             
             # AI 어시스턴트 도메인

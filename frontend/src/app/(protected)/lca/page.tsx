@@ -55,10 +55,11 @@ interface OutputData {
 interface ProcessData {
   id: number;
   공정명: string;
+  생산제품: string;
+  세부공정: string;
   공정설명: string;
-  공정유형: string;
-  공정단계: string;
-  공정효율: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface TransportData {
@@ -1093,20 +1094,18 @@ export default function LcaPage() {
                   <thead className="bg-ecotrace-secondary/50">
                     <tr>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정명</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산제품</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">세부공정</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정설명</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정유형</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정단계</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정효율</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-ecotrace-border">
                     {processData.map((row) => (
                       <tr key={row.id} className="hover:bg-ecotrace-secondary/30 transition-colors">
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산제품 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.세부공정 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정설명 || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정유형 || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정단계 || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정효율 || '-'}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -18,6 +18,11 @@ from .application.datagather_application_service import DataGatherApplicationSer
 from .application.process_application_service import ProcessApplicationService
 from .application.install_application_service import InstallApplicationService
 
+# 엔티티들을 import하여 테이블 생성 시 사용
+from .domain.datagather.datagather_entity import DataGather
+from .domain.process.process_entity import Process
+from .domain.install.install_entity import Install
+
 # 로깅 설정
 logging.basicConfig(
     level=getattr(logging, settings.log_level),
@@ -94,7 +99,7 @@ async def health_check():
         return {
             "status": "healthy" if db_healthy else "unhealthy",
             "service": settings.app_name,
-            "version": settings.app_name,
+            "version": settings.app_version,
             "database": "connected" if db_healthy else "disconnected"
         }
     except Exception as e:

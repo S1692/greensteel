@@ -21,8 +21,10 @@ import { Button } from '@/components/atomic/atoms';
 import { Input } from '@/components/atomic/atoms';
 import Link from 'next/link';
 
-// 타입 정의 - 새로운 스키마 기반 (AI추천답변은 frontend에서만 표시, DB에는 저장하지 않음)
+// 타입 정의 - 이미지의 모든 칼럼 포함 (AI추천답변은 frontend에서만 표시, DB에는 저장하지 않음)
 type DataRow = {
+  주문처명?: string;
+  오더번호?: string;
   로트번호?: string;
   생산품명?: string;
   생산수량?: number;
@@ -231,30 +233,37 @@ const InputDataPage: React.FC = () => {
     }
   };
 
-  // 템플릿 형식 검증
+  // 템플릿 형식 검증 - 이미지의 모든 칼럼과 정확히 일치해야 함
   const validateTemplateFormat = (columns: string[]): boolean => {
     const requiredColumns = [
-      '로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '투입물명', '수량', '단위'
+      '주문처명', '오더번호', '로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '투입물명', '수량', '단위'
     ];
     
-    const hasAllRequiredColumns = requiredColumns.every(col => {
+    // 정확한 칼럼명 매칭 (공백, 언더스코어 무시)
+    const hasAllRequiredColumns = requiredColumns.every(requiredCol => {
       const found = columns.some(uploadedCol => {
-        const cleanRequired = col.trim().toLowerCase().replace(' ', '').replace('_', '');
-        const cleanUploaded = uploadedCol.trim().toLowerCase().replace(' ', '').replace('_', '');
+        const cleanRequired = requiredCol.trim().toLowerCase().replace(/[\s_]/g, '');
+        const cleanUploaded = uploadedCol.trim().toLowerCase().replace(/[\s_]/g, '');
         return cleanRequired === cleanUploaded;
       });
       return found;
     });
     
     if (!hasAllRequiredColumns) {
-      const missingColumns = requiredColumns.filter(col => {
+      const missingColumns = requiredColumns.filter(requiredCol => {
         return !columns.some(uploadedCol => {
-          const cleanRequired = col.trim().toLowerCase().replace(' ', '').replace('_', '');
-          const cleanUploaded = uploadedCol.trim().toLowerCase().replace(' ', '').replace('_', '');
+          const cleanRequired = requiredCol.trim().toLowerCase().replace(/[\s_]/g, '');
+          const cleanUploaded = uploadedCol.trim().toLowerCase().replace(/[\s_]/g, '');
           return cleanRequired === cleanUploaded;
         });
       });
       setError(`템플릿을 확인해 주세요. 누락된 컬럼: ${missingColumns.join(', ')}`);
+      return false;
+    }
+    
+    // 추가 칼럼이 있는지 확인 (정확히 11개 칼럼만 허용)
+    if (columns.length !== 11) {
+      setError(`템플릿을 확인해 주세요. 정확히 11개 칼럼이어야 합니다. 현재: ${columns.length}개`);
       return false;
     }
     
@@ -440,13 +449,13 @@ const InputDataPage: React.FC = () => {
     });
   };
 
-  // 행 확인 (DB 저장 없이 편집 완료) - 새로운 스키마 기반
+  // 행 확인 (DB 저장 없이 편집 완료) - 이미지의 모든 칼럼 포함
   const confirmRow = async (rowId: string) => {
     const row = editableInputRows.find(r => r.id === rowId);
     if (!row) return;
 
     // 모든 데이터에 대해 필수 필드 검증
-    const requiredFields = ['로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '투입물명', '수량', '단위'];
+    const requiredFields = ['주문처명', '오더번호', '로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '투입물명', '수량', '단위'];
     const missingFields = [];
     const invalidFields = [];
 
@@ -649,7 +658,7 @@ const InputDataPage: React.FC = () => {
     const renderInputField = (row: EditableRow, column: string) => {
       const value = row.modifiedData[column] || '';
       const isNewRowData = isNewRow(row);
-      const isRequired = ['로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '투입물명', '수량', '단위'].includes(column);
+      const isRequired = ['주문처명', '오더번호', '로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '투입물명', '수량', '단위'].includes(column);
       
       // 편집 모드가 아닌 경우 읽기 전용으로 표시
       if (!row.isEditing) {
@@ -676,10 +685,70 @@ const InputDataPage: React.FC = () => {
         return baseClass;
       };
 
-    switch (column) {
-      case '로트번호':
-      case '생산수량':
-      case '수량':
+         switch (column) {
+       case '주문처명':
+         return (
+           <div className='relative'>
+             <input
+               type='text'
+               value={value}
+               maxLength={50}
+               onChange={(e) => {
+                 const newValue = e.target.value;
+                 const { isValid, errorMessage } = validateInput(column, newValue);
+                 if (isValid) {
+                   handleInputChange(row.id, column, newValue);
+                   clearRowError(row.id, column);
+                 } else {
+                   handleInputChange(row.id, column, newValue);
+                   updateRowError(row.id, column, errorMessage);
+                 }
+               }}
+               placeholder={isRequired ? '주문처명을 입력하세요 *' : '주문처명을 입력하세요'}
+               className={getInputClassName()}
+             />
+             {isRequired && (
+               <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+             )}
+             {rowErrors[row.id]?.[column] && (
+               <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
+             )}
+           </div>
+         );
+       
+       case '오더번호':
+         return (
+           <div className='relative'>
+             <input
+               type='text'
+               value={value}
+               maxLength={20}
+               onChange={(e) => {
+                 const newValue = e.target.value;
+                 const { isValid, errorMessage } = validateInput(column, newValue);
+                 if (isValid) {
+                   handleInputChange(row.id, column, newValue);
+                   clearRowError(row.id, column);
+                 } else {
+                   handleInputChange(row.id, column, newValue);
+                   updateRowError(row.id, column, errorMessage);
+                 }
+               }}
+               placeholder={isRequired ? '오더번호를 입력하세요 *' : '오더번호를 입력하세요'}
+               className={getInputClassName()}
+             />
+             {isRequired && (
+               <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
+             )}
+             {rowErrors[row.id]?.[column] && (
+               <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
+             )}
+           </div>
+         );
+       
+       case '로트번호':
+       case '생산수량':
+       case '수량':
         return (
           <div className='relative'>
             <input
@@ -1075,37 +1144,41 @@ const InputDataPage: React.FC = () => {
             Object.values(row.originalData).every(val => val === '' || val === null || val === undefined);
    };
 
-   // 새로운 행 추가 핸들러
-   const addNewRow = () => {
-    const newRow: EditableRow = {
-      id: `input-${editableInputRows.length}`,
-      originalData: {
-        '로트번호': '',
-        '생산품명': '',
-        '생산수량': 0,
-        '투입일': '',
-        '종료일': '',
-        '공정': '',
-        '투입물명': '',
-        '수량': 0,
-        '단위': ''
-      },
-      modifiedData: {
-        '로트번호': '',
-        '생산품명': '',
-        '생산수량': 0,
-        '투입일': '',
-        '종료일': '',
-        '공정': '',
-        '투입물명': '',
-        '수량': 0,
-        '단위': ''
-      },
-      isEditing: true,
-      isNewlyAdded: true
-    };
-    setEditableInputRows(prev => [...prev, newRow]);
-  };
+       // 새로운 행 추가 핸들러
+    const addNewRow = () => {
+     const newRow: EditableRow = {
+       id: `input-${editableInputRows.length}`,
+       originalData: {
+         '주문처명': '',
+         '오더번호': '',
+         '로트번호': '',
+         '생산품명': '',
+         '생산수량': 0,
+         '투입일': '',
+         '종료일': '',
+         '공정': '',
+         '투입물명': '',
+         '수량': 0,
+         '단위': ''
+       },
+       modifiedData: {
+         '주문처명': '',
+         '오더번호': '',
+         '로트번호': '',
+         '생산품명': '',
+         '생산수량': 0,
+         '투입일': '',
+         '종료일': '',
+         '공정': '',
+         '투입물명': '',
+         '수량': 0,
+         '단위': ''
+       },
+       isEditing: true,
+       isNewlyAdded: true
+     };
+     setEditableInputRows(prev => [...prev, newRow]);
+   };
 
   // 데이터베이스 저장 핸들러
   const handleSaveToDatabase = async () => {
@@ -1445,95 +1518,111 @@ const InputDataPage: React.FC = () => {
               {/* 데이터 테이블 */}
               <div className='overflow-x-auto'>
                 <table className='w-full border-collapse border border-white/20'>
-                  <thead>
-                    <tr className='bg-white/10'>
-                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>로트번호</th>
-                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>생산품명</th>
-                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>생산수량</th>
-                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>투입일</th>
-                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>종료일</th>
-                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>공정</th>
-                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>투입물명</th>
-                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>AI추천답변</th>
-                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>수량</th>
-                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>단위</th>
-                      <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>작업</th>
-                    </tr>
-                  </thead>
+                                     <thead>
+                     <tr className='bg-white/10'>
+                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>주문처명</th>
+                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>오더번호</th>
+                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>로트번호</th>
+                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>생산품명</th>
+                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>생산수량</th>
+                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>투입일</th>
+                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>종료일</th>
+                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>공정</th>
+                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>투입물명</th>
+                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>AI추천답변</th>
+                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>수량</th>
+                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>단위</th>
+                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>작업</th>
+                     </tr>
+                   </thead>
                   <tbody>
                                          {editableInputRows.map((row) => (
-                       <React.Fragment key={row.id}>
-                         <tr className='border-b border-white/10 hover:bg-white/5'>
-                           <td className='border border-white/20 px-3 py-2 text-sm text-white'>
-                             {row.isEditing ? (
-                               renderInputField(row, '로트번호')
-                             ) : (
-                               <span>{row.modifiedData['로트번호'] || '-'}</span>
-                             )}
-                           </td>
-                           <td className='border border-white/20 px-3 py-2 text-sm text-white'>
-                             {row.isEditing ? (
-                               renderInputField(row, '생산품명')
-                             ) : (
-                               <span>{row.modifiedData['생산품명'] || '-'}</span>
-                             )}
-                           </td>
-                           <td className='border border-white/20 px-3 py-2 text-sm text-white'>
-                             {row.isEditing ? (
-                               renderInputField(row, '생산수량')
-                             ) : (
-                               <span>{row.modifiedData['생산수량'] || '-'}</span>
-                             )}
-                           </td>
-                           <td className='border border-white/20 px-3 py-2 text-sm text-white'>
-                             {row.isEditing ? (
-                               renderInputField(row, '투입일')
-                             ) : (
-                               <span>{row.modifiedData['투입일'] || '-'}</span>
-                             )}
-                           </td>
-                           <td className='border border-white/20 px-3 py-2 text-sm text-white'>
-                             {row.isEditing ? (
-                               renderInputField(row, '종료일')
-                             ) : (
-                               <span>{row.modifiedData['종료일'] || '-'}</span>
-                             )}
-                           </td>
-                           <td className='border border-white/20 px-3 py-2 text-sm text-white'>
-                             {row.isEditing ? (
-                               renderInputField(row, '공정')
-                             ) : (
-                               <span>{row.modifiedData['공정'] || '-'}</span>
-                             )}
-                           </td>
-                           <td className='border border-white/20 px-3 py-2 text-sm text-white'>
-                             {row.isEditing ? (
-                               renderInputField(row, '투입물명')
-                             ) : (
-                               <span>{row.modifiedData['투입물명'] || '-'}</span>
-                             )}
-                           </td>
-                           <td className='border border-white/20 px-3 py-2 text-sm text-white'>
-                             {row.isEditing ? (
-                               renderInputField(row, 'AI추천답변')
-                             ) : (
-                               <span className='text-blue-300'>{row.modifiedData['AI추천답변'] || '-'}</span>
-                             )}
-                           </td>
-                           <td className='border border-white/20 px-3 py-2 text-sm text-white'>
-                             {row.isEditing ? (
-                               renderInputField(row, '수량')
-                             ) : (
-                               <span>{row.modifiedData['수량'] || '-'}</span>
-                             )}
-                           </td>
-                           <td className='border border-white/20 px-3 py-2 text-sm text-white'>
-                             {row.isEditing ? (
-                               renderInputField(row, '단위')
-                             ) : (
-                               <span>{row.modifiedData['단위'] || '-'}</span>
-                             )}
-                           </td>
+                                               <React.Fragment key={row.id}>
+                          <tr className='border-b border-white/10 hover:bg-white/5'>
+                            <td className='border border-white/20 px-3 py-2 text-sm text-white'>
+                              {row.isEditing ? (
+                                renderInputField(row, '주문처명')
+                              ) : (
+                                <span>{row.modifiedData['주문처명'] || '-'}</span>
+                              )}
+                            </td>
+                            <td className='border border-white/20 px-3 py-2 text-sm text-white'>
+                              {row.isEditing ? (
+                                renderInputField(row, '오더번호')
+                              ) : (
+                                <span>{row.modifiedData['오더번호'] || '-'}</span>
+                              )}
+                            </td>
+                            <td className='border border-white/20 px-3 py-2 text-sm text-white'>
+                              {row.isEditing ? (
+                                renderInputField(row, '로트번호')
+                              ) : (
+                                <span>{row.modifiedData['로트번호'] || '-'}</span>
+                              )}
+                            </td>
+                            <td className='border border-white/20 px-3 py-2 text-sm text-white'>
+                              {row.isEditing ? (
+                                renderInputField(row, '생산품명')
+                              ) : (
+                                <span>{row.modifiedData['생산품명'] || '-'}</span>
+                              )}
+                            </td>
+                            <td className='border border-white/20 px-3 py-2 text-sm text-white'>
+                              {row.isEditing ? (
+                                renderInputField(row, '생산수량')
+                              ) : (
+                                <span>{row.modifiedData['생산수량'] || '-'}</span>
+                              )}
+                            </td>
+                            <td className='border border-white/20 px-3 py-2 text-sm text-white'>
+                              {row.isEditing ? (
+                                renderInputField(row, '투입일')
+                              ) : (
+                                <span>{row.modifiedData['투입일'] || '-'}</span>
+                              )}
+                            </td>
+                            <td className='border border-white/20 px-3 py-2 text-sm text-white'>
+                              {row.isEditing ? (
+                                renderInputField(row, '종료일')
+                              ) : (
+                                <span>{row.modifiedData['종료일'] || '-'}</span>
+                              )}
+                            </td>
+                            <td className='border border-white/20 px-3 py-2 text-sm text-white'>
+                              {row.isEditing ? (
+                                renderInputField(row, '공정')
+                              ) : (
+                                <span>{row.modifiedData['공정'] || '-'}</span>
+                              )}
+                            </td>
+                            <td className='border border-white/20 px-3 py-2 text-sm text-white'>
+                              {row.isEditing ? (
+                                renderInputField(row, '투입물명')
+                              ) : (
+                                <span>{row.modifiedData['투입물명'] || '-'}</span>
+                              )}
+                            </td>
+                            <td className='border border-white/20 px-3 py-2 text-sm text-white'>
+                              {row.isEditing ? (
+                                renderInputField(row, 'AI추천답변')
+                              ) : (
+                                <span className='text-blue-300'>{row.modifiedData['AI추천답변'] || '-'}</span>
+                              )}
+                            </td>
+                            <td className='border border-white/20 px-3 py-2 text-sm text-white'>
+                              {row.isEditing ? (
+                                renderInputField(row, '수량')
+                              ) : (
+                                <span>{row.modifiedData['수량'] || '-'}</span>
+                              )}
+                            </td>
+                            <td className='border border-white/20 px-3 py-2 text-sm text-white'>
+                              {row.isEditing ? (
+                                renderInputField(row, '단위')
+                              ) : (
+                                <span>{row.modifiedData['단위'] || '-'}</span>
+                              )}
+                            </td>
 
                            <td className='border border-white/20 px-3 py-2 text-sm'>
                              {row.isEditing ? (
@@ -1598,10 +1687,10 @@ const InputDataPage: React.FC = () => {
                            </td>
                          </tr>
                          
-                         {/* 수정 사유 입력 행 (Excel 데이터 편집 시에만) */}
-                         {row.isEditing && !row.isNewlyAdded && (
-                           <tr className='bg-white/5 border-b border-white/10'>
-                             <td colSpan={11} className='px-3 py-3'>
+                                                   {/* 수정 사유 입력 행 (Excel 데이터 편집 시에만) */}
+                          {row.isEditing && !row.isNewlyAdded && (
+                            <tr className='bg-white/5 border-b border-white/10'>
+                              <td colSpan={13} className='px-3 py-3'>
                                <div className='flex items-center gap-3'>
                                  <div className='flex-shrink-0'>
                                    <span className='text-xs text-white/60 font-medium'>수정 사유 (Excel 데이터 편집 시):</span>

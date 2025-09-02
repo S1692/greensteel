@@ -644,11 +644,6 @@ async def get_process_data():
             "error": str(e)
         }
 
-
-            "message": f"AI 처리 중 오류가 발생했습니다: {str(e)}",
-            "error": str(e)
-        }
-
 @app.post("/save-processed-data")
 async def save_processed_data(data: dict):
     """AI 처리된 데이터를 데이터베이스에 저장"""

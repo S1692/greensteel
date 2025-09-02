@@ -35,6 +35,8 @@ interface InputData {
   투입물명: string;
   수량: number;
   단위: string;
+  주문처명?: string;
+  오더번호?: string;
 }
 
 interface OutputData {

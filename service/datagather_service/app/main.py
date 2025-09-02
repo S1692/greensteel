@@ -912,43 +912,56 @@ async def classify_data(data: Dict[str, Any]):
                     else:
                         continue
                     
-                    # source_table에 따라 적절한 테이블에서 데이터를 가져와서 저장
-                    if source_table == 'input_data':
+                    # 기존 데이터가 있는지 확인
+                    existing_check = session.execute(text(f"""
+                        SELECT id FROM {target_table} 
+                        WHERE source_table = :source_table AND source_id = :source_id
+                    """), {
+                        'source_table': source_table,
+                        'source_id': source_id
+                    }).fetchone()
+                    
+                    if existing_check:
+                        # 기존 데이터가 있으면 업데이트
                         session.execute(text(f"""
-                            INSERT INTO {target_table} 
-                            (로트번호, 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위, 
-                             분류, source_table, source_id, 주문처명, 오더번호, created_at)
-                            SELECT CAST(로트번호 AS INTEGER), 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위,
-                                   :분류, :source_table, :source_id, 주문처명, 오더번호, NOW()
-                            FROM input_data 
-                            WHERE id = :source_id
-                            ON CONFLICT (source_table, source_id) 
-                            DO UPDATE SET 
-                                분류 = :분류,
-                                updated_at = NOW()
+                            UPDATE {target_table} 
+                            SET 분류 = :분류, updated_at = NOW()
+                            WHERE source_table = :source_table AND source_id = :source_id
                         """), {
                             '분류': 분류,
                             'source_table': source_table,
                             'source_id': source_id
                         })
-                    elif source_table == 'output_data':
-                        session.execute(text(f"""
-                            INSERT INTO {target_table} 
-                            (로트번호, 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위, 
-                             분류, source_table, source_id, 주문처명, 오더번호, created_at)
-                            SELECT CAST(로트번호 AS INTEGER), 생산수량, 투입일, 종료일, 공정, 산출물명, 수량, 단위,
-                                   :분류, :source_table, :source_id, 주문처명, 오더번호, NOW()
-                            FROM output_data 
-                            WHERE id = :source_id
-                            ON CONFLICT (source_table, source_id) 
-                            DO UPDATE SET 
-                                분류 = :분류,
-                                updated_at = NOW()
-                        """), {
-                            '분류': 분류,
-                            'source_table': source_table,
-                            'source_id': source_id
-                        })
+                    else:
+                        # 기존 데이터가 없으면 새로 삽입
+                        if source_table == 'input_data':
+                            session.execute(text(f"""
+                                INSERT INTO {target_table} 
+                                (로트번호, 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위, 
+                                 분류, source_table, source_id, 주문처명, 오더번호, created_at)
+                                SELECT CAST(로트번호 AS INTEGER), 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위,
+                                       :분류, :source_table, :source_id, 주문처명, 오더번호, NOW()
+                                FROM input_data 
+                                WHERE id = :source_id
+                            """), {
+                                '분류': 분류,
+                                'source_table': source_table,
+                                'source_id': source_id
+                            })
+                        elif source_table == 'output_data':
+                            session.execute(text(f"""
+                                INSERT INTO {target_table} 
+                                (로트번호, 생산수량, 투입일, 종료일, 공정, 투입물명, 수량, 단위, 
+                                 분류, source_table, source_id, 주문처명, 오더번호, created_at)
+                                SELECT CAST(로트번호 AS INTEGER), 생산수량, 투입일, 종료일, 공정, 산출물명, 수량, 단위,
+                                       :분류, :source_table, :source_id, 주문처명, 오더번호, NOW()
+                                FROM output_data 
+                                WHERE id = :source_id
+                            """), {
+                                '분류': 분류,
+                                'source_table': source_table,
+                                'source_id': source_id
+                            })
                     
                     saved_count += 1
                     

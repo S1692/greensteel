@@ -449,28 +449,18 @@ const TransportDataPage: React.FC = () => {
         }
       }
       
-      // 필수 칼럼 구조 검증
-      const requiredColumns = [
-        '주문처명', '오더번호', '생산품명', '로트번호', '운송물질', 
-        '운송수량', '운송일자', '도착공정', '출발지', '이동수단'
-      ];
-      
-      const missingColumns = requiredColumns.filter(col => !columns.includes(col));
-      if (missingColumns.length > 0) {
-        throw new Error(`필수 칼럼이 누락되었습니다: ${missingColumns.join(', ')}`);
-      }
-      
-      // 칼럼 순서 검증
-      const expectedOrder = [
-        '주문처명', '오더번호', '생산품명', '로트번호', '운송물질', 
-        '운송수량', '운송일자', '도착공정', '출발지', '이동수단'
-      ];
-      
-      for (let i = 0; i < Math.min(columns.length, expectedOrder.length); i++) {
-        if (columns[i] !== expectedOrder[i]) {
-          throw new Error(`칼럼 순서가 올바르지 않습니다. ${expectedOrder[i]}이(가) ${i + 1}번째 위치에 있어야 합니다.`);
-        }
-      }
+             // 필수 칼럼 구조 검증 (순서는 상관없음)
+       const requiredColumns = [
+         '주문처명', '오더번호', '생산품명', '로트번호', '운송물질', 
+         '운송수량', '운송일자', '도착공정', '출발지', '이동수단'
+       ];
+       
+       const missingColumns = requiredColumns.filter(col => !columns.includes(col));
+       if (missingColumns.length > 0) {
+         throw new Error(`필수 칼럼이 누락되었습니다: ${missingColumns.join(', ')}`);
+       }
+       
+       // 칼럼 순서는 검증하지 않음 - 존재 여부만 확인
 
       const jsonData = XLSX.utils.sheet_to_json(worksheet, {
         header: columns,

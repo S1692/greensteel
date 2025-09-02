@@ -444,7 +444,7 @@ const ProcessDataPage: React.FC = () => {
         }
       }
       
-      // 필수 칼럼 구조 검증
+      // 필수 칼럼 구조 검증 (순서는 상관없음)
       const requiredColumns = [
         '공정명', '생산제품', '세부공정', '공정설명'
       ];
@@ -454,16 +454,7 @@ const ProcessDataPage: React.FC = () => {
         throw new Error(`필수 칼럼이 누락되었습니다: ${missingColumns.join(', ')}`);
       }
       
-      // 칼럼 순서 검증
-      const expectedOrder = [
-        '공정명', '생산제품', '세부공정', '공정설명'
-      ];
-      
-      for (let i = 0; i < Math.min(columns.length, expectedOrder.length); i++) {
-        if (columns[i] !== expectedOrder[i]) {
-          throw new Error(`칼럼 순서가 올바르지 않습니다. ${expectedOrder[i]}이(가) ${i + 1}번째 위치에 있어야 합니다.`);
-        }
-      }
+      // 칼럼 순서는 검증하지 않음 - 존재 여부만 확인
 
       // 데이터 읽기 (첫 번째 행 제외)
       const jsonData = XLSX.utils.sheet_to_json(worksheet, {

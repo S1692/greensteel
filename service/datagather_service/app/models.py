@@ -1,8 +1,7 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Numeric, ForeignKey, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, Float, DateTime, Date, Text, Numeric, ForeignKey, Enum as SQLEnum
 from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship
-from .database import Base
 import enum
+from .database import Base
 
 # ============================================================================
 # 🔤 ENUM 타입 정의

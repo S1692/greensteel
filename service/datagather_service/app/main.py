@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 # 데이터베이스 및 모델 import
 from .database import init_db
-from .models import Base
+from .models import *
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)

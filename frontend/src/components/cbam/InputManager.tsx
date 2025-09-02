@@ -524,7 +524,7 @@ export default function InputManager({ selectedProcess, onClose, onDataSaved }: 
       // 자동 집계: 해당 공정의 직접귀속배출량 계산
       try {
         const aggregationResponse = await axiosClient.post(
-          apiEndpoints.cbam.calculation.process.attrdir(selectedProcess.id)
+          `/api/v1/cbam/calculation/emission/process/${selectedProcess.id}/attrdir`
         );
         console.log('✅ 자동 집계 성공:', aggregationResponse.data);
       } catch (aggregationError: any) {

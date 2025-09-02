@@ -113,7 +113,7 @@ export const useProcessCanvas = (selectedInstall: Install | null) => {
     // 공정별 직접귀속배출량 정보 가져오기
     let emissionData = null;
     try {
-      const response = await axiosClient.get(apiEndpoints.cbam.calculation.process.attrdir(process.id));
+      const response = await axiosClient.get(`/api/v1/cbam/calculation/emission/process/${process.id}/attrdir`);
       if (response.data) {
         emissionData = {
           attr_em: response.data.attrdir_em || 0,

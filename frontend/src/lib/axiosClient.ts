@@ -262,6 +262,7 @@ export const apiEndpoints = {
       get: (id: number) => `/api/v1/cbam/edge/${id}`,
       update: (id: number) => `/api/v1/cbam/edge/${id}`,
       delete: (id: number) => `/api/v1/cbam/edge/${id}`,
+      saveFlow: '/api/v1/cbam/edge/save-flow',
     },
     
     // Mapping (노드 위치) API
@@ -325,16 +326,15 @@ export const apiEndpoints = {
       stats: '/api/v1/cbam/productprocess/stats'
     },
     
-    // Calculation 관련 API
+    // Calculation (계산) API
     calculation: {
-      process: {
-        calculate: '/api/v1/cbam/calculation/emission/process/calculate',
-        attrdir: (process_id: number) => `/api/v1/cbam/calculation/emission/process/${process_id}/attrdir`,
-        attrdirAll: '/api/v1/cbam/calculation/emission/process/attrdir/all'
-      },
-      product: {
-        calculate: '/api/v1/cbam/calculation/emission/product/calculate'
-      }
+      create: '/api/v1/cbam/calculation',
+      list: '/api/v1/cbam/calculation',
+      get: (id: number) => `/api/v1/cbam/calculation/${id}`,
+      update: (id: number) => `/api/v1/cbam/calculation/${id}`,
+      delete: (id: number) => `/api/v1/cbam/calculation/${id}`,
+      run: (id: number) => `/api/v1/cbam/calculation/${id}/run`,
+      export: (id: number) => `/api/v1/cbam/calculation/${id}/export`,
     },
     
     // Dummy Data API

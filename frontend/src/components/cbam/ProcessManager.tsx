@@ -77,7 +77,7 @@ function ProcessManagerInner() {
   // 공정별 직접귀속배출량 정보 가져오기
   const fetchProcessEmissionData = useCallback(async (processId: number) => {
     try {
-      const response = await axiosClient.get(apiEndpoints.cbam.calculation.process.attrdir(processId));
+      const response = await axiosClient.get(`/api/v1/cbam/calculation/emission/process/${processId}/attrdir`);
       if (response.data) {
         return {
           attr_em: response.data.attrdir_em || 0,

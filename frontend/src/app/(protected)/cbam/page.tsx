@@ -12,6 +12,11 @@ import { CBAMInstallTab } from '@/components/atomic/organisms/CBAMInstallTab';
 
 // 모달 컴포넌트들
 import { InstallModal } from '@/components/cbam/modals/InstallModal';
+import { ProductModal } from '@/components/cbam/modals/ProductModal';
+import { ProcessModal } from '@/components/cbam/modals/ProcessModal';
+import { MappingModal } from '@/components/cbam/modals/MappingModal';
+import { CalculationModal } from '@/components/cbam/modals/CalculationModal';
+import { BoundaryModal } from '@/components/cbam/modals/BoundaryModal';
 
 // ============================================================================
 // 🎯 CBAM 관리 페이지 - 아토믹 구조 적용
@@ -285,22 +290,48 @@ export default function CBAMPage() {
           />
         )}
 
-        {/* TODO: 다른 모달들도 별도 컴포넌트로 분리 */}
+        {showProductModal && (
+          <ProductModal
+            onClose={() => setShowProductModal(false)}
+            onSuccess={fetchProducts}
+          />
+        )}
+
+        {showProcessModal && (
+          <ProcessModal
+            onClose={() => setShowProcessModal(false)}
+            onSuccess={fetchProcesses}
+          />
+        )}
+
+        {showMappingModal && (
+          <MappingModal
+            onClose={() => setShowMappingModal(false)}
+            onSuccess={fetchMappings}
+          />
+        )}
+
+        {showCalculationModal && (
+          <CalculationModal
+            onClose={() => setShowCalculationModal(false)}
+            onSuccess={() => {
+              fetchInstalls();
+              fetchProducts();
+              fetchProcesses();
+            }}
+          />
+        )}
+
         {showBoundaryModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-              <div className="text-center text-gray-500 py-12">
-                <p className="text-lg font-medium">경계 설정 기능</p>
-                <p className="text-sm">ReactFlow를 사용한 시각적 경계 설정이 구현될 예정입니다.</p>
-                <button
-                  onClick={() => setShowBoundaryModal(false)}
-                  className="mt-4 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
-                >
-                  닫기
-                </button>
-              </div>
-            </div>
-          </div>
+          <BoundaryModal
+            onClose={() => setShowBoundaryModal(false)}
+            onSuccess={() => {
+              fetchInstalls();
+              fetchProducts();
+              fetchProcesses();
+              fetchMappings();
+            }}
+          />
         )}
       </div>
     </CommonShell>

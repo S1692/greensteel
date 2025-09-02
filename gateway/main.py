@@ -364,17 +364,17 @@ async def proxy_chatbot_general(request: Request, path: str):
 # 🏭 CBAM 서비스 프록시 라우트
 # ============================================================================
 
-@app.api_route("/api/cbam/{path:path}", methods=["GET","POST","PUT","DELETE","PATCH","HEAD","OPTIONS"])
+@app.api_route("/api/v1/cbam/{path:path}", methods=["GET","POST","PUT","DELETE","PATCH","HEAD","OPTIONS"])
 async def proxy_cbam_service(request: Request, path: str):
     """CBAM 서비스로 요청을 프록시"""
     if not CBAM_SERVICE_URL:
         raise HTTPException(status_code=503, detail="CBAM service not configured")
     
     # CBAM 서비스의 실제 엔드포인트로 전달
-    # 프론트엔드: /api/cbam/install → CBAM 서비스: /api/install
-    target_path = f"/api/{path}"
+    # 프론트엔드: /api/v1/cbam/install → CBAM 서비스: /install
+    target_path = f"/{path}"
     
-    gateway_logger.log_info(f"CBAM proxy: {request.method} /api/cbam/{path} → {CBAM_SERVICE_URL}{target_path}")
+    gateway_logger.log_info(f"CBAM proxy: {request.method} /api/v1/cbam/{path} → {CBAM_SERVICE_URL}{target_path}")
     return await _forward(CBAM_SERVICE_URL, target_path, request)
 
 @app.api_route("/cbam/{path:path}", methods=["GET","POST","PUT","DELETE","PATCH","HEAD","OPTIONS"])

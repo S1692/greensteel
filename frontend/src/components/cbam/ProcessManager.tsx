@@ -2,405 +2,134 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import Button from '@/components/atomic/atoms/Button';
-import {
-  Plus, Trash2, Save, Download, Building
-} from 'lucide-react';
+import { Plus } from 'lucide-react';
+import axiosClient, { apiEndpoints } from '@/lib/axiosClient';
 
 import ProductNode from '@/components/atomic/atoms/ProductNode';
 import ProcessNode from '@/components/atomic/atoms/ProcessNode';
-// import GroupNode from '@/components/atomic/atoms/GroupNode'; // ✅ 제거: 내장 group 사용
-import axiosClient, { apiEndpoints } from '@/lib/axiosClient';
+import InputManager from '@/components/cbam/InputManager';
+import { InstallSelector } from '@/components/cbam/InstallSelector';
+import { ProductSelector } from '@/components/cbam/ProductSelector';
+import { ProcessSelector, ProductProcessModal } from '@/components/cbam/ProcessSelector';
+
+
+import { useProcessManager, Process, Install, Product } from '@/hooks/useProcessManager';
+import { useProcessCanvas } from '@/hooks/useProcessCanvas';
+
 import {
   ReactFlow,
   ReactFlowProvider,
   Background,
   Controls,
   MiniMap,
-  useNodesState,
-  useEdgesState,
-  addEdge,
-  Connection,
-  Edge,
-  Node,
   NodeTypes,
   EdgeTypes,
-  Panel,
-  useReactFlow,
   ConnectionMode,
-  MarkerType
+  MarkerType,
+  Connection
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 /* ============================================================================
-   커스텀 Edge
-   - markerEnd는 defaultEdgeOptions에서만 설정(중복 방지)
+   커스텀 Edge 타입 정의
 ============================================================================ */
-const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, selected }: any) => {
-  const [edgePath] = React.useMemo(() => {
-    const cx = (sourceX + targetX) / 2;
-    return [`M ${sourceX} ${sourceY} Q ${cx} ${sourceY} ${targetX} ${targetY}`];
-  }, [sourceX, sourceY, targetX, targetY]);
-
-  return (
-    <path
-      id={id}
-      className="react-flow__edge-path"
-      d={edgePath}
-      stroke={selected ? '#3b82f6' : '#6b7280'}
-      strokeWidth={selected ? 3 : 2}
-      fill="none"
-    />
-  );
-};
-
+import CustomEdge from '@/components/atomic/atoms/CustomEdge';
 const edgeTypes: EdgeTypes = { custom: CustomEdge };
 
 /* ============================================================================
    내부 컴포넌트
 ============================================================================ */
 function ProcessManagerInner() {
-  // 상태 훅
-  const [nodes, setNodes, onNodesChange] = useNodesState<any>([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<any>([]);
-  const { addNodes, addEdges } = useReactFlow();
+  // 커스텀 훅 사용
+  const {
+    installs,
+    selectedInstall,
+    products,
+    selectedProduct,
+    processes,
+    allProcesses,
+    crossInstallProcesses,
+    isDetectingChains,
+    detectionStatus,
+    isUpdatingProduct,
+    setSelectedInstall,
+    setSelectedProduct,
+    fetchProcessesByProduct,
+    handleProductQuantityUpdate,
+  } = useProcessManager();
 
-  // 사업장 관련 상태
-  const [installs, setInstalls] = useState<any[]>([]);
-  const [selectedInstall, setSelectedInstall] = useState<any>(null);
-  const [showInstallModal, setShowInstallModal] = useState(false);
-  
-  // 다중 사업장 캔버스 관리
-  const [installCanvases, setInstallCanvases] = useState<{[key: number]: {nodes: any[], edges: any[]}}>({});
-  const [activeInstallId, setActiveInstallId] = useState<number | null>(null);
+  // React Flow 컨텍스트 내에서만 useProcessCanvas 사용
+  const {
+    nodes,
+    edges,
+    installCanvases,
+    activeInstallId,
+    onNodesChange,
+    onEdgesChange,
+    handleEdgeCreate,
+    handleInstallSelect: handleCanvasInstallSelect,
+    addProductNode,
+    addProcessNode,
+    addGroupNode,
+    updateNodeData,
+  } = useProcessCanvas(selectedInstall);
 
-  // 제품 목록 모달 상태
-  const [products, setProducts] = useState<any[]>([]);
+  // 공정별 직접귀속배출량 정보 가져오기
+  const fetchProcessEmissionData = useCallback(async (processId: number) => {
+    try {
+      const response = await axiosClient.get(apiEndpoints.cbam.calculation.process.attrdir(processId));
+      if (response.data) {
+        return {
+          attr_em: response.data.attrdir_em || 0,
+          total_matdir_emission: response.data.total_matdir_emission || 0,
+          total_fueldir_emission: response.data.total_fueldir_emission || 0,
+          calculation_date: response.data.calculation_date
+        };
+      }
+    } catch (error) {
+      console.log(`⚠️ 공정 ${processId}의 배출량 정보가 아직 없습니다.`);
+    }
+    return null;
+  }, []);
+
+  // 모든 공정 노드의 배출량 정보 새로고침
+  const refreshAllProcessEmissions = useCallback(async () => {
+    const processNodes = nodes.filter(node => node.type === 'process');
+    
+    for (const node of processNodes) {
+      const processId = node.data.id;
+      if (processId && typeof processId === 'number') {
+        const emissionData = await fetchProcessEmissionData(processId);
+        if (emissionData && node.data.processData) {
+          // 노드 데이터 업데이트
+          updateNodeData(node.id, {
+            processData: {
+              ...node.data.processData,
+              ...emissionData
+            }
+          });
+        }
+      }
+    }
+  }, [nodes, fetchProcessEmissionData, updateNodeData]);
+
+  // 모달 상태
   const [showProductModal, setShowProductModal] = useState(false);
-
-  // 공정 목록 모달 상태
-  const [processes, setProcesses] = useState<any[]>([]);
-  
-  // 제품별 공정 선택을 위한 상태
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [showProcessModalForProduct, setShowProcessModalForProduct] = useState(false);
-  
-  // 복잡한 다대다 관계 처리를 위한 상태
-  const [allProcesses, setAllProcesses] = useState<any[]>([]);
-  const [processFilterMode, setProcessFilterMode] = useState<'all' | 'product'>('all');
   const [showProcessModal, setShowProcessModal] = useState(false);
-  
-  // 크로스 사업장 공정 처리를 위한 상태
-  const [crossInstallProcesses, setCrossInstallProcesses] = useState<any[]>([]);
-  const [showCrossInstallModal, setShowCrossInstallModal] = useState(false);
+  const [showInputModal, setShowInputModal] = useState(false);
+  const [selectedProcessForInput, setSelectedProcessForInput] = useState<Process | null>(null);
 
-  // 사업장 목록 불러오기
-  const fetchInstalls = useCallback(async () => {
-    // 목업 데이터 사용
-    const mockInstalls = [
-      {
-        id: 1,
-        install_name: '포항제철소',
-        reporting_year: '2025',
-        location: '경상북도 포항시',
-        industry_type: '철강제조업'
-      },
-      {
-        id: 2,
-        install_name: '광양제철소',
-        reporting_year: '2025',
-        location: '전라남도 광양시',
-        industry_type: '철강제조업'
-      },
-      {
-        id: 3,
-        install_name: '울산제철소',
-        reporting_year: '2025',
-        location: '울산광역시',
-        industry_type: '철강제조업'
-      }
-    ];
-    
-    console.log('🔍 목업 사업장 데이터:', mockInstalls);
-    setInstalls(mockInstalls);
-    
-    // 첫 번째 사업장을 기본 선택
-    if (mockInstalls.length > 0) {
-      setSelectedInstall(mockInstalls[0]);
-      setActiveInstallId(mockInstalls[0].id);
-    }
-  }, []);
 
-  // 제품 목록 불러오기
-  const fetchProductsByInstall = useCallback(async (installId: number) => {
-    // 목업 데이터 사용
-    const mockProducts = [
-      {
-        id: 1,
-        install_id: installId,
-        product_name: '철강 제품 A',
-        product_category: '단순제품',
-        prostart_period: '2024-01-01',
-        proend_period: '2024-12-31',
-        product_amount: 1000,
-        product_cncode: 'HS7208',
-        goods_name: '철강판',
-        aggrgoods_name: '열간압연철강판',
-        product_sell: 800,
-        product_eusell: 200
-      },
-      {
-        id: 2,
-        install_id: installId,
-        product_name: '알루미늄 제품 B',
-        product_category: '복합제품',
-        prostart_period: '2024-01-01',
-        proend_period: '2024-12-31',
-        product_amount: 500,
-        product_cncode: 'HS7606',
-        goods_name: '알루미늄판',
-        aggrgoods_name: '압연알루미늄판',
-        product_sell: 400,
-        product_eusell: 100
-      },
-      {
-        id: 3,
-        install_id: installId,
-        product_name: '구리 제품 C',
-        product_category: '단순제품',
-        prostart_period: '2024-01-01',
-        proend_period: '2024-12-31',
-        product_amount: 300,
-        product_cncode: 'HS7408',
-        goods_name: '구리판',
-        aggrgoods_name: '압연구리판',
-        product_sell: 250,
-        product_eusell: 50
-      }
-    ];
-    
-    console.log('🔍 목업 제품 데이터:', mockProducts);
-    setProducts(mockProducts);
-  }, []);
 
-  // 공정 목록 불러오기
-  const fetchProcessesByInstall = useCallback(async (installId: number) => {
-    // 목업 데이터 사용
-    const mockProcesses = [
-      {
-        id: 1,
-        process_name: '압연 공정',
-        start_period: '2024-01-01',
-        end_period: '2024-12-31',
-        products: [{ id: 1 }, { id: 2 }, { id: 3 }],
-        install_id: installId,
-        process_type: '제조공정',
-        energy_source: '전기'
-      },
-      {
-        id: 2,
-        process_name: '용해 공정',
-        start_period: '2024-01-01',
-        end_period: '2024-12-31',
-        products: [{ id: 1 }, { id: 2 }],
-        install_id: installId,
-        process_type: '제조공정',
-        energy_source: '가스'
-      },
-      {
-        id: 3,
-        process_name: '주조 공정',
-        start_period: '2024-01-01',
-        end_period: '2024-12-31',
-        products: [{ id: 2 }, { id: 3 }],
-        install_id: installId,
-        process_type: '제조공정',
-        energy_source: '전기'
-      },
-      {
-        id: 4,
-        process_name: '표면처리 공정',
-        start_period: '2024-01-01',
-        end_period: '2024-12-31',
-        products: [{ id: 1 }, { id: 3 }],
-        install_id: installId,
-        process_type: '후처리공정',
-        energy_source: '화학약품'
-      }
-    ];
-    
-    console.log('🔍 목업 공정 데이터:', mockProcesses);
-    setProcesses(mockProcesses);
-    setAllProcesses(mockProcesses);
-  }, []);
-
-  // 초기 목업 노드와 엣지 생성 (빈 캔버스로 시작)
-  const initializeMockCanvas = useCallback((installId: number) => {
-    // 초기에는 노드와 엣지 모두 없음 (사용자가 직접 추가)
-    const mockNodes: any[] = [];
-    const mockEdges: any[] = [];
-
-    console.log('🔍 목업 캔버스 초기화 (빈 상태):', { installId, nodes: mockNodes, edges: mockEdges });
-    
-    // 캔버스 상태 업데이트
-    setInstallCanvases(prev => ({
-      ...prev,
-      [installId]: { nodes: mockNodes, edges: mockEdges }
-    }));
-
-    // 현재 활성 캔버스라면 노드와 엣지 설정
-    if (activeInstallId === installId) {
-      setNodes(mockNodes);
-      setEdges(mockEdges);
-    }
-  }, [activeInstallId, setNodes, setEdges]);
-
-  // 선택된 사업장의 모든 공정 목록 불러오기 (다대다 관계 처리용)
-  const fetchAllProcessesByInstall = useCallback(async (installId: number) => {
-    try {
-      const response = await axiosClient.get(apiEndpoints.cbam.process.list);
-      // 선택된 사업장의 제품에 속한 모든 공정을 가져옴 (다대다 관계)
-      const installProducts = products.filter((product: any) => product.install_id === installId);
-      const productIds = installProducts.map((product: any) => product.id);
-      const allProcesses = response.data.filter((process: any) => 
-        process.products && process.products.some((p: any) => productIds.includes(p.id))
-      );
-      setAllProcesses(allProcesses);
-      console.log('🔍 사업장의 모든 공정들:', allProcesses);
-    } catch (error) {
-      console.error('전체 공정 목록 조회 실패:', error);
-      // 개발용 더미 데이터
-      setAllProcesses([
-        { id: 1, process_name: '제철공정', start_period: '2025-01-01', end_period: '2025-12-31', products: [{ id: 1 }] },
-        { id: 2, process_name: '압연공정', start_period: '2025-01-01', end_period: '2025-12-31', products: [{ id: 2 }] },
-        { id: 3, process_name: '도금공정', start_period: '2025-01-01', end_period: '2025-12-31', products: [{ id: 3 }] }
-      ]);
-    }
-  }, [products]);
-
-  // 모든 사업장의 공정 목록 불러오기 (크로스 사업장 처리용)
-  const fetchAllCrossInstallProcesses = useCallback(async () => {
-    try {
-      const response = await axiosClient.get(apiEndpoints.cbam.process.list);
-      // 현재 사업장의 제품과 관련된 모든 공정을 가져옴 (다른 사업장 포함, 다대다 관계)
-      const currentInstallProducts = products.filter((product: any) => product.install_id === selectedInstall?.id);
-      const productIds = currentInstallProducts.map((product: any) => product.id);
-      const allCrossProcesses = response.data.filter((process: any) => 
-        process.products && process.products.some((p: any) => productIds.includes(p.id))
-      );
-      setCrossInstallProcesses(allCrossProcesses);
-      console.log('🔍 크로스 사업장 공정들:', allCrossProcesses);
-    } catch (error) {
-      console.error('크로스 사업장 공정 목록 조회 실패:', error);
-      // 개발용 더미 데이터
-      setCrossInstallProcesses([
-        { id: 1, process_name: '제철공정', start_period: '2025-01-01', end_period: '2025-12-31', products: [{ id: 1 }] },
-        { id: 2, process_name: '압연공정', start_period: '2025-01-01', end_period: '2025-12-31', products: [{ id: 2 }] },
-        { id: 3, process_name: '도금공정', start_period: '2025-01-01', end_period: '2025-12-31', products: [{ id: 3 }] }
-      ]);
-    }
-  }, [products, selectedInstall]);
-
-  // 선택된 제품의 공정 목록 불러오기 (다대다 관계)
-  const fetchProcessesByProduct = useCallback(async (productId: number) => {
-    try {
-      const response = await axiosClient.get(apiEndpoints.cbam.process.list);
-      // 해당 제품과 연결된 모든 공정을 가져옴 (다대다 관계)
-      const productProcesses = response.data.filter((process: any) => 
-        process.products && process.products.some((p: any) => p.id === productId)
-      );
-      setProcesses(productProcesses);
-      console.log('🔍 제품의 공정들:', productProcesses);
-    } catch (error) {
-      console.error('제품별 공정 목록 조회 실패:', error);
-      // 개발용 더미 데이터
-      setProcesses([
-        { id: 1, process_name: '제철공정', start_period: '2025-01-01', end_period: '2025-12-31', products: [{ id: productId }] },
-        { id: 2, process_name: '압연공정', start_period: '2025-01-01', end_period: '2025-12-31', products: [{ id: productId }] }
-      ]);
-    }
-  }, []);
-
-  // 사업장 선택 시 제품과 공정 목록 업데이트
-  useEffect(() => {
-    if (selectedInstall) {
-      fetchProductsByInstall(selectedInstall.id);
-    }
-  }, [selectedInstall, fetchProductsByInstall]);
-
-  useEffect(() => {
-    if (selectedInstall && products.length > 0) {
-      // products가 업데이트된 후에 공정 목록을 가져옴
-      const timer = setTimeout(() => {
-        fetchProcessesByInstall(selectedInstall.id);
-        fetchAllProcessesByInstall(selectedInstall.id); // 모든 공정도 함께 불러오기
-        fetchAllCrossInstallProcesses(); // 크로스 사업장 공정도 불러오기
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [selectedInstall, products, fetchProcessesByInstall, fetchAllProcessesByInstall, fetchAllCrossInstallProcesses]);
-
-  // 컴포넌트 마운트 시 사업장 목록 불러오기
-  useEffect(() => {
-    fetchInstalls();
-  }, [fetchInstalls]);
-
-  // 사업장이 선택되면 제품과 공정 데이터 로드 및 캔버스 초기화
-  useEffect(() => {
-    if (selectedInstall) {
-      fetchProductsByInstall(selectedInstall.id);
-      fetchProcessesByInstall(selectedInstall.id);
-      initializeMockCanvas(selectedInstall.id);
-    }
-  }, [selectedInstall, fetchProductsByInstall, fetchProcessesByInstall, initializeMockCanvas]);
-
-  // 캔버스 상태 변경 시 해당 사업장의 캔버스 데이터 업데이트
-  useEffect(() => {
-    if (activeInstallId) {
-      setInstallCanvases(prev => ({
-        ...prev,
-        [activeInstallId]: { nodes, edges }
-      }));
-    }
-  }, [nodes, edges, activeInstallId]);
-
-  // 사업장 선택 모달 열기
-  const openInstallModal = useCallback(() => {
-    setShowInstallModal(true);
-  }, []);
-
-  // 사업장 선택 - 캔버스 상태 관리 개선
-  const handleInstallSelect = useCallback((install: any) => {
-    console.log('🏭 사업장 선택:', install);
-    
-    // 현재 활성 사업장의 캔버스 상태 저장
-    if (activeInstallId) {
-      setInstallCanvases(prev => ({
-        ...prev,
-        [activeInstallId]: { nodes, edges }
-      }));
-    }
-    
-    // 새로운 사업장 설정
+  // 사업장 선택 처리
+  const handleInstallSelect = useCallback((install: Install) => {
     setSelectedInstall(install);
-    setActiveInstallId(install.id);
-    setShowInstallModal(false);
-    
-    // 해당 사업장의 캔버스 데이터 가져오기
-    let canvasData = installCanvases[install.id];
-    if (!canvasData) {
-      // 캔버스 데이터가 없으면 목업 데이터로 초기화
-      initializeMockCanvas(install.id);
-      canvasData = installCanvases[install.id];
-    }
-    console.log('📊 캔버스 데이터 복원:', canvasData);
-    
-    // React Flow 상태 업데이트
-    setNodes(canvasData.nodes);
-    setEdges(canvasData.edges);
-  }, [activeInstallId, nodes, edges, installCanvases, setNodes, setEdges, initializeMockCanvas]);
+    // 캔버스 상태는 useProcessCanvas에서 자동으로 처리됨
+  }, [setSelectedInstall]);
 
-  // 제품 노드 추가(모달 열기)
-  const addProductNode = useCallback(async () => {
+  // 제품 노드 추가
+  const handleAddProductNode = useCallback(async () => {
     if (!selectedInstall) {
       alert('먼저 사업장을 선택해주세요.');
       return;
@@ -408,165 +137,124 @@ function ProcessManagerInner() {
     setShowProductModal(true);
   }, [selectedInstall]);
 
-  // 제품 노드 클릭 시 공정 추가 모달 열기
-  const handleProductNodeClick = useCallback((productData: any) => {
-    console.log('🔍 제품 노드 클릭:', productData);
-    setSelectedProduct(productData);
-    
-    // 목업 공정 데이터 설정
-    const mockProcesses = [
-      {
-        id: 1,
-        process_name: '압연 공정',
-        start_period: '2025-01-01',
-        end_period: '2025-12-31',
-        energy_source: '전기',
-        process_type: '제조공정'
-      },
-      {
-        id: 2,
-        process_name: '용해 공정',
-        start_period: '2025-01-01',
-        end_period: '2025-12-31',
-        energy_source: '가스',
-        process_type: '제조공정'
-      },
-      {
-        id: 3,
-        process_name: '주조 공정',
-        start_period: '2025-01-01',
-        end_period: '2025-12-31',
-        energy_source: '전기',
-        process_type: '제조공정'
-      },
-      {
-        id: 4,
-        process_name: '표면처리 공정',
-        start_period: '2025-01-01',
-        end_period: '2025-12-31',
-        energy_source: '화학약품',
-        process_type: '후처리공정'
-      }
-    ];
-    
-    setProcesses(mockProcesses);
-    setShowProcessModalForProduct(true); // 공정 추가 모달 열기
-    
-    console.log('🔍 목업 공정 데이터 설정 완료:', mockProcesses);
-  }, []);
+  // 제품 선택 처리
+  const handleProductSelect = useCallback((product: Product) => {
+    addProductNode(product, handleProductNodeClickComplex);
+    setShowProductModal(false);
+  }, [addProductNode]);
 
-  // 공정 선택 모달 열기 (전체 공정)
-  const openProcessModal = useCallback(() => {
-    setProcessFilterMode('all');
+  // 제품 노드 클릭 시 복잡한 다대다 관계 공정 선택 모달 열기
+  const handleProductNodeClickComplex = useCallback((productData: Product) => {
+    setSelectedProduct(productData);
     setShowProcessModal(true);
   }, []);
 
-  // 제품별 공정 선택 모달 열기
-  const openProcessModalForProduct = useCallback((product: any) => {
-    setSelectedProduct(product);
-    fetchProcessesByProduct(product.id);
-    setShowProcessModalForProduct(true);
-  }, [fetchProcessesByProduct]);
+  // 투입량 입력 모달 열기
+  const openInputModal = useCallback((process: Process) => {
+    setSelectedProcessForInput(process);
+    setShowInputModal(true);
+  }, []);
 
-  // 제품 선택 → 노드 추가 (목업 데이터 사용)
-  const handleProductSelect = useCallback((product: any) => {
-    const productId = product.id;
-    const installId = selectedInstall?.id;
-    
-    // 목업 제품 데이터로 노드 생성
-    const mockProduct = {
-      id: productId,
-      product_name: product.product_name,
-      install_id: installId,
-      product_type: '단순제품',
-      amount: 1000
-    };
-    
-    const newNode: Node<any> = {
-      id: `product-${installId}-${productId}`, // 올바른 ID 형식 사용
-      type: 'custom',
-      position: { x: Math.random() * 400 + 100, y: Math.random() * 300 + 100 },
-      data: {
-        label: mockProduct.product_name,
-        description: `제품: ${mockProduct.product_name}`,
-        variant: 'product',
-        productData: mockProduct,
-        install_id: installId,
-        // onClick prop 제거 - React Flow의 onNodeClick 사용
-      },
-    };
-
-    addNodes(newNode);
-    setShowProductModal(false);
-    
-    console.log('✅ 목업 제품 노드 추가 완료:', mockProduct);
-  }, [addNodes, selectedInstall]);
-
-  // 공정 선택 → 노드 추가 (선택한 공정 1개만)
-  const handleProcessSelect = useCallback((process: any) => {
-    if (!selectedProduct) return;
-
-    const productId = selectedProduct.id;
-    const installId = selectedProduct.install_id;
-    
-    console.log('🔍 공정 선택됨:', { process, selectedProduct, productId, installId });
-    
-    // 선택한 공정 노드 1개만 생성
-    const processNode = {
-      id: `process-${installId}-${productId}-${Date.now()}`,
-      type: 'process',
-      position: { x: 400, y: 100 + Math.random() * 200 }, // 랜덤 Y 위치
-      data: {
-        label: process.process_name,
-        description: process.process_name,
-        variant: 'process',
-        processData: process,
-        product_names: selectedProduct.product_name,
-        install_id: installId,
-        energy_source: process.energy_source || '전기',
-        process_type: process.process_type || '제조공정'
-      },
-    };
-
-    // 제품과 공정을 연결하는 엣지 생성
-    const newEdge = {
-      id: `edge-${installId}-${productId}-${Date.now()}`,
-      source: `product-${installId}-${productId}`,
-      target: processNode.id,
-      type: 'custom',
-      data: { label: `${selectedProduct.product_name} → ${processNode.data.label}` }
-    };
-
-    console.log('🔍 생성할 공정 노드:', processNode);
-    console.log('🔍 생성할 엣지:', newEdge);
-
-    // 공정 노드 추가
-    addNodes(processNode);
-    
-    // 엣지 추가
-    addEdges(newEdge);
-
-    // 모달 닫기
+  // 공정 선택 처리
+  const handleProcessSelect = useCallback(async (process: Process) => {
+    await addProcessNode(process, products, openInputModal, openInputModal);
+    setShowProcessModal(false);
     setShowProcessModalForProduct(false);
-    setSelectedProduct(null);
+  }, [addProcessNode, products, openInputModal]);
 
-    console.log('✅ 공정 노드 1개 추가 완료:', { processNode, newEdge });
-  }, [selectedProduct, addNodes, addEdges]);
 
-  // 그룹 노드 추가
-  const addGroupNode = useCallback(() => {
-    const newNode: Node<any> = {
-      id: `group-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      type: 'group',
-      position: { x: Math.random() * 400 + 100, y: Math.random() * 300 + 100 },
-      style: { width: 200, height: 100 },
-      data: { label: '그룹' },
-    };
 
-    addNodes(newNode);
-  }, [addNodes]);
+  // Edge 연결 처리
+  const handleConnect = useCallback(async (params: Connection) => {
+    try {
+      console.log('🔗 연결 시도:', params);
+      console.log('📍 연결 정보:', {
+        source: params.source,
+        target: params.target,
+        sourceHandle: params.sourceHandle,
+        targetHandle: params.targetHandle
+      });
+      
+      // 연결 처리
+      await handleEdgeCreate(params, () => {});
+      
+      console.log('✅ 연결 처리 완료');
+      alert(`연결이 성공적으로 생성되었습니다!\n${params.source} → ${params.target}`);
+      
+    } catch (error) {
+      console.error('❌ 연결 처리 실패:', error);
+      alert(`연결 처리에 실패했습니다: ${error}`);
+    }
+  }, [handleEdgeCreate]);
 
-  const nodeTypes: NodeTypes = { custom: ProductNode, process: ProcessNode };
+  // 🔧 React Flow 공식 문서에 따른 단순화된 연결 검증 로직
+  const validateConnection = useCallback((connection: Connection) => {
+    console.log('🔍 연결 검증 시작:', connection);
+    console.log('📍 검증 대상:', {
+      source: connection.source,
+      target: connection.target,
+      sourceHandle: connection.sourceHandle,
+      targetHandle: connection.targetHandle
+    });
+    
+    // ✅ React Flow 공식 문서: 같은 노드 간 연결 방지
+    if (connection.source === connection.target) {
+      console.log('❌ 같은 노드 간 연결 시도');
+      return { valid: false, reason: '같은 노드 간 연결은 불가능합니다' };
+    }
+    
+    // ✅ React Flow 공식 문서: 같은 핸들 간 연결 방지
+    if (connection.sourceHandle && connection.targetHandle && 
+        connection.sourceHandle === connection.targetHandle) {
+      console.log('❌ 같은 핸들 간 연결 시도');
+      return { valid: false, reason: '같은 핸들 간 연결은 불가능합니다' };
+    }
+    
+    // ✅ React Flow 공식 문서: 이미 존재하는 연결 확인 (핸들 ID까지 포함하여 정확히 같은 연결만 체크)
+    const existingEdge = edges.find(edge => 
+      edge.source === connection.source && 
+      edge.target === connection.target &&
+      edge.sourceHandle === connection.sourceHandle &&
+      edge.targetHandle === connection.targetHandle
+    );
+    
+    if (existingEdge) {
+      console.log('❌ 이미 존재하는 연결 (핸들 ID 포함):', existingEdge);
+      return { valid: false, reason: '이미 존재하는 연결입니다' };
+    }
+    
+    // ✅ React Flow 공식 문서: 추가 검증 - 임시 엣지와의 중복 방지
+    const tempEdgeExists = edges.find(edge => 
+      edge.data?.isTemporary &&
+      edge.source === connection.source && 
+      edge.target === connection.target &&
+      edge.sourceHandle === connection.sourceHandle &&
+      edge.targetHandle === connection.targetHandle
+    );
+    
+    if (tempEdgeExists) {
+      console.log('❌ 임시 엣지와 중복:', tempEdgeExists);
+      return { valid: false, reason: '연결 처리 중입니다. 잠시 기다려주세요.' };
+    }
+    
+    console.log('✅ React Flow 연결 검증 통과');
+    return { valid: true, reason: '연결이 유효합니다' };
+  }, [edges]);
+
+  // 🔧 단순화된 연결 이벤트 핸들러
+  const handleConnectStart = useCallback((event: any, params: any) => {
+    console.log('🔗 연결 시작:', params);
+  }, []);
+
+  const handleConnectEnd = useCallback((event: any) => {
+    console.log('🔗 연결 종료:', event);
+  }, []);
+
+  const nodeTypes: NodeTypes = { 
+    product: ProductNode,  // 🔴 수정: 'product' 타입 추가
+    process: ProcessNode,  // 🔴 수정: 'process' 타입으로 변경
+    group: ProductNode     // 🔴 추가: 그룹 노드도 ProductNode로 렌더링
+  };
 
   return (
     <div className="w-full h-full flex flex-col">
@@ -576,109 +264,95 @@ function ProcessManagerInner() {
         <p className="text-gray-300">CBAM 배출량 산정을 위한 경계를 설정하고 노드를 생성합니다.</p>
       </div>
 
-      {/* 사업장 선택 카드 */}
-      <div className="bg-gray-800 p-4">
-        <div className="flex items-center gap-4">
-          {/* 사업장 추가 카드 */}
-          <div 
-            className="w-48 h-24 bg-gray-700 border-2 border-dashed border-gray-500 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-gray-600 transition-colors"
-            onClick={openInstallModal}
-          >
-            <div className="text-4xl text-gray-400 mb-1">+</div>
-            <div className="text-sm text-gray-300">사업장 추가</div>
-          </div>
-          
-          {/* 선택된 사업장 카드들 */}
-          {Object.keys(installCanvases).map((installId) => {
-            const install = installs.find(i => i.id === parseInt(installId));
-            if (!install) return null;
-            
-            const isActive = activeInstallId === parseInt(installId);
-            const canvasData = installCanvases[parseInt(installId)];
-            const nodeCount = canvasData?.nodes?.length || 0;
-            
-            return (
-              <div
-                key={installId}
-                className={`w-48 h-24 rounded-lg flex flex-col justify-center p-3 cursor-pointer transition-all ${
-                  isActive 
-                    ? 'bg-blue-600 border-2 border-blue-400 shadow-lg' 
-                    : 'bg-gray-700 border-2 border-gray-600 hover:border-gray-500'
-                }`}
-                onClick={() => handleInstallSelect(install)}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <div className="font-semibold text-white text-sm">{install.install_name}</div>
-                  <div className="text-xs text-gray-300">{nodeCount}개 노드</div>
-                </div>
-                <div className="text-xs text-gray-300">
-                  {install.reporting_year && `${install.reporting_year}년`}
-                </div>
-                {isActive && (
-                  <div className="text-xs text-blue-200 mt-1">활성</div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      {/* 사업장 선택 */}
+      <InstallSelector
+        installs={installs}
+        selectedInstall={selectedInstall}
+        installCanvases={installCanvases}
+        activeInstallId={activeInstallId}
+        onInstallSelect={handleInstallSelect}
+        onAddInstall={() => {}} // 사업장 추가 기능은 별도로 구현 필요
+      />
 
       {/* 버튼 */}
       <div className="bg-gray-800 p-4 flex gap-2">
-        <Button onClick={addProductNode} disabled={!selectedInstall} className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg flex items-center gap-2">
+        <Button 
+          onClick={handleAddProductNode} 
+          disabled={!selectedInstall} 
+          className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg flex items-center gap-2"
+        >
           <Plus className="h-4 w-4" /> 제품 노드
         </Button>
-        <Button onClick={openProcessModal} disabled={!selectedInstall} className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg flex items-center gap-2">
-          <Plus className="h-4 w-4" /> 공정 노드 (크로스 사업장)
-        </Button>
-        <Button onClick={addGroupNode} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+        <Button 
+          onClick={addGroupNode} 
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+        >
           <Plus className="h-4 w-4" /> 그룹 노드
         </Button>
+
+        
+        <Button 
+          onClick={refreshAllProcessEmissions} 
+          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+        >
+          📊 배출량 정보 새로고침
+        </Button>
+
       </div>
+      
+
 
       {/* ReactFlow 캔버스 */}
-      <div className="flex-1">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={(params: Connection) =>
-            addEdges({
-              id: `e-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-              source: params.source!,
-              target: params.target!,
-              sourceHandle: params.sourceHandle ?? undefined,
-              targetHandle: params.targetHandle ?? undefined,
-              type: 'custom',
-            })
-          }
-          onNodeClick={(event, node) => {
-            console.log('🔍 노드 클릭됨:', { event, node });
-            // 제품 노드인 경우 공정 추가 모달 열기
-            if (node.type === 'custom' && node.data.productData) {
-              console.log('🔍 제품 노드 클릭됨:', node.data.productData);
-              handleProductNodeClick(node.data.productData);
-            }
-          }}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          connectionMode={ConnectionMode.Loose}
-          defaultEdgeOptions={{ type: 'custom', markerEnd: { type: MarkerType.ArrowClosed } }}
-          deleteKeyCode="Delete"
-          className="bg-gray-900" // ✅ 다크 캔버스
-          fitView
-        >
+      <div className="flex-1 relative">
+                 {/* 디버깅 정보 */}
+         <div className="absolute top-2 right-2 bg-black bg-opacity-75 text-white p-2 rounded text-xs z-10">
+           <div>노드 수: {nodes.length}</div>
+           <div>연결 수: {edges.length}</div>
+           <div>사업장: {selectedInstall?.install_name || '선택 안됨'}</div>
+           <div>모드: Loose (다중 핸들 연결 가능)</div>
+           <div>핸들 수: {nodes.reduce((acc, node) => acc + (node.data?.showHandles ? 4 : 0), 0)}</div>
+           <div>최대 연결 가능: {nodes.length * 4}</div>
+           <div className="mt-2 pt-2 border-t border-gray-600">
+             <div className="text-yellow-400">🔗 연결 테스트</div>
+             <div>노드 간 드래그하여 연결</div>
+             <div>콘솔에서 이벤트 확인</div>
+           </div>
+         </div>
+                 <ReactFlow
+           nodes={nodes}
+           edges={edges}
+           onNodesChange={onNodesChange}
+           onEdgesChange={onEdgesChange}
+           nodeTypes={nodeTypes}
+           edgeTypes={edgeTypes}
+           connectionMode={ConnectionMode.Loose}
+           defaultEdgeOptions={{ type: 'custom', markerEnd: { type: MarkerType.ArrowClosed } }}
+           deleteKeyCode="Delete"
+           className="bg-gray-900"
+           fitView
+           onConnectStart={(event, params) => {
+             console.log('🔗 4방향 연결 시작:', params);
+             handleConnectStart(event, params);
+           }}
+           onConnect={(params) => {
+             console.log('🔗 4방향 연결 완료:', params);
+             const validation = validateConnection(params);
+             if (validation.valid) {
+               console.log('✅ 연결 검증 통과, 연결 처리 시작');
+               handleConnect(params);
+             } else {
+               console.log(`❌ 연결 검증 실패: ${validation.reason}`, params);
+               alert(`연결이 유효하지 않습니다: ${validation.reason}`);
+             }
+           }}
+           onConnectEnd={handleConnectEnd}
+           isValidConnection={(connection) => {
+             const validation = validateConnection(connection as Connection);
+             return validation.valid;
+           }}
+         >
           <Background color="#334155" gap={24} size={1} />
-          <Controls 
-            className="!bg-gray-800 !border !border-gray-700 !text-gray-200 !rounded-md" 
-            position="bottom-left"
-            style={{
-              backgroundColor: '#1f2937',
-              border: '1px solid #374151',
-              borderRadius: '6px'
-            }}
-          />
+          <Controls className="!bg-gray-800 !border !border-gray-700 !text-gray-200 !rounded-md" position="bottom-left" />
           <MiniMap
             className="!border !border-gray-700 !rounded-md"
             style={{ backgroundColor: '#0b1220' }}
@@ -691,199 +365,49 @@ function ProcessManagerInner() {
         </ReactFlow>
       </div>
 
-      {/* 사업장 선택 모달 */}
-      {showInstallModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
-          <div className="bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full mx-4 border border-gray-700">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-white">사업장 선택</h3>
-              <button onClick={() => setShowInstallModal(false)} className="text-gray-400 hover:text-gray-200">✕</button>
-            </div>
-            <div className="space-y-2">
-              {installs.length > 0 ? (
-                installs.map((install) => (
-                  <div
-                    key={install.id}
-                    className="p-3 border border-gray-600 rounded-lg cursor-pointer hover:bg-gray-700 hover:border-blue-400 transition-colors"
-                    onClick={() => handleInstallSelect(install)}
-                  >
-                    <div className="font-medium text-white">{install.install_name}</div>
-                    <div className="text-sm text-gray-300">ID: {install.id}</div>
-                    {install.reporting_year && (
-                      <div className="text-sm text-gray-300">보고기간: {install.reporting_year}년</div>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-4 text-gray-400">
-                  등록된 사업장이 없습니다.
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 제품 선택 모달 */}
+      {/* 모달들 */}
       {showProductModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
-          <div className="bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full mx-4 border border-gray-700">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-white">제품 선택</h3>
-              <button onClick={() => setShowProductModal(false)} className="text-gray-400 hover:text-gray-200">✕</button>
-            </div>
-            <div className="space-y-2">
-              {products.length > 0 ? (
-                products.map((product) => (
-                  <div
-                    key={product.id}
-                    className="p-3 border border-gray-600 rounded-lg cursor-pointer hover:bg-gray-700 hover:border-blue-400 transition-colors"
-                    onClick={() => handleProductSelect(product)}
-                  >
-                    <div className="font-medium text-white">{product.product_name}</div>
-                    <div className="text-sm text-gray-300">카테고리: {product.product_category}</div>
-                    <div className="text-sm text-gray-300">수량: {product.product_amount}</div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-4 text-gray-400">
-                  선택된 사업장에 등록된 제품이 없습니다.
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <ProductSelector
+          products={products}
+          onProductSelect={handleProductSelect}
+          onClose={() => setShowProductModal(false)}
+        />
       )}
 
-      {/* 제품별 공정 선택 모달 */}
       {showProcessModalForProduct && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
-          <div className="bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full mx-4 border border-gray-700">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-white">
-                공정 추가 - {selectedProduct?.product_name}
-              </h3>
-              <button onClick={() => setShowProcessModalForProduct(false)} className="text-gray-400 hover:text-gray-200">✕</button>
-            </div>
-            
-            <div className="space-y-2">
-              {processes.length > 0 ? (
-                processes.map((process) => (
-                  <div
-                    key={process.id}
-                    className="p-3 border border-gray-600 rounded-lg cursor-pointer hover:bg-gray-700 hover:border-purple-400 transition-colors"
-                    onClick={() => handleProcessSelect(process)}
-                  >
-                    <div className="font-medium text-white">{process.process_name}</div>
-                    <div className="text-sm text-gray-300">시작일: {process.start_period || 'N/A'}</div>
-                    <div className="text-sm text-gray-300">종료일: {process.end_period || 'N/A'}</div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-4 text-gray-400">
-                  {selectedProduct?.product_name}에 등록된 공정이 없습니다.
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <ProcessSelector
+          processes={processes}
+          allProcesses={allProcesses}
+          products={products}
+          installs={installs}
+          selectedProduct={selectedProduct}
+          selectedInstall={selectedInstall}
+          onProcessSelect={handleProcessSelect}
+          onClose={() => setShowProcessModalForProduct(false)}
+        />
       )}
 
-      {/* 복잡한 다대다 관계 공정 선택 모달 */}
       {showProcessModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
-          <div className="bg-gray-800 p-6 rounded-lg shadow-lg max-w-2xl w-full mx-4 border border-gray-700">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-white">
-                공정 선택 - {processFilterMode === 'product' ? selectedProduct?.product_name : '전체 공정'}
-              </h3>
-              <button onClick={() => setShowProcessModal(false)} className="text-gray-400 hover:text-gray-200">✕</button>
-            </div>
-            
-            {/* 필터링 옵션 */}
-            <div className="mb-4 flex gap-2">
-              <button
-                onClick={() => setProcessFilterMode('all')}
-                className={`px-3 py-1 rounded text-sm transition-colors ${
-                  processFilterMode === 'all'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
-              >
-                전체 공정
-              </button>
-              {selectedProduct && (
-                <button
-                  onClick={() => setProcessFilterMode('product')}
-                  className={`px-3 py-1 rounded text-sm transition-colors ${
-                    processFilterMode === 'product'
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
-                >
-                  {selectedProduct.product_name} 공정만
-                </button>
-              )}
-            </div>
-            
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {(() => {
-                const displayProcesses = processFilterMode === 'product' 
-                  ? allProcesses.filter((process: any) => 
-                      process.products && process.products.some((p: any) => p.id === selectedProduct?.id)
-                    )
-                  : allProcesses;
-                
-                return displayProcesses.length > 0 ? (
-                  displayProcesses.map((process: any) => {
-                    // 해당 공정이 사용되는 모든 제품 정보 찾기 (다대다 관계)
-                    const relatedProducts = products.filter((product: any) => 
-                      process.products && process.products.some((p: any) => p.id === product.id)
-                    );
-                    const productNames = relatedProducts.map((product: any) => product.product_name).join(', ');
-                    
-                    // 외부 사업장의 공정인지 확인 (공정이 속한 사업장 중 하나라도 현재 사업장이 아니면 외부)
-                    const isExternalProcess = process.products && 
-                      process.products.some((p: any) => p.install_id !== selectedInstall?.id);
-                    const processInstall = installs.find((install: any) => 
-                      process.products && process.products.some((p: any) => p.install_id === install.id)
-                    );
-                    
-                    return (
-                      <div
-                        key={process.id}
-                        className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                          isExternalProcess 
-                            ? 'border-gray-500 bg-gray-700 hover:bg-gray-600' 
-                            : 'border-gray-600 hover:bg-gray-700 hover:border-purple-400'
-                        }`}
-                        onClick={() => handleProcessSelect(process)}
-                      >
-                        <div className="font-medium text-white">{process.process_name}</div>
-                        <div className="text-sm text-gray-300">사용 제품: {productNames || 'N/A'}</div>
-                        {isExternalProcess && (
-                          <div className="text-sm text-gray-400">
-                            외부 사업장: {processInstall?.install_name || '알 수 없음'} (읽기 전용)
-                          </div>
-                        )}
-                        <div className="text-sm text-gray-300">시작일: {process.start_period || 'N/A'}</div>
-                        <div className="text-sm text-gray-300">종료일: {process.end_period || 'N/A'}</div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="text-center py-4 text-gray-400">
-                    {processFilterMode === 'product' 
-                      ? `${selectedProduct?.product_name}에 등록된 공정이 없습니다.`
-                      : '등록된 공정이 없습니다.'
-                    }
-                  </div>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
+        <ProductProcessModal
+          selectedProduct={selectedProduct}
+          allProcesses={allProcesses}
+          products={products}
+          installs={installs}
+          selectedInstall={selectedInstall}
+          onProcessSelect={handleProcessSelect}
+          onClose={() => setShowProcessModal(false)}
+        />
       )}
+
+      {showInputModal && selectedProcessForInput && (
+        <InputManager
+          selectedProcess={selectedProcessForInput}
+          onClose={() => setShowInputModal(false)}
+          onDataSaved={refreshAllProcessEmissions} // 데이터 저장 후 배출량 정보 새로고침
+        />
+      )}
+
+
     </div>
   );
 }

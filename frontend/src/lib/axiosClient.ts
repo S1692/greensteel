@@ -174,40 +174,6 @@ export const apiEndpoints = {
     byCode: '/api/v1/countries/code',
     byUnlocode: '/api/v1/countries/unlocode',
   },
-  // CBAM Service (Gateway를 통해)
-  cbam: {
-    reports: '/api/cbam/reports',
-    calculations: '/api/cbam/calculations',
-    templates: '/api/cbam/templates',
-    // 사업장 관리
-    install: {
-      list: '/api/cbam/install',
-      create: '/api/cbam/install',
-      delete: (id: number) => `/api/cbam/install/${id}`,
-      update: (id: number) => `/api/cbam/install/${id}`,
-    },
-    // 제품 관리
-    product: {
-      list: '/api/cbam/product',
-      create: '/api/cbam/product',
-      delete: (id: number) => `/api/cbam/product/${id}`,
-      update: (id: number) => `/api/cbam/product/${id}`,
-    },
-    // 공정 관리
-    process: {
-      list: '/api/cbam/process',
-      create: '/api/cbam/process',
-      delete: (id: number) => `/api/cbam/process/${id}`,
-      update: (id: number) => `/api/cbam/process/${id}`,
-    },
-    // 공정 입력 관리
-    processInput: {
-      list: '/api/cbam/process-input',
-      create: '/api/cbam/process-input',
-      delete: (id: number) => `/api/cbam/process-input/${id}`,
-      update: (id: number) => `/api/cbam/process-input/${id}`,
-    },
-  },
   // Calculation Service (Gateway를 통해)
   calculation: {
     process: '/api/calculation/process',
@@ -258,6 +224,141 @@ export const apiEndpoints = {
     projects: '/api/lci/projects',
     calculations: '/api/lci/calculations',
     templates: '/api/lci/templates',
+  },
+  // CBAM Service API Endpoints
+  cbam: {
+    // Install (사업장) API
+    install: {
+      create: '/api/v1/cbam/install',
+      list: '/api/v1/cbam/install',
+      get: (id: number) => `/api/v1/cbam/install/${id}`,
+      update: (id: number) => `/api/v1/cbam/install/${id}`,
+      delete: (id: number) => `/api/v1/cbam/install/${id}`,
+    },
+    
+    // Product (제품) API
+    product: {
+      create: '/api/v1/cbam/product',
+      list: '/api/v1/cbam/product',
+      get: (id: number) => `/api/v1/cbam/product/${id}`,
+      update: (id: number) => `/api/v1/cbam/product/${id}`,
+      delete: (id: number) => `/api/v1/cbam/product/${id}`,
+      byInstall: (install_id: number) => `/api/v1/cbam/product/install/${install_id}`,
+    },
+    
+    // Process (공정) API
+    process: {
+      create: '/api/v1/cbam/process',
+      list: '/api/v1/cbam/process',
+      get: (id: number) => `/api/v1/cbam/process/${id}`,
+      update: (id: number) => `/api/v1/cbam/process/${id}`,
+      delete: (id: number) => `/api/v1/cbam/process/${id}`,
+    },
+    
+    // Edge (노드 연결) API
+    edge: {
+      create: '/api/v1/cbam/edge',
+      list: '/api/v1/cbam/edge',
+      get: (id: number) => `/api/v1/cbam/edge/${id}`,
+      update: (id: number) => `/api/v1/cbam/edge/${id}`,
+      delete: (id: number) => `/api/v1/cbam/edge/${id}`,
+    },
+    
+    // Mapping (노드 위치) API
+    mapping: {
+      create: '/api/v1/cbam/mapping',
+      list: '/api/v1/cbam/mapping',
+      get: (id: number) => `/api/v1/cbam/mapping/${id}`,
+      update: (id: number) => `/api/v1/cbam/mapping/${id}`,
+      delete: (id: number) => `/api/v1/cbam/mapping/${id}`,
+      lookup: (hs_code: string) => `/api/v1/cbam/mapping/lookup/${hs_code}`,
+      search: {
+        hs: (hs_code: string) => `/api/v1/cbam/mapping/search/hs/${hs_code}`,
+        cn: (cn_code: string) => `/api/v1/cbam/mapping/search/cn/${cn_code}`,
+        goods: (goods_name: string) => `/api/v1/cbam/mapping/search/goods/${goods_name}`,
+      },
+      stats: '/api/v1/cbam/mapping/stats',
+      batch: '/api/v1/cbam/mapping/batch',
+    },
+    
+    // Matdir (원자재 투입) API
+    matdir: {
+      create: '/api/v1/cbam/matdir/create',
+      list: '/api/v1/cbam/matdir/list',
+      get: (id: number) => `/api/v1/cbam/matdir/${id}`,
+      update: (id: number) => `/api/v1/cbam/matdir/${id}`,
+      delete: (id: number) => `/api/v1/cbam/matdir/${id}`,
+      byProcess: (process_id: number) => `/api/v1/cbam/matdir/process/${process_id}`,
+      calculate: '/api/v1/cbam/matdir/calculate',
+      totalByProcess: (process_id: number) => `/api/v1/cbam/matdir/process/${process_id}/total`
+    },
+    
+    // Fueldir (연료 투입) API
+    fueldir: {
+      create: '/api/v1/cbam/fueldir/create',
+      list: '/api/v1/cbam/fueldir/list',
+      get: (id: number) => `/api/v1/cbam/fueldir/${id}`,
+      update: (id: number) => `/api/v1/cbam/fueldir/${id}`,
+      delete: (id: number) => `/api/v1/cbam/fueldir/${id}`,
+      byProcess: (process_id: number) => `/api/v1/cbam/fueldir/process/${process_id}`,
+      calculate: '/api/v1/cbam/fueldir/calculate',
+      totalByProcess: (process_id: number) => `/api/v1/cbam/fueldir/process/${process_id}/total`
+    },
+    
+    // Fuel Master API
+    fuelMaster: {
+      list: '/api/v1/cbam/fueldir/fuel-master',
+      search: (fuel_name: string) => `/api/v1/cbam/fueldir/fuel-master/search/${fuel_name}`,
+      getFactor: (fuel_name: string) => `/api/v1/cbam/fueldir/fuel-master/factor/${fuel_name}`,
+      autoFactor: '/api/v1/cbam/fueldir/auto-factor'
+    },
+    
+    // Product-Process 관계 API
+    productProcess: {
+      create: '/api/v1/cbam/productprocess',
+      list: '/api/v1/cbam/productprocess',
+      get: (id: number) => `/api/v1/cbam/productprocess/${id}`,
+      update: (id: number) => `/api/v1/cbam/productprocess/${id}`,
+      delete: (id: number) => `/api/v1/cbam/productprocess/${id}`,
+      byProduct: (product_id: number) => `/api/v1/cbam/productprocess/product/${product_id}`,
+      byProcess: (process_id: number) => `/api/v1/cbam/productprocess/process/${process_id}`,
+      stats: '/api/v1/cbam/productprocess/stats'
+    },
+    
+    // Calculation 관련 API
+    calculation: {
+      process: {
+        calculate: '/api/v1/cbam/calculation/emission/process/calculate',
+        attrdir: (process_id: number) => `/api/v1/cbam/calculation/emission/process/${process_id}/attrdir`,
+        attrdirAll: '/api/v1/cbam/calculation/emission/process/attrdir/all'
+      },
+      product: {
+        calculate: '/api/v1/cbam/calculation/emission/product/calculate'
+      }
+    },
+    
+    // Dummy Data API
+    dummy: {
+      list: '/api/v1/cbam/dummy',
+      get: (id: number) => `/api/v1/cbam/dummy/${id}`,
+      health: '/api/v1/cbam/dummy/health',
+      stats: '/api/v1/cbam/dummy/stats/count',
+      processNames: '/api/v1/cbam/dummy/process-names',
+      processNamesByPeriod: '/api/v1/cbam/dummy/process-names-by-period',
+      productNames: '/api/v1/cbam/dummy/product-names',
+      productNamesByPeriod: '/api/v1/cbam/dummy/product-names-by-period',
+      products: {
+        list: '/api/v1/cbam/dummy/products',
+        processes: (productName: string) => `/api/v1/cbam/dummy/products/${encodeURIComponent(productName)}/processes`
+      }
+    }
+  },
+  // Material Master API
+  materialMaster: {
+    list: '/api/v1/cbam/matdir/material-master',
+    search: (mat_name: string) => `/api/v1/cbam/matdir/material-master/search/${mat_name}`,
+    getFactor: (mat_name: string) => `/api/v1/cbam/matdir/material-master/factor/${mat_name}`,
+    autoFactor: '/api/v1/cbam/matdir/material-master/auto-factor'
   },
 } as const;
 

@@ -240,8 +240,9 @@ async def save_transport_data(data: dict):
                         }
                         
                         logger.info(f"행 {i+1} - 처리된 데이터: {transport_record}")
-                        logger.info(f"행 {i+1} - 운송수량 원본값: {row.get('운송수량')}, 변환된 값: {transport_record['운송수량']}")
-                        logger.info(f"행 {i+1} - 운송일자 원본값: {row.get('운송일자')}, 변환된 값: {transport_record['운송일자']}")
+                        logger.info(f"행 {i+1} - 운송수량 원본값: {row.get('운송 수량')}, 변환된 값: {transport_record['운송수량']}")
+                        logger.info(f"행 {i+1} - 운송일자 원본값: {row.get('운송 일자')}, 변환된 값: {transport_record['운송일자']}")
+                        logger.info(f"행 {i+1} - 모든 키와 값: {[(k, v) for k, v in row.items()]}")
                         
                         # 필수 필드가 있는지 확인하고 None 값 처리
                         if not transport_record.get('생산품명') or not transport_record.get('로트번호'):

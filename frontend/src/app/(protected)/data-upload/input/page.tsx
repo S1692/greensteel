@@ -223,7 +223,7 @@ const InputDataPage: React.FC = () => {
       setError(null);
 
       // AI 처리 즉시 시작
-      // AI 처리 제거됨 - 직접 데이터베이스 저장으로 변경
+      handleAIProcessImmediate(inputData);
 
     } catch (err) {
       console.error('파일 업로드 오류:', err);
@@ -310,7 +310,7 @@ const InputDataPage: React.FC = () => {
       console.log('AI 처리 응답 데이터:', responseData);
       
       if (responseData.success) {
-        const processedData: DataRow[] = responseData.data || [];
+        const processedData: DataRow[] = responseData.processed_data || [];
         const unifiedColumns = responseData.columns || [];
         
         console.log('AI 처리 완료:', {

@@ -27,12 +27,12 @@ type DataRow = {
   오더번호?: string;
   로트번호?: string;
   생산품명?: string;
-  생산수량?: number;
+  생산수량?: string;
   투입일?: string;
   종료일?: string;
   공정?: string;
   투입물명?: string;
-  수량?: number;
+  수량?: string;
   단위?: string;
   AI추천답변?: string; // frontend에서만 표시, DB 저장 시 투입물명으로 대체
   [key: string]: any;
@@ -478,33 +478,7 @@ const InputDataPage: React.FC = () => {
       }
     }
 
-    // 수량 데이터 타입 검증 - 여러 가능한 칼럼명 시도
-    let 생산수량 = 0;
-    let 수량 = 0;
-    
-    // 생산수량 칼럼 찾기
-    if (row.modifiedData['생산수량'] !== undefined) {
-      생산수량 = parseFloat(row.modifiedData['생산수량']?.toString() || '0');
-    } else if (row.modifiedData['생산 수량'] !== undefined) {
-      생산수량 = parseFloat(row.modifiedData['생산 수량']?.toString() || '0');
-    }
-    
-    // 수량 칼럼 찾기
-    if (row.modifiedData['수량'] !== undefined) {
-      수량 = parseFloat(row.modifiedData['수량']?.toString() || '0');
-    } else if (row.modifiedData['투입수량'] !== undefined) {
-      수량 = parseFloat(row.modifiedData['투입수량']?.toString() || '0');
-    }
-    
-    if (생산수량 <= 0) {
-      invalidFields.push('생산수량');
-      updateRowError(rowId, '생산수량', `생산수량은 0보다 큰 값이어야 합니다. 현재 값: ${생산수량}`);
-    }
-    
-    if (수량 <= 0) {
-      invalidFields.push('수량');
-      updateRowError(rowId, '수량', `수량은 0보다 큰 값이어야 합니다. 현재 값: ${수량}`);
-    }
+
 
     // 오류가 있으면 확인 거부
     if (missingFields.length > 0 || invalidFields.length > 0) {
@@ -1153,12 +1127,12 @@ const InputDataPage: React.FC = () => {
          '오더번호': '',
          '로트번호': '',
          '생산품명': '',
-         '생산수량': 0,
+         '생산수량': '',
          '투입일': '',
          '종료일': '',
          '공정': '',
          '투입물명': '',
-         '수량': 0,
+         '수량': '',
          '단위': ''
        },
        modifiedData: {
@@ -1166,12 +1140,12 @@ const InputDataPage: React.FC = () => {
          '오더번호': '',
          '로트번호': '',
          '생산품명': '',
-         '생산수량': 0,
+         '생산수량': '',
          '투입일': '',
          '종료일': '',
          '공정': '',
          '투입물명': '',
-         '수량': 0,
+         '수량': '',
          '단위': ''
        },
        isEditing: true,
@@ -1231,14 +1205,9 @@ const InputDataPage: React.FC = () => {
               console.warn(`투입물명이 너무 길어서 자동으로 잘렸습니다: ${투입물명}`);
             }
             
-            // 데이터 타입 변환 및 검증
+            // 데이터 타입 변환
             const 생산수량 = parseFloat(row.modifiedData['생산수량']?.toString() || '0');
             const 수량 = parseFloat(row.modifiedData['수량']?.toString() || '0');
-            
-            // 수량이 0 이하인 경우 오류 처리
-            if (생산수량 <= 0 || 수량 <= 0) {
-              throw new Error('생산수량과 수량은 0보다 큰 값이어야 합니다.');
-            }
             
             return {
               '로트번호': row.modifiedData['로트번호'],
@@ -1262,29 +1231,9 @@ const InputDataPage: React.FC = () => {
               console.warn(`투입물명이 너무 길어서 자동으로 잘렸습니다: ${투입물명}`);
             }
             
-            // 데이터 타입 변환 및 검증 - 여러 가능한 칼럼명 시도
-            let 생산수량 = 0;
-            let 수량 = 0;
-            
-            // 생산수량 칼럼 찾기
-            if (row.modifiedData['생산수량'] !== undefined) {
-              생산수량 = parseFloat(row.modifiedData['생산수량']?.toString() || '0');
-            } else if (row.modifiedData['생산 수량'] !== undefined) {
-              생산수량 = parseFloat(row.modifiedData['생산 수량']?.toString() || '0');
-            }
-            
-            // 수량 칼럼 찾기
-            if (row.modifiedData['수량'] !== undefined) {
-              수량 = parseFloat(row.modifiedData['수량']?.toString() || '0');
-            } else if (row.modifiedData['투입수량'] !== undefined) {
-              수량 = parseFloat(row.modifiedData['투입수량']?.toString() || '0');
-            }
-            
-            // 수량이 0 이하인 경우 오류 처리
-            if (생산수량 <= 0 || 수량 <= 0) {
-              console.error('수량 데이터:', row.modifiedData);
-              throw new Error(`생산수량(${생산수량})과 수량(${수량})은 0보다 큰 값이어야 합니다.`);
-            }
+            // 데이터 타입 변환
+            const 생산수량 = parseFloat(row.modifiedData['생산수량']?.toString() || '0');
+            const 수량 = parseFloat(row.modifiedData['수량']?.toString() || '0');
             
             // DB에 저장할 데이터에서 AI추천답변 제거하고 투입물명만 포함
             const { AI추천답변, ...dataForDB } = row.modifiedData;

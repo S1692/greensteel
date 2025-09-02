@@ -26,6 +26,21 @@ interface InputDataResponse {
   count: number;
 }
 
+// 임시 더미 데이터 (투입물명이 빈 값일 때 사용)
+const getDummyInputMaterial = (process: string, product: string): string => {
+  const materialMap: { [key: string]: string } = {
+    '코크스 생산': '코크스 공정에 적합한 원료 선택',
+    '소결': '소결 공정에 적합한 원료 선택 필!',
+    '제선': '제철 공정에 적합한 산화제 선택',
+    '제강': '제강 공정에 적합한 합금 원료',
+    '압연': '압연 공정에 적합한 소재',
+    '포장': '포장 공정에 적합한 자재',
+    '기타': '일반 공정. 원료: 철, 수량: 100'
+  };
+
+  return materialMap[process] || `일반 공정. 원료: ${product} 원료, 수량: 100`;
+};
+
 export const useInputData = () => {
   const [data, setData] = useState<InputData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -34,14 +49,19 @@ export const useInputData = () => {
   const fetchInputData = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      // 데이터 게더 서비스의 input-data 엔드포인트 호출
       const response = await axiosClient.get('/api/datagather/input-data');
       const result: InputDataResponse = response.data;
-      
+
       if (result.success) {
-        setData(result.data);
+        // 투입물명이 빈 값인 경우 더미 데이터로 대체
+        const processedData = result.data.map(item => ({
+          ...item,
+          투입물명: item.투입물명 || getDummyInputMaterial(item.공정, item.생산품명)
+        }));
+
+        setData(processedData);
       } else {
         setError(result.message || '데이터 조회에 실패했습니다.');
       }

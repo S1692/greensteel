@@ -443,6 +443,11 @@ async def get_input_data():
         
         with Session(engine) as session:
             try:
+                # 테이블 구조 확인을 위한 로깅
+                table_info = session.execute(text("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'input_data' ORDER BY ordinal_position"))
+                columns_info = table_info.fetchall()
+                logger.info(f"input_data 테이블 컬럼 정보: {columns_info}")
+                
                 # input_data 테이블의 모든 데이터 조회
                 result = session.execute(text("SELECT * FROM input_data ORDER BY created_at DESC"))
                 rows = result.fetchall()
@@ -461,6 +466,8 @@ async def get_input_data():
                 if data:
                     logger.info(f"첫 번째 행 데이터: {data[0]}")
                     logger.info(f"투입물명 컬럼 값들: {[row.get('투입물명', 'N/A') for row in data[:5]]}")
+                    # 모든 컬럼명 로깅
+                    logger.info(f"첫 번째 행의 모든 컬럼명: {list(data[0].keys())}")
                 else:
                     logger.info("조회된 데이터가 없습니다.")
                 

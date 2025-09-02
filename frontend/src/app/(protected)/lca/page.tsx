@@ -162,6 +162,7 @@ export default function LcaPage() {
           const data = await response.json();
           const inputDataArray = data.success ? data.data : [];
           setInputData(inputDataArray);
+          console.log('투입물명 값들:', inputDataArray.map((row: any) => row.투입물명));
         } else {
           throw new Error(`input_data 데이터 로드 실패: ${response.statusText}`);
         }

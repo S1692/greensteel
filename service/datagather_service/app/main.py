@@ -430,26 +430,7 @@ async def get_input_data():
         with Session(engine) as session:
             try:
                 # input_data 테이블의 모든 데이터 조회
-                result = session.execute(text("""
-                    SELECT 
-                        id,
-                        로트번호,
-                        생산품명,
-                        생산수량,
-                        투입일,
-                        종료일,
-                        공정,
-                        투입물명,
-                        수량,
-                        단위,
-                        주문처명,
-                        오더번호,
-                        source_file,
-                        created_at,
-                        updated_at
-                    FROM input_data 
-                    ORDER BY created_at DESC
-                """))
+                result = session.execute(text("SELECT * FROM input_data ORDER BY created_at DESC"))
                 rows = result.fetchall()
                 
                 # 결과를 딕셔너리 리스트로 변환
@@ -461,6 +442,13 @@ async def get_input_data():
                         if hasattr(value, 'isoformat'):
                             row_dict[key] = value.isoformat()
                     data.append(row_dict)
+                
+                # 디버깅을 위한 로깅 추가
+                if data:
+                    logger.info(f"첫 번째 행 데이터: {data[0]}")
+                    logger.info(f"투입물명 컬럼 값들: {[row.get('투입물명', 'N/A') for row in data[:5]]}")
+                else:
+                    logger.info("조회된 데이터가 없습니다.")
                 
                 logger.info(f"실적정보(투입물) 조회 완료: {len(data)}행")
                 return {

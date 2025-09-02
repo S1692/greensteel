@@ -461,17 +461,31 @@ const ProcessDataPage: React.FC = () => {
         throw new Error(`필수 칼럼이 누락되었습니다: ${missingColumns.join(', ')}`);
       }
       
-      // 데이터 읽기 (두 번째 행부터)
+      // 데이터 읽기 (두 번째 행부터) - 공정 설명 컬럼 처리 개선
       const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-        header: columns,
+        header: 1, // 숫자 헤더 사용
         range: 1,
         defval: ''
-      }) as DataRow[];
+      }) as any[][];
       
-      console.log('처리된 데이터:', jsonData);
+      // 컬럼명 매핑 및 데이터 변환
+      const processedData = jsonData.map((row: any[]) => {
+        const dataRow: any = {};
+        columns.forEach((col, index) => {
+          // 공정 설명 컬럼 특별 처리
+          if (col === '공정 설명') {
+            dataRow['공정설명'] = row[index] || '';
+          } else {
+            dataRow[col] = row[index] || '';
+          }
+        });
+        return dataRow;
+      });
+      
+      console.log('처리된 데이터:', processedData);
       
       // 편집 가능한 행 데이터 생성
-      const editableRows: EditableRow[] = jsonData.map((row: any, index) => ({
+      const editableRows: EditableRow[] = processedData.map((row: any, index) => ({
         id: `process-${index}`,
         originalData: row,
         modifiedData: { ...row },
@@ -481,7 +495,7 @@ const ProcessDataPage: React.FC = () => {
       const inputData: DataPreview = {
         filename: inputFile.name,
         fileSize: (inputFile.size / 1024 / 1024).toFixed(2),
-        data: jsonData,
+        data: processedData,
         columns: columns
       };
 

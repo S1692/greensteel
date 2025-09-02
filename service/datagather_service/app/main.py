@@ -332,11 +332,13 @@ async def save_process_data(data: dict):
                             '공정설명': row.get('공정설명', ''),
                             '공정유형': row.get('공정유형', ''),
                             '공정단계': row.get('공정단계', ''),
-                            '공정효율': float(row.get('공정효율', 0)) if row.get('공정효율') else None
+                            '공정효율': float(row.get('공정효율', 0)) if row.get('공정효율') else 0.0  # 기본값 0.0으로 설정
                         }
                         
-                        # None 값 제거
-                        process_record = {k: v for k, v in process_record.items() if v is not None}
+                        # 필수 필드 검증
+                        if not process_record['공정명']:
+                            logger.warn(f"공정명이 비어있는 행 건너뜀: {row}")
+                            continue
                         
                         cursor = session.execute(text("""
                             INSERT INTO process_data 

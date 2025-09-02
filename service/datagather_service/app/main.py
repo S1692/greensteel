@@ -143,17 +143,23 @@ async def ai_process_data(data: Dict[str, Any]):
             }
             processed_data.append(processed_item)
         
+        # 프론트엔드가 기대하는 응답 구조로 맞춤
+        response_data = {
+            "success": True,
+            "message": "AI 데이터 처리가 완료되었습니다.",
+            "data_type": data.get('data_type', 'ai_processed'),
+            "processed_count": len(processed_data),
+            "data": processed_data,  # 실제 데이터
+            "columns": list(processed_data[0].keys()) if processed_data else [],  # 컬럼명들
+            "processedRows": len(processed_data),  # 처리된 행 수
+            "totalRows": len(processed_data),  # 전체 행 수
+            "original_data": data
+        }
+        
         logger.info("✅ AI 데이터 처리 성공")
         return JSONResponse(
             status_code=200,
-            content={
-                "success": True,
-                "message": "AI 데이터 처리가 완료되었습니다.",
-                "data_type": data.get('data_type', 'ai_processed'),
-                "processed_count": len(processed_data),
-                "data": processed_data,  # 프론트엔드가 기대하는 배열 형태
-                "original_data": data
-            }
+            content=response_data
         )
             
     except Exception as e:
@@ -164,7 +170,10 @@ async def ai_process_data(data: Dict[str, Any]):
                 "success": False,
                 "error": str(e),
                 "message": "AI 데이터 처리 중 오류가 발생했습니다.",
-                "data": []  # 오류 시에도 빈 배열 반환
+                "data": [],  # 오류 시에도 빈 배열 반환
+                "columns": [],
+                "processedRows": 0,
+                "totalRows": 0
             }
         )
 

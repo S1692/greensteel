@@ -842,7 +842,14 @@ async def save_processed_data(data: dict):
                     
                     except Exception as row_error:
                         logger.error(f"행 데이터 저장 실패: {row_error}")
-                        # 개별 행 오류 시에도 계속 진행
+                        # 개별 행 오류 시 트랜잭션 롤백 후 새 트랜잭션 시작
+                        try:
+                            session.rollback()
+                        except:
+                            pass
+                        # 새 세션으로 재시작
+                        session.close()
+                        session = Session(engine)
                         continue
                 
                 # 모든 행 처리 후 커밋

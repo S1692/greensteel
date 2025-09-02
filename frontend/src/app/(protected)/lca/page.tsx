@@ -50,6 +50,8 @@ interface OutputData {
   산출물명: string;
   수량: number;
   단위: string;
+  주문처명?: string;
+  오더번호?: string;
 }
 
 interface ProcessData {
@@ -58,6 +60,7 @@ interface ProcessData {
   생산제품: string;
   세부공정: string;
   공정설명: string;
+  '공정 설명'?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -72,6 +75,8 @@ interface TransportData {
   도착공정: string;
   출발지: string;
   이동수단: string;
+  주문처명?: string;
+  오더번호?: string;
 }
 
 // 데이터 관리 탭용 인터페이스 (created_at, updated_at 제외)
@@ -672,6 +677,8 @@ export default function LcaPage() {
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입물명</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
                       <th className="px-4 py-3 text-sm text-ecotrace-textSecondary">단위</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">주문처명</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">오더번호</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-ecotrace-border">
@@ -686,6 +693,8 @@ export default function LcaPage() {
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입물명 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.수량 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.단위 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.주문처명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.오더번호 || '-'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -746,6 +755,8 @@ export default function LcaPage() {
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">산출물명</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">단위</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">주문처명</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">오더번호</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-ecotrace-border">
@@ -760,6 +771,8 @@ export default function LcaPage() {
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.산출물명 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.수량 || '-'}</td>
                         <td className="px-3 text-sm text-ecotrace-text">{row.단위 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.주문처명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.오더번호 || '-'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1030,6 +1043,8 @@ export default function LcaPage() {
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">도착공정</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">출발지</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">이동수단</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">주문처명</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">오더번호</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-ecotrace-border">
@@ -1043,6 +1058,8 @@ export default function LcaPage() {
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.도착공정 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.출발지 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.이동수단 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.주문처명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.오더번호 || '-'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1096,7 +1113,7 @@ export default function LcaPage() {
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정명</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산제품</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">세부공정</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정설명</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정 설명</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-ecotrace-border">
@@ -1105,7 +1122,7 @@ export default function LcaPage() {
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정명 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산제품 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.세부공정 || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정설명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row['공정 설명'] || row.공정설명 || '-'}</td>
                       </tr>
                     ))}
                   </tbody>

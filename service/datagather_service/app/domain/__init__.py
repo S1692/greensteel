@@ -2,31 +2,22 @@
 # 🏗️ Domain Layer - 도메인 레이어
 # ============================================================================
 
-from .datagather.datagather_entity import DataGather
-from .datagather.datagather_repository import DataGatherRepository
-from .datagather.datagather_service import DataGatherService
-
-from .process.process_entity import Process
-from .process.process_repository import ProcessRepository
-from .process.process_service import ProcessService
-
-from .install.install_entity import Install
-from .install.install_repository import InstallRepository
-from .install.install_service import InstallService
+from .datagather.input_data_entity import InputData
+from .datagather.output_data_entity import OutputData
+from .datagather.transport_data_entity import TransportData
+from .datagather.process_data_entity import ProcessData
+from .datagather.utility_data_entity import UtilityData
+from .datagather.waste_data_entity import WasteData
+from .datagather.fuel_data_entity import FuelData
+from .datagather.process_product_data_entity import ProcessProductData
 
 __all__ = [
-    # DataGather
-    "DataGather",
-    "DataGatherRepository", 
-    "DataGatherService",
-    
-    # Process
-    "Process",
-    "ProcessRepository",
-    "ProcessService",
-    
-    # Install
-    "Install",
-    "InstallRepository",
-    "InstallService"
+    "InputData",
+    "OutputData", 
+    "TransportData",
+    "ProcessData",
+    "UtilityData",
+    "WasteData",
+    "FuelData",
+    "ProcessProductData"
 ]

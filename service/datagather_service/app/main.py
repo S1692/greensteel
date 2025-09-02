@@ -232,6 +232,8 @@ async def save_input_data(data: Dict[str, Any]):
                     saved_count += 1
                 except Exception as row_error:
                     logger.error(f"행 저장 실패: {row_error}, 데이터: {row}")
+                    # 트랜잭션 롤백 후 계속 진행
+                    session.rollback()
                     continue
             
             session.commit()
@@ -447,6 +449,9 @@ async def save_output_data(
             
             for row in output_data_rows:
                 try:
+                    # 산출물명 필드 매핑 수정
+                    output_name = row.get('산출물명', '') or row.get('투입물명', '')
+                    
                     session.execute(text("""
                         INSERT INTO output_data 
                         (로트번호, 생산품명, 생산수량, 투입일, 종료일, 
@@ -460,7 +465,7 @@ async def save_output_data(
                         '투입일': row.get('투입일'),
                         '종료일': row.get('종료일'),
                         '공정': row.get('공정', ''),
-                        '산출물명': row.get('투입물명', ''),  # 산출물명으로 매핑
+                        '산출물명': output_name,
                         '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
                         '단위': row.get('단위', 't'),
                         'source_file': data.get('filename', 'output_data'),
@@ -470,6 +475,8 @@ async def save_output_data(
                     saved_count += 1
                 except Exception as row_error:
                     logger.error(f"행 저장 실패: {row_error}, 데이터: {row}")
+                    # 트랜잭션 롤백 후 계속 진행
+                    session.rollback()
                     continue
             
             session.commit()
@@ -542,6 +549,8 @@ async def save_transport_data(
                     saved_count += 1
                 except Exception as row_error:
                     logger.error(f"행 저장 실패: {row_error}, 데이터: {row}")
+                    # 트랜잭션 롤백 후 계속 진행
+                    session.rollback()
                     continue
             
             session.commit()
@@ -615,6 +624,8 @@ async def save_process_data(
                     saved_count += 1
                 except Exception as row_error:
                     logger.error(f"행 저장 실패: {row_error}, 데이터: {row}")
+                    # 트랜잭션 롤백 후 계속 진행
+                    session.rollback()
                     continue
             
             session.commit()

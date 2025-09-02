@@ -1,1 +1,0 @@
-# Studied models package

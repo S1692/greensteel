@@ -143,7 +143,7 @@ const TransportDataPage: React.FC = () => {
     }
 
     switch (column) {
-      case '운송일자':
+      case '운송 일자':  // 공백 포함된 컬럼명 사용
         if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
           return 'YYYY-MM-DD 형식으로 입력해주세요';
         }
@@ -157,7 +157,7 @@ const TransportDataPage: React.FC = () => {
         }
         break;
       
-      case '운송수량':
+      case '운송 수량':  // 공백 포함된 컬럼명 사용
         if (!/^\d+$/.test(value)) {
           return '숫자만 입력 가능합니다';
         }
@@ -211,24 +211,24 @@ const TransportDataPage: React.FC = () => {
         '오더번호': '',
         '생산품명': '',
         '로트번호': '',
-        '운송물질': '',
-        '운송수량': 0,
-        '운송일자': '',
-        '도착공정': '',
+        '운송 물질': '',  // 공백 포함된 컬럼명 사용
+        '운송 수량': 0,   // 공백 포함된 컬럼명 사용
+        '운송 일자': '',  // 공백 포함된 컬럼명 사용
+        '도착 공정': '',  // 공백 포함된 컬럼명 사용
         '출발지': '',
-        '이동수단': ''
+        '이동 수단': ''   // 공백 포함된 컬럼명 사용
       },
       modifiedData: {
         '주문처명': '',
         '오더번호': '',
         '생산품명': '',
         '로트번호': '',
-        '운송물질': '',
-        '운송수량': 0,
-        '운송일자': '',
-        '도착공정': '',
+        '운송 물질': '',  // 공백 포함된 컬럼명 사용
+        '운송 수량': 0,   // 공백 포함된 컬럼명 사용
+        '운송 일자': '',  // 공백 포함된 컬럼명 사용
+        '도착 공정': '',  // 공백 포함된 컬럼명 사용
         '출발지': '',
-        '이동수단': ''
+        '이동 수단': ''   // 공백 포함된 컬럼명 사용
       },
       isEditing: true,
       isNewlyAdded: true,
@@ -261,15 +261,15 @@ const TransportDataPage: React.FC = () => {
   const renderInputField = useCallback((row: EditableRow, column: string) => {
     const value = row.modifiedData[column] || '';
     const error = row.errors?.[column] || '';
-    const isRequired = ['로트번호', '운송수량', '운송일자', '도착공정', '출발지', '이동수단'].includes(column);
+    const isRequired = ['로트번호', '운송 수량', '운송 일자', '도착 공정', '출발지', '이동 수단'].includes(column);  // 공백 포함된 컬럼명 사용
     
     const handleChange = (newValue: string) => {
       handleInputChange(row.id, column, newValue);
       updateRowErrors(row.id, column, newValue);
     };
 
-    // 운송일자 - 날짜 선택기
-    if (column === '운송일자') {
+    // 운송 일자 - 날짜 선택기
+    if (column === '운송 일자') {  // 공백 포함된 컬럼명 사용
       return (
         <ControlledInput
           type="date"
@@ -283,8 +283,8 @@ const TransportDataPage: React.FC = () => {
       );
     }
     
-    // 운송수량 - 숫자만 입력 + 즉시 필터링 (소수점 허용)
-    if (column === '운송수량') {
+    // 운송 수량 - 숫자만 입력 + 즉시 필터링 (소수점 허용)
+    if (column === '운송 수량') {  // 공백 포함된 컬럼명 사용
       return (
         <ControlledInput
           type="text"
@@ -541,8 +541,8 @@ const TransportDataPage: React.FC = () => {
       };
 
       const processedData = inputData.data.map((row: any) => {
-        // 운송수량을 숫자로 변환
-        let 운송수량 = parseFloat(row['운송수량']?.toString() || '0');
+        // 운송수량을 숫자로 변환 (Excel 컬럼명에 맞춤)
+        let 운송수량 = parseFloat(row['운송 수량']?.toString() || '0');
         
         // 운송수량 검증 (0 이하인 경우 기본값 1로 설정)
         if (운송수량 <= 0) {
@@ -552,8 +552,8 @@ const TransportDataPage: React.FC = () => {
         
         return {
           ...row,
-          '운송수량': 운송수량,
-          '운송일자': convertExcelDate(row['운송일자']),
+          '운송 수량': 운송수량,  // Excel 컬럼명과 일치
+          '운송 일자': convertExcelDate(row['운송 일자']),  // Excel 컬럼명과 일치
           '주문처명': row['주문처명'] || '',
           '오더번호': row['오더번호'] || ''
         };
@@ -624,10 +624,10 @@ const TransportDataPage: React.FC = () => {
     const row = editableInputRows.find(r => r.id === rowId);
     if (!row) return;
 
-    if (row.isNewlyAdded) {
-      const requiredFields = ['생산품명', '로트번호', '운송물질', '운송수량', '운송일자', '도착공정', '출발지', '이동수단'];
-      const missingFields = [];
-      const newErrors: Record<string, string> = {};
+         if (row.isNewlyAdded) {
+       const requiredFields = ['생산품명', '로트번호', '운송 물질', '운송 수량', '운송 일자', '도착 공정', '출발지', '이동 수단'];  // 공백 포함된 컬럼명 사용
+       const missingFields = [];
+       const newErrors: Record<string, string> = {};
 
       // 모든 필수 필드 검증
       for (const field of requiredFields) {

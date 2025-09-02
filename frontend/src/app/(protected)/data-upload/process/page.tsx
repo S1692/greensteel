@@ -487,6 +487,16 @@ const ProcessDataPage: React.FC = () => {
       console.log('원본 데이터 (첫 번째 행):', jsonData[0]);
       console.log('처리된 데이터 (첫 번째 행):', processedData[0]);
       
+      // 공정 설명 관련 특별 디버깅
+      console.log('=== 공정 설명 디버깅 ===');
+      console.log('컬럼명에 "공정 설명" 포함 여부:', columns.includes('공정 설명'));
+      console.log('컬럼명에 "공정설명" 포함 여부:', columns.includes('공정설명'));
+      if (jsonData.length > 0) {
+        console.log('원본 데이터의 공정 설명 인덱스:', columns.indexOf('공정 설명'));
+        console.log('원본 데이터의 공정 설명 값:', jsonData[0][columns.indexOf('공정 설명')]);
+      }
+      console.log('=== 공정 설명 디버깅 완료 ===');
+      
       console.log('처리된 데이터:', processedData);
       
       // 편집 가능한 행 데이터 생성
@@ -554,6 +564,13 @@ const ProcessDataPage: React.FC = () => {
           공정설명: row.modifiedData.공정설명 || ''
         }))
         .filter(row => row.공정명 && row.생산제품 && row.세부공정); // 필수 필드가 있는 행만
+
+      // 디버깅: 전송할 데이터 확인
+      console.log('=== 프론트엔드에서 전송할 데이터 ===');
+      console.log('전송할 데이터 개수:', dataToSave.length);
+      console.log('첫 번째 행 데이터:', dataToSave[0]);
+      console.log('공정설명 값들:', dataToSave.map(row => row.공정설명));
+      console.log('=== 전송 데이터 디버깅 완료 ===');
 
       if (dataToSave.length === 0) {
         setError('저장할 유효한 데이터가 없습니다.');

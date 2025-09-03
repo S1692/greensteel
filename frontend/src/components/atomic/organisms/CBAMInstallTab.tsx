@@ -20,6 +20,7 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
   const [selectedInstall, setSelectedInstall] = useState<any>(null);
   const [showAddProcess, setShowAddProcess] = useState<number | null>(null);
   const [selectedProcess, setSelectedProcess] = useState<string>('');
+  const [selectedProcesses, setSelectedProcesses] = useState<string[]>([]);
   const [showHSCodeModal, setShowHSCodeModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [showEditProductModal, setShowEditProductModal] = useState(false);
@@ -462,7 +463,13 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
   // 공정 추가 처리
   const handleAddProcess = async (productId: number) => {
     try {
-      console.log('🚀 공정 추가 요청 시작:', { productId });
+      console.log('🚀 공정 추가 요청 시작:', { productId, selectedProcesses });
+      
+      // 선택된 공정이 있는지 확인
+      if (selectedProcesses.length === 0) {
+        alert('추가할 공정을 선택해주세요.');
+        return;
+      }
       
       // 제품 정보에서 제품명 가져오기
       const product = products.find(p => p.id === productId);
@@ -471,23 +478,8 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
         return;
       }
       
-      // 로컬스토리지에서 해당 생산품명에 해당하는 공정명들 가져오기
-      const currentInputData = getInputDataFromStorage();
-      const productProcesses = currentInputData
-        .filter((item: any) => item.생산품명 === product.name)
-        .map((item: any) => item.공정)
-        .filter((process: string) => process && process.trim() !== '');
-      
-      // 중복 제거
-      const uniqueProcesses = [...new Set(productProcesses)];
-      
-      if (uniqueProcesses.length === 0) {
-        alert('해당 제품에 대한 공정 정보가 로컬스토리지에 없습니다.');
-        return;
-      }
-      
-      // 각 공정에 대해 개별적으로 생성
-      for (const processName of uniqueProcesses) {
+      // 선택된 공정들에 대해 개별적으로 생성
+      for (const processName of selectedProcesses) {
         // 1. 먼저 공정을 생성 (로컬스토리지의 공정명 사용)
         const processData = {
           process_name: processName, // 로컬스토리지의 공정명 사용
@@ -515,15 +507,16 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
           product.id === productId 
             ? {
                 ...product,
-                processes: [...(product.processes || []), ...uniqueProcesses],
-                processCount: (product.processes || []).length + uniqueProcesses.length
+                processes: [...(product.processes || []), ...selectedProcesses],
+                processCount: (product.processes || []).length + selectedProcesses.length
               }
             : product
         )
       );
       
       setShowAddProcess(null);
-      alert(`${uniqueProcesses.length}개의 공정이 성공적으로 추가되었습니다.`);
+      setSelectedProcesses([]);
+      alert(`${selectedProcesses.length}개의 공정이 성공적으로 추가되었습니다.`);
       
     } catch (error: any) {
       console.error('❌ 공정 추가 실패:', error);
@@ -547,6 +540,7 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
     const isOpening = showAddProcess !== productId;
     setShowAddProcess(isOpening ? productId : null);
     setSelectedProcess(''); // 공정 선택 초기화
+    setSelectedProcesses([]); // 선택된 공정들 초기화
     
     // 공정 추가 섹션을 열 때 해당 제품의 공정을 미리 필터링
     if (isOpening && inputData.length > 0) {
@@ -948,21 +942,33 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                             </p>
                           </div>
                           
-                          {/* 로컬스토리지의 공정명들 표시 */}
+                          {/* 공정 선택 드롭다운 */}
                           {product.name && (
                             <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
                               <p className="text-sm text-green-800 font-medium mb-2">
-                                추가될 공정명들:
+                                공정 선택:
                               </p>
-                              <div className="space-y-1">
+                              <select
+                                multiple
+                                value={selectedProcesses}
+                                onChange={(e) => {
+                                  const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
+                                  setSelectedProcesses(selectedOptions);
+                                }}
+                                className="w-full px-3 py-2 bg-white border border-green-300 rounded-lg text-green-800 focus:outline-none focus:ring-2 focus:ring-green-500"
+                                size={Math.min(filteredProcesses.length, 5)}
+                              >
                                 {filteredProcesses.map((process, index) => (
-                                  <div key={index} className="text-sm text-green-700 bg-green-100 px-2 py-1 rounded">
-                                    • {process}
-                                  </div>
+                                  <option key={index} value={process}>
+                                    {process}
+                                  </option>
                                 ))}
-                              </div>
+                              </select>
+                              <p className="text-xs text-green-600 mt-2">
+                                * Ctrl(또는 Cmd) 키를 누르고 클릭하여 여러 공정을 선택할 수 있습니다
+                              </p>
                               {filteredProcesses.length === 0 && (
-                                <p className="text-sm text-red-600">
+                                <p className="text-sm text-red-600 mt-2">
                                   해당 제품에 대한 공정 정보가 로컬스토리지에 없습니다.
                                 </p>
                               )}
@@ -973,15 +979,15 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                         <div className="flex justify-center">
                                                     <button
                             onClick={() => handleAddProcess(product.id)}
-                            disabled={!product.name || filteredProcesses.length === 0}
+                            disabled={!product.name || filteredProcesses.length === 0 || selectedProcesses.length === 0}
                             className={`px-6 py-2 rounded-lg flex items-center space-x-2 transition-colors ${
-                              product.name && filteredProcesses.length > 0
+                              product.name && filteredProcesses.length > 0 && selectedProcesses.length > 0
                                 ? 'bg-purple-600 text-white hover:bg-purple-700' 
                                 : 'bg-gray-400 text-white cursor-not-allowed'
                             }`}
                           >
                             <Plus className="h-4 w-4" />
-                            <span>+ 공정 추가 ({filteredProcesses.length}개)</span>
+                            <span>+ 공정 추가 ({selectedProcesses.length}개 선택됨)</span>
                     </button>
                         </div>
                       </div>

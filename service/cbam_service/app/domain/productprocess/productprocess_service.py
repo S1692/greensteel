@@ -151,8 +151,21 @@ class ProductProcessService:
             
             relations = await self.product_process_repository.get_product_processes_by_product(product_id)
             
-            # 제품명 가져오기 (첫 번째 결과에서)
-            product_name = relations[0]['product_name'] if relations else "Unknown Product"
+            # 제품명 가져오기 (첫 번째 결과에서 또는 제품 테이블에서 직접 조회)
+            product_name = "Unknown Product"
+            if relations:
+                product_name = relations[0]['product_name']
+            else:
+                # 제품 정보를 직접 조회
+                try:
+                    from app.domain.product.product_service import ProductService
+                    product_service = ProductService()
+                    await product_service.initialize()
+                    product = await product_service.get_product(product_id)
+                    if product:
+                        product_name = product.product_name
+                except Exception as e:
+                    logger.warning(f"⚠️ 제품명 조회 실패: {str(e)}")
             
             logger.info(f"✅ 제품별 제품-공정 관계 조회 성공: {len(relations)}개")
             

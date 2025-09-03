@@ -45,6 +45,7 @@ class ProductProcessFullResponse(ProductProcessResponse):
     """제품-공정 관계 전체 응답 (관계 정보 포함)"""
     product_name: Optional[str] = Field(None, description="제품명")
     process_name: Optional[str] = Field(None, description="공정명")
+    install_name: Optional[str] = Field(None, description="사업장명")
 
 class ProductProcessByProductResponse(BaseModel):
     """제품별 제품-공정 관계 응답"""

@@ -98,7 +98,10 @@ export const ProductProcessModal: React.FC<{
       
       setLoading(true);
       try {
+        console.log('🔍 제품별 공정 조회:', selectedProduct.id);
         const response = await axiosClient.get(apiEndpoints.cbam.productProcess.byProduct(selectedProduct.id));
+        console.log('📊 제품별 공정 조회 응답:', response.data);
+        
         const data = response.data.processes || response.data || [];
         
         // 해당 제품에만 연결된 공정들만 필터링 (추가 안전장치)
@@ -106,10 +109,10 @@ export const ProductProcessModal: React.FC<{
           item.product_id === selectedProduct.id
         );
         
-        console.log(`🔍 제품 ${selectedProduct.product_name}에 연결된 공정들:`, filteredData);
+        console.log(`✅ 제품 ${selectedProduct.product_name}에 연결된 공정들:`, filteredData);
         setProductProcesses(filteredData);
       } catch (error) {
-        console.error('제품-공정 관계 조회 실패:', error);
+        console.error('❌ 제품-공정 관계 조회 실패:', error);
         setProductProcesses([]);
       } finally {
         setLoading(false);
@@ -152,10 +155,10 @@ export const ProductProcessModal: React.FC<{
         return acc;
       }, []);
       
-      console.log(`🔍 사업장 ${installId}의 모든 공정들:`, uniqueProcesses);
+      console.log(`✅ 사업장 ${installId}의 모든 공정들:`, uniqueProcesses);
       setAllProcesses(uniqueProcesses);
     } catch (error) {
-      console.error('사업장별 공정 조회 실패:', error);
+      console.error('❌ 사업장별 공정 조회 실패:', error);
       setAllProcesses([]);
     } finally {
       setLoading(false);
@@ -175,8 +178,11 @@ export const ProductProcessModal: React.FC<{
       if (!selectedProduct?.id) return;
       
       try {
+        console.log('🔍 제품 수량 정보 조회:', selectedProduct.id);
         const response = await axiosClient.get(apiEndpoints.cbam.product.get(selectedProduct.id));
         const productData = response.data;
+        
+        console.log('✅ 제품 수량 정보 조회 성공:', productData);
         
         setQuantityForm({
           product_amount: productData.product_amount || 0,
@@ -184,7 +190,7 @@ export const ProductProcessModal: React.FC<{
           product_eusell: productData.product_eusell || 0
         });
       } catch (error) {
-        console.error('제품 수량 정보 조회 실패:', error);
+        console.error('❌ 제품 수량 정보 조회 실패:', error);
         // 실패 시 기존 데이터 사용
         setQuantityForm({
           product_amount: selectedProduct.product_amount || 0,

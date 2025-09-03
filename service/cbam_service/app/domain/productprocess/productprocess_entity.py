@@ -19,8 +19,8 @@ class ProductProcess(Base):
     product_id = Column(Integer, ForeignKey("product.id"), nullable=False, index=True)  # 제품 ID
     process_id = Column(Integer, ForeignKey("process.id"), nullable=False, index=True)  # 공정 ID
     consumption_amount = Column(Numeric(15, 6), default=0)  # 제품 소비량 (consume 엣지용)
-    created_at = Column(DateTime, default=datetime.now)
-    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+    created_at = Column(DateTime(timezone=True), default=datetime.now)
+    updated_at = Column(DateTime(timezone=True), default=datetime.now, onupdate=datetime.now)
     
     # 관계 설정 (순환참조 방지를 위해 문자열로 참조)
     product = relationship("Product", back_populates="product_processes", lazy="selectin")

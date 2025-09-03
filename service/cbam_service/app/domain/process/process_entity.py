@@ -16,8 +16,8 @@ class Process(Base):
     process_name = Column(Text, nullable=False, index=True)  # 프로세스명
     start_period = Column(Date, nullable=False)  # 시작일
     end_period = Column(Date, nullable=False)  # 종료일
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=False), default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime(timezone=False), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     # 관계 설정
     product_processes = relationship("ProductProcess", back_populates="process")

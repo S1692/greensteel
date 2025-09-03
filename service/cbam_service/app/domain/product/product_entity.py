@@ -30,8 +30,8 @@ class Product(Base):
     product_sell = Column(Numeric(15, 6), default=0)  # 제품 판매량
     product_eusell = Column(Numeric(15, 6), default=0)  # 제품 EU 판매량
     attr_em = Column(Numeric(15, 6), default=0)  # 제품 배출량
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     # 관계 설정
     product_processes = relationship("ProductProcess", back_populates="product")

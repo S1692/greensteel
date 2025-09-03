@@ -19,8 +19,8 @@ class MatDir(Base):
     mat_amount = Column(Numeric(15, 6), nullable=False, comment="투입된 원료량")
     oxyfactor = Column(Numeric(5, 4), nullable=True, default=1.0000, comment="산화계수 (기본값: 1)")
     matdir_em = Column(Numeric(15, 6), nullable=True, default=0, comment="원료직접배출량 (계산 결과)")
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime(timezone=False), server_default=func.now())
+    updated_at = Column(DateTime(timezone=False), server_default=func.now(), onupdate=func.now())
 
     # 관계 설정 (문자열로 참조하여 순환 임포트 방지)
     # process = relationship("Process", back_populates="matdirs", lazy="joined")

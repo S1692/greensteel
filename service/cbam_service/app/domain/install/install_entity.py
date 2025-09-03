@@ -18,8 +18,8 @@ class Install(Base):
     id = Column(Integer, primary_key=True, index=True)
     install_name = Column(Text, nullable=False, index=True)  # 사업장명
     reporting_year = Column(Integer, nullable=False, default=datetime.now().year)  # 보고기간 (년도)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # 관계 설정
     products = relationship("Product", back_populates="install")

@@ -555,7 +555,7 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                       <span className="font-medium">수량:</span> {product.quantity}
                     </div>
                     <div>
-                      <span className="font-medium">공정 수:</span> 3개
+                      <span className="font-medium">공정 수:</span> {product.processCount || 0}개
                     </div>
                     <div>
                       <span className="font-medium">카테고리:</span> {product.category}
@@ -621,11 +621,16 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                             사업장 선택 *
                           </label>
                           <select 
+                            value={selectedProcess}
+                            onChange={(e) => setSelectedProcess(e.target.value)}
                             className="w-full px-3 py-2 bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg text-ecotrace-text focus:outline-none focus:ring-2 focus:ring-purple-500"
                           >
                             <option value="">사업장을 선택하세요</option>
-                            <option value="포항제철소">포항제철소</option>
-                            <option value="광양제철소">광양제철소</option>
+                            {installs.map((install) => (
+                              <option key={install.id} value={install.name}>
+                                {install.name}
+                              </option>
+                            ))}
                           </select>
                         </div>
                         

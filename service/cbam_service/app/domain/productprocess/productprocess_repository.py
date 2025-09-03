@@ -73,10 +73,20 @@ class ProductProcessRepository:
             
         try:
             async with self.pool.acquire() as conn:
+                # 먼저 기존 관계가 있는지 확인
+                existing = await conn.fetchrow("""
+                    SELECT * FROM product_process 
+                    WHERE product_id = $1 AND process_id = $2
+                """, product_process_data['product_id'], product_process_data['process_id'])
+                
+                if existing:
+                    logger.info(f"ℹ️ 제품-공정 관계가 이미 존재합니다: 제품 ID {product_process_data['product_id']}, 공정 ID {product_process_data['process_id']}")
+                    return dict(existing)
+                
+                # 새로운 관계 생성
                 result = await conn.fetchrow("""
                     INSERT INTO product_process (product_id, process_id)
                     VALUES ($1, $2)
-                    ON CONFLICT (product_id, process_id) DO NOTHING
                     RETURNING *
                 """, product_process_data['product_id'], product_process_data['process_id'])
                 

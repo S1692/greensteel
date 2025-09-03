@@ -153,24 +153,32 @@ async def lifespan(app: FastAPI):
     """애플리케이션 시작/종료 시 실행되는 함수"""
     logger.info("🚀 Cal_boundary 서비스 시작 중...")
     
-    # 비동기 데이터베이스 초기화
-    await initialize_database()
-    
-    # ReactFlow 기반 서비스 초기화
-    logger.info("✅ ReactFlow 기반 서비스 초기화")
-    
-    # SQLAlchemy 엔진 상태 확인
-    if async_engine:
-        logger.info("✅ SQLAlchemy 비동기 엔진 초기화 완료")
-    else:
-        logger.warning("⚠️ SQLAlchemy 엔진 초기화 실패 - Repository 자동 초기화에 의존")
+    try:
+        # 비동기 데이터베이스 초기화
+        await initialize_database()
+        
+        # ReactFlow 기반 서비스 초기화
+        logger.info("✅ ReactFlow 기반 서비스 초기화")
+        
+        # SQLAlchemy 엔진 상태 확인
+        if async_engine:
+            logger.info("✅ SQLAlchemy 비동기 엔진 초기화 완료")
+        else:
+            logger.warning("⚠️ SQLAlchemy 엔진 초기화 실패 - Repository 자동 초기화에 의존")
+            
+    except Exception as e:
+        logger.error(f"❌ 서비스 초기화 중 오류 발생: {str(e)}")
+        logger.warning("⚠️ 서비스가 제한된 기능으로 실행됩니다.")
     
     yield
     
     # 서비스 종료 시 정리 작업
-    if async_engine:
-        await async_engine.dispose()
-        logger.info("✅ SQLAlchemy 엔진 정리 완료")
+    try:
+        if async_engine:
+            await async_engine.dispose()
+            logger.info("✅ SQLAlchemy 엔진 정리 완료")
+    except Exception as e:
+        logger.error(f"❌ 엔진 정리 중 오류: {str(e)}")
     
     logger.info("✅ ReactFlow 기반 서비스 정리 완료")
     logger.info("🛑 Cal_boundary 서비스 종료 중...")
@@ -239,7 +247,7 @@ app.include_router(fueldir_router, prefix="/fueldir")
 app.include_router(dummy_router, prefix="/dummy")
 
 logger.info("✅ 모든 라우터 등록 완료 (엔티티 의존성 순서 고려)")
-logger.info("🔗 기본 엔티티 → 중간 테이블 → 계산/분석 순서로 등록")
+logger.info("�� 기본 엔티티 → 중간 테이블 → 계산/분석 순서로 등록")
 
 # ============================================================================
 # 🏥 헬스체크 엔드포인트

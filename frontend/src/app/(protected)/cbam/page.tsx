@@ -25,7 +25,7 @@ import { CalculationModal } from '@/components/cbam/modals/CalculationModal';
 // ============================================================================
 
 export default function CBAMPage() {
-  const [activeTab, setActiveTab] = useState<'inputs' | 'workplace' | 'boundary' | 'report'>('inputs');
+  const [activeTab, setActiveTab] = useState<'overview' | 'install' | 'boundary' | 'reports' | 'settings'>('overview');
 
   // 모달 상태 관리
   const [showInstallModal, setShowInstallModal] = useState(false);
@@ -117,8 +117,8 @@ export default function CBAMPage() {
   // 🎯 탭 컴포넌트들
   // ============================================================================
 
-  // 투입물 탭
-  const InputsTab = () => (
+  // 개요 탭
+  const OverviewTab = () => (
     <CBAMOverviewTab
       installs={installs}
       products={products}
@@ -128,7 +128,7 @@ export default function CBAMPage() {
   );
 
   // 사업장 관리 탭
-  const WorkplaceTab = () => (
+  const InstallTab = () => (
     <CBAMInstallTab
       installs={installs}
       onShowInstallModal={() => setShowInstallModal(true)}
@@ -145,7 +145,7 @@ export default function CBAMPage() {
   );
 
   // 보고서 탭
-  const ReportTab = () => (
+  const ReportsTab = () => (
     <div className="bg-ecotrace-surface rounded-lg p-6">
       <h3 className="text-xl font-semibold text-ecotrace-text mb-4">CBAM 보고서</h3>
       <p className="text-ecotrace-textSecondary">
@@ -164,6 +164,19 @@ export default function CBAMPage() {
           <h4 className="font-medium text-ecotrace-text">데이터 분석 보고서</h4>
           <p className="text-sm text-ecotrace-textSecondary mt-2">투입물 및 공정 분석 결과</p>
         </div>
+      </div>
+    </div>
+  );
+
+  // 설정 탭
+  const SettingsTab = () => (
+    <div className="bg-ecotrace-surface rounded-lg p-6">
+      <h3 className="text-xl font-semibold text-ecotrace-text mb-4">CBAM 설정</h3>
+      <p className="text-ecotrace-textSecondary">
+        CBAM 관련 설정을 구성합니다.
+      </p>
+      <div className="mt-4 p-4 bg-ecotrace-secondary/20 rounded-lg">
+        <p className="text-ecotrace-textSecondary text-sm">설정 기능은 개발 중입니다...</p>
       </div>
     </div>
   );
@@ -211,10 +224,11 @@ export default function CBAMPage() {
 
         {/* 탭 컨텐츠 */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {activeTab === 'inputs' && <div className="py-8"><InputsTab /></div>}
-          {activeTab === 'workplace' && <div className="py-8"><WorkplaceTab /></div>}
+          {activeTab === 'overview' && <div className="py-8"><OverviewTab /></div>}
+          {activeTab === 'install' && <div className="py-8"><InstallTab /></div>}
           {activeTab === 'boundary' && <BoundaryTab />}
-          {activeTab === 'report' && <div className="py-8"><ReportTab /></div>}
+          {activeTab === 'reports' && <div className="py-8"><ReportsTab /></div>}
+          {activeTab === 'settings' && <div className="py-8"><SettingsTab /></div>}
         </div>
       </div>
 

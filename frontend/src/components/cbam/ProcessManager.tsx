@@ -304,9 +304,8 @@ function ProcessManagerInner() {
   }, []);
 
   const nodeTypes: NodeTypes = { 
-    product: ProductNode,  // 🔴 수정: 'product' 타입 추가
-    process: ProcessNode,  // 🔴 수정: 'process' 타입으로 변경
-    group: ProductNode     // 🔴 추가: 그룹 노드도 ProductNode로 렌더링
+    product: ProductNode,
+    process: ProcessNode
   };
 
   return (

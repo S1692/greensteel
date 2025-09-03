@@ -4,9 +4,10 @@
 
 export interface Install {
   id: number;
-  name: string;
-  created_at: string;
-  updated_at: string;
+  install_name: string;  // CBAM 서비스 스키마와 일치
+  reporting_year: number;  // CBAM 서비스 스키마와 일치
+  created_at?: string;
+  updated_at?: string;
 }
 
 // ============================================================================
@@ -17,17 +18,22 @@ export interface Product {
   id: number;
   install_id: number;
   product_name: string;
-  product_category: '단순제품' | '복합제품';
-  prostart_period: string;
-  proend_period: string;
-  product_cncode?: string;
-  goods_name?: string;
-  aggrgoods_name?: string;
+  product_category: string;  // CBAM 서비스 스키마와 일치
+  prostart_period: string;  // CBAM 서비스 스키마와 일치
+  proend_period: string;    // CBAM 서비스 스키마와 일치
   product_amount: number;
+  cncode_total?: string;    // CBAM 서비스 스키마와 일치
+  goods_name?: string;
+  goods_engname?: string;   // CBAM 서비스 스키마와 일치
+  aggrgoods_name?: string;
+  aggrgoods_engname?: string; // CBAM 서비스 스키마와 일치
   product_sell?: number;
   product_eusell?: number;
-  created_at: string;
-  updated_at: string;
+  attr_em?: number;         // CBAM 서비스 스키마와 일치
+  created_at?: string;
+  updated_at?: string;
+  // 다대다 관계를 위한 공정 정보
+  processes?: any[];
 }
 
 // ============================================================================
@@ -37,10 +43,12 @@ export interface Product {
 export interface Process {
   id: number;
   process_name: string;
-  start_period: string;
-  end_period: string;
-  created_at: string;
-  updated_at: string;
+  start_period?: string;  // CBAM 서비스 스키마와 일치
+  end_period?: string;    // CBAM 서비스 스키마와 일치
+  created_at?: string;
+  updated_at?: string;
+  // 다대다 관계를 위한 제품 정보
+  products?: any[];
 }
 
 // ============================================================================

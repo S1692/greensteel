@@ -1,53 +1,44 @@
 import { useState, useCallback } from 'react';
+import axiosClient, { apiEndpoints } from '@/lib/axiosClient';
 
 export interface Process {
   id: number;
-  name: string;
-  description?: string;
-  category?: string;
+  process_name: string;  // CBAM 서비스 스키마와 일치
+  start_period?: string;  // CBAM 서비스 스키마와 일치
+  end_period?: string;    // CBAM 서비스 스키마와 일치
+  products?: any[];  // 다대다 관계를 위한 제품 정보
 }
 
 export interface Install {
   id: number;
   install_name: string;
-  reporting_year: string;
+  reporting_year: number;  // CBAM 서비스 스키마와 일치
 }
 
 export interface Product {
   id: number;
-  name: string;
-  category?: string;
-  startDate?: string;
-  endDate?: string;
-  product_amount?: number;
+  install_id: number;  // CBAM 서비스 스키마와 일치
+  product_name: string;  // CBAM 서비스 스키마와 일치
+  product_category: string;  // CBAM 서비스 스키마와 일치
+  prostart_period: string;  // CBAM 서비스 스키마와 일치
+  proend_period: string;    // CBAM 서비스 스키마와 일치
+  product_amount: number;
   product_sell?: number;
   product_eusell?: number;
+  attr_em?: number;  // CBAM 서비스 스키마와 일치
 }
 
 export const useProcessManager = () => {
-  const [installs, setInstalls] = useState<Install[]>([
-    { id: 1, install_name: '포항제철소', reporting_year: '2025' },
-    { id: 2, install_name: '광양제철소', reporting_year: '2025' }
-  ]);
+  const [installs, setInstalls] = useState<Install[]>([]);
   
   const [selectedInstall, setSelectedInstall] = useState<Install | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   
-  const [products, setProducts] = useState<Product[]>([
-    { id: 1, name: '블룸', category: '철강', startDate: '2025-01-01', endDate: '2025-12-31' },
-    { id: 2, name: '압연강판', category: '철강', startDate: '2025-01-01', endDate: '2025-12-31' }
-  ]);
+  const [products, setProducts] = useState<Product[]>([]);
   
-  const [processes, setProcesses] = useState<Process[]>([
-    { id: 1, name: '제철공정', description: '철광석을 제철하는 공정', category: '제철' },
-    { id: 2, name: '압연공정', description: '철을 압연하는 공정', category: '압연' }
-  ]);
+  const [processes, setProcesses] = useState<Process[]>([]);
   
-  const [allProcesses, setAllProcesses] = useState<Process[]>([
-    { id: 1, name: '제철공정', description: '철광석을 제철하는 공정', category: '제철' },
-    { id: 2, name: '압연공정', description: '철을 압연하는 공정', category: '압연' },
-    { id: 3, name: '열처리공정', description: '철을 열처리하는 공정', category: '열처리' }
-  ]);
+  const [allProcesses, setAllProcesses] = useState<Process[]>([]);
   
   const [crossInstallProcesses, setCrossInstallProcesses] = useState<Process[]>([]);
   const [isDetectingChains, setIsDetectingChains] = useState(false);
@@ -55,20 +46,30 @@ export const useProcessManager = () => {
   const [isUpdatingProduct, setIsUpdatingProduct] = useState(false);
 
   const fetchProcessesByProduct = useCallback(async (productId: number) => {
-    // TODO: API 호출하여 제품별 공정 조회
-    console.log('제품별 공정 조회:', productId);
-    return processes.filter(p => p.id === productId);
-  }, [processes]);
+    try {
+      console.log('📋 제품별 공정 조회 API 호출:', productId);
+      const response = await axiosClient.get(apiEndpoints.cbam.process.list, {
+        params: { product_id: productId }
+      });
+      const fetchedProcesses = response.data;
+      console.log('✅ 제품별 공정 조회 성공:', fetchedProcesses);
+      return fetchedProcesses;
+    } catch (error) {
+      console.error('❌ 제품별 공정 조회 실패:', error);
+      // 에러 시 빈 배열 반환
+      return [];
+    }
+  }, []);
 
   const handleProductQuantityUpdate = useCallback(async (productId: number, quantity: number) => {
     // TODO: API 호출하여 제품 수량 업데이트
     console.log('제품 수량 업데이트:', productId, quantity);
     setIsUpdatingProduct(true);
     try {
-      // API 호출 로직
-      await new Promise(resolve => setTimeout(resolve, 1000)); // 임시 지연
+      // TODO: 실제 API 호출 구현
+      // const response = await axiosClient.put(apiEndpoints.cbam.product.update(productId), { product_amount: quantity });
       setProducts(prev => prev.map(p => 
-        p.id === productId ? { ...p, quantity } : p
+        p.id === productId ? { ...p, product_amount: quantity } : p
       ));
     } finally {
       setIsUpdatingProduct(false);
@@ -76,11 +77,52 @@ export const useProcessManager = () => {
   }, []);
 
   const fetchInstalls = useCallback(async () => {
-    // TODO: API 호출하여 사업장 목록 조회
-    console.log('사업장 목록 조회');
-    // 현재는 하드코딩된 데이터 사용
-    return installs;
-  }, [installs]);
+    try {
+      console.log('📋 사업장 목록 조회 API 호출');
+      const response = await axiosClient.get(apiEndpoints.cbam.install.list);
+      const fetchedInstalls = response.data;
+      setInstalls(fetchedInstalls);
+      console.log('✅ 사업장 목록 조회 성공:', fetchedInstalls);
+      return fetchedInstalls;
+    } catch (error) {
+      console.error('❌ 사업장 목록 조회 실패:', error);
+      // 에러 시 빈 배열 반환
+      return [];
+    }
+  }, []);
+
+  // 제품 목록 조회
+  const fetchProducts = useCallback(async () => {
+    try {
+      console.log('📋 제품 목록 조회 API 호출');
+      const response = await axiosClient.get(apiEndpoints.cbam.product.list);
+      const fetchedProducts = response.data;
+      setProducts(fetchedProducts);
+      console.log('✅ 제품 목록 조회 성공:', fetchedProducts);
+      return fetchedProducts;
+    } catch (error) {
+      console.error('❌ 제품 목록 조회 실패:', error);
+      // 에러 시 빈 배열 반환
+      return [];
+    }
+  }, []);
+
+  // 공정 목록 조회
+  const fetchProcesses = useCallback(async () => {
+    try {
+      console.log('📋 공정 목록 조회 API 호출');
+      const response = await axiosClient.get(apiEndpoints.cbam.process.list);
+      const fetchedProcesses = response.data;
+      setProcesses(fetchedProcesses);
+      setAllProcesses(fetchedProcesses);
+      console.log('✅ 공정 목록 조회 성공:', fetchedProcesses);
+      return fetchedProcesses;
+    } catch (error) {
+      console.error('❌ 공정 목록 조회 실패:', error);
+      // 에러 시 빈 배열 반환
+      return [];
+    }
+  }, []);
 
   return {
     installs,
@@ -98,5 +140,7 @@ export const useProcessManager = () => {
     fetchProcessesByProduct,
     handleProductQuantityUpdate,
     fetchInstalls,
+    fetchProducts,
+    fetchProcesses,
   };
 };

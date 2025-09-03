@@ -95,8 +95,8 @@ export const useProcessCanvas = (selectedInstall: Install | null) => {
       data: {
         id: product.id,  // 실제 제품 ID 추가
         nodeId: actualNodeId,  // 🔴 추가: 실제 노드 ID를 data에 저장
-        label: product.name,  // 🔴 수정: label을 올바르게 설정
-        description: `제품: ${product.name}`,
+        label: product.product_name,  // 🔴 수정: label을 올바르게 설정
+        description: `제품: ${product.product_name}`,
         variant: 'product',  // 🔴 수정: variant를 'product'로 명시적 설정
         productData: product,  // 🔴 수정: productData를 올바르게 설정
         install_id: selectedInstall?.id,
@@ -151,14 +151,14 @@ export const useProcessCanvas = (selectedInstall: Install | null) => {
       data: {
         id: process.id,  // 실제 공정 ID 추가
         nodeId: actualNodeId,  // 🔴 추가: 실제 노드 ID를 data에 저장
-        label: process.name,  // 🔴 수정: label을 올바르게 설정
-        description: `공정: ${process.name}`,
+        label: process.process_name,  // 🔴 수정: label을 올바르게 설정
+        description: `공정: ${process.process_name}`,
         variant: 'process',  // 🔴 수정: variant를 'process'로 명시적 설정
         processData: {
           ...process,
           start_period: 'N/A',
           end_period: 'N/A',
-          product_names: relatedProducts.map(p => p.name).join(', ') || 'N/A',
+          product_names: relatedProducts.map(p => p.product_name).join(', ') || 'N/A',
           is_many_to_many: relatedProducts.length > 1,
           install_id: selectedInstall?.id,
           current_install_id: selectedInstall?.id,

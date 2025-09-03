@@ -55,6 +55,9 @@ function ProcessManagerInner() {
     setSelectedProduct,
     fetchProcessesByProduct,
     handleProductQuantityUpdate,
+    fetchInstalls,
+    fetchProducts,
+    fetchProcesses,
   } = useProcessManager();
 
   // React Flow 컨텍스트 내에서만 useProcessCanvas 사용
@@ -72,6 +75,25 @@ function ProcessManagerInner() {
     addGroupNode,
     updateNodeData,
   } = useProcessCanvas(selectedInstall);
+
+  // 컴포넌트 마운트 시 데이터 초기화
+  useEffect(() => {
+    const initializeData = async () => {
+      try {
+        console.log('🚀 ProcessManager 데이터 초기화 시작');
+        await Promise.all([
+          fetchInstalls(),
+          fetchProducts(),
+          fetchProcesses()
+        ]);
+        console.log('✅ ProcessManager 데이터 초기화 완료');
+      } catch (error) {
+        console.error('❌ ProcessManager 데이터 초기화 실패:', error);
+      }
+    };
+
+    initializeData();
+  }, [fetchInstalls, fetchProducts, fetchProcesses]);
 
   // 공정별 직접귀속배출량 정보 가져오기
   const fetchProcessEmissionData = useCallback(async (processId: number) => {

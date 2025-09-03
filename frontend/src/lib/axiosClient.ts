@@ -227,32 +227,35 @@ export const apiEndpoints = {
   },
   // CBAM Service API Endpoints
   cbam: {
-    // Install (사업장) API
+    // Install (사업장) API (Gateway를 거쳐 CBAM 서비스로 연결)
     install: {
-      create: '/api/v1/cbam/install',
-      list: '/api/v1/cbam/install',
-      get: (id: number) => `/api/v1/cbam/install/${id}`,
-      update: (id: number) => `/api/v1/cbam/install/${id}`,
-      delete: (id: number) => `/api/v1/cbam/install/${id}`,
+      create: '/install',  // Gateway를 거쳐 CBAM 서비스의 /install로 연결
+      list: '/install',
+      get: (id: number) => `/install/${id}`,
+      update: (id: number) => `/install/${id}`,
+      delete: (id: number) => `/install/${id}`,
+      names: '/install/names'  // CBAM 서비스 스키마와 일치
     },
     
-    // Product (제품) API
+    // Product (제품) API (Gateway를 거쳐 CBAM 서비스로 연결)
     product: {
-      create: '/api/v1/cbam/product',
-      list: '/api/v1/cbam/product',
-      get: (id: number) => `/api/v1/cbam/product/${id}`,
-      update: (id: number) => `/api/v1/cbam/product/${id}`,
-      delete: (id: number) => `/api/v1/cbam/product/${id}`,
-      byInstall: (install_id: number) => `/api/v1/cbam/product/install/${install_id}`,
+      create: '/product',  // Gateway를 거쳐 CBAM 서비스의 /product로 연결
+      list: '/product',
+      get: (id: number) => `/product/${id}`,
+      update: (id: number) => `/product/${id}`,
+      delete: (id: number) => `/product/${id}`,
+      byInstall: (install_id: number) => `/product/install/${install_id}`,
+      names: '/product/names'  // CBAM 서비스 스키마와 일치
     },
     
-    // Process (공정) API
+    // Process (공정) API (Gateway를 거쳐 CBAM 서비스로 연결)
     process: {
-      create: '/api/v1/cbam/process',
-      list: '/api/v1/cbam/process',
-      get: (id: number) => `/api/v1/cbam/process/${id}`,
-      update: (id: number) => `/api/v1/cbam/process/${id}`,
-      delete: (id: number) => `/api/v1/cbam/process/${id}`,
+      create: '/process',  // Gateway를 거쳐 CBAM 서비스의 /process로 연결
+      list: '/process',
+      get: (id: number) => `/process/${id}`,
+      update: (id: number) => `/process/${id}`,
+      delete: (id: number) => `/process/${id}`,
+      names: '/process/names'  // CBAM 서비스 스키마와 일치
     },
     
     // Edge (노드 연결) API

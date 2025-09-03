@@ -31,7 +31,7 @@ export const ProcessSelector: React.FC<ProcessSelectorProps> = ({
       <div className="bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full mx-4 border border-gray-700">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-white">
-            공정 선택 - {selectedProduct?.name || '제품'}
+            공정 선택 - {selectedProduct?.product_name || '제품'}
           </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-200">✕</button>
         </div>
@@ -43,14 +43,14 @@ export const ProcessSelector: React.FC<ProcessSelectorProps> = ({
                 className="p-3 border border-gray-600 rounded-lg cursor-pointer hover:bg-gray-700 hover:border-purple-400 transition-colors"
                 onClick={() => onProcessSelect(process)}
               >
-                <div className="font-medium text-white">{process.name}</div>
-                <div className="text-sm text-gray-300">설명: {process.description || 'N/A'}</div>
-                <div className="text-sm text-gray-300">카테고리: {process.category || 'N/A'}</div>
+                <div className="font-medium text-white">{process.process_name}</div>
+                <div className="text-sm text-gray-300">기간: {process.start_period || 'N/A'} ~ {process.end_period || 'N/A'}</div>
+                <div className="text-sm text-gray-300">연결된 제품: {process.products?.length || 0}개</div>
               </div>
             ))
           ) : (
             <div className="text-center py-4 text-gray-400">
-              {selectedProduct?.name}에 등록된 공정이 없습니다.
+              {selectedProduct?.product_name}에 등록된 공정이 없습니다.
             </div>
           )}
         </div>
@@ -101,7 +101,7 @@ export const ProductProcessModal: React.FC<{
       <div className="bg-gray-800 p-6 rounded-lg shadow-lg max-w-4xl w-full mx-4 border border-gray-700 max-h-[80vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-xl font-semibold text-white">
-            제품 관리 - {selectedProduct?.name}
+            제품 관리 - {selectedProduct?.product_name}
           </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-200 text-xl">✕</button>
         </div>
@@ -153,10 +153,10 @@ export const ProductProcessModal: React.FC<{
                   key={process.id}
                   className="p-4 border border-gray-600 rounded-lg bg-gray-700 hover:border-purple-400 transition-colors"
                 >
-                  <div className="font-medium text-white mb-2">{process.name}</div>
+                  <div className="font-medium text-white mb-2">{process.process_name}</div>
                   <div className="text-sm text-gray-300 space-y-1">
-                    <div>설명: {process.description || 'N/A'}</div>
-                    <div>카테고리: {process.category || 'N/A'}</div>
+                    <div>기간: {process.start_period || 'N/A'} ~ {process.end_period || 'N/A'}</div>
+                    <div>연결된 제품: {process.products?.length || 0}개</div>
                   </div>
                   <button
                     onClick={() => onProcessSelect(process)}
@@ -172,7 +172,7 @@ export const ProductProcessModal: React.FC<{
               <div className="text-center py-8 text-gray-400">
                 {processFilterMode === 'all' 
                   ? '등록된 공정이 없습니다.' 
-                  : `${selectedProduct?.name}에 등록된 공정이 없습니다.`
+                  : `${selectedProduct?.product_name}에 등록된 공정이 없습니다.`
                 }
               </div>
             )}

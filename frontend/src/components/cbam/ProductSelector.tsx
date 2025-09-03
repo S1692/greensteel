@@ -29,8 +29,8 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
                 className="p-3 border border-gray-600 rounded-lg cursor-pointer hover:bg-gray-700 hover:border-blue-400 transition-colors"
                 onClick={() => onProductSelect(product)}
               >
-                <div className="font-medium text-white">{product.name}</div>
-                <div className="text-sm text-gray-300">카테고리: {product.category}</div>
+                <div className="font-medium text-white">{product.product_name}</div>
+                <div className="text-sm text-gray-300">카테고리: {product.product_category}</div>
                 <div className="text-sm text-gray-300">수량: {product.product_amount || 'N/A'}</div>
               </div>
             ))

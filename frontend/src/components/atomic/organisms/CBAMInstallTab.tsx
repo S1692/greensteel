@@ -30,8 +30,8 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
 
   // 사업장 생성 폼 상태
   const [newInstall, setNewInstall] = useState({
-    name: '',
-    reportingPeriod: '2025'
+    install_name: '',
+    reporting_year: 2025
   });
 
   // 제품 추가 폼 상태
@@ -47,7 +47,7 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
   const handleCreateInstall = () => {
     // TODO: API 호출하여 사업장 생성
     console.log('사업장 생성:', newInstall);
-    setNewInstall({ name: '', reportingPeriod: '2025' });
+    setNewInstall({ install_name: '', reporting_year: 2025 });
   };
 
   // 제품 관리 모달 열기
@@ -107,8 +107,8 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
             </label>
             <input
               type="text"
-              value={newInstall.name}
-              onChange={(e) => setNewInstall({ ...newInstall, name: e.target.value })}
+              value={newInstall.install_name}
+              onChange={(e) => setNewInstall({ ...newInstall, install_name: e.target.value })}
               placeholder="예: 포항제철소"
               className="w-full px-3 py-2 bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg text-ecotrace-text placeholder-ecotrace-textSecondary focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -120,9 +120,9 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
             </label>
             <input
               type="text"
-              value={newInstall.reportingPeriod}
-              onChange={(e) => setNewInstall({ ...newInstall, reportingPeriod: e.target.value })}
-              placeholder="2025"
+                      value={newInstall.reporting_year}
+        onChange={(e) => setNewInstall({ ...newInstall, reporting_year: parseInt(e.target.value) || 2025 })}
+        placeholder="2025"
               className="w-full px-3 py-2 bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg text-ecotrace-text placeholder-ecotrace-textSecondary focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>

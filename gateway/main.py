@@ -373,9 +373,9 @@ async def proxy_cbam_service(request: Request, path: str):
         raise HTTPException(status_code=503, detail="CBAM service not configured")
     
     # CBAM 서비스의 실제 엔드포인트로 전달
-    # 프론트엔드: /api/v1/cbam/install → CBAM 서비스: /install
-    # 프론트엔드: /api/v1/cbam/mapping → CBAM 서비스: /mapping
-    target_path = f"/{path}"
+    # 프론트엔드: /api/v1/cbam/install → CBAM 서비스: /api/v1/cbam/install
+    # 프론트엔드: /api/v1/cbam/mapping → CBAM 서비스: /api/v1/cbam/mapping
+    target_path = f"/api/v1/cbam/{path}"
     
     gateway_logger.log_info(f"CBAM proxy: {request.method} /api/v1/cbam/{path} → {CBAM_SERVICE_URL}{target_path}")
     return await _forward(CBAM_SERVICE_URL, target_path, request)

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Process, Product, Install } from '@/hooks/useProcessManager';
-import axiosClient from '@/lib/axiosClient';
+import axiosClient, { apiEndpoints } from '@/lib/axiosClient';
 
 interface ProcessSelectorProps {
   processes: Process[];
@@ -98,7 +98,7 @@ export const ProductProcessModal: React.FC<{
       
       setLoading(true);
       try {
-        const response = await axiosClient.get(`/api/v1/cbam/productprocess/by-product/${selectedProduct.id}`);
+        const response = await axiosClient.get(apiEndpoints.cbam.productProcess.byProduct(selectedProduct.id));
         const data = response.data.processes || response.data || [];
         
         // 해당 제품에만 연결된 공정들만 필터링 (추가 안전장치)
@@ -128,14 +128,14 @@ export const ProductProcessModal: React.FC<{
       console.log('🔍 사업장별 공정 조회:', installId);
       
       // 사업장별 제품 조회
-      const productsResponse = await axiosClient.get(`/api/v1/cbam/product/install/${installId}`);
+      const productsResponse = await axiosClient.get(apiEndpoints.cbam.product.byInstall(installId));
       const products = productsResponse.data || [];
       
       // 각 제품의 공정 관계 조회
       const allProcessesData: any[] = [];
       for (const product of products) {
         try {
-          const processResponse = await axiosClient.get(`/api/v1/cbam/productprocess/by-product/${product.id}`);
+          const processResponse = await axiosClient.get(apiEndpoints.cbam.productProcess.byProduct(product.id));
           const processData = processResponse.data.processes || processResponse.data || [];
           allProcessesData.push(...processData);
         } catch (error) {
@@ -180,6 +180,40 @@ export const ProductProcessModal: React.FC<{
     }
   }, [selectedProduct]);
 
+  // 공정 선택 시 제품-공정 관계 생성
+  const handleProcessSelect = async (processData: any) => {
+    if (!selectedProduct?.id || !processData?.process_id) {
+      alert('제품 또는 공정 정보가 없습니다.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // 제품-공정 관계 생성 요청 (CBAM 서비스 API 사용)
+      const response = await axiosClient.post(apiEndpoints.cbam.productProcess.create, {
+        product_id: selectedProduct.id,
+        process_id: processData.process_id,
+        consumption_amount: 0 // 기본값
+      });
+
+      console.log('✅ 제품-공정 관계 생성 성공:', response.data);
+      
+      // 성공 시 공정 목록 새로고침
+      const productResponse = await axiosClient.get(apiEndpoints.cbam.productProcess.byProduct(selectedProduct.id));
+      const data = productResponse.data.processes || productResponse.data || [];
+      const filteredData = data.filter((item: any) => item.product_id === selectedProduct.id);
+      setProductProcesses(filteredData);
+      
+      alert('공정이 성공적으로 연결되었습니다.');
+    } catch (error) {
+      console.error('❌ 제품-공정 관계 생성 실패:', error);
+      alert('공정 연결에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 수량 저장 함수
   const handleSaveQuantity = async () => {
     if (!selectedProduct?.id) return;
@@ -192,7 +226,7 @@ export const ProductProcessModal: React.FC<{
         product_eusell: quantityForm.product_eusell
       };
       
-      await axiosClient.put(`/api/v1/cbam/product/${selectedProduct.id}`, updateData);
+      await axiosClient.put(apiEndpoints.cbam.product.update(selectedProduct.id), updateData);
       alert('수량이 성공적으로 저장되었습니다!');
       
       // 제품 정보 새로고침을 위해 모달 닫기
@@ -299,7 +333,7 @@ export const ProductProcessModal: React.FC<{
                             <div>소비량: {item.consumption_amount || 0}</div>
                           </div>
                           <button
-                            onClick={() => onProcessSelect(item)}
+                            onClick={() => handleProcessSelect(item)}
                             className="mt-3 w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-md transition-colors"
                           >
                             공정 선택
@@ -329,7 +363,7 @@ export const ProductProcessModal: React.FC<{
                             <div>소비량: {item.consumption_amount || 0}</div>
                           </div>
                           <button
-                            onClick={() => onProcessSelect(item)}
+                            onClick={() => handleProcessSelect(item)}
                             className="mt-3 w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md transition-colors"
                           >
                             공정 선택

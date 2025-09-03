@@ -14,7 +14,7 @@ interface ProcessCanvasData {
   handleInstallSelect: (install: Install) => void;
   addProductNode: (product: any, onClick?: (product: any) => void) => void;
   addProcessNode: (process: any, products: any[], onMatDirClick?: (process: any) => void, onFuelDirClick?: (process: any) => void) => Promise<void>;
-  addGroupNode: () => void;
+
   updateNodeData: (nodeId: string, data: any) => void;
 }
 
@@ -184,37 +184,7 @@ export const useProcessCanvas = (selectedInstall: Install | null) => {
     });
   }, [setNodes, selectedInstall?.id]);
 
-  // 그룹 노드 추가 (안전한 상태 업데이트)
-  const addGroupNode = useCallback(() => {
-    // 🔴 수정: 더 작은 ID 생성 (int32 범위 내)
-    const nodeId = Math.floor(Math.random() * 1000000) + 1; // 1 ~ 1,000,000
-    const actualNodeId = `group-${nodeId}-${Math.random().toString(36).slice(2)}`;
-    
-    const newNode: Node<any> = {
-      id: actualNodeId,
-      type: 'group',  // 🔴 수정: 'group' 타입으로 설정
-      position: { x: Math.random() * 400 + 100, y: Math.random() * 300 + 100 },
-      style: { width: 200, height: 100 },
-      data: { 
-        nodeId: actualNodeId,  // 🔴 추가: 실제 노드 ID를 data에 저장
-        label: '그룹',  // 🔴 수정: label을 올바르게 설정
-        description: '그룹 노드',
-        variant: 'default',  // 🔴 추가: variant 설정
-        size: 'md',  // 🔴 추가: size 설정
-        showHandles: true,  // 🔴 추가: showHandles 설정
-      },
-    };
 
-    console.log('🔍 그룹 노드 생성:', newNode); // 🔴 추가: 디버깅 로그
-
-    // setNodes를 사용하여 안전하게 노드 추가
-    setNodes(prev => {
-      const newNodes = [...prev, newNode];
-      prevNodesRef.current = newNodes;
-      console.log('🔍 노드 상태 업데이트:', newNodes); // 🔴 추가: 디버깅 로그
-      return newNodes;
-    });
-  }, [setNodes]);
 
   // 🔧 4방향 연결을 지원하는 Edge 생성 처리
   const handleEdgeCreate = useCallback(async (params: Connection, updateCallback: () => void = () => {}) => {
@@ -436,7 +406,7 @@ export const useProcessCanvas = (selectedInstall: Install | null) => {
     handleInstallSelect,
     addProductNode,
     addProcessNode,
-    addGroupNode,
+
     updateNodeData,
   };
 };

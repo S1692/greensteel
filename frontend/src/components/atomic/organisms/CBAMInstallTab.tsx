@@ -26,19 +26,12 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
   const [showHSCNCodeModal, setShowHSCNCodeModal] = useState(false);
   const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
   const [filteredProcesses, setFilteredProcesses] = useState<any[]>([]);
+  const [hsSearchQuery, setHsSearchQuery] = useState('');
+  const [hsSearchResults, setHsSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
-  // 더미 제품 데이터 (실제로는 API에서 가져올 것)
-  const [products, setProducts] = useState([
-    {
-      id: 1,
-      name: '블룸',
-      startDate: '2025-08-01',
-      endDate: '2025-08-30',
-      quantity: 0,
-      processCount: 0,
-      category: '복합제품'
-    }
-  ]);
+  // 제품 데이터 (실제로는 API에서 가져올 것)
+  const [products, setProducts] = useState<any[]>([]);
 
   // 사업장 생성 폼 상태
   const [newInstall, setNewInstall] = useState({
@@ -223,6 +216,43 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
     return uniqueProcesses;
   };
 
+  // HS 코드 검색 함수
+  const handleHSCodeSearch = async () => {
+    if (!hsSearchQuery.trim()) {
+      alert('검색어를 입력해주세요.');
+      return;
+    }
+
+    setIsSearching(true);
+    setHsSearchResults([]);
+
+    try {
+      console.log('HS 코드 검색 시작:', hsSearchQuery);
+      
+      // HS 코드인지 제품명인지 판단 (숫자로 시작하면 HS 코드로 간주)
+      const isHSCode = /^\d/.test(hsSearchQuery.trim());
+      
+      let response;
+      if (isHSCode) {
+        // HS 코드로 검색
+        response = await axiosClient.get(apiEndpoints.cbam.mapping.lookup(hsSearchQuery.trim()));
+      } else {
+        // 제품명으로 검색
+        response = await axiosClient.get(apiEndpoints.cbam.mapping.search.goods(hsSearchQuery.trim()));
+      }
+      
+      console.log('HS 코드 검색 결과:', response.data);
+      setHsSearchResults(response.data || []);
+      
+    } catch (error: any) {
+      console.error('HS 코드 검색 실패:', error);
+      alert('검색 중 오류가 발생했습니다. 다시 시도해주세요.');
+      setHsSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   // 제품 관리 모달 열기
   const handleProductManagement = (install: any) => {
     setSelectedInstall(install);
@@ -257,7 +287,8 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
       endDate: newProduct.endDate,
       quantity: 0,
       processCount: 0,
-      category: newProduct.category || '미분류'
+      category: newProduct.category || '미분류',
+      processes: []
     };
 
     setProducts([...products, newProductItem]);
@@ -268,7 +299,19 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
   // 공정 추가 처리
   const handleAddProcess = (productId: number) => {
     if (selectedProcess) {
-      // TODO: API 호출하여 공정 추가
+      // 제품에 공정 추가
+      setProducts(prevProducts => 
+        prevProducts.map(product => 
+          product.id === productId 
+            ? {
+                ...product,
+                processes: [...(product.processes || []), selectedProcess],
+                processCount: (product.processes || []).length + 1
+              }
+            : product
+        )
+      );
+      
       console.log('공정 추가:', { productId, process: selectedProcess });
       setShowAddProcess(null);
       setSelectedProcess('');
@@ -325,10 +368,22 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
   };
 
   // 공정 삭제 핸들러
-  const handleDeleteProcess = (processName: string) => {
+  const handleDeleteProcess = (processName: string, productId: number) => {
     if (window.confirm(`정말로 "${processName}" 공정을 삭제하시겠습니까?`)) {
+      // 제품에서 공정 제거
+      setProducts(prevProducts => 
+        prevProducts.map(product => 
+          product.id === productId 
+            ? {
+                ...product,
+                processes: (product.processes || []).filter((p: any) => (p.name || p) !== processName),
+                processCount: Math.max(0, (product.processes || []).length - 1)
+              }
+            : product
+        )
+      );
+      
       console.log('공정 삭제:', processName);
-      // TODO: 공정 삭제 로직 구현
     }
   };
 
@@ -441,18 +496,32 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
               <h3 className="text-lg font-medium text-ecotrace-text">
                 등록된 제품 목록 ({products.length}개)
               </h3>
-        <button
+              <button
                 onClick={handleAddProduct}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-        >
-          <Plus className="h-4 w-4" />
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+              >
+                <Plus className="h-4 w-4" />
                 <span>제품 추가</span>
-        </button>
-      </div>
+              </button>
+            </div>
 
             {/* 제품 목록 */}
             <div className="space-y-4">
-              {products.map((product) => (
+              {products.length === 0 ? (
+                <div className="text-center py-12">
+                  <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <h4 className="text-lg font-medium text-gray-900 mb-2">등록된 제품이 없습니다</h4>
+                  <p className="text-gray-500 mb-6">새로운 제품을 추가하여 시작하세요.</p>
+                  <button
+                    onClick={handleAddProduct}
+                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 mx-auto"
+                  >
+                    <Plus className="h-5 w-5" />
+                    <span>첫 번째 제품 추가</span>
+                  </button>
+                </div>
+              ) : (
+                products.map((product) => (
                 <div key={product.id} className="bg-ecotrace-secondary/20 rounded-lg p-4 border border-ecotrace-border">
                   <div className="flex justify-between items-start mb-3">
                     <h4 className="text-lg font-semibold text-ecotrace-text">{product.name}</h4>
@@ -497,27 +566,34 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                   <div className="mt-4 pt-4 border-t border-ecotrace-border">
                     <h5 className="font-medium text-ecotrace-text mb-3">■ 등록된 공정:</h5>
                     <div className="space-y-2">
-                      {['제강', '제선', '주조'].map((process, index) => (
-                        <div key={index} className="flex items-center justify-between bg-ecotrace-secondary/10 rounded-lg p-3">
-                          <span className="text-ecotrace-text">{process}</span>
-                          <div className="flex space-x-2">
-                                                        <button 
-                              onClick={() => handleEditProcess(process)}
-                              className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors flex items-center space-x-1"
-                            >
-                              <Edit className="h-3 w-3" />
-                              <span>수정</span>
-                    </button>
-                            <button 
-                              onClick={() => handleDeleteProcess(process)}
-                              className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition-colors flex items-center space-x-1"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                              <span>삭제</span>
-                    </button>
+                      {product.processes && product.processes.length > 0 ? (
+                        product.processes.map((process: any, index: number) => (
+                          <div key={index} className="flex items-center justify-between bg-ecotrace-secondary/10 rounded-lg p-3">
+                            <span className="text-ecotrace-text">{process.name || process}</span>
+                            <div className="flex space-x-2">
+                              <button 
+                                onClick={() => handleEditProcess(process.name || process)}
+                                className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors flex items-center space-x-1"
+                              >
+                                <Edit className="h-3 w-3" />
+                                <span>수정</span>
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteProcess(process.name || process, product.id)}
+                                className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition-colors flex items-center space-x-1"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                <span>삭제</span>
+                              </button>
+                            </div>
                           </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-4">
+                          <p className="text-gray-500 text-sm">등록된 공정이 없습니다.</p>
+                          <p className="text-gray-400 text-xs mt-1">공정 추가 버튼을 클릭하여 공정을 추가하세요.</p>
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
 
@@ -532,7 +608,7 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                       {/* 사용 가능한 공정 정보 */}
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
                         <p className="text-sm text-blue-800">
-                          사용 가능한 공정: 3개
+                          사용 가능한 공정: {filteredProcesses.length}개
                         </p>
                         <p className="text-sm text-blue-700 mt-1">
                           아래 드롭다운에서 해당 제품에 적합한 공정을 선택해주세요.
@@ -604,7 +680,8 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                     </div>
                   )}
                 </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -729,7 +806,12 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                     className="flex-1 px-3 py-2 bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg text-ecotrace-text placeholder-ecotrace-textSecondary focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <button 
-                    onClick={() => setShowHSCNCodeModal(true)}
+                    onClick={() => {
+                      setHsSearchQuery('');
+                      setHsSearchResults([]);
+                      setIsSearching(false);
+                      setShowHSCNCodeModal(true);
+                    }}
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
                   >
                     <Search className="h-4 w-4" />
@@ -914,7 +996,12 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                     className="flex-1 px-3 py-2 bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg text-ecotrace-text placeholder-ecotrace-textSecondary focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <button 
-                    onClick={() => setShowHSCNCodeModal(true)}
+                    onClick={() => {
+                      setHsSearchQuery('');
+                      setHsSearchResults([]);
+                      setIsSearching(false);
+                      setShowHSCNCodeModal(true);
+                    }}
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
                   >
                     <Search className="h-4 w-4" />
@@ -962,11 +1049,13 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  검색어
+                  검색어 (HS 코드 또는 제품명)
                 </label>
                 <input
                   type="text"
-                  placeholder="제품명 또는 HS CN 코드를 입력하세요"
+                  value={hsSearchQuery}
+                  onChange={(e) => setHsSearchQuery(e.target.value)}
+                  placeholder="예: 7208 또는 철강재"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -979,64 +1068,63 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                   취소
                 </button>
                 <button
-                  onClick={() => {
-                    // TODO: HS CN 코드 검색 로직 구현
-                    console.log('HS CN 코드 검색 실행');
-                    setShowHSCNCodeModal(false);
-                  }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  onClick={handleHSCodeSearch}
+                  disabled={!hsSearchQuery.trim() || isSearching}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    !hsSearchQuery.trim() || isSearching
+                      ? 'bg-gray-400 text-white cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
                 >
-                  검색
+                  {isSearching ? '검색 중...' : '검색'}
                 </button>
               </div>
 
               {/* 검색 결과 영역 */}
               <div className="mt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-3">검색 결과</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-3">
+                  검색 결과 {hsSearchResults.length > 0 && `(${hsSearchResults.length}개)`}
+                </h3>
                 <div className="border border-gray-200 rounded-lg p-4">
-                  <div className="space-y-3">
-                    {/* 샘플 검색 결과 */}
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div>
-                        <p className="font-medium text-gray-900">7208.10.00 - 철강재 (Hot-rolled)</p>
-                        <p className="text-sm text-gray-600">열간압연된 철강재</p>
-                      </div>
-                      <button 
-                        onClick={() => {
-                          // 선택된 코드를 입력 필드에 자동 입력
-                          if (editingProduct) {
-                            setEditingProduct({ ...editingProduct, cnCode: '7208.10.00' });
-                          } else {
-                            setNewProduct({ ...newProduct, cnCode: '7208.10.00' });
-                          }
-                          setShowHSCNCodeModal(false);
-                        }}
-                        className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
-                      >
-                        선택
-                      </button>
+                  {hsSearchResults.length === 0 && !isSearching ? (
+                    <p className="text-gray-500 text-center">검색어를 입력하고 검색 버튼을 클릭하세요.</p>
+                  ) : hsSearchResults.length === 0 && isSearching ? (
+                    <p className="text-gray-500 text-center">검색 중...</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {hsSearchResults.map((result, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900">
+                              {result.hscode} - {result.goods_name || result.aggregoods_name || '제품명 없음'}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              CN 코드: {result.cncode_total}
+                            </p>
+                            {result.goods_engname && (
+                              <p className="text-xs text-gray-500">
+                                {result.goods_engname}
+                              </p>
+                            )}
+                          </div>
+                          <button 
+                            onClick={() => {
+                              // 선택된 코드를 입력 필드에 자동 입력
+                              if (editingProduct) {
+                                setEditingProduct({ ...editingProduct, cnCode: result.cncode_total });
+                              } else {
+                                setNewProduct({ ...newProduct, cnCode: result.cncode_total });
+                              }
+                              setShowHSCNCodeModal(false);
+                            }}
+                            className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
+                          >
+                            선택
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                    
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div>
-                        <p className="font-medium text-gray-900">7208.90.00 - 기타 철강재</p>
-                        <p className="text-sm text-gray-600">기타 형태의 철강재</p>
-                      </div>
-                      <button 
-                        onClick={() => {
-                          if (editingProduct) {
-                            setEditingProduct({ ...editingProduct, cnCode: '7208.90.00' });
-                          } else {
-                            setNewProduct({ ...newProduct, cnCode: '7208.90.00' });
-                          }
-                          setShowHSCNCodeModal(false);
-                        }}
-                        className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
-                      >
-                        선택
-                      </button>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
         </div>

@@ -297,34 +297,152 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
     }
   }, [newProduct.startDate, newProduct.endDate, filterProductsByDateRange]);
 
+  // 제품 목록 불러오기
+  const loadProducts = async (installId: number) => {
+    try {
+      console.log('🚀 제품 목록 불러오기 시작:', installId);
+      
+      // CBAM 서비스에서 제품 목록 조회
+      const response = await axiosClient.get(apiEndpoints.cbam.product.list, {
+        params: { install_id: installId }
+      });
+      
+      console.log('✅ 제품 목록 불러오기 성공:', response.data);
+      
+      // 응답 데이터를 로컬 상태 형식으로 변환
+      const productsData = response.data.map((product: any) => ({
+        id: product.id,
+        name: product.product_name,
+        startDate: product.prostart_period,
+        endDate: product.proend_period,
+        quantity: product.quantity || 0,
+        processCount: product.processes?.length || 0,
+        category: product.product_category,
+        processes: product.processes || [],
+        hsCode: product.hs_code,
+        cnCode: product.cn_code
+      }));
+      
+      setProducts(productsData);
+      
+    } catch (error: any) {
+      console.error('❌ 제품 목록 불러오기 실패:', error);
+      console.error('에러 상세:', {
+        message: error?.message,
+        status: error?.response?.status,
+        data: error?.response?.data
+      });
+      
+      // 에러가 발생해도 빈 배열로 초기화
+      setProducts([]);
+    }
+  };
+
+  // 사업장이 선택되면 해당 사업장의 제품 목록 불러오기
+  useEffect(() => {
+    if (selectedInstall?.id) {
+      loadProducts(selectedInstall.id);
+    }
+  }, [selectedInstall]);
+
   // 제품 추가 처리
-  const handleCreateProduct = () => {
+  const handleCreateProduct = async () => {
     if (!newProduct.startDate || !newProduct.endDate || !newProduct.productName) {
       alert('필수 필드를 모두 입력해주세요.');
       return;
     }
 
-    // 새 제품 생성
-    const newProductItem = {
-      id: products.length + 1,
-      name: newProduct.productName,
-      startDate: newProduct.startDate,
-      endDate: newProduct.endDate,
-      quantity: 0,
-      processCount: 0,
-      category: newProduct.category || '미분류',
-      processes: []
-    };
+    if (!selectedInstall) {
+      alert('사업장을 선택해주세요.');
+      return;
+    }
 
-    setProducts([...products, newProductItem]);
-    setNewProduct({ startDate: '', endDate: '', productName: '', category: '', cnCode: '', hsCode: '' });
-    setShowAddProductModal(false);
+    try {
+      console.log('🚀 제품 생성 요청 시작:', newProduct);
+      
+      // CBAM 서비스의 제품 생성 API 호출
+      const productData = {
+        install_id: selectedInstall.id,
+        product_name: newProduct.productName,
+        product_category: newProduct.category || '미분류',
+        prostart_period: newProduct.startDate,
+        proend_period: newProduct.endDate,
+        hs_code: newProduct.hsCode || null,
+        cn_code: newProduct.cnCode || null
+      };
+
+      const response = await axiosClient.post(apiEndpoints.cbam.product.create, productData);
+      
+      console.log('✅ 제품 생성 성공:', response.data);
+      
+      // 로컬 상태에도 추가 (UI 업데이트용)
+      const newProductItem = {
+        id: response.data.id,
+        name: newProduct.productName,
+        startDate: newProduct.startDate,
+        endDate: newProduct.endDate,
+        quantity: 0,
+        processCount: 0,
+        category: newProduct.category || '미분류',
+        processes: [],
+        hsCode: newProduct.hsCode,
+        cnCode: newProduct.cnCode
+      };
+
+      setProducts([...products, newProductItem]);
+      setNewProduct({ startDate: '', endDate: '', productName: '', category: '', cnCode: '', hsCode: '' });
+      setShowAddProductModal(false);
+      
+      alert('제품이 성공적으로 생성되었습니다.');
+      
+    } catch (error: any) {
+      console.error('❌ 제품 생성 실패:', error);
+      console.error('에러 상세:', {
+        message: error?.message,
+        status: error?.response?.status,
+        data: error?.response?.data
+      });
+      
+      let errorMessage = '제품 생성 중 오류가 발생했습니다.';
+      if (error?.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      }
+      
+      alert(errorMessage);
+    }
   };
 
   // 공정 추가 처리
-  const handleAddProcess = (productId: number) => {
-    if (selectedProcess) {
-      // 제품에 공정 추가
+  const handleAddProcess = async (productId: number) => {
+    if (!selectedProcess) {
+      alert('공정을 선택해주세요.');
+      return;
+    }
+
+    try {
+      console.log('🚀 공정 추가 요청 시작:', { productId, process: selectedProcess });
+      
+      // 1. 먼저 공정을 생성
+      const processData = {
+        process_name: selectedProcess,
+        start_period: null, // 필요시 추가
+        end_period: null,   // 필요시 추가
+        product_ids: [productId] // 다대다 관계를 위한 제품 ID
+      };
+
+      const processResponse = await axiosClient.post(apiEndpoints.cbam.process.create, processData);
+      console.log('✅ 공정 생성 성공:', processResponse.data);
+      
+      // 2. 제품-공정 관계 생성
+      const productProcessData = {
+        product_id: productId,
+        process_id: processResponse.data.id
+      };
+
+      const relationResponse = await axiosClient.post(apiEndpoints.cbam.productProcess.create, productProcessData);
+      console.log('✅ 제품-공정 관계 생성 성공:', relationResponse.data);
+      
+      // 3. 로컬 상태 업데이트 (UI 업데이트용)
       setProducts(prevProducts => 
         prevProducts.map(product => 
           product.id === productId 
@@ -337,11 +455,24 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
         )
       );
       
-      console.log('공정 추가:', { productId, process: selectedProcess });
       setShowAddProcess(null);
       setSelectedProcess('');
-      // 성공 메시지 표시
       alert(`${selectedProcess} 공정이 성공적으로 추가되었습니다.`);
+      
+    } catch (error: any) {
+      console.error('❌ 공정 추가 실패:', error);
+      console.error('에러 상세:', {
+        message: error?.message,
+        status: error?.response?.status,
+        data: error?.response?.data
+      });
+      
+      let errorMessage = '공정 추가 중 오류가 발생했습니다.';
+      if (error?.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      }
+      
+      alert(errorMessage);
     }
   };
 
@@ -367,22 +498,88 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
   };
 
   // 제품 삭제 핸들러
-  const handleDeleteProduct = (productId: number) => {
-    if (window.confirm('정말로 이 제품을 삭제하시겠습니까?')) {
+  const handleDeleteProduct = async (productId: number) => {
+    if (!window.confirm('정말로 이 제품을 삭제하시겠습니까?')) {
+      return;
+    }
+
+    try {
+      console.log('🚀 제품 삭제 요청 시작:', productId);
+      
+      // CBAM 서비스의 제품 삭제 API 호출
+      await axiosClient.delete(apiEndpoints.cbam.product.delete(productId));
+      
+      console.log('✅ 제품 삭제 성공:', productId);
+      
+      // 로컬 상태에서도 제거 (UI 업데이트용)
       setProducts(products.filter(p => p.id !== productId));
-      console.log('제품 삭제:', productId);
+      
+      alert('제품이 성공적으로 삭제되었습니다.');
+      
+    } catch (error: any) {
+      console.error('❌ 제품 삭제 실패:', error);
+      console.error('에러 상세:', {
+        message: error?.message,
+        status: error?.response?.status,
+        data: error?.response?.data
+      });
+      
+      let errorMessage = '제품 삭제 중 오류가 발생했습니다.';
+      if (error?.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      }
+      
+      alert(errorMessage);
     }
   };
 
   // 제품 수정 저장
-  const handleSaveEditProduct = () => {
-    if (editingProduct) {
+  const handleSaveEditProduct = async () => {
+    if (!editingProduct) {
+      return;
+    }
+
+    try {
+      console.log('🚀 제품 수정 요청 시작:', editingProduct);
+      
+      // CBAM 서비스의 제품 수정 API 호출
+      const updateData = {
+        product_name: editingProduct.name,
+        product_category: editingProduct.category,
+        prostart_period: editingProduct.startDate,
+        proend_period: editingProduct.endDate,
+        hs_code: editingProduct.hsCode || null,
+        cn_code: editingProduct.cnCode || null
+      };
+
+      const response = await axiosClient.put(apiEndpoints.cbam.product.update(editingProduct.id), updateData);
+      
+      console.log('✅ 제품 수정 성공:', response.data);
+      
+      // 로컬 상태도 업데이트 (UI 업데이트용)
       setProducts(products.map(p => 
         p.id === editingProduct.id ? { ...p, ...editingProduct } : p
       ));
+      
       setShowEditProductModal(false);
       setEditingProduct(null);
-      console.log('제품 수정 완료:', editingProduct);
+      
+      alert('제품이 성공적으로 수정되었습니다.');
+      
+    } catch (error: any) {
+      console.error('❌ 제품 수정 실패:', error);
+      console.error('에러 상세:', {
+        message: error?.message,
+        status: error?.response?.status,
+        data: error?.response?.data
+      });
+      
+      let errorMessage = '제품 수정 중 오류가 발생했습니다.';
+      if (error?.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      }
+      
+      alert(errorMessage);
     }
   };
 

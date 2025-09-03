@@ -204,11 +204,12 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
     return uniqueProducts;
   };
 
-  // 생산품명에 따른 공정 필터링
+  // 제품명에 따른 공정 필터링 (제품 추가 시 입력한 이름 기준)
   const filterProcessesByProduct = (productName: string) => {
     const currentInputData = getInputDataFromStorage();
     if (!currentInputData.length) return [];
     
+    // 제품 추가 시 입력한 이름과 로컬스토리지의 생산품명이 일치하는 경우만 필터링
     const productProcesses = currentInputData
       .filter((item: any) => item.생산품명 === productName)
       .map((item: any) => item.공정)
@@ -896,7 +897,7 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                           공정 추가 정보
                         </p>
                         <p className="text-sm text-blue-700 mt-1">
-                          제품 추가 시 입력한 이름이 공정명으로 자동 설정됩니다.
+                          로컬스토리지의 생산품명이 공정명으로 자동 설정됩니다.
                         </p>
                       </div>
 
@@ -926,7 +927,7 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                               <span className="font-medium">공정명:</span> {product.name}
                             </p>
                             <p className="text-xs text-blue-600 mt-1">
-                              * 제품 추가 시 입력한 이름이 공정명으로 자동 설정됩니다
+                              * 로컬스토리지의 생산품명이 공정명으로 자동 설정됩니다
                             </p>
                           </div>
                           <input
@@ -1038,6 +1039,9 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                     </option>
                   ))}
                 </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  * 로컬스토리지의 생산품명과 정확히 일치하는 이름을 선택해주세요
+                </p>
                 {(!newProduct.startDate || !newProduct.endDate) && (
                   <p className="text-yellow-500 text-sm mt-1">기간을 먼저 설정해주세요</p>
                 )}

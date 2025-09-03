@@ -282,7 +282,8 @@ class ProductRepository:
                 product_data.get('aggrgoods_engname', ''),
                 product_data.get('product_amount', 0.0),
                 product_data.get('product_sell', 0.0),
-                product_data.get('product_eusell', 0.0)
+                product_data.get('product_eusell', 0.0),
+                product_data.get('attr_em', 0.0)
             )
             
             logger.info(f"🔍 INSERT 쿼리 파라미터: {params}")

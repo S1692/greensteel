@@ -59,18 +59,26 @@ async def get_install_names():
 async def create_install(request: InstallCreateRequest):
     """사업장 생성"""
     try:
-        logger.info(f"📝 사업장 생성 요청: {request.install_name}")
+        logger.info(f"📝 사업장 생성 요청 시작: {request.install_name}")
+        logger.info(f"📝 요청 데이터: {request.dict()}")
+        
         install_service = get_install_service()
+        logger.info("🔧 Install 서비스 인스턴스 생성 완료")
+        
         install = await install_service.create_install(request)
+        logger.info(f"🔧 Install 서비스 create_install 호출 완료")
+        
         if not install:
+            logger.error("❌ Install 서비스에서 None 반환")
             raise HTTPException(status_code=400, detail="사업장 생성에 실패했습니다")
         
-        logger.info(f"✅ 사업장 생성 성공: ID {install.id}")
+        logger.info(f"✅ 사업장 생성 성공: ID={install.id}, 이름={install.name}")
         return install
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"❌ 사업장 생성 실패: {str(e)}")
+        logger.error(f"❌ 오류 타입: {type(e).__name__}")
         raise HTTPException(status_code=500, detail=f"사업장 생성 중 오류가 발생했습니다: {str(e)}")
 
 # 실제 경로: /install/{install_id} (특정 사업장 조회)

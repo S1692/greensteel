@@ -36,18 +36,23 @@ class InstallService:
     async def create_install(self, request: InstallCreateRequest) -> InstallResponse:
         """사업장 생성"""
         try:
+            logger.info(f"🏭 사업장 생성 요청: {request.install_name}")
+            
             install_data = {
-                "install_name": request.install_name,
-                "reporting_year": request.reporting_year
+                "name": request.install_name  # install_name → name으로 변경
             }
             
+            logger.info(f"📝 사업장 데이터 준비 완료: {install_data}")
             saved_install = await self.install_repository.create_install(install_data)
+            
             if saved_install:
+                logger.info(f"✅ 사업장 생성 성공: ID={saved_install.get('id')}, 이름={saved_install.get('name')}")
                 return InstallResponse(**saved_install)
             else:
+                logger.error("❌ 사업장 저장에 실패했습니다.")
                 raise Exception("사업장 저장에 실패했습니다.")
         except Exception as e:
-            logger.error(f"Error creating install: {e}")
+            logger.error(f"❌ 사업장 생성 실패: {str(e)}")
             raise e
     
     async def get_installs(self) -> List[InstallResponse]:

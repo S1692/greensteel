@@ -89,9 +89,24 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
       const storedData = localStorage.getItem('cbam_input_data');
       if (storedData) {
         const parsedData = JSON.parse(storedData);
-        console.log('로컬 스토리지에서 Input 데이터 로드:', parsedData.length, '개 항목');
-        console.log('로컬스토리지 데이터 샘플:', parsedData.slice(0, 3)); // 처음 3개 항목만 로그
-        return parsedData;
+        console.log('로컬 스토리지 원본 데이터:', parsedData);
+        console.log('데이터 타입:', typeof parsedData);
+        console.log('배열 여부:', Array.isArray(parsedData));
+        
+        // 데이터가 배열인지 확인
+        if (Array.isArray(parsedData)) {
+          console.log('로컬 스토리지에서 Input 데이터 로드:', parsedData.length, '개 항목');
+          console.log('로컬스토리지 데이터 샘플:', parsedData.slice(0, 3)); // 처음 3개 항목만 로그
+          return parsedData;
+        } else if (parsedData && parsedData.data && Array.isArray(parsedData.data)) {
+          // API 응답 형태인 경우 (data 필드 안에 배열이 있는 경우)
+          console.log('API 응답 형태 데이터에서 배열 추출:', parsedData.data.length, '개 항목');
+          console.log('로컬스토리지 데이터 샘플:', parsedData.data.slice(0, 3));
+          return parsedData.data;
+        } else {
+          console.warn('로컬스토리지 데이터가 배열이 아닙니다:', parsedData);
+          return [];
+        }
       }
     } catch (error) {
       console.error('로컬 스토리지 데이터 로드 실패:', error);
@@ -146,8 +161,8 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
         return false;
       }
       
-      // 투입일이 기간 시작일보다 늦고, 종료일이 기간 종료일보다 빠른 것만 필터링
-      const isWithinRange = 투입일Date > filterStart && 종료일Date < filterEnd;
+      // 투입일이 기간 시작일보다 늦거나 같고, 종료일이 기간 종료일보다 빠르거나 같은 것만 필터링
+      const isWithinRange = 투입일Date >= filterStart && 종료일Date <= filterEnd;
       
       if (index < 5) { // 처음 5개 항목만 상세 로그
         console.log(`필터링 체크 ${index}:`, {
@@ -671,13 +686,13 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                 {newProduct.startDate && newProduct.endDate && filteredProducts.length === 0 && (
                   <div className="text-red-500 text-sm mt-1">
                     <p>해당 기간에 생산품명이 없습니다</p>
-                    <p className="text-xs mt-1">조건: 투입일이 {newProduct.startDate}보다 늦고, 종료일이 {newProduct.endDate}보다 빠른 데이터</p>
+                    <p className="text-xs mt-1">조건: 투입일이 {newProduct.startDate} 이후이고, 종료일이 {newProduct.endDate} 이전인 데이터</p>
                   </div>
                 )}
                 {filteredProducts.length > 0 && (
                   <div className="text-green-500 text-sm mt-1">
                     <p>{filteredProducts.length}개의 생산품명이 있습니다</p>
-                    <p className="text-xs mt-1">조건: 투입일이 {newProduct.startDate}보다 늦고, 종료일이 {newProduct.endDate}보다 빠른 데이터</p>
+                    <p className="text-xs mt-1">조건: 투입일이 {newProduct.startDate} 이후이고, 종료일이 {newProduct.endDate} 이전인 데이터</p>
                   </div>
                 )}
               </div>

@@ -96,20 +96,19 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
     console.log('필터링 시작:', { startDate, endDate, inputDataCount: inputData.length });
     
     const filtered = inputData.filter((item: any) => {
-      // 생산 시작일과 생산 종료일을 모두 확인
-      const productionStartDate = new Date(item.생산시작일 || item.생산_시작일 || item.투입일 || item.input_date);
-      const productionEndDate = new Date(item.생산종료일 || item.생산_종료일 || item.종료일 || item.end_date);
+      // 실제 데이터베이스 스키마에 맞춰 투입일과 종료일만 사용
+      const 투입일 = new Date(item.투입일 || item.input_date);
+      const 종료일 = new Date(item.종료일 || item.end_date);
       const filterStart = new Date(startDate);
       const filterEnd = new Date(endDate);
       
-      // 기간 시작일과 생산 시작일, 기간 종료일과 생산 종료일을 매칭
-      // 생산 시작일이 기간 시작일보다 늦거나 같고, 생산 종료일이 기간 종료일보다 빠르거나 같아야 함
-      const isWithinRange = productionStartDate >= filterStart && productionEndDate <= filterEnd;
+      // 투입일이 기간 시작일보다 늦거나 같고, 종료일이 기간 종료일보다 빠르거나 같아야 함
+      const isWithinRange = 투입일 >= filterStart && 종료일 <= filterEnd;
       
       console.log('필터링 체크:', {
         item: item.생산품명 || item.product_name,
-        productionStart: item.생산시작일 || item.생산_시작일 || item.투입일 || item.input_date,
-        productionEnd: item.생산종료일 || item.생산_종료일 || item.종료일 || item.end_date,
+        투입일: item.투입일 || item.input_date,
+        종료일: item.종료일 || item.end_date,
         filterStart: startDate,
         filterEnd: endDate,
         isWithinRange

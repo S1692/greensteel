@@ -315,12 +315,12 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
         name: product.product_name,
         startDate: product.prostart_period,
         endDate: product.proend_period,
-        quantity: product.quantity || 0,
+        quantity: product.product_amount || 0,
         processCount: product.processes?.length || 0,
         category: product.product_category,
         processes: product.processes || [],
-        hsCode: product.hs_code,
-        cnCode: product.cn_code
+        hsCode: product.hs_code || null, // 서버에서 제공하지 않을 수 있음
+        cnCode: product.cncode_total
       }));
       
       setProducts(productsData);
@@ -367,8 +367,12 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
         product_category: newProduct.category || '미분류',
         prostart_period: newProduct.startDate,
         proend_period: newProduct.endDate,
-        hs_code: newProduct.hsCode || null,
-        cn_code: newProduct.cnCode || null
+        cncode_total: newProduct.cnCode || null,
+        goods_name: newProduct.productName, // 제품명을 goods_name에도 설정
+        product_amount: 0.0,
+        product_sell: 0.0,
+        product_eusell: 0.0,
+        attr_em: 0.0
       };
 
       const response = await axiosClient.post(apiEndpoints.cbam.product.create, productData);
@@ -548,8 +552,12 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
         product_category: editingProduct.category,
         prostart_period: editingProduct.startDate,
         proend_period: editingProduct.endDate,
-        hs_code: editingProduct.hsCode || null,
-        cn_code: editingProduct.cnCode || null
+        cncode_total: editingProduct.cnCode || null,
+        goods_name: editingProduct.name, // 제품명을 goods_name에도 설정
+        product_amount: editingProduct.quantity || 0.0,
+        product_sell: 0.0,
+        product_eusell: 0.0,
+        attr_em: 0.0
       };
 
       const response = await axiosClient.put(apiEndpoints.cbam.product.update(editingProduct.id), updateData);

@@ -5,11 +5,13 @@ import axiosClient, { apiEndpoints } from '@/lib/axiosClient';
 interface CBAMInstallTabProps {
   installs: any[];
   onShowInstallModal: () => void;
+  onRefresh?: () => void;
 }
 
 export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
   installs,
-  onShowInstallModal
+  onShowInstallModal,
+  onRefresh
 }) => {
   const [showProductModal, setShowProductModal] = useState(false);
   const [showAddProductModal, setShowAddProductModal] = useState(false);
@@ -56,8 +58,11 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
       // 폼 초기화
       setNewInstall({ name: '', reporting_year: 2025 });
       
-      // 목록 새로고침 (실제로는 API에서 다시 가져와야 함)
-      // TODO: installs 목록 새로고침
+      // 목록 새로고침
+      if (onRefresh) {
+        console.log('🔄 사업장 목록 새로고침 중...');
+        onRefresh();
+      }
       
     } catch (error: any) {
       console.error('❌ 사업장 생성 실패:', error);

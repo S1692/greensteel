@@ -105,6 +105,7 @@ export default function CBAMPage() {
     <CBAMInstallTab
       installs={installs}
       onShowInstallModal={() => setShowInstallModal(true)}
+      onRefresh={fetchInstalls}
     />
   );
 

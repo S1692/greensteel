@@ -450,30 +450,8 @@ async def proxy_auth_service_legacy(request: Request, path: str):
     return await _forward(auth_service_url, target_path, request)
 
 # ============================================================================
-# 🌱 LCA 서비스 프록시 라우트
+# 🌱 LCA 서비스 프록시 라우트 (제거됨 - 더 이상 사용하지 않음)
 # ============================================================================
-
-@app.api_route("/api/lci/{path:path}", methods=["GET","POST","PUT","DELETE","PATCH","HEAD","OPTIONS"])
-async def proxy_lca_service(request: Request, path: str):
-    """LCA 서비스로 요청을 프록시"""
-    lca_service_url = os.getenv("LCI_SERVICE_URL", "http://localhost:8084")
-    
-    # LCA 서비스의 실제 엔드포인트로 전달
-    target_path = f"/api/lci/{path}"
-    
-    gateway_logger.log_info(f"LCA proxy: {request.method} /api/lci/{path} → {lca_service_url}{target_path}")
-    return await _forward(lca_service_url, target_path, request)
-
-@app.api_route("/lci/{path:path}", methods=["GET","POST","PUT","DELETE","PATCH","HEAD","OPTIONS"])
-async def proxy_lca_service_legacy(request: Request, path: str):
-    """LCA 서비스로 요청을 프록시 (레거시 경로 지원)"""
-    lca_service_url = os.getenv("LCI_SERVICE_URL", "http://localhost:8084")
-    
-    # LCA 서비스의 실제 엔드포인트로 전달
-    target_path = f"/lci/{path}"
-    
-    gateway_logger.log_info(f"LCA legacy proxy: {request.method} /lci/{path} → {lca_service_url}{target_path}")
-    return await _forward(lca_service_url, target_path, request)
 
 # ============================================================================
 # 📊 DataGather 서비스 프록시 라우트

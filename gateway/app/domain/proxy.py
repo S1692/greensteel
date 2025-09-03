@@ -19,7 +19,7 @@ class ProxyController:
         gateway_logger.log_info(f"AUTH_SERVICE_URL (raw): {os.getenv('AUTH_SERVICE_URL', 'NOT_SET')}")
         gateway_logger.log_info(f"CBAM_SERVICE_URL (raw): {os.getenv('CBAM_SERVICE_URL', 'NOT_SET')}")
         gateway_logger.log_info(f"DATAGATHER_SERVICE_URL (raw): {os.getenv('DATAGATHER_SERVICE_URL', 'NOT_SET')}")
-        gateway_logger.log_info(f"LCI_SERVICE_URL (raw): {os.getenv('LCI_SERVICE_URL', 'NOT_SET')}")
+        # LCI_SERVICE_URL 제거됨 - 더 이상 사용하지 않음
         
         # 서비스 매핑 - DDD 도메인별 서비스 분리
         self.service_map = {
@@ -42,7 +42,6 @@ class ProxyController:
             "/api/v1/cbam": self._clean_service_url(os.getenv("CBAM_SERVICE_URL", "http://localhost:8082")),
             "/datagather": self._clean_service_url(os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")),
             "/api/datagather": self._clean_service_url(os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")),
-            "/lci": self._clean_service_url(os.getenv("LCI_SERVICE_URL", "https://lca-service-production.up.railway.app")),
             
             # AI 어시스턴트 도메인
             "/chatbot": self._clean_service_url(os.getenv("CHATBOT_SERVICE_URL", "http://localhost:8084")),

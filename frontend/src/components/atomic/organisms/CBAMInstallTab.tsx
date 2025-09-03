@@ -102,13 +102,14 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
       const start = new Date(startDate);
       const end = new Date(endDate);
       
+      // 시작일과 같거나 이후이면서 종료일과 같거나 빠른 모든 데이터
       return itemDate >= start && itemDate <= end;
     });
     
-    // 생산품명으로 그룹화하여 중복 제거
+    // 생산품명으로 그룹화하여 중복 제거 (생산품명만 중복 없이)
     const uniqueProducts = filtered.reduce((acc: any[], item: any) => {
       const productName = item.생산품명 || item.product_name;
-      if (!acc.find(p => p.name === productName)) {
+      if (productName && !acc.find(p => p.name === productName)) {
         acc.push({
           id: acc.length + 1,
           name: productName,

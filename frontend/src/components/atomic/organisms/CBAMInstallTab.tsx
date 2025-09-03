@@ -90,6 +90,7 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
       if (storedData) {
         const parsedData = JSON.parse(storedData);
         console.log('로컬 스토리지에서 Input 데이터 로드:', parsedData.length, '개 항목');
+        console.log('로컬스토리지 데이터 샘플:', parsedData.slice(0, 3)); // 처음 3개 항목만 로그
         return parsedData;
       }
     } catch (error) {
@@ -112,13 +113,22 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
     
     console.log('필터링 시작:', { startDate, endDate, inputDataCount: currentInputData.length });
     
-    const filtered = currentInputData.filter((item: any) => {
+    const filtered = currentInputData.filter((item: any, index: number) => {
       // 로컬스토리지 데이터 구조에 맞춰 투입일과 종료일 필드 사용
       const 투입일 = item.투입일;
       const 종료일 = item.종료일;
       
+      // 첫 번째 항목의 전체 구조 로그
+      if (index === 0) {
+        console.log('첫 번째 데이터 항목 구조:', item);
+        console.log('사용 가능한 필드들:', Object.keys(item));
+      }
+      
       // 날짜가 없는 경우 제외
       if (!투입일 || !종료일) {
+        if (index < 3) { // 처음 3개 항목만 로그
+          console.log(`항목 ${index}: 날짜 누락`, { 투입일, 종료일, 생산품명: item.생산품명 });
+        }
         return false;
       }
       
@@ -130,20 +140,29 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
       
       // 유효한 날짜인지 확인
       if (isNaN(투입일Date.getTime()) || isNaN(종료일Date.getTime())) {
+        if (index < 3) {
+          console.log(`항목 ${index}: 유효하지 않은 날짜`, { 투입일, 종료일, 투입일Date, 종료일Date });
+        }
         return false;
       }
       
       // 투입일이 기간 시작일보다 늦고, 종료일이 기간 종료일보다 빠른 것만 필터링
       const isWithinRange = 투입일Date > filterStart && 종료일Date < filterEnd;
       
-      console.log('필터링 체크:', {
-        생산품명: item.생산품명,
-        투입일: 투입일,
-        종료일: 종료일,
-        filterStart: startDate,
-        filterEnd: endDate,
-        isWithinRange
-      });
+      if (index < 5) { // 처음 5개 항목만 상세 로그
+        console.log(`필터링 체크 ${index}:`, {
+          생산품명: item.생산품명,
+          투입일: 투입일,
+          종료일: 종료일,
+          투입일Date: 투입일Date.toISOString(),
+          종료일Date: 종료일Date.toISOString(),
+          filterStart: filterStart.toISOString(),
+          filterEnd: filterEnd.toISOString(),
+          조건1: `${투입일Date.toISOString()} > ${filterStart.toISOString()} = ${투입일Date > filterStart}`,
+          조건2: `${종료일Date.toISOString()} < ${filterEnd.toISOString()} = ${종료일Date < filterEnd}`,
+          isWithinRange
+        });
+      }
       
       return isWithinRange;
     });

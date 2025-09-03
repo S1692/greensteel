@@ -244,6 +244,7 @@ export const ProductProcessModal: React.FC<{
                   
                   try {
                     const updateData = {
+                      product_amount: productQuantityForm.product_amount, // 현재 값 유지
                       product_sell: productQuantityForm.product_sell,
                       product_eusell: productQuantityForm.product_eusell
                     };

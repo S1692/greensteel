@@ -72,30 +72,33 @@ export const CBAMOverviewTab: React.FC<CBAMOverviewTabProps> = ({
               <table className="min-w-full divide-y divide-ecotrace-border">
                 <thead className="bg-ecotrace-secondary/50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">로트번호</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">생산품명</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">생산수량</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">투입일</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">공정</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">투입물명</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">수량</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">단위</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-ecotrace-textSecondary uppercase tracking-wider">액션</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산품명</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산 시작일</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산 종료일</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입물명</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
+                    <th className="px-4 py-3 text-sm text-ecotrace-textSecondary">단위</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">주문처명</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">오더번호</th>
                   </tr>
                 </thead>
                 <tbody className="bg-ecotrace-surface divide-y divide-ecotrace-border">
                   {currentData.map((item) => (
                     <tr key={item.id} className="hover:bg-ecotrace-secondary/30">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-text">{item.로트번호}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-text">{item.생산품명}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-text">{item.생산수량}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-textSecondary">
-                        {item.투입일 ? new Date(item.투입일).toLocaleDateString() : '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-text">{item.공정}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-text">{item.투입물명}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-text">{item.수량}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-textSecondary">{item.단위}</td>
+                      <td className="px-4 py-3 text-sm text-ecotrace-text">{item.로트번호 || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-ecotrace-text">{item.생산품명 || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-ecotrace-text">{item.생산수량 || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-ecotrace-text">{item.투입일 || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-ecotrace-text">{item.종료일 || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-ecotrace-text">{item.공정 || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-ecotrace-text">{item.투입물명 || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-ecotrace-text">{item.수량 || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-ecotrace-text">{item.단위 || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-ecotrace-text">{item.주문처명 || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-ecotrace-text">{item.오더번호 || '-'}</td>
                     </tr>
                   ))}
                 </tbody>

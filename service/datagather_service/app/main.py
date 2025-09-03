@@ -13,8 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, Dict, Any
 import uvicorn
 import httpx
-import torch
-from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
+import httpx
 
 from .infrastructure.database import database
 from .infrastructure.config import settings
@@ -27,70 +26,64 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Hugging Face API 설정
-HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
-HUGGINGFACE_MODEL = os.getenv("HUGGINGFACE_MODEL")
-HUGGINGFACE_TEMPERATURE = float(os.getenv("HUGGINGFACE_TEMPERATURE", "0.7"))
-HUGGINGFACE_MAX_LENGTH = int(os.getenv("HUGGINGFACE_MAX_LENGTH", "100"))
-HUGGINGFACE_USE_CACHE = os.getenv("HUGGINGFACE_USE_CACHE", "true").lower() == "true"
-
-# Hugging Face 모델 초기화 (전역 변수로 캐시)
-huggingface_classifier = None
-huggingface_tokenizer = None
+HF_TOKEN = os.getenv("HF_TOKEN")
+HF_API_URL = os.getenv("HF_API_URL")
 
 async def initialize_huggingface_model():
-    """Hugging Face 분류 모델 초기화"""
-    global huggingface_classifier, huggingface_tokenizer
-    
+    """Hugging Face Inference API 초기화"""
     try:
-        if not HUGGINGFACE_API_KEY:
-            logger.warning("⚠️ HUGGINGFACE_API_KEY가 설정되지 않았습니다. 기본 모델을 사용합니다.")
+        if not HF_TOKEN:
+            logger.warning("⚠️ HF_TOKEN이 설정되지 않았습니다.")
             return
         
-        logger.info(f"🤗 Hugging Face 분류 모델 초기화 중: {HUGGINGFACE_MODEL}")
+        if not HF_API_URL:
+            logger.warning("⚠️ HF_API_URL이 설정되지 않았습니다.")
+            return
         
-        # 분류 파이프라인 생성
-        huggingface_classifier = pipeline(
-            "text-classification",
-            model=HUGGINGFACE_MODEL,
-            token=HUGGINGFACE_API_KEY,
-            cache_dir="./model_cache"
-        )
-        
-        logger.info("✅ Hugging Face 분류 모델 초기화 완료")
+        logger.info(f"🤗 Hugging Face Inference API 초기화 완료: {HF_API_URL}")
         
     except Exception as e:
-        logger.error(f"❌ Hugging Face 분류 모델 초기화 실패: {e}")
-        huggingface_classifier = None
+        logger.error(f"❌ Hugging Face API 초기화 실패: {e}")
 
 async def generate_ai_recommendation(input_text: str) -> str:
-    """Hugging Face 분류 모델을 사용하여 AI 추천 답변 생성"""
+    """Hugging Face Inference API를 사용하여 AI 추천 답변 생성"""
     try:
-        if not huggingface_classifier:
-            logger.warning("⚠️ Hugging Face 분류 모델이 초기화되지 않았습니다. 기본 답변을 반환합니다.")
+        if not HF_TOKEN or not HF_API_URL:
+            logger.warning("⚠️ Hugging Face API 설정이 완료되지 않았습니다. 기본 답변을 반환합니다.")
             return f"AI_추천_{input_text}"
         
         # 입력 텍스트 전처리
         classification_text = f"투입물: {input_text}"
         
-        # 분류 수행
-        result = huggingface_classifier(classification_text)
+        # Hugging Face Inference API 호출
+        headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+        payload = {"inputs": classification_text}
         
-        if result and len(result) > 0:
-            # 분류 결과에서 가장 높은 신뢰도를 가진 클래스 선택
-            best_result = max(result, key=lambda x: x['score'])
-            predicted_class = best_result['label']
-            confidence = best_result['score']
+        async with httpx.AsyncClient() as client:
+            response = await client.post(HF_API_URL, headers=headers, json=payload, timeout=30.0)
             
-            # 분류 결과를 기반으로 추천 답변 생성
-            ai_recommendation = f"AI_분류_{predicted_class}_{input_text}"
-            
-            logger.info(f"🤗 AI 분류 결과: 클래스='{predicted_class}', 신뢰도={confidence:.3f}")
-            logger.info(f"🤗 AI 추천 답변: '{ai_recommendation}'")
-            
-            return ai_recommendation
-        else:
-            logger.warning("⚠️ 분류 결과가 없습니다. 기본 답변을 반환합니다.")
-            return f"AI_추천_{input_text}"
+            if response.status_code == 200:
+                result = response.json()
+                
+                if result and len(result) > 0:
+                    # 분류 결과에서 가장 높은 신뢰도를 가진 클래스 선택
+                    best_result = max(result, key=lambda x: x['score'])
+                    predicted_class = best_result['label']
+                    confidence = best_result['score']
+                    
+                    # 분류 결과를 기반으로 추천 답변 생성
+                    ai_recommendation = f"AI_분류_{predicted_class}_{input_text}"
+                    
+                    logger.info(f"🤗 AI 분류 결과: 클래스='{predicted_class}', 신뢰도={confidence:.3f}")
+                    logger.info(f"🤗 AI 추천 답변: '{ai_recommendation}'")
+                    
+                    return ai_recommendation
+                else:
+                    logger.warning("⚠️ 분류 결과가 없습니다. 기본 답변을 반환합니다.")
+                    return f"AI_추천_{input_text}"
+            else:
+                logger.error(f"⚠️ Hugging Face API 호출 실패: {response.status_code} - {response.text}")
+                return f"AI_추천_{input_text}"
         
     except Exception as e:
         logger.error(f"❌ AI 추천 생성 중 오류: {e}")
@@ -226,7 +219,7 @@ async def ai_process_data(data: Dict[str, Any]):
                 **item,
                 "AI추천답변": ai_추천답변,
                 "ai_processed": True,
-                "ai_model": HUGGINGFACE_MODEL,
+                "ai_model": "Halftotter/korean-xlm-roberta-classifier",
                 "ai_task": "text-classification",
                 "classification": "processed",
                 "confidence": 0.95,
@@ -252,8 +245,8 @@ async def ai_process_data(data: Dict[str, Any]):
         
         response_data = {
             "success": True,
-            "message": f"Hugging Face 분류 모델 ({HUGGINGFACE_MODEL}) AI 분류가 완료되었습니다.",
-            "ai_model": HUGGINGFACE_MODEL,
+            "message": f"Hugging Face Inference API (Halftotter/korean-xlm-roberta-classifier) AI 분류가 완료되었습니다.",
+            "ai_model": "Halftotter/korean-xlm-roberta-classifier",
             "ai_task": "text-classification",
             "total_classified": len(ai_classification_results),
             "ai_results": ai_classification_results  # AI 분류 결과만

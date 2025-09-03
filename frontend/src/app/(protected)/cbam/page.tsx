@@ -82,9 +82,25 @@ export default function CBAMPage() {
   const fetchInputData = useCallback(async () => {
     try {
       const response = await axiosClient.get(apiEndpoints.datagather.inputData);
-      setInputData(response.data || []);
+      const data = response.data || [];
+      setInputData(data);
+      
+      // 로컬 스토리지에 저장
+      localStorage.setItem('cbam_input_data', JSON.stringify(data));
+      console.log('Input 데이터를 로컬 스토리지에 저장:', data.length, '개 항목');
     } catch (error) {
       console.error('Input 데이터 조회 실패:', error);
+      // 로컬 스토리지에서 데이터 가져오기 시도
+      try {
+        const storedData = localStorage.getItem('cbam_input_data');
+        if (storedData) {
+          const parsedData = JSON.parse(storedData);
+          setInputData(parsedData);
+          console.log('로컬 스토리지에서 Input 데이터 로드:', parsedData.length, '개 항목');
+        }
+      } catch (storageError) {
+        console.error('로컬 스토리지 데이터 로드 실패:', storageError);
+      }
     }
   }, []);
 

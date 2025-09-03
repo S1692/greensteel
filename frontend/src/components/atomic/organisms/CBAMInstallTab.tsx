@@ -83,19 +83,36 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
     }
   };
 
-  // props로 받은 input 데이터 사용
-  const inputData = propInputData;
+  // 로컬 스토리지에서 input 데이터 가져오기
+  const getInputDataFromStorage = () => {
+    try {
+      const storedData = localStorage.getItem('cbam_input_data');
+      if (storedData) {
+        const parsedData = JSON.parse(storedData);
+        console.log('로컬 스토리지에서 Input 데이터 로드:', parsedData.length, '개 항목');
+        return parsedData;
+      }
+    } catch (error) {
+      console.error('로컬 스토리지 데이터 로드 실패:', error);
+    }
+    return propInputData || [];
+  };
 
-  // 생산품명 필터링 (생산 시작일과 생산 종료일 기준)
+  const inputData = getInputDataFromStorage();
+
+  // 생산품명 필터링 (로컬 스토리지 데이터 기준)
   const filterProductsByDateRange = (startDate: string, endDate: string) => {
-    if (!inputData.length) {
+    // 실시간으로 로컬 스토리지에서 데이터 가져오기
+    const currentInputData = getInputDataFromStorage();
+    
+    if (!currentInputData.length) {
       console.log('Input 데이터가 없습니다.');
       return [];
     }
     
-    console.log('필터링 시작:', { startDate, endDate, inputDataCount: inputData.length });
+    console.log('필터링 시작:', { startDate, endDate, inputDataCount: currentInputData.length });
     
-    const filtered = inputData.filter((item: any) => {
+    const filtered = currentInputData.filter((item: any) => {
       // 실제 데이터베이스 스키마에 맞춰 투입일과 종료일만 사용
       const 투입일 = new Date(item.투입일 || item.input_date);
       const 종료일 = new Date(item.종료일 || item.end_date);
@@ -138,9 +155,10 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
 
   // 생산품명에 따른 공정 필터링
   const filterProcessesByProduct = (productName: string) => {
-    if (!inputData.length) return [];
+    const currentInputData = getInputDataFromStorage();
+    if (!currentInputData.length) return [];
     
-    const productProcesses = inputData
+    const productProcesses = currentInputData
       .filter((item: any) => (item.생산품명 || item.product_name) === productName)
       .map((item: any) => item.공정명 || item.process_name)
       .filter((process: string) => process && process.trim() !== '');
@@ -165,10 +183,11 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
 
   // 날짜 변경 시 생산품명 필터링
   useEffect(() => {
-    if (newProduct.startDate && newProduct.endDate && inputData.length > 0) {
+    const currentInputData = getInputDataFromStorage();
+    if (newProduct.startDate && newProduct.endDate && currentInputData.length > 0) {
       filterProductsByDateRange(newProduct.startDate, newProduct.endDate);
     }
-  }, [newProduct.startDate, newProduct.endDate, inputData, filterProductsByDateRange]);
+  }, [newProduct.startDate, newProduct.endDate, filterProductsByDateRange]);
 
   // 제품 추가 처리
   const handleCreateProduct = () => {

@@ -45,25 +45,30 @@ async def initialize_huggingface_model():
     except Exception as e:
         logger.error(f"❌ Hugging Face API 초기화 실패: {e}")
 
-async def generate_ai_recommendation(input_text: str) -> str:
+async def generate_ai_recommendation(input_text: str) -> tuple[str, float]:
     """Hugging Face Inference API를 사용하여 AI 추천 답변 생성"""
     try:
         if not HF_TOKEN or not HF_API_URL:
             logger.warning("⚠️ Hugging Face API 설정이 완료되지 않았습니다. 기본 답변을 반환합니다.")
-            return f"AI_추천_{input_text}"
+            return input_text, 0.0  # 기본값으로 원본 텍스트와 신뢰도 0.0 반환
         
-        # 입력 텍스트 전처리
-        classification_text = f"투입물: {input_text}"
+        # 입력 텍스트를 그대로 사용 (전처리 없이)
+        classification_text = input_text
         
         # Hugging Face Inference API 호출
         headers = {"Authorization": f"Bearer {HF_TOKEN}"}
         payload = {"inputs": classification_text}
         
+        logger.info(f"🤗 Hugging Face API 호출: '{classification_text}'")
+        
         async with httpx.AsyncClient() as client:
             response = await client.post(HF_API_URL, headers=headers, json=payload, timeout=30.0)
             
+            logger.info(f"🤗 API 응답 상태: {response.status_code}")
+            
             if response.status_code == 200:
                 result = response.json()
+                logger.info(f"🤗 API 응답 결과: {result}")
                 
                 if result and len(result) > 0:
                     # 분류 결과에서 가장 높은 신뢰도를 가진 클래스 선택
@@ -71,23 +76,23 @@ async def generate_ai_recommendation(input_text: str) -> str:
                     predicted_class = best_result['label']
                     confidence = best_result['score']
                     
-                    # 분류 결과를 기반으로 추천 답변 생성
-                    ai_recommendation = f"AI_분류_{predicted_class}_{input_text}"
+                    # 분류 결과를 그대로 반환 (원본 텍스트가 아닌 분류된 클래스)
+                    ai_recommendation = predicted_class
                     
                     logger.info(f"🤗 AI 분류 결과: 클래스='{predicted_class}', 신뢰도={confidence:.3f}")
-                    logger.info(f"🤗 AI 추천 답변: '{ai_recommendation}'")
+                    logger.info(f"🤗 최종 추천 답변: '{ai_recommendation}'")
                     
-                    return ai_recommendation
+                    return ai_recommendation, confidence
                 else:
-                    logger.warning("⚠️ 분류 결과가 없습니다. 기본 답변을 반환합니다.")
-                    return f"AI_추천_{input_text}"
+                    logger.warning("⚠️ 분류 결과가 없습니다. 원본 텍스트를 반환합니다.")
+                    return input_text, 0.0
             else:
                 logger.error(f"⚠️ Hugging Face API 호출 실패: {response.status_code} - {response.text}")
-                return f"AI_추천_{input_text}"
+                return input_text, 0.0
         
     except Exception as e:
         logger.error(f"❌ AI 추천 생성 중 오류: {e}")
-        return f"AI_추천_{input_text}"
+        return input_text, 0.0
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -208,11 +213,13 @@ async def ai_process_data(data: Dict[str, Any]):
             
             # Hugging Face 분류 모델을 사용하여 AI 추천 답변 생성
             try:
-                ai_추천답변 = await generate_ai_recommendation(투입물명)
-                logger.info(f"   - Hugging Face AI 분류 결과: '{ai_추천답변}'")
+                ai_추천답변, actual_confidence = await generate_ai_recommendation(투입물명)
+                logger.info(f"   - Hugging Face AI 분류 결과: '{ai_추천답변}', 신뢰도: {actual_confidence:.3f}")
+                
             except Exception as e:
                 logger.error(f"   - AI 분류 실패, 기본값 사용: {e}")
-                ai_추천답변 = f"AI_추천_{투입물명}"
+                ai_추천답변 = 투입물명  # 기본값으로 원본 텍스트 사용
+                actual_confidence = 0.0
             
             # 각 항목에 AI 처리 결과 추가
             processed_item = {
@@ -222,7 +229,7 @@ async def ai_process_data(data: Dict[str, Any]):
                 "ai_model": "Halftotter/korean-xlm-roberta-classifier",
                 "ai_task": "text-classification",
                 "classification": "processed",
-                "confidence": 0.95,
+                "confidence": actual_confidence,
                 "processed_at": "2024-01-01T00:00:00Z"
             }
             processed_data.append(processed_item)
@@ -237,7 +244,7 @@ async def ai_process_data(data: Dict[str, Any]):
                 "투입물명": item.get('투입물명', ''),
                 "공정": item.get('공정', ''),
                 "AI분류결과": item.get('AI추천답변', ''),
-                "분류신뢰도": item.get('confidence', 0.95),
+                "분류신뢰도": item.get('confidence', 0.0),
                 "AI모델": item.get('ai_model', ''),
                 "처리시간": item.get('processed_at', '')
             }

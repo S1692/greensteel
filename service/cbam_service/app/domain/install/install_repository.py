@@ -164,15 +164,7 @@ class InstallRepository:
                 # 사업장명 정리 및 검증
                 update_data['name'] = await self.validate_and_clean_install_name(update_data['name'])
             
-            if 'reporting_year' in update_data:
-                # 보고기간 검증
-                reporting_year = update_data['reporting_year']
-                if not isinstance(reporting_year, int):
-                    raise ValueError("보고기간(년도)은 정수여야 합니다.")
-                
-                current_year = datetime.now().year
-                if reporting_year < 1900 or reporting_year > current_year + 10:
-                    raise ValueError(f"보고기간(년도)은 1900년부터 {current_year + 10}년 사이여야 합니다.")
+            # 추가 검증 로직이 필요한 경우 여기에 추가
             
             return await self._update_install_db(install_id, update_data)
         except Exception as e:

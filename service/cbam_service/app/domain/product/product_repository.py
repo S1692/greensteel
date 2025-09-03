@@ -105,6 +105,7 @@ class ProductRepository:
                             aggrgoods_engname TEXT,
                             product_sell NUMERIC(15, 6) DEFAULT 0,
                             product_eusell NUMERIC(15, 6) DEFAULT 0,
+                            attr_em NUMERIC(15, 6) DEFAULT 0,
                             created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                             updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
                         );
@@ -113,10 +114,124 @@ class ProductRepository:
                     logger.info("✅ product 테이블 생성 완료")
                 else:
                     logger.info("✅ product 테이블 확인 완료")
+                    
+                    # 기존 테이블에 누락된 컬럼들 추가
+                    await self._add_missing_columns_async(conn)
                 
         except Exception as e:
             logger.error(f"❌ Product 테이블 생성 실패: {str(e)}")
             logger.warning("⚠️ 테이블 생성 실패로 인해 일부 기능이 제한될 수 있습니다.")
+
+    async def _add_missing_columns_async(self, conn):
+        """기존 테이블에 누락된 컬럼들 추가"""
+        try:
+            # cncode_total 컬럼 확인 및 추가
+            result = await conn.fetchval("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.columns 
+                    WHERE table_name = 'product' AND column_name = 'cncode_total'
+                );
+            """)
+            
+            if not result:
+                logger.info("⚠️ cncode_total 컬럼이 누락되었습니다. 추가합니다.")
+                await conn.execute("ALTER TABLE product ADD COLUMN cncode_total TEXT;")
+                logger.info("✅ cncode_total 컬럼 추가 완료")
+            
+            # goods_name 컬럼 확인 및 추가
+            result = await conn.fetchval("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.columns 
+                    WHERE table_name = 'product' AND column_name = 'goods_name'
+                );
+            """)
+            
+            if not result:
+                logger.info("⚠️ goods_name 컬럼이 누락되었습니다. 추가합니다.")
+                await conn.execute("ALTER TABLE product ADD COLUMN goods_name TEXT;")
+                logger.info("✅ goods_name 컬럼 추가 완료")
+            
+            # goods_engname 컬럼 확인 및 추가
+            result = await conn.fetchval("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.columns 
+                    WHERE table_name = 'product' AND column_name = 'goods_engname'
+                );
+            """)
+            
+            if not result:
+                logger.info("⚠️ goods_engname 컬럼이 누락되었습니다. 추가합니다.")
+                await conn.execute("ALTER TABLE product ADD COLUMN goods_engname TEXT;")
+                logger.info("✅ goods_engname 컬럼 추가 완료")
+            
+            # aggrgoods_name 컬럼 확인 및 추가
+            result = await conn.fetchval("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.columns 
+                    WHERE table_name = 'product' AND column_name = 'aggrgoods_name'
+                );
+            """)
+            
+            if not result:
+                logger.info("⚠️ aggrgoods_name 컬럼이 누락되었습니다. 추가합니다.")
+                await conn.execute("ALTER TABLE product ADD COLUMN aggrgoods_name TEXT;")
+                logger.info("✅ aggrgoods_name 컬럼 추가 완료")
+            
+            # aggrgoods_engname 컬럼 확인 및 추가
+            result = await conn.fetchval("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.columns 
+                    WHERE table_name = 'product' AND column_name = 'aggrgoods_engname'
+                );
+            """)
+            
+            if not result:
+                logger.info("⚠️ aggrgoods_engname 컬럼이 누락되었습니다. 추가합니다.")
+                await conn.execute("ALTER TABLE product ADD COLUMN aggrgoods_engname TEXT;")
+                logger.info("✅ aggrgoods_engname 컬럼 추가 완료")
+            
+            # product_sell 컬럼 확인 및 추가
+            result = await conn.fetchval("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.columns 
+                    WHERE table_name = 'product' AND column_name = 'product_sell'
+                );
+            """)
+            
+            if not result:
+                logger.info("⚠️ product_sell 컬럼이 누락되었습니다. 추가합니다.")
+                await conn.execute("ALTER TABLE product ADD COLUMN product_sell NUMERIC(15, 6) DEFAULT 0;")
+                logger.info("✅ product_sell 컬럼 추가 완료")
+            
+            # product_eusell 컬럼 확인 및 추가
+            result = await conn.fetchval("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.columns 
+                    WHERE table_name = 'product' AND column_name = 'product_eusell'
+                );
+            """)
+            
+            if not result:
+                logger.info("⚠️ product_eusell 컬럼이 누락되었습니다. 추가합니다.")
+                await conn.execute("ALTER TABLE product ADD COLUMN product_eusell NUMERIC(15, 6) DEFAULT 0;")
+                logger.info("✅ product_eusell 컬럼 추가 완료")
+            
+            # attr_em 컬럼 확인 및 추가
+            result = await conn.fetchval("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.columns 
+                    WHERE table_name = 'product' AND column_name = 'attr_em'
+                );
+            """)
+            
+            if not result:
+                logger.info("⚠️ attr_em 컬럼이 누락되었습니다. 추가합니다.")
+                await conn.execute("ALTER TABLE product ADD COLUMN attr_em NUMERIC(15, 6) DEFAULT 0;")
+                logger.info("✅ attr_em 컬럼 추가 완료")
+                
+        except Exception as e:
+            logger.error(f"❌ 누락된 컬럼 추가 실패: {str(e)}")
+            logger.warning("⚠️ 일부 컬럼이 누락되어 제품 생성에 문제가 있을 수 있습니다.")
 
     # ============================================================================
     # 🏭 Product 관련 Repository 메서드

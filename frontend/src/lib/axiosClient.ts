@@ -206,12 +206,12 @@ export const apiEndpoints = {
   },
   // DataGather Service (Gateway를 통해)
   datagather: {
-    aiProcess: '/datagather/ai-process',
-    feedback: '/datagather/feedback',
-    inputData: '/input-data',
-    outputData: '/output-data',
-    processData: '/process-data',
-    aiProcessStream: '/ai-process-stream',
+    aiProcess: '/api/datagather/ai-process',
+    feedback: '/api/datagather/feedback',
+    inputData: '/api/datagather/input-data',
+    outputData: '/api/datagather/output-data',
+    processData: '/api/datagather/process-data',
+    aiProcessStream: '/api/datagather/ai-process-stream',
   },
   // Chatbot Service (Gateway를 통해)
   chatbot: {

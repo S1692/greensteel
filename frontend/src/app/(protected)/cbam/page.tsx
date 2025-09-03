@@ -39,6 +39,7 @@ export default function CBAMPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [processes, setProcesses] = useState<any[]>([]);
   const [mappings, setMappings] = useState<any[]>([]);
+  const [inputData, setInputData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   // 데이터 로딩 함수들
@@ -78,13 +79,23 @@ export default function CBAMPage() {
     }
   }, []);
 
+  const fetchInputData = useCallback(async () => {
+    try {
+      const response = await axiosClient.get(apiEndpoints.datagather.inputData);
+      setInputData(response.data || []);
+    } catch (error) {
+      console.error('Input 데이터 조회 실패:', error);
+    }
+  }, []);
+
   // 초기 데이터 로딩
   useEffect(() => {
     fetchInstalls();
     fetchProducts();
     fetchProcesses();
     fetchMappings();
-  }, [fetchInstalls, fetchProducts, fetchProcesses, fetchMappings]);
+    fetchInputData();
+  }, [fetchInstalls, fetchProducts, fetchProcesses, fetchMappings, fetchInputData]);
 
   // ============================================================================
   // 🎯 탭 컴포넌트들
@@ -106,6 +117,7 @@ export default function CBAMPage() {
       installs={installs}
       onShowInstallModal={() => setShowInstallModal(true)}
       onRefresh={fetchInstalls}
+      inputData={inputData}
     />
   );
 

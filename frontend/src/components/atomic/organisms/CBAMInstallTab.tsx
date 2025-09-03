@@ -6,12 +6,14 @@ interface CBAMInstallTabProps {
   installs: any[];
   onShowInstallModal: () => void;
   onRefresh?: () => void;
+  inputData?: any[];
 }
 
 export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
   installs,
   onShowInstallModal,
-  onRefresh
+  onRefresh,
+  inputData: propInputData = []
 }) => {
   const [showProductModal, setShowProductModal] = useState(false);
   const [showAddProductModal, setShowAddProductModal] = useState(false);
@@ -22,7 +24,6 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [showEditProductModal, setShowEditProductModal] = useState(false);
   const [showHSCNCodeModal, setShowHSCNCodeModal] = useState(false);
-  const [inputData, setInputData] = useState<any[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
   const [filteredProcesses, setFilteredProcesses] = useState<any[]>([]);
 
@@ -82,16 +83,8 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
     }
   };
 
-  // input 데이터 가져오기
-  const fetchInputData = async () => {
-    try {
-      const response = await axiosClient.get(apiEndpoints.datagather.inputData);
-      setInputData(response.data);
-      console.log('Input 데이터 로드 완료:', response.data);
-    } catch (error) {
-      console.error('Input 데이터 로드 실패:', error);
-    }
-  };
+  // props로 받은 input 데이터 사용
+  const inputData = propInputData;
 
   // 생산품명 필터링 (투입일과 종료일 기준)
   const filterProductsByDateRange = (startDate: string, endDate: string) => {
@@ -143,15 +136,11 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
   const handleProductManagement = (install: any) => {
     setSelectedInstall(install);
     setShowProductModal(true);
-    // 모달 열 때 input 데이터 가져오기
-    fetchInputData();
   };
 
   // 제품 추가 모달 열기
   const handleAddProduct = () => {
     setShowAddProductModal(true);
-    // 모달 열 때 input 데이터 가져오기
-    fetchInputData();
   };
 
   // 날짜 변경 시 생산품명 필터링

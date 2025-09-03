@@ -116,6 +116,11 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
     setShowAddProcess(null);
   };
 
+  // 공정 추가 섹션 토글
+  const toggleAddProcessSection = () => {
+    setShowAddProcess(showAddProcess ? null : 1); // 임시로 1을 사용
+  };
+
   return (
     <div className="space-y-6">
       {/* 사업장 생성 섹션 */}
@@ -242,7 +247,7 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                     <h4 className="text-lg font-semibold text-ecotrace-text">{product.name}</h4>
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => setShowAddProcess(product.id)}
+                        onClick={toggleAddProcessSection}
                         className="bg-purple-600 text-white px-3 py-2 rounded text-sm hover:bg-purple-700 transition-colors"
                       >
                         공정 추가
@@ -264,53 +269,100 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                       <span className="font-medium">수량:</span> {product.quantity}
                     </div>
                     <div>
-                      <span className="font-medium">공정 수:</span> {product.processCount}개
+                      <span className="font-medium">공정 수:</span> 3개
                     </div>
                     <div>
                       <span className="font-medium">카테고리:</span> {product.category}
                     </div>
                   </div>
 
-                  {/* 공정 추가 폼 */}
-                  {showAddProcess === product.id && (
-                    <div className="mt-4 pt-4 border-t border-ecotrace-border">
-                      <div className="flex items-center space-x-2 mb-3">
-                        <Plus className="h-4 w-4 text-purple-500" />
-                        <h5 className="font-medium text-ecotrace-text">공정 추가</h5>
-                      </div>
-                      
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
-                        <p className="text-sm text-blue-800">
-                          사용 가능한 공정: 3개
-                        </p>
-                        <p className="text-sm text-blue-700 mt-1">
-                          아래 드롭다운에서 해당 제품에 적합한 공정을 선택해주세요.
-                        </p>
-                      </div>
-                      
-                      <div className="mb-3">
-                        <label className="block text-sm font-medium text-ecotrace-text mb-2">
-                          공정명 *
-                        </label>
-                        <select className="w-full px-3 py-2 bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg text-ecotrace-text focus:outline-none focus:ring-2 focus:ring-purple-500">
-                          <option value="">공정을 선택하세요</option>
-                          <option value="제철공정">제철공정</option>
-                          <option value="압연공정">압연공정</option>
-                          <option value="열처리공정">열처리공정</option>
-                        </select>
-                      </div>
-                      
-                      <button
-                        onClick={() => handleAddProcess(product.id)}
-                        className="w-full bg-gray-400 text-white py-2 rounded-lg hover:bg-gray-500 transition-colors flex items-center justify-center space-x-2"
-                      >
-                        <Plus className="h-4 w-4" />
-                        <span>공정 추가</span>
+                  {/* 등록된 공정 목록 */}
+                  <div className="mt-4 pt-4 border-t border-ecotrace-border">
+                    <h5 className="font-medium text-ecotrace-text mb-3">■ 등록된 공정:</h5>
+                    <div className="space-y-2">
+                      {['제강', '제선', '주조'].map((process, index) => (
+                        <div key={index} className="flex items-center justify-between bg-ecotrace-secondary/10 rounded-lg p-3">
+                          <span className="text-ecotrace-text">{process}</span>
+                          <div className="flex space-x-2">
+                            <button className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors flex items-center space-x-1">
+                              <Edit className="h-3 w-3" />
+                              <span>수정</span>
                     </button>
+                            <button className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition-colors flex items-center space-x-1">
+                              <Trash2 className="h-3 w-3" />
+                              <span>삭제</span>
+                    </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  )}
+                  </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 공정 추가 섹션 */}
+      {showAddProcess && (
+        <div className="bg-ecotrace-surface rounded-lg p-6 border border-ecotrace-border">
+          <div className="flex items-center space-x-2 mb-4">
+            <Plus className="h-5 w-5 text-purple-500" />
+            <h3 className="text-lg font-semibold text-ecotrace-text">+ 공정 추가</h3>
+          </div>
+          
+          {/* 경고 메시지 */}
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+            <div className="flex items-start space-x-2">
+              <div className="text-yellow-600 mt-0.5">
+                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm text-yellow-800 font-medium">사용 가능한 공정이 없습니다.</p>
+                <p className="text-sm text-yellow-700 mt-1">이미 모든 공정이 연결되어 있습니다.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-ecotrace-text mb-2">
+                사업장 선택 *
+              </label>
+              <select 
+                disabled
+                className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-500 cursor-not-allowed"
+              >
+                <option value="">사업장을 선택하세요</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-ecotrace-text mb-2">
+                공정명 *
+              </label>
+              <select 
+                disabled
+                className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-500 cursor-not-allowed"
+              >
+                <option value="">사용 가능한 공정이 없습니다</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                해당 제품의 공정 정보가 더미 데이터에 등록되어 있지 않습니다.
+              </p>
+            </div>
+            
+            <div className="flex justify-center">
+              <button 
+                disabled
+                className="bg-gray-400 text-white px-6 py-2 rounded-lg cursor-not-allowed flex items-center space-x-2"
+              >
+                <Plus className="h-4 w-4" />
+                <span>+ 공정 추가</span>
+              </button>
             </div>
           </div>
         </div>

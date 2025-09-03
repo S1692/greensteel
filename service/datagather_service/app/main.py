@@ -27,8 +27,8 @@ logger = logging.getLogger(__name__)
 
 # Hugging Face API 설정
 HF_TOKEN = os.getenv("HF_TOKEN")
-HF_API_URL = "https://olbfpbg7i4varvwf.us-east-1.aws.endpoints.huggingface.cloud"
-HF_MODEL = "Halftotter/korean-xlm-roberta-classifier"
+HF_API_URL = os.getenv("HF_API_URL", "https://olbfpbg7i4varvwf.us-east-1.aws.endpoints.huggingface.cloud")
+HF_MODEL = os.getenv("HF_MODEL", "Halftotter/korean-xlm-roberta-classifier")
 
 # Hugging Face InferenceClient 인스턴스
 hf_client = None

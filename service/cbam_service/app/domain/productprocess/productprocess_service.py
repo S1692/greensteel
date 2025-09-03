@@ -26,6 +26,7 @@ class ProductProcessService:
     async def initialize(self):
         """서비스 초기화"""
         try:
+            logger.info("🔄 ProductProcess 서비스 초기화 시작")
             await self.product_process_repository.initialize()
             logger.info("✅ ProductProcess 서비스 데이터베이스 초기화 완료")
         except Exception as e:
@@ -149,7 +150,11 @@ class ProductProcessService:
         try:
             logger.info(f"🔍 제품별 제품-공정 관계 조회 요청: 제품 ID {product_id}")
             
+            # 서비스 초기화 확인
+            await self.initialize()
+            
             relations = await self.product_process_repository.get_product_processes_by_product(product_id)
+            logger.info(f"📊 제품 {product_id}의 공정 관계 {len(relations)}개 조회됨")
             
             # 제품명 가져오기 (첫 번째 결과에서 또는 제품 테이블에서 직접 조회)
             product_name = "Unknown Product"

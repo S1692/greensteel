@@ -26,14 +26,16 @@ class ProductProcessRepository:
     async def initialize(self):
         """데이터베이스 연결 풀 초기화"""
         if self._initialization_attempted:
+            logger.info("🔄 ProductProcess Repository 이미 초기화 시도됨, 건너뜀")
             return  # 이미 초기화 시도했으면 다시 시도하지 않음
             
         if not self.database_url:
-            logger.warning("DATABASE_URL이 없어 데이터베이스 초기화를 건너뜁니다.")
+            logger.warning("⚠️ DATABASE_URL이 없어 데이터베이스 초기화를 건너뜁니다.")
             self._initialization_attempted = True
             return
         
         self._initialization_attempted = True
+        logger.info(f"🔄 ProductProcess Repository 초기화 시작 - DATABASE_URL: {self.database_url[:20]}...")
         
         try:
             # asyncpg 연결 풀 생성
@@ -60,6 +62,7 @@ class ProductProcessRepository:
             await self.initialize()
         
         if not self.pool:
+            logger.error("❌ 데이터베이스 연결 풀이 초기화되지 않았습니다.")
             raise Exception("데이터베이스 연결 풀이 초기화되지 않았습니다.")
 
     # ============================================================================

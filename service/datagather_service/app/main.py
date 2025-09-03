@@ -237,13 +237,26 @@ async def ai_process_data(data: Dict[str, Any]):
         
         logger.info(f"📊 최종 처리된 데이터 개수: {len(processed_data)}")
         
-        # 간단한 응답 구조 - 핵심 데이터만 반환
+        # AI 분류 결과만 반환
+        ai_classification_results = []
+        for item in processed_data:
+            ai_result = {
+                "투입물명": item.get('투입물명', ''),
+                "공정": item.get('공정', ''),
+                "AI분류결과": item.get('AI추천답변', ''),
+                "분류신뢰도": item.get('confidence', 0.95),
+                "AI모델": item.get('ai_model', ''),
+                "처리시간": item.get('processed_at', '')
+            }
+            ai_classification_results.append(ai_result)
+        
         response_data = {
             "success": True,
-            "message": f"Hugging Face 분류 모델 ({HUGGINGFACE_MODEL}) 데이터 처리가 완료되었습니다.",
+            "message": f"Hugging Face 분류 모델 ({HUGGINGFACE_MODEL}) AI 분류가 완료되었습니다.",
             "ai_model": HUGGINGFACE_MODEL,
             "ai_task": "text-classification",
-            "data": processed_data  # AI가 분류한 데이터만
+            "total_classified": len(ai_classification_results),
+            "ai_results": ai_classification_results  # AI 분류 결과만
         }
         
         logger.info("✅ AI 데이터 처리 성공")

@@ -408,54 +408,42 @@ class ProxyController:
                 # /chatbot으로 시작하는 다른 경로들도 /api/v1/chatbot으로 매핑
                 target_url = f"{target_service}/api/v1{path}"
                 gateway_logger.log_info(f"CHATBOT OTHER: {path} → {target_url}")
-        elif path.startswith("/api/v1/cbam"):
-            gateway_logger.log_info(f"✓ Path '{path}' starts with '/api/v1/cbam'")
-            # greensteel-new_cbam 구조에 맞게 경로 매핑 및 정규화
-            cbam_path = path.replace("/api/v1/cbam", "")
-            
-            # 경로 정규화 로직 적용
-            if cbam_path in ["/install", "/product", "/process", "/edge"]:
-                # 루트 경로는 슬래시 추가
-                normalized_path = cbam_path + "/"
-            elif cbam_path.startswith(("/install/", "/product/", "/process/", "/edge/")):
-                # 하위 경로는 슬래시 정규화
-                path_parts = cbam_path.split('/')
-                if len(path_parts) == 3 and path_parts[2] == "":
-                    # /install/ 같은 경우 슬래시 추가
-                    normalized_path = f"/{path_parts[1]}/"
-                elif len(path_parts) == 3 and path_parts[2].isdigit():
-                    # /install/1 같은 동적 경로는 슬래시 제거
-                    normalized_path = f"/{path_parts[1]}/{path_parts[2]}"
-                else:
-                    # 기타 하위 경로는 그대로
+                    elif path.startswith("/api/v1/cbam"):
+                gateway_logger.log_info(f"✓ Path '{path}' starts with '/api/v1/cbam'")
+                # CBAM 서비스의 실제 라우터 구조에 맞게 경로 매핑 및 정규화
+                cbam_path = path.replace("/api/v1/cbam", "")
+                
+                # CBAM 서비스의 실제 라우터 구조에 맞게 경로 정규화
+                # CBAM 서비스: /install/, /product/, /process/, /edge/, /mapping/, /calculation/, /matdir/, /fueldir/, /productprocess/
+                
+                # 기본 경로들 (슬래시 추가)
+                if cbam_path in ["/install", "/product", "/process", "/edge", "/mapping", "/calculation", "/matdir", "/fueldir", "/productprocess"]:
+                    normalized_path = cbam_path + "/"
+                # 하위 경로들 (동적 ID 포함)
+                elif cbam_path.startswith(("/install/", "/product/", "/process/", "/edge/", "/mapping/", "/calculation/", "/matdir/", "/fueldir/", "/productprocess/")):
+                    # 하위 경로는 그대로 전달 (예: /install/1, /product/names 등)
                     normalized_path = cbam_path
-            else:
-                # 기타 경로는 그대로
-                normalized_path = cbam_path
-            
-            target_url = f"{target_service}{normalized_path}"
-            gateway_logger.log_info(f"CBAM API: {path} → {target_url}")
+                else:
+                    # 기타 경로는 그대로
+                    normalized_path = cbam_path
+                
+                target_url = f"{target_service}{normalized_path}"
+                gateway_logger.log_info(f"CBAM API: {path} → {target_url}")
         elif path.startswith("/cbam"):
             gateway_logger.log_info(f"✓ Path '{path}' starts with '/cbam'")
-            # 레거시 경로도 greensteel-new_cbam 구조에 맞게 매핑 및 정규화
+            # 레거시 경로도 CBAM 서비스의 실제 라우터 구조에 맞게 매핑 및 정규화
             cbam_path = path.replace("/cbam", "")
             
-            # 경로 정규화 로직 적용
-            if cbam_path in ["/install", "/product", "/process", "/edge"]:
-                # 루트 경로는 슬래시 추가
+            # CBAM 서비스의 실제 라우터 구조에 맞게 경로 정규화
+            # CBAM 서비스: /install/, /product/, /process/, /edge/, /mapping/, /calculation/, /matdir/, /fueldir/, /productprocess/
+            
+            # 기본 경로들 (슬래시 추가)
+            if cbam_path in ["/install", "/product", "/process", "/edge", "/mapping", "/calculation", "/matdir", "/fueldir", "/productprocess"]:
                 normalized_path = cbam_path + "/"
-            elif cbam_path.startswith(("/install/", "/product/", "/process/", "/edge/")):
-                # 하위 경로는 슬래시 정규화
-                path_parts = cbam_path.split('/')
-                if len(path_parts) == 3 and path_parts[2] == "":
-                    # /install/ 같은 경우 슬래시 추가
-                    normalized_path = f"/{path_parts[1]}/"
-                elif len(path_parts) == 3 and path_parts[2].isdigit():
-                    # /install/1 같은 동적 경로는 슬래시 제거
-                    normalized_path = f"/{path_parts[1]}/{path_parts[2]}"
-                else:
-                    # 기타 하위 경로는 그대로
-                    normalized_path = cbam_path
+            # 하위 경로들 (동적 ID 포함)
+            elif cbam_path.startswith(("/install/", "/product/", "/process/", "/edge/", "/mapping/", "/calculation/", "/matdir/", "/fueldir/", "/productprocess/")):
+                # 하위 경로는 그대로 전달 (예: /install/1, /product/names 등)
+                normalized_path = cbam_path
             else:
                 # 기타 경로는 그대로
                 normalized_path = cbam_path

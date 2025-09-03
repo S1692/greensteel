@@ -383,22 +383,16 @@ async def proxy_cbam_service(request: Request, path: str):
     # 프론트엔드: /api/v1/cbam/edge → CBAM 서비스: /edge/
     # 프론트엔드: /api/v1/cbam/productprocess → CBAM 서비스: /productprocess
     
-    # greensteel-new_cbam의 경로 정규화 로직 적용
-    if path in ["install", "product", "process", "edge"]:
-        # 루트 경로는 슬래시 추가
+    # CBAM 서비스의 실제 라우터 구조에 맞게 경로 매핑
+    # CBAM 서비스: /install/, /product/, /process/, /edge/, /mapping/, /calculation/, /matdir/, /fueldir/, /productprocess/
+    
+    # 기본 경로들 (슬래시 추가)
+    if path in ["install", "product", "process", "edge", "mapping", "calculation", "matdir", "fueldir", "productprocess"]:
         target_path = f"/{path}/"
-    elif path.startswith(("install/", "product/", "process/", "edge/")):
-        # 하위 경로는 슬래시 정규화
-        path_parts = path.split('/')
-        if len(path_parts) == 2 and path_parts[1] == "":
-            # install/ 같은 경우 슬래시 추가
-            target_path = f"/{path_parts[0]}/"
-        elif len(path_parts) == 2 and path_parts[1].isdigit():
-            # install/1 같은 동적 경로는 슬래시 제거
-            target_path = f"/{path_parts[0]}/{path_parts[1]}"
-        else:
-            # 기타 하위 경로는 그대로
-            target_path = f"/{path}"
+    # 하위 경로들 (동적 ID 포함)
+    elif path.startswith(("install/", "product/", "process/", "edge/", "mapping/", "calculation/", "matdir/", "fueldir/", "productprocess/")):
+        # 하위 경로는 그대로 전달 (예: /install/1, /product/names 등)
+        target_path = f"/{path}"
     else:
         # 기타 경로는 그대로
         target_path = f"/{path}"
@@ -412,22 +406,16 @@ async def proxy_cbam_service_legacy(request: Request, path: str):
     if not CBAM_SERVICE_URL:
         raise HTTPException(status_code=503, detail="CBAM service not configured")
     
-    # 레거시 경로도 새로운 CBAM 서비스 구조에 맞게 전달 (greensteel-new_cbam 구조 적용)
-    if path in ["install", "product", "process", "edge"]:
-        # 루트 경로는 슬래시 추가
+    # CBAM 서비스의 실제 라우터 구조에 맞게 경로 매핑
+    # CBAM 서비스: /install/, /product/, /process/, /edge/, /mapping/, /calculation/, /matdir/, /fueldir/, /productprocess/
+    
+    # 기본 경로들 (슬래시 추가)
+    if path in ["install", "product", "process", "edge", "mapping", "calculation", "matdir", "fueldir", "productprocess"]:
         target_path = f"/{path}/"
-    elif path.startswith(("install/", "product/", "process/", "edge/")):
-        # 하위 경로는 슬래시 정규화
-        path_parts = path.split('/')
-        if len(path_parts) == 2 and path_parts[1] == "":
-            # install/ 같은 경우 슬래시 추가
-            target_path = f"/{path_parts[0]}/"
-        elif len(path_parts) == 2 and path_parts[1].isdigit():
-            # install/1 같은 동적 경로는 슬래시 제거
-            target_path = f"/{path_parts[0]}/{path_parts[1]}"
-        else:
-            # 기타 하위 경로는 그대로
-            target_path = f"/{path}"
+    # 하위 경로들 (동적 ID 포함)
+    elif path.startswith(("install/", "product/", "process/", "edge/", "mapping/", "calculation/", "matdir/", "fueldir/", "productprocess/")):
+        # 하위 경로는 그대로 전달 (예: /install/1, /product/names 등)
+        target_path = f"/{path}"
     else:
         # 기타 경로는 그대로
         target_path = f"/{path}"

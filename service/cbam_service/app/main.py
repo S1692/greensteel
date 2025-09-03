@@ -229,22 +229,22 @@ async def log_requests(request: Request, call_next):
 
 # 🔴 수정: 엔티티 의존성 순서를 고려한 라우터 등록 순서
 # 1. 기본 엔티티 (의존성이 없는 것들)
-app.include_router(install_router, prefix="/api/v1/cbam/install")
-app.include_router(product_router, prefix="/api/v1/cbam/product")
-app.include_router(process_router, prefix="/api/v1/cbam/process")
+app.include_router(install_router, prefix="/install")
+app.include_router(product_router, prefix="/product")
+app.include_router(process_router, prefix="/process")
 
 # 2. 중간 테이블 (기본 엔티티에 의존)
-app.include_router(product_process_router, prefix="/api/v1/cbam/productprocess")
+app.include_router(product_process_router, prefix="/productprocess")
 
 # 3. 계산 및 분석 관련 (중간 테이블에 의존)
-app.include_router(calculation_router, prefix="/api/v1/cbam/calculation")
+app.include_router(calculation_router, prefix="/calculation")
 
 # 4. 도메인별 관리
-app.include_router(mapping_router, prefix="/api/v1/cbam/mapping")
-app.include_router(edge_router, prefix="/api/v1/cbam/edge")
-app.include_router(matdir_router, prefix="/api/v1/cbam/matdir")
-app.include_router(fueldir_router, prefix="/api/v1/cbam/fueldir")
-app.include_router(dummy_router, prefix="/api/v1/cbam/dummy")
+app.include_router(mapping_router, prefix="/mapping")
+app.include_router(edge_router, prefix="/edge")
+app.include_router(matdir_router, prefix="/matdir")
+app.include_router(fueldir_router, prefix="/fueldir")
+app.include_router(dummy_router, prefix="/dummy")
 
 logger.info("✅ 모든 라우터 등록 완료 (엔티티 의존성 순서 고려)")
 logger.info("�� 기본 엔티티 → 중간 테이블 → 계산/분석 순서로 등록")
@@ -270,10 +270,10 @@ async def root():
             "endpoints": {
                 "health": "/health",
                 "docs": "/docs" if DEBUG_MODE else "disabled",
-                "install": "/api/v1/cbam/install",
-                "product": "/api/v1/cbam/product",
-                "process": "/api/v1/cbam/process",
-                "mapping": "/api/v1/cbam/mapping"
+                "install": "/install",
+                "product": "/product",
+                "process": "/process",
+                "mapping": "/mapping"
             }
         }
     except Exception as e:

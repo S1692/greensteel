@@ -21,6 +21,7 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
   const [showAddProcess, setShowAddProcess] = useState<number | null>(null);
   const [selectedProcess, setSelectedProcess] = useState<string>('');
   const [selectedProcesses, setSelectedProcesses] = useState<string[]>([]);
+  const [selectedSingleProcess, setSelectedSingleProcess] = useState<string>('');
   const [showHSCodeModal, setShowHSCodeModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [showEditProductModal, setShowEditProductModal] = useState(false);
@@ -463,10 +464,10 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
   // 공정 추가 처리
   const handleAddProcess = async (productId: number) => {
     try {
-      console.log('🚀 공정 추가 요청 시작:', { productId, selectedProcesses });
+      console.log('🚀 공정 추가 요청 시작:', { productId, selectedSingleProcess });
       
       // 선택된 공정이 있는지 확인
-      if (selectedProcesses.length === 0) {
+      if (!selectedSingleProcess) {
         alert('추가할 공정을 선택해주세요.');
         return;
       }
@@ -478,28 +479,32 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
         return;
       }
       
-      // 선택된 공정들에 대해 개별적으로 생성
-      for (const processName of selectedProcesses) {
-        // 1. 먼저 공정을 생성 (로컬스토리지의 공정명 사용)
-        const processData = {
-          process_name: processName, // 로컬스토리지의 공정명 사용
-          start_period: null, // 필요시 추가
-          end_period: null,   // 필요시 추가
-          product_ids: [productId] // 다대다 관계를 위한 제품 ID
-        };
-
-        const processResponse = await axiosClient.post(apiEndpoints.cbam.process.create, processData);
-        console.log('✅ 공정 생성 성공:', processResponse.data);
-        
-        // 2. 제품-공정 관계 생성
-        const productProcessData = {
-          product_id: productId,
-          process_id: processResponse.data.id
-        };
-
-        const relationResponse = await axiosClient.post(apiEndpoints.cbam.productProcess.create, productProcessData);
-        console.log('✅ 제품-공정 관계 생성 성공:', relationResponse.data);
+      // 이미 추가된 공정인지 확인
+      if (product.processes?.includes(selectedSingleProcess)) {
+        alert('이미 추가된 공정입니다.');
+        return;
       }
+      
+      // 1. 먼저 공정을 생성 (로컬스토리지의 공정명 사용)
+      const processData = {
+        process_name: selectedSingleProcess, // 선택된 단일 공정명 사용
+        start_period: null, // 필요시 추가
+        end_period: null,   // 필요시 추가
+        product_ids: [productId] // 다대다 관계를 위한 제품 ID
+      };
+
+      const processResponse = await axiosClient.post(apiEndpoints.cbam.process.create, processData);
+      console.log('✅ 공정 생성 성공:', processResponse.data);
+      
+      // 2. 제품-공정 관계 생성
+      const productProcessData = {
+        product_id: productId,
+        process_id: processResponse.data.id,
+        consumption_amount: 0.0
+      };
+
+      const relationResponse = await axiosClient.post(apiEndpoints.cbam.productProcess.create, productProcessData);
+      console.log('✅ 제품-공정 관계 생성 성공:', relationResponse.data);
       
       // 3. 로컬 상태 업데이트 (UI 업데이트용)
       setProducts(prevProducts => 
@@ -507,16 +512,16 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
           product.id === productId 
             ? {
                 ...product,
-                processes: [...(product.processes || []), ...selectedProcesses],
-                processCount: (product.processes || []).length + selectedProcesses.length
+                processes: [...(product.processes || []), selectedSingleProcess],
+                processCount: (product.processes || []).length + 1
               }
             : product
         )
       );
       
       setShowAddProcess(null);
-      setSelectedProcesses([]);
-      alert(`${selectedProcesses.length}개의 공정이 성공적으로 추가되었습니다.`);
+      setSelectedSingleProcess('');
+      alert(`${selectedSingleProcess} 공정이 성공적으로 추가되었습니다.`);
       
     } catch (error: any) {
       console.error('❌ 공정 추가 실패:', error);
@@ -541,6 +546,7 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
     setShowAddProcess(isOpening ? productId : null);
     setSelectedProcess(''); // 공정 선택 초기화
     setSelectedProcesses([]); // 선택된 공정들 초기화
+    setSelectedSingleProcess(''); // 단일 공정 선택 초기화
     
     // 공정 추가 섹션을 열 때 해당 제품의 공정을 미리 필터링
     if (isOpening && inputData.length > 0) {
@@ -946,30 +952,33 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                           {product.name && (
                             <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
                               <p className="text-sm text-green-800 font-medium mb-2">
-                                공정 선택:
+                                공정 선택 (하나씩만 추가 가능):
                               </p>
                               <select
-                                multiple
-                                value={selectedProcesses}
-                                onChange={(e) => {
-                                  const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
-                                  setSelectedProcesses(selectedOptions);
-                                }}
+                                value={selectedSingleProcess}
+                                onChange={(e) => setSelectedSingleProcess(e.target.value)}
                                 className="w-full px-3 py-2 bg-white border border-green-300 rounded-lg text-green-800 focus:outline-none focus:ring-2 focus:ring-green-500"
-                                size={Math.min(filteredProcesses.length, 5)}
                               >
-                                {filteredProcesses.map((process, index) => (
-                                  <option key={index} value={process}>
-                                    {process}
-                                  </option>
-                                ))}
+                                <option value="">공정을 선택하세요</option>
+                                {filteredProcesses
+                                  .filter(process => !product.processes?.includes(process)) // 이미 추가된 공정 제외
+                                  .map((process, index) => (
+                                    <option key={index} value={process}>
+                                      {process}
+                                    </option>
+                                  ))}
                               </select>
                               <p className="text-xs text-green-600 mt-2">
-                                * Ctrl(또는 Cmd) 키를 누르고 클릭하여 여러 공정을 선택할 수 있습니다
+                                * 이미 추가된 공정은 선택할 수 없습니다
                               </p>
                               {filteredProcesses.length === 0 && (
                                 <p className="text-sm text-red-600 mt-2">
                                   해당 제품에 대한 공정 정보가 로컬스토리지에 없습니다.
+                                </p>
+                              )}
+                              {filteredProcesses.filter(process => !product.processes?.includes(process)).length === 0 && filteredProcesses.length > 0 && (
+                                <p className="text-sm text-orange-600 mt-2">
+                                  추가할 수 있는 공정이 없습니다. 모든 공정이 이미 추가되었습니다.
                                 </p>
                               )}
                             </div>
@@ -979,15 +988,15 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                         <div className="flex justify-center">
                                                     <button
                             onClick={() => handleAddProcess(product.id)}
-                            disabled={!product.name || filteredProcesses.length === 0 || selectedProcesses.length === 0}
+                            disabled={!product.name || filteredProcesses.length === 0 || !selectedSingleProcess}
                             className={`px-6 py-2 rounded-lg flex items-center space-x-2 transition-colors ${
-                              product.name && filteredProcesses.length > 0 && selectedProcesses.length > 0
+                              product.name && filteredProcesses.length > 0 && selectedSingleProcess
                                 ? 'bg-purple-600 text-white hover:bg-purple-700' 
                                 : 'bg-gray-400 text-white cursor-not-allowed'
                             }`}
                           >
                             <Plus className="h-4 w-4" />
-                            <span>+ 공정 추가 ({selectedProcesses.length}개 선택됨)</span>
+                            <span>+ 공정 추가</span>
                     </button>
                         </div>
                       </div>
@@ -1065,14 +1074,16 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                         ? "해당 기간에 생산품명이 없습니다" 
                         : "생산품명을 선택하세요"}
                   </option>
-                  {filteredProducts.map((product) => (
-                    <option key={product.id} value={product.name}>
-                      {product.name}
-                    </option>
-                  ))}
+                  {filteredProducts
+                    .filter(product => !products.some(existingProduct => existingProduct.name === product.name))
+                    .map((product) => (
+                      <option key={product.id} value={product.name}>
+                        {product.name}
+                      </option>
+                    ))}
                 </select>
                 <p className="text-xs text-gray-500 mt-1">
-                  * 로컬스토리지의 생산품명과 정확히 일치하는 이름을 선택해주세요
+                  * 로컬스토리지의 생산품명과 정확히 일치하는 이름을 선택해주세요 (이미 추가된 제품은 제외)
                 </p>
                 {(!newProduct.startDate || !newProduct.endDate) && (
                   <p className="text-yellow-500 text-sm mt-1">기간을 먼저 설정해주세요</p>

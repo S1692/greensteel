@@ -22,12 +22,14 @@ class Product(Base):
     prostart_period = Column(Date, nullable=False)  # 기간 시작일
     proend_period = Column(Date, nullable=False)  # 기간 종료일
     product_amount = Column(Numeric(15, 6), nullable=False, default=0)  # 제품 수량
-    product_cncode = Column(Text)  # 제품 CN 코드
+    cncode_total = Column(Text)  # 제품 CN 코드
     goods_name = Column(Text)  # 품목명
+    goods_engname = Column(Text)  # 품목영문명
     aggrgoods_name = Column(Text)  # 품목군명
+    aggrgoods_engname = Column(Text)  # 품목군영문명
     product_sell = Column(Numeric(15, 6), default=0)  # 제품 판매량
     product_eusell = Column(Numeric(15, 6), default=0)  # 제품 EU 판매량
-
+    attr_em = Column(Numeric(15, 6), default=0)  # 제품 배출량
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
@@ -50,12 +52,14 @@ class Product(Base):
             "prostart_period": self.prostart_period.isoformat() if self.prostart_period else None,
             "proend_period": self.proend_period.isoformat() if self.proend_period else None,
             "product_amount": float(self.product_amount) if self.product_amount else 0.0,
-            "product_cncode": self.product_cncode,
+            "cncode_total": self.cncode_total,
             "goods_name": self.goods_name,
+            "goods_engname": self.goods_engname,
             "aggrgoods_name": self.aggrgoods_name,
+            "aggrgoods_engname": self.aggrgoods_engname,
             "product_sell": float(self.product_sell) if self.product_sell else 0.0,
             "product_eusell": float(self.product_eusell) if self.product_eusell else 0.0,
-
+            "attr_em": float(self.attr_em) if self.attr_em else 0.0,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
@@ -72,11 +76,14 @@ class Product(Base):
             prostart_period=date.fromisoformat(data.get("prostart_period")) if data.get("prostart_period") else None,
             proend_period=date.fromisoformat(data.get("proend_period")) if data.get("proend_period") else None,
             product_amount=data.get("product_amount", 0.0),
-            product_cncode=data.get("product_cncode"),
+            cncode_total=data.get("cncode_total"),
             goods_name=data.get("goods_name"),
+            goods_engname=data.get("goods_engname"),
             aggrgoods_name=data.get("aggrgoods_name"),
+            aggrgoods_engname=data.get("aggrgoods_engname"),
             product_sell=data.get("product_sell", 0.0),
             product_eusell=data.get("product_eusell", 0.0),
+            attr_em=data.get("attr_em", 0.0),
             created_at=datetime.now(timezone.utc)
         )
     

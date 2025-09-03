@@ -92,9 +92,10 @@ class InstallRepository:
                     await conn.execute("""
                         CREATE TABLE install (
                             id SERIAL PRIMARY KEY,
-                            name TEXT NOT NULL,
-                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            install_name TEXT NOT NULL,
+                            reporting_year INTEGER NOT NULL DEFAULT EXTRACT(YEAR FROM NOW()),
+                            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
                         );
                     """)
                     
@@ -118,7 +119,7 @@ class InstallRepository:
             await self._validate_install_data(install_data)
             
             # 중복 검사
-            await self._check_install_name_duplicate(install_data['name'])
+            await self._check_install_name_duplicate(install_data['install_name'])
             
             return await self._create_install_db(install_data)
         except Exception as e:
@@ -157,14 +158,22 @@ class InstallRepository:
         await self._ensure_pool_initialized()
         try:
             # 수정할 데이터 검증
-            if 'name' in update_data:
+            if 'install_name' in update_data:
                 # 사업장명이 수정되는 경우 중복 검사
-                await self._check_install_name_duplicate_for_update(update_data['name'], install_id)
+                await self._check_install_name_duplicate_for_update(update_data['install_name'], install_id)
                 
                 # 사업장명 정리 및 검증
-                update_data['name'] = await self.validate_and_clean_install_name(update_data['name'])
+                update_data['install_name'] = await self.validate_and_clean_install_name(update_data['install_name'])
             
-
+            if 'reporting_year' in update_data:
+                # 보고기간 검증
+                reporting_year = update_data['reporting_year']
+                if not isinstance(reporting_year, int):
+                    raise ValueError("보고기간(년도)은 정수여야 합니다.")
+                
+                current_year = datetime.now().year
+                if reporting_year < 1900 or reporting_year > current_year + 10:
+                    raise ValueError(f"보고기간(년도)은 1900년부터 {current_year + 10}년 사이여야 합니다.")
             
             return await self._update_install_db(install_id, update_data)
         except Exception as e:
@@ -206,10 +215,10 @@ class InstallRepository:
         try:
             async with self.pool.acquire() as conn:
                 result = await conn.fetchrow("""
-                    INSERT INTO install (name)
-                    VALUES ($1)
+                    INSERT INTO install (install_name, reporting_year)
+                    VALUES ($1, $2)
                     RETURNING *
-                """, install_data['name'])
+                """, install_data['install_name'], install_data['reporting_year'])
                 
                 if result:
                     install_dict = dict(result)
@@ -233,7 +242,7 @@ class InstallRepository:
         try:
             async with self.pool.acquire() as conn:
                 results = await conn.fetch("""
-                    SELECT id, name, created_at, updated_at
+                    SELECT id, install_name, reporting_year, created_at, updated_at
                     FROM install
                     ORDER BY created_at DESC
                 """)
@@ -261,9 +270,9 @@ class InstallRepository:
         try:
             async with self.pool.acquire() as conn:
                 results = await conn.fetch("""
-                    SELECT id, name
+                    SELECT id, install_name
                     FROM install
-                    ORDER BY name ASC
+                    ORDER BY install_name ASC
                 """)
                 
                 return [dict(result) for result in results]
@@ -279,7 +288,7 @@ class InstallRepository:
         try:
             async with self.pool.acquire() as conn:
                 result = await conn.fetchrow("""
-                    SELECT id, name, created_at, updated_at
+                    SELECT id, install_name, reporting_year, created_at, updated_at
                     FROM install
                     WHERE id = $1
                 """, install_id)
@@ -753,10 +762,10 @@ class InstallRepository:
         """사업장 데이터 검증"""
         try:
             # install_name 검증
-            if not install_data.get('name'):
+            if not install_data.get('install_name'):
                 raise ValueError("사업장명은 필수입니다.")
             
-            install_name = install_data['name'].strip()
+            install_name = install_data['install_name'].strip()
             if len(install_name) == 0:
                 raise ValueError("사업장명은 공백만으로 구성될 수 없습니다.")
             
@@ -791,7 +800,7 @@ class InstallRepository:
                 # 대소문자 구분 없이 중복 검사 (TRIM과 LOWER 사용)
                 existing_count = await conn.fetchval("""
                     SELECT COUNT(*) FROM install 
-                    WHERE LOWER(TRIM(name)) = LOWER(TRIM($1))
+                    WHERE LOWER(TRIM(install_name)) = LOWER(TRIM($1))
                 """, install_name)
                 
                 if existing_count > 0:
@@ -815,7 +824,7 @@ class InstallRepository:
                 # 자기 자신을 제외하고 중복 검사
                 existing_count = await conn.fetchval("""
                     SELECT COUNT(*) FROM install 
-                    WHERE LOWER(TRIM(name)) = LOWER(TRIM($1))
+                    WHERE LOWER(TRIM(install_name)) = LOWER(TRIM($1))
                     AND id != $2
                 """, install_name, exclude_id)
                 

@@ -36,14 +36,13 @@ EXPOSE 8083
 # PostgreSQL collation 문제 해결을 위한 환경 변수 설정
 ENV PYTHONIOENCODING=utf-8
 ENV PYTHONUNBUFFERED=1
-ENV PORT=8083
 
 # 시작 스크립트 생성 (마이그레이션은 main.py의 lifespan에서 처리)
 RUN echo '#!/bin/bash\n\
 echo "🚀 CBAM 서비스 시작 중..."\n\
 echo "🚀 애플리케이션 시작 (마이그레이션은 자동 처리됨)..."\n\
-echo "🚀 포트: 8083 (고정)"\n\
-exec uvicorn app.main:app --host 0.0.0.0 --port 8083\n\
+echo "🚀 Railway가 지정한 동적 포트: $PORT 사용 중..."\n\
+exec uvicorn app.main:app --host 0.0.0.0 --port $PORT\n\
 ' > /CBAM/start.sh && chmod +x /CBAM/start.sh
 
 # 애플리케이션 실행

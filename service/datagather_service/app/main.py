@@ -13,7 +13,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, Dict, Any
 import uvicorn
 import httpx
-from huggingface_hub import InferenceClient
 
 from .infrastructure.database import database
 from .infrastructure.config import settings
@@ -30,12 +29,8 @@ HF_TOKEN = os.getenv("HF_TOKEN")
 HF_API_URL = os.getenv("HF_API_URL" )
 HF_MODEL = os.getenv("HF_MODEL", "Halftotter/korean-xlm-roberta-classifier")
 
-# Hugging Face InferenceClient 인스턴스
-hf_client = None
-
 async def initialize_huggingface_model():
     """Hugging Face Inference API 초기화"""
-    global hf_client
     try:
         logger.info(f"🔍 환경 변수 확인:")
         logger.info(f"  - HF_TOKEN: {'설정됨' if HF_TOKEN else '설정되지 않음'}")
@@ -46,9 +41,7 @@ async def initialize_huggingface_model():
             logger.warning("⚠️ HF_TOKEN이 설정되지 않았습니다.")
             return
         
-        # Hugging Face InferenceClient 초기화 (커스텀 엔드포인트 사용)
-        hf_client = InferenceClient(token=HF_TOKEN)
-        logger.info(f"🤗 Hugging Face Inference API 초기화 완료")
+        logger.info(f"🤗 Hugging Face Inference API 설정 완료")
         logger.info(f"  - 엔드포인트: {HF_API_URL}")
         logger.info(f"  - 모델: {HF_MODEL}")
         
@@ -58,8 +51,8 @@ async def initialize_huggingface_model():
 async def generate_ai_recommendation(input_text: str) -> tuple[str, float]:
     """Hugging Face Inference API를 사용하여 AI 추천 답변 생성"""
     try:
-        if not hf_client:
-            logger.warning("⚠️ Hugging Face API 클라이언트가 초기화되지 않았습니다. 기본 답변을 반환합니다.")
+        if not HF_TOKEN:
+            logger.warning("⚠️ HF_TOKEN이 설정되지 않았습니다. 기본 답변을 반환합니다.")
             return input_text, 0.0  # 기본값으로 원본 텍스트와 신뢰도 0.0 반환
         
         # 입력 텍스트를 그대로 사용 (전처리 없이)
@@ -67,12 +60,30 @@ async def generate_ai_recommendation(input_text: str) -> tuple[str, float]:
         
         logger.info(f"🤗 Hugging Face API 호출: '{classification_text}'")
         
-        # huggingface_hub 라이브러리를 사용한 텍스트 분류 (커스텀 엔드포인트 사용)
-        results = hf_client.text_classification(
-            classification_text, 
-            model=HF_MODEL,
-            api_url=HF_API_URL
-        )
+        # httpx를 사용한 직접 API 호출 (커스텀 엔드포인트 사용)
+        payload = {
+            "inputs": classification_text
+        }
+        
+        async with httpx.AsyncClient(
+            headers={
+                "Authorization": f"Bearer {HF_TOKEN}",
+                "Content-Type": "application/json"
+            },
+            timeout=30.0
+        ) as client:
+            response = await client.post(
+                f"{HF_API_URL}/models/{HF_MODEL}",
+                json=payload
+            )
+            
+            logger.info(f"🤗 API 응답 상태: {response.status_code}")
+            
+            if response.status_code == 200:
+                results = response.json()
+            else:
+                logger.error(f"⚠️ Hugging Face API 호출 실패: {response.status_code} - {response.text}")
+                return input_text, 0.0
         
         logger.info(f"🤗 API 응답 결과: {results}")
         

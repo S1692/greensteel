@@ -32,6 +32,10 @@ HF_API_URL = os.getenv("HF_API_URL")
 async def initialize_huggingface_model():
     """Hugging Face Inference API 초기화"""
     try:
+        logger.info(f"🔍 환경 변수 확인:")
+        logger.info(f"  - HF_TOKEN: {'설정됨' if HF_TOKEN else '설정되지 않음'}")
+        logger.info(f"  - HF_API_URL: {'설정됨' if HF_API_URL else '설정되지 않음'}")
+        
         if not HF_TOKEN:
             logger.warning("⚠️ HF_TOKEN이 설정되지 않았습니다.")
             return

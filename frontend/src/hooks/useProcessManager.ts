@@ -91,7 +91,7 @@ export const useProcessManager = () => {
     }
   }, []);
 
-  // 제품 목록 조회
+  // 제품 목록 조회 (모든 제품)
   const fetchProducts = useCallback(async () => {
     try {
       console.log('📋 제품 목록 조회 API 호출');
@@ -103,6 +103,20 @@ export const useProcessManager = () => {
     } catch (error) {
       console.error('❌ 제품 목록 조회 실패:', error);
       // 에러 시 빈 배열 반환
+      return [];
+    }
+  }, []);
+
+  // 사업장별 제품 목록 조회
+  const fetchProductsByInstall = useCallback(async (installId: number) => {
+    try {
+      console.log(`📋 사업장 ${installId} 제품 목록 조회 API 호출`);
+      const response = await axiosClient.get(apiEndpoints.cbam.product.byInstall(installId));
+      const fetchedProducts = response.data;
+      console.log(`✅ 사업장 ${installId} 제품 목록 조회 성공:`, fetchedProducts);
+      return fetchedProducts;
+    } catch (error) {
+      console.error(`❌ 사업장 ${installId} 제품 목록 조회 실패:`, error);
       return [];
     }
   }, []);
@@ -141,6 +155,7 @@ export const useProcessManager = () => {
     handleProductQuantityUpdate,
     fetchInstalls,
     fetchProducts,
+    fetchProductsByInstall,
     fetchProcesses,
   };
 };

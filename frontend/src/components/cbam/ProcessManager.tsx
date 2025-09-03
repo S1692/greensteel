@@ -59,6 +59,7 @@ function ProcessManagerInner() {
     handleProductQuantityUpdate,
     fetchInstalls,
     fetchProducts,
+    fetchProductsByInstall,
     fetchProcesses,
   } = useProcessManager();
 
@@ -96,6 +97,23 @@ function ProcessManagerInner() {
 
     initializeData();
   }, [fetchInstalls, fetchProducts, fetchProcesses]);
+
+  // 사업장 선택 시 해당 사업장의 제품들 조회
+  useEffect(() => {
+    const fetchInstallProducts = async () => {
+      if (selectedInstall?.id) {
+        try {
+          console.log(`🔍 사업장 ${selectedInstall.install_name}의 제품들 조회`);
+          const installProducts = await fetchProductsByInstall(selectedInstall.id);
+          console.log(`✅ 사업장 ${selectedInstall.install_name}의 제품들:`, installProducts);
+        } catch (error) {
+          console.error(`❌ 사업장 ${selectedInstall.install_name}의 제품 조회 실패:`, error);
+        }
+      }
+    };
+
+    fetchInstallProducts();
+  }, [selectedInstall?.id, fetchProductsByInstall]);
 
   // 공정별 직접귀속배출량 정보 가져오기
   const fetchProcessEmissionData = useCallback(async (processId: number) => {

@@ -47,7 +47,7 @@ async def initialize_huggingface_model():
             return
         
         # Hugging Face InferenceClient 초기화
-        hf_client = InferenceClient(endpoint=HF_API_URL, token=HF_TOKEN)
+        hf_client = InferenceClient(token=HF_TOKEN)
         logger.info(f"🤗 Hugging Face Inference API 초기화 완료")
         logger.info(f"  - 엔드포인트: {HF_API_URL}")
         logger.info(f"  - 모델: {HF_MODEL}")
@@ -68,7 +68,7 @@ async def generate_ai_recommendation(input_text: str) -> tuple[str, float]:
         logger.info(f"🤗 Hugging Face API 호출: '{classification_text}'")
         
         # huggingface_hub 라이브러리를 사용한 텍스트 분류
-        results = hf_client.text_classification(text=classification_text)
+        results = hf_client.text_classification(classification_text, model=HF_MODEL)
         
         logger.info(f"🤗 API 응답 결과: {results}")
         

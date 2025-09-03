@@ -5,6 +5,7 @@ python-multipart==0.0.6
 
 # Hugging Face Inference API
 httpx==0.25.2
+huggingface_hub==0.19.4
 
 # 데이터베이스
 sqlalchemy==2.0.23

@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, Dict, Any
 import uvicorn
 import httpx
-import httpx
+from huggingface_hub import InferenceClient
 
 from .infrastructure.database import database
 from .infrastructure.config import settings
@@ -29,8 +29,12 @@ logger = logging.getLogger(__name__)
 HF_TOKEN = os.getenv("HF_TOKEN")
 HF_API_URL = os.getenv("HF_API_URL")
 
+# Hugging Face InferenceClient 인스턴스
+hf_client = None
+
 async def initialize_huggingface_model():
     """Hugging Face Inference API 초기화"""
+    global hf_client
     try:
         logger.info(f"🔍 환경 변수 확인:")
         logger.info(f"  - HF_TOKEN: {'설정됨' if HF_TOKEN else '설정되지 않음'}")
@@ -44,6 +48,8 @@ async def initialize_huggingface_model():
             logger.warning("⚠️ HF_API_URL이 설정되지 않았습니다.")
             return
         
+        # Hugging Face InferenceClient 초기화
+        hf_client = InferenceClient(endpoint=HF_API_URL, token=HF_TOKEN)
         logger.info(f"🤗 Hugging Face Inference API 초기화 완료: {HF_API_URL}")
         
     except Exception as e:
@@ -52,47 +58,36 @@ async def initialize_huggingface_model():
 async def generate_ai_recommendation(input_text: str) -> tuple[str, float]:
     """Hugging Face Inference API를 사용하여 AI 추천 답변 생성"""
     try:
-        if not HF_TOKEN or not HF_API_URL:
-            logger.warning("⚠️ Hugging Face API 설정이 완료되지 않았습니다. 기본 답변을 반환합니다.")
+        if not hf_client:
+            logger.warning("⚠️ Hugging Face API 클라이언트가 초기화되지 않았습니다. 기본 답변을 반환합니다.")
             return input_text, 0.0  # 기본값으로 원본 텍스트와 신뢰도 0.0 반환
         
         # 입력 텍스트를 그대로 사용 (전처리 없이)
         classification_text = input_text
         
-        # Hugging Face Inference API 호출
-        headers = {"Authorization": f"Bearer {HF_TOKEN}"}
-        payload = {"inputs": classification_text}
-        
         logger.info(f"🤗 Hugging Face API 호출: '{classification_text}'")
         
-        async with httpx.AsyncClient() as client:
-            response = await client.post(HF_API_URL, headers=headers, json=payload, timeout=30.0)
+        # huggingface_hub 라이브러리를 사용한 텍스트 분류
+        results = hf_client.text_classification(text=classification_text)
+        
+        logger.info(f"🤗 API 응답 결과: {results}")
+        
+        if results and len(results) > 0:
+            # 분류 결과에서 가장 높은 신뢰도를 가진 클래스 선택
+            best_result = max(results, key=lambda x: x['score'])
+            predicted_class = best_result['label']
+            confidence = best_result['score']
             
-            logger.info(f"🤗 API 응답 상태: {response.status_code}")
+            # 분류 결과를 그대로 반환 (원본 텍스트가 아닌 분류된 클래스)
+            ai_recommendation = predicted_class
             
-            if response.status_code == 200:
-                result = response.json()
-                logger.info(f"🤗 API 응답 결과: {result}")
-                
-                if result and len(result) > 0:
-                    # 분류 결과에서 가장 높은 신뢰도를 가진 클래스 선택
-                    best_result = max(result, key=lambda x: x['score'])
-                    predicted_class = best_result['label']
-                    confidence = best_result['score']
-                    
-                    # 분류 결과를 그대로 반환 (원본 텍스트가 아닌 분류된 클래스)
-                    ai_recommendation = predicted_class
-                    
-                    logger.info(f"🤗 AI 분류 결과: 클래스='{predicted_class}', 신뢰도={confidence:.3f}")
-                    logger.info(f"🤗 최종 추천 답변: '{ai_recommendation}'")
-                    
-                    return ai_recommendation, confidence
-                else:
-                    logger.warning("⚠️ 분류 결과가 없습니다. 원본 텍스트를 반환합니다.")
-                    return input_text, 0.0
-            else:
-                logger.error(f"⚠️ Hugging Face API 호출 실패: {response.status_code} - {response.text}")
-                return input_text, 0.0
+            logger.info(f"🤗 AI 분류 결과: 클래스='{predicted_class}', 신뢰도={confidence:.3f}")
+            logger.info(f"🤗 최종 추천 답변: '{ai_recommendation}'")
+            
+            return ai_recommendation, confidence
+        else:
+            logger.warning("⚠️ 분류 결과가 없습니다. 원본 텍스트를 반환합니다.")
+            return input_text, 0.0
         
     except Exception as e:
         logger.error(f"❌ AI 추천 생성 중 오류: {e}")

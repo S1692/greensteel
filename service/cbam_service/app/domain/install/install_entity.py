@@ -16,8 +16,7 @@ class Install(Base):
     __tablename__ = "install"
     
     id = Column(Integer, primary_key=True, index=True)
-    install_name = Column(Text, nullable=False, index=True)  # 사업장명
-    reporting_year = Column(Integer, nullable=False, default=datetime.now().year)  # 보고기간 (년도)
+    name = Column(Text, nullable=False, index=True)  # 사업장명 (실제 DB 스키마에 맞춤)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -28,8 +27,7 @@ class Install(Base):
         """엔티티를 딕셔너리로 변환"""
         return {
             "id": self.id,
-            "install_name": self.install_name,
-            "reporting_year": self.reporting_year,
+            "name": self.name,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
@@ -38,9 +36,8 @@ class Install(Base):
     def from_dict(cls, data: Dict[str, Any]) -> "Install":
         """딕셔너리에서 엔티티 생성"""
         return cls(
-            install_name=data.get("install_name"),
-            reporting_year=data.get("reporting_year", datetime.now().year)
+            name=data.get("name")
         )
     
     def __repr__(self):
-        return f"<Install(id={self.id}, install_name='{self.install_name}', reporting_year={self.reporting_year})>"
+        return f"<Install(id={self.id}, name='{self.name}')>"

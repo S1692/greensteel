@@ -194,9 +194,8 @@ export const ProductProcessModal: React.FC<{
                   value={productQuantityForm.product_amount}
                   readOnly
                   className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-gray-300 cursor-not-allowed"
-                  placeholder="DB에서 자동 계산"
+                  placeholder="0"
                 />
-                <p className="text-xs text-gray-400 mt-1">로컬스토리지에서 자동 계산 (수정 불가)</p>
               </div>
               
               <div>

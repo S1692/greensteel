@@ -15,11 +15,23 @@ export const InstallModal: React.FC<InstallModalProps> = ({ onClose, onSuccess }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await axiosClient.post(apiEndpoints.cbam.install.create, formData);
+      console.log('🚀 사업장 생성 요청 시작:', {
+        url: apiEndpoints.cbam.install.create,
+        data: formData
+      });
+      
+      const response = await axiosClient.post(apiEndpoints.cbam.install.create, formData);
+      
+      console.log('✅ 사업장 생성 성공:', response.data);
       onSuccess();
       onClose();
     } catch (error) {
-      console.error('사업장 생성 실패:', error);
+      console.error('❌ 사업장 생성 실패:', error);
+      console.error('❌ 에러 상세:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
     }
   };
 

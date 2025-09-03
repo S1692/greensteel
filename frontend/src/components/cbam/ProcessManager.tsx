@@ -11,6 +11,7 @@ import InputManager from '@/components/cbam/InputManager';
 import { InstallSelector } from '@/components/cbam/InstallSelector';
 import { ProductSelector } from '@/components/cbam/ProductSelector';
 import { ProcessSelector, ProductProcessModal } from '@/components/cbam/ProcessSelector';
+import { InstallModal } from '@/components/cbam/modals/InstallModal';
 
 import { useProcessManager, Process, Install, Product } from '@/hooks/useProcessManager';
 import { useProcessCanvas } from '@/hooks/useProcessCanvas';
@@ -116,6 +117,7 @@ function ProcessManagerInner() {
 
 
   // 모달 상태
+  const [showInstallModal, setShowInstallModal] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
   const [showProcessModalForProduct, setShowProcessModalForProduct] = useState(false);
   const [showProcessModal, setShowProcessModal] = useState(false);
@@ -295,7 +297,7 @@ function ProcessManagerInner() {
         installCanvases={installCanvases}
         activeInstallId={activeInstallId}
         onInstallSelect={handleInstallSelect}
-        onAddInstall={() => {}} // 사업장 추가 기능은 별도로 구현 필요
+        onAddInstall={() => setShowInstallModal(true)} // 사업장 추가 모달 열기
       />
 
       {/* 버튼 */}
@@ -434,6 +436,16 @@ function ProcessManagerInner() {
           selectedProcess={selectedProcessForInput}
           onClose={() => setShowInputModal(false)}
           onDataSaved={refreshAllProcessEmissions} // 데이터 저장 후 배출량 정보 새로고침
+        />
+      )}
+
+      {showInstallModal && (
+        <InstallModal
+          onClose={() => setShowInstallModal(false)}
+          onSuccess={() => {
+            setShowInstallModal(false);
+            fetchInstalls(); // 사업장 목록 새로고침
+          }}
         />
       )}
     </div>

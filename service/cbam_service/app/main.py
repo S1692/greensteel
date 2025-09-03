@@ -8,7 +8,7 @@ import os
 import re
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
@@ -330,6 +330,34 @@ async def debug_routes():
         "all_routes": routes,
         "install_routes": [r for r in routes if r["path"].startswith("/install")]
     }
+
+# ============================================================================
+# 🚨 예외 처리 핸들러
+# ============================================================================
+
+# ============================================================================
+# 🔧 정적 파일 핸들러 (파비콘 등)
+# ============================================================================
+
+@app.get("/favicon.ico")
+async def favicon():
+    """Favicon 요청 처리 - 404 방지"""
+    logger.info("Favicon request handled - returning empty response")
+    return Response(
+        status_code=204,  # No Content
+        content=b"",
+        media_type="image/x-icon"
+    )
+
+@app.get("/robots.txt")
+async def robots():
+    """Robots.txt 요청 처리"""
+    logger.info("Robots.txt request handled - returning empty response")
+    return Response(
+        status_code=204,  # No Content
+        content=b"",
+        media_type="text/plain"
+    )
 
 # ============================================================================
 # 🚨 예외 처리 핸들러

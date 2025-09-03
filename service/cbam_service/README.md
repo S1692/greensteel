@@ -40,7 +40,7 @@ Railway 대시보드에서 다음 환경변수를 설정하세요:
 ```bash
 # 필수 환경변수
 DATABASE_URL=postgresql://username:password@host:port/database
-PORT=8001
+PORT=8083
 
 # 선택적 환경변수
 DEBUG_MODE=false
@@ -146,7 +146,7 @@ cp env.example .env
 
 # 환경변수 설정
 DATABASE_URL=postgresql://username:password@localhost:5432/cbam_db
-PORT=8001
+PORT=8083
 DEBUG_MODE=true
 ```
 

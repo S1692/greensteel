@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Process, Product, Install } from '@/hooks/useProcessManager';
+import axiosClient, { apiEndpoints } from '@/lib/axiosClient';
 
 interface ProcessSelectorProps {
   processes: Process[];
@@ -186,23 +187,21 @@ export const ProductProcessModal: React.FC<{
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  총 생산량
+                  총 생산량 (Total Production Quantity)
                 </label>
                 <input
                   type="number"
                   value={productQuantityForm.product_amount}
-                  onChange={(e) => setProductQuantityForm(prev => ({
-                    ...prev,
-                    product_amount: parseFloat(e.target.value) || 0
-                  }))}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
-                  placeholder="생산량을 입력하세요"
+                  readOnly
+                  className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-gray-300 cursor-not-allowed"
+                  placeholder="DB에서 자동 계산"
                 />
+                <p className="text-xs text-gray-400 mt-1">로컬스토리지에서 자동 계산 (수정 불가)</p>
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  국내 판매량
+                  국내 판매량 (Domestic Sales Quantity)
                 </label>
                 <input
                   type="number"
@@ -218,7 +217,7 @@ export const ProductProcessModal: React.FC<{
               
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  EU 판매량
+                  EU 판매량 (EU Sales Quantity)
                 </label>
                 <input
                   type="number"
@@ -241,10 +240,23 @@ export const ProductProcessModal: React.FC<{
                 취소
               </button>
               <button
-                onClick={() => {
-                  // TODO: 수량 정보 저장 로직 구현
-                  console.log('수량 정보 저장:', productQuantityForm);
-                  onClose();
+                onClick={async () => {
+                  if (!selectedProduct) return;
+                  
+                  try {
+                    const updateData = {
+                      product_sell: productQuantityForm.product_sell,
+                      product_eusell: productQuantityForm.product_eusell
+                    };
+
+                    await axiosClient.put(`${apiEndpoints.cbam.product.update}/${selectedProduct.id}`, updateData);
+                    
+                    alert('수량 정보가 성공적으로 저장되었습니다.');
+                    onClose();
+                  } catch (error) {
+                    console.error('수량 저장 실패:', error);
+                    alert('수량 저장에 실패했습니다.');
+                  }
                 }}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
               >

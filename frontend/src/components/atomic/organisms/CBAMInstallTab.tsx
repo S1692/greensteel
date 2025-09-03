@@ -45,7 +45,8 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
     endDate: '',
     productName: '',
     category: '',
-    cnCode: ''
+    cnCode: '',
+    hsCode: ''
   });
 
   // 사업장 생성 처리
@@ -234,19 +235,43 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
       
       let response;
       if (isHSCode) {
-        // HS 코드로 검색
+        // HS 코드로 검색 - lookup API 사용 (HS 코드를 중심으로 CN 코드와 제품명 조회)
+        console.log('HS 코드로 검색:', hsSearchQuery.trim());
         response = await axiosClient.get(apiEndpoints.cbam.mapping.lookup(hsSearchQuery.trim()));
+        
+        // lookup API는 HSCodeLookupResponse 형태로 응답하므로 data 필드에서 결과 추출
+        const searchResults = response.data?.data || response.data || [];
+        console.log('HS 코드 검색 결과:', searchResults);
+        setHsSearchResults(searchResults);
+        
       } else {
-        // 제품명으로 검색
+        // 제품명으로 검색 - search API 사용
+        console.log('제품명으로 검색:', hsSearchQuery.trim());
         response = await axiosClient.get(apiEndpoints.cbam.mapping.search.goods(hsSearchQuery.trim()));
+        
+        console.log('제품명 검색 결과:', response.data);
+        setHsSearchResults(response.data || []);
       }
-      
-      console.log('HS 코드 검색 결과:', response.data);
-      setHsSearchResults(response.data || []);
       
     } catch (error: any) {
       console.error('HS 코드 검색 실패:', error);
-      alert('검색 중 오류가 발생했습니다. 다시 시도해주세요.');
+      console.error('에러 상세:', {
+        message: error?.message,
+        status: error?.response?.status,
+        data: error?.response?.data
+      });
+      
+      // 사용자에게 더 구체적인 오류 메시지 제공
+      let errorMessage = '검색 중 오류가 발생했습니다.';
+      if (error?.response?.status === 404) {
+        errorMessage = '검색 결과를 찾을 수 없습니다.';
+      } else if (error?.response?.status === 400) {
+        errorMessage = '검색어 형식이 올바르지 않습니다.';
+      } else if (error?.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      }
+      
+      alert(errorMessage);
       setHsSearchResults([]);
     } finally {
       setIsSearching(false);
@@ -292,7 +317,7 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
     };
 
     setProducts([...products, newProductItem]);
-    setNewProduct({ startDate: '', endDate: '', productName: '', category: '', cnCode: '' });
+    setNewProduct({ startDate: '', endDate: '', productName: '', category: '', cnCode: '', hsCode: '' });
     setShowAddProductModal(false);
   };
 
@@ -555,7 +580,7 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                       <span className="font-medium">수량:</span> {product.quantity}
                     </div>
                     <div>
-                      <span className="font-medium">공정 수:</span> {product.processCount || 0}개
+                      <span className="font-medium">공정 수:</span> 3개
                     </div>
                     <div>
                       <span className="font-medium">카테고리:</span> {product.category}
@@ -621,16 +646,11 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                             사업장 선택 *
                           </label>
                           <select 
-                            value={selectedProcess}
-                            onChange={(e) => setSelectedProcess(e.target.value)}
                             className="w-full px-3 py-2 bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg text-ecotrace-text focus:outline-none focus:ring-2 focus:ring-purple-500"
                           >
                             <option value="">사업장을 선택하세요</option>
-                            {installs.map((install) => (
-                              <option key={install.id} value={install.name}>
-                                {install.name}
-                              </option>
-                            ))}
+                            <option value="포항제철소">포항제철소</option>
+                            <option value="광양제철소">광양제철소</option>
                           </select>
                         </div>
                         
@@ -1040,92 +1060,179 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
       {/* HS CN 코드 검색 모달 */}
       {showHSCNCodeModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">HS CN 코드 검색</h2>
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">HS-CN 코드 매핑 검색</h2>
+                <p className="text-sm text-gray-600 mt-1">HS 코드를 중심으로 CN 코드와 제품명을 검색합니다</p>
+              </div>
               <button 
-                onClick={() => setShowHSCNCodeModal(false)} 
-                className="text-gray-400 hover:text-gray-600"
+                onClick={() => {
+                  setShowHSCNCodeModal(false);
+                  setHsSearchQuery('');
+                  setHsSearchResults([]);
+                  setIsSearching(false);
+                }} 
+                className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <X size={24} />
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  검색어 (HS 코드 또는 제품명)
-                </label>
-                <input
-                  type="text"
-                  value={hsSearchQuery}
-                  onChange={(e) => setHsSearchQuery(e.target.value)}
-                  placeholder="예: 7208 또는 철강재"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => setShowHSCNCodeModal(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  취소
-                </button>
-                <button
-                  onClick={handleHSCodeSearch}
-                  disabled={!hsSearchQuery.trim() || isSearching}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    !hsSearchQuery.trim() || isSearching
-                      ? 'bg-gray-400 text-white cursor-not-allowed'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
-                  }`}
-                >
-                  {isSearching ? '검색 중...' : '검색'}
-                </button>
+            <div className="space-y-6">
+              {/* 검색 입력 영역 */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center space-x-4">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      HS 코드 또는 제품명 검색
+                    </label>
+                    <input
+                      type="text"
+                      value={hsSearchQuery}
+                      onChange={(e) => setHsSearchQuery(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleHSCodeSearch()}
+                      placeholder="HS 코드 (예: 7208) 또는 제품명 (예: 철강재)을 입력하세요"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                    />
+                  </div>
+                  <div className="flex flex-col justify-end">
+                    <button
+                      onClick={handleHSCodeSearch}
+                      disabled={!hsSearchQuery.trim() || isSearching}
+                      className={`px-6 py-3 rounded-lg transition-colors font-medium ${
+                        !hsSearchQuery.trim() || isSearching
+                          ? 'bg-gray-400 text-white cursor-not-allowed'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                    >
+                      {isSearching ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span>검색 중...</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-2">
+                          <Search className="h-4 w-4" />
+                          <span>검색</span>
+                        </div>
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* 검색 결과 영역 */}
-              <div className="mt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-3">
-                  검색 결과 {hsSearchResults.length > 0 && `(${hsSearchResults.length}개)`}
-                </h3>
-                <div className="border border-gray-200 rounded-lg p-4">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    검색 결과
+                    {hsSearchResults.length > 0 && (
+                      <span className="ml-2 text-sm font-normal text-gray-600">
+                        ({hsSearchResults.length}개)
+                      </span>
+                    )}
+                  </h3>
+                  {hsSearchResults.length > 0 && (
+                    <button
+                      onClick={() => {
+                        setHsSearchQuery('');
+                        setHsSearchResults([]);
+                      }}
+                      className="text-sm text-gray-500 hover:text-gray-700"
+                    >
+                      검색 초기화
+                    </button>
+                  )}
+                </div>
+
+                <div className="border border-gray-200 rounded-lg">
                   {hsSearchResults.length === 0 && !isSearching ? (
-                    <p className="text-gray-500 text-center">검색어를 입력하고 검색 버튼을 클릭하세요.</p>
+                    <div className="p-8 text-center">
+                      <Search className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500 text-lg">검색어를 입력하고 검색 버튼을 클릭하세요</p>
+                      <p className="text-gray-400 text-sm mt-2">HS 코드나 제품명으로 검색할 수 있습니다</p>
+                    </div>
                   ) : hsSearchResults.length === 0 && isSearching ? (
-                    <p className="text-gray-500 text-center">검색 중...</p>
+                    <div className="p-8 text-center">
+                      <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                      <p className="text-gray-500">검색 중...</p>
+                    </div>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="divide-y divide-gray-200">
                       {hsSearchResults.map((result, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-900">
-                              {result.hscode} - {result.goods_name || result.aggregoods_name || '제품명 없음'}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              CN 코드: {result.cncode_total}
-                            </p>
-                            {result.goods_engname && (
-                              <p className="text-xs text-gray-500">
-                                {result.goods_engname}
-                              </p>
-                            )}
+                        <div key={index} className="p-4 hover:bg-gray-50 transition-colors">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              {/* HS-CN 코드 배지 */}
+                              <div className="flex items-center space-x-3 mb-3">
+                                <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                  HS: {result.hscode || result.hs_code || 'N/A'}
+                                </div>
+                                <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                  CN: {result.cncode_total || result.cn_code || 'N/A'}
+                                </div>
+                              </div>
+                              
+                              {/* 제품명 */}
+                              <h4 className="font-semibold text-gray-900 text-lg mb-2">
+                                {result.goods_name || result.aggregoods_name || result.product_name || '제품명 없음'}
+                              </h4>
+                              
+                              {/* 영문명 */}
+                              {(result.goods_engname || result.aggregoods_engname) && (
+                                <p className="text-gray-600 mb-2">
+                                  {result.goods_engname || result.aggregoods_engname}
+                                </p>
+                              )}
+                              
+                              {/* 품목군명 (aggregoods_name이 있고 goods_name과 다른 경우) */}
+                              {result.aggregoods_name && result.aggregoods_name !== result.goods_name && (
+                                <p className="text-sm text-gray-500 mb-1">
+                                  품목군: {result.aggregoods_name}
+                                </p>
+                              )}
+                            </div>
+                            
+                            {/* 선택 버튼 */}
+                            <button 
+                              onClick={() => {
+                                const cnCode = result.cncode_total || result.cn_code;
+                                const hsCode = result.hscode || result.hs_code;
+                                const productName = result.goods_name || result.aggregoods_name || result.product_name;
+                                
+                                console.log('선택된 매핑 정보:', {
+                                  hsCode,
+                                  cnCode,
+                                  productName,
+                                  goodsName: result.goods_name,
+                                  aggregoodsName: result.aggregoods_name,
+                                  goodsEngName: result.goods_engname,
+                                  aggregoodsEngName: result.aggregoods_engname
+                                });
+                                
+                                if (editingProduct) {
+                                  setEditingProduct({ 
+                                    ...editingProduct, 
+                                    cnCode: cnCode,
+                                    hsCode: hsCode,
+                                    productName: productName
+                                  });
+                                } else {
+                                  setNewProduct({ 
+                                    ...newProduct, 
+                                    cnCode: cnCode,
+                                    hsCode: hsCode,
+                                    productName: productName
+                                  });
+                                }
+                                setShowHSCNCodeModal(false);
+                              }}
+                              className="ml-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center space-x-2"
+                            >
+                              <span>선택</span>
+                            </button>
                           </div>
-                          <button 
-                            onClick={() => {
-                              // 선택된 코드를 입력 필드에 자동 입력
-                              if (editingProduct) {
-                                setEditingProduct({ ...editingProduct, cnCode: result.cncode_total });
-                              } else {
-                                setNewProduct({ ...newProduct, cnCode: result.cncode_total });
-                              }
-                              setShowHSCNCodeModal(false);
-                            }}
-                            className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
-                          >
-                            선택
-                          </button>
                         </div>
                       ))}
                     </div>

@@ -38,8 +38,8 @@ class ProxyController:
             "/api": self._clean_service_url(os.getenv("AUTH_SERVICE_URL", "http://localhost:8081")),
             
             # ESG 관리 도메인
-            "/cbam": self._clean_service_url(os.getenv("CBAM_SERVICE_URL", "http://localhost:8082")),
-            "/api/v1/cbam": self._clean_service_url(os.getenv("CBAM_SERVICE_URL", "http://localhost:8082")),
+            "/cbam": self._clean_service_url(os.getenv("CBAM_SERVICE_URL", "http://localhost:8083")),
+            "/api/v1/cbam": self._clean_service_url(os.getenv("CBAM_SERVICE_URL", "http://localhost:8083")),
             "/datagather": self._clean_service_url(os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")),
             "/api/datagather": self._clean_service_url(os.getenv("DATAGATHER_SERVICE_URL", "http://localhost:8083")),
             

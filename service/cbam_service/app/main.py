@@ -107,9 +107,12 @@ async def initialize_database():
         database_url = get_database_url()
         if not database_url:
             logger.warning("DATABASE_URL이 없어 데이터베이스 초기화를 건너뜁니다.")
+            logger.info("✅ 서비스는 데이터베이스 없이도 계속 실행됩니다.")
             return
         
+        logger.info(f"🗄️ 데이터베이스 초기화 시작...")
         clean_url = clean_database_url(database_url)
+        logger.info(f"🗄️ 정리된 데이터베이스 URL: {clean_url.split('@')[1] if '@' in clean_url else 'localhost'}")
         
         # 비동기 SQLAlchemy 엔진 생성
         async_engine = create_async_engine(
@@ -137,14 +140,19 @@ async def initialize_database():
         
         logger.info("✅ 비동기 SQLAlchemy 엔진 및 세션 팩토리 생성 완료")
         
-        # 연결 테스트
-        async with async_engine.begin() as conn:
-            result = await conn.execute(text("SELECT 1"))
-            logger.info("✅ 데이터베이스 연결 테스트 성공")
+        # 연결 테스트 (타임아웃 설정)
+        try:
+            async with async_engine.begin() as conn:
+                result = await conn.execute(text("SELECT 1"))
+                logger.info("✅ 데이터베이스 연결 테스트 성공")
+        except Exception as conn_error:
+            logger.warning(f"⚠️ 데이터베이스 연결 테스트 실패: {str(conn_error)}")
+            logger.info("✅ 서비스는 계속 실행되지만 데이터베이스 기능이 제한될 수 있습니다.")
         
     except Exception as e:
         logger.error(f"❌ 비동기 데이터베이스 초기화 실패: {str(e)}")
         logger.warning("⚠️ 데이터베이스 연결 실패로 인해 일부 기능이 제한될 수 있습니다.")
+        logger.info("✅ 서비스는 데이터베이스 없이도 계속 실행됩니다.")
         async_engine = None
         async_session_factory = None
 

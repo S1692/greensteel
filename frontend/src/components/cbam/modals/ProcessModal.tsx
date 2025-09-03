@@ -46,7 +46,7 @@ export const ProcessModal: React.FC<ProcessModalProps> = ({ onClose, onSuccess }
       } else {
         await axiosClient.post(apiEndpoints.cbam.process.create, formData);
       }
-      setFormData({ process_name: '', process_code: '', description: '', process_type: '' });
+      setFormData({ process_name: '', start_period: '', end_period: '' });
       setEditingId(null);
       fetchProcesses();
       onSuccess();

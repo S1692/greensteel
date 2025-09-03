@@ -52,7 +52,14 @@ export const MappingModal: React.FC<MappingModalProps> = ({ onClose, onSuccess }
       } else {
         await axiosClient.post(apiEndpoints.cbam.mapping.create, formData);
       }
-      setFormData({ hs_code: '', cn_code: '', goods_name: '', description: '' });
+      setFormData({ 
+        hscode: '', 
+        aggregoods_name: '', 
+        aggregoods_engname: '', 
+        cncode_total: '', 
+        goods_name: '', 
+        goods_engname: '' 
+      });
       setEditingId(null);
       fetchMappings();
       onSuccess();

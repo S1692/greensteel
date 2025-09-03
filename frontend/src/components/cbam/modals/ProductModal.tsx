@@ -67,7 +67,22 @@ export const ProductModal: React.FC<ProductModalProps> = ({ onClose, onSuccess }
       } else {
         await axiosClient.post(apiEndpoints.cbam.product.create, formData);
       }
-      setFormData({ product_name: '', product_code: '', description: '' });
+      setFormData({
+        install_id: 1,
+        product_name: '',
+        product_category: '단순제품',
+        prostart_period: '',
+        proend_period: '',
+        product_amount: 0,
+        cncode_total: '',
+        goods_name: '',
+        goods_engname: '',
+        aggrgoods_name: '',
+        aggrgoods_engname: '',
+        product_sell: 0,
+        product_eusell: 0,
+        attr_em: 0
+      });
       setEditingId(null);
       fetchProducts();
       onSuccess();

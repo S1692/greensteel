@@ -12,6 +12,7 @@ import { CBAMInstallTab } from '@/components/atomic/organisms/CBAMInstallTab';
 
 // CBAM 컴포넌트들
 import ProcessManager from '@/components/cbam/ProcessManager';
+import GasEmissionReport from '@/components/cbam/GasEmissionReport';
 
 // 모달 컴포넌트들
 import { InstallModal } from '@/components/cbam/modals/InstallModal';
@@ -227,7 +228,7 @@ export default function CBAMPage() {
           {activeTab === 'overview' && <div className="py-8"><OverviewTab /></div>}
           {activeTab === 'install' && <div className="py-8"><InstallTab /></div>}
           {activeTab === 'boundary' && <BoundaryTab />}
-          {activeTab === 'reports' && <div className="py-8"><ReportsTab /></div>}
+          {activeTab === 'reports' && <div className="py-8"><GasEmissionReport /></div>}
           {activeTab === 'settings' && <div className="py-8"><SettingsTab /></div>}
         </div>
       </div>

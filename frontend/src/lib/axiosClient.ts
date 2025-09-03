@@ -328,6 +328,13 @@ export const apiEndpoints = {
       byProcess: (process_id: number) => `/api/v1/cbam/productprocess/by-process/${process_id}`,
       stats: '/api/v1/cbam/productprocess/stats'
     },
+
+    // Report (보고서) API
+    report: {
+      gasEmission: (install_id: number) => `/api/v1/cbam/report/gas-emission/${install_id}`,
+      stats: (install_id: number) => `/api/v1/cbam/report/stats/${install_id}`,
+      installations: '/api/v1/cbam/report/installations'
+    },
     
     // Calculation (계산) API
     calculation: {

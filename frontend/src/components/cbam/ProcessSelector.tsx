@@ -128,71 +128,37 @@ export const ProductProcessModal: React.FC<{
               </h4>
             </div>
 
-            {/* 제품-공정 관계 테이블 */}
-            <div className="bg-gray-700 rounded-lg overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-600">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">
-                        공정명
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">
-                        제품명
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">
-                        사업장명
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">
-                        소비량
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">
-                        액션
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-600">
-                    {loading ? (
-                      <tr>
-                        <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
-                          로딩 중...
-                        </td>
-                      </tr>
-                    ) : productProcesses.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
-                          등록된 공정이 없습니다.
-                        </td>
-                      </tr>
-                    ) : (
-                      productProcesses.map((item) => (
-                        <tr key={item.id} className="hover:bg-gray-600">
-                          <td className="px-4 py-3 text-sm text-white">
-                            {item.process_name || 'N/A'}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-white">
-                            {item.product_name || 'N/A'}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-white">
-                            {item.install_name || 'N/A'}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-white">
-                            {item.consumption_amount || 0}
-                          </td>
-                          <td className="px-4 py-3 text-sm">
-                            <button
-                              onClick={() => onProcessSelect(item)}
-                              className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded-md transition-colors"
-                            >
-                              선택
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+            {/* 공정 카드 목록 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {loading ? (
+                <div className="col-span-full text-center py-8 text-gray-400">
+                  로딩 중...
+                </div>
+              ) : productProcesses.length === 0 ? (
+                <div className="col-span-full text-center py-8 text-gray-400">
+                  등록된 공정이 없습니다.
+                </div>
+              ) : (
+                productProcesses.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-4 border border-gray-600 rounded-lg bg-gray-700 hover:border-purple-400 transition-colors"
+                  >
+                    <div className="font-medium text-white mb-2">{item.process_name}</div>
+                    <div className="text-sm text-gray-300 space-y-1">
+                      <div>제품: {item.product_name}</div>
+                      <div>사업장: {item.install_name}</div>
+                      <div>소비량: {item.consumption_amount || 0}</div>
+                    </div>
+                    <button
+                      onClick={() => onProcessSelect(item)}
+                      className="mt-3 w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-md transition-colors"
+                    >
+                      공정 선택
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
 
 

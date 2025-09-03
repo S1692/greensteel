@@ -25,12 +25,12 @@ export const InstallModal: React.FC<InstallModalProps> = ({ onClose, onSuccess }
       console.log('✅ 사업장 생성 성공:', response.data);
       onSuccess();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ 사업장 생성 실패:', error);
       console.error('❌ 에러 상세:', {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data
+        message: error?.message || 'Unknown error',
+        status: error?.response?.status,
+        data: error?.response?.data
       });
     }
   };

@@ -324,8 +324,8 @@ export const apiEndpoints = {
       get: (id: number) => `/api/v1/cbam/productprocess/${id}`,
       update: (id: number) => `/api/v1/cbam/productprocess/${id}`,
       delete: (id: number) => `/api/v1/cbam/productprocess/${id}`,
-      byProduct: (product_id: number) => `/api/v1/cbam/productprocess/product/${product_id}`,
-      byProcess: (process_id: number) => `/api/v1/cbam/productprocess/process/${process_id}`,
+      byProduct: (product_id: number) => `/api/v1/cbam/productprocess/by-product/${product_id}`,
+      byProcess: (process_id: number) => `/api/v1/cbam/productprocess/by-process/${process_id}`,
       stats: '/api/v1/cbam/productprocess/stats'
     },
     

@@ -46,7 +46,11 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
     productName: '',
     category: '',
     cnCode: '',
-    hsCode: ''
+    hsCode: '',
+    goodsName: '', // HS CN 검색에서 얻은 품목명
+    goodsEngName: '', // HS CN 검색에서 얻은 품목영문명
+    aggrGoodsName: '', // HS CN 검색에서 얻은 품목군명
+    aggrGoodsEngName: '' // HS CN 검색에서 얻은 품목군영문명
   });
 
   // 사업장 생성 처리
@@ -368,7 +372,10 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
         prostart_period: newProduct.startDate,
         proend_period: newProduct.endDate,
         cncode_total: newProduct.cnCode || null,
-        goods_name: newProduct.productName, // 제품명을 goods_name에도 설정
+        goods_name: newProduct.goodsName || newProduct.productName, // HS CN 검색에서 얻은 품목명 우선 사용
+        goods_engname: newProduct.goodsEngName || null, // HS CN 검색에서 얻은 품목영문명
+        aggrgoods_name: newProduct.aggrGoodsName || null, // HS CN 검색에서 얻은 품목군명
+        aggrgoods_engname: newProduct.aggrGoodsEngName || null, // HS CN 검색에서 얻은 품목군영문명
         product_amount: 0.0,
         product_sell: 0.0,
         product_eusell: 0.0,
@@ -394,7 +401,18 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
       };
 
       setProducts([...products, newProductItem]);
-      setNewProduct({ startDate: '', endDate: '', productName: '', category: '', cnCode: '', hsCode: '' });
+      setNewProduct({ 
+        startDate: '', 
+        endDate: '', 
+        productName: '', 
+        category: '', 
+        cnCode: '', 
+        hsCode: '',
+        goodsName: '',
+        goodsEngName: '',
+        aggrGoodsName: '',
+        aggrGoodsEngName: ''
+      });
       setShowAddProductModal(false);
       
       alert('제품이 성공적으로 생성되었습니다.');
@@ -558,7 +576,10 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
         prostart_period: editingProduct.startDate,
         proend_period: editingProduct.endDate,
         cncode_total: editingProduct.cnCode || null,
-        goods_name: editingProduct.name, // 제품명을 goods_name에도 설정
+        goods_name: editingProduct.goodsName || editingProduct.name, // HS CN 검색에서 얻은 품목명 우선 사용
+        goods_engname: editingProduct.goodsEngName || null, // HS CN 검색에서 얻은 품목영문명
+        aggrgoods_name: editingProduct.aggrGoodsName || null, // HS CN 검색에서 얻은 품목군명
+        aggrgoods_engname: editingProduct.aggrGoodsEngName || null, // HS CN 검색에서 얻은 품목군영문명
         product_amount: editingProduct.quantity || 0.0,
         product_sell: 0.0,
         product_eusell: 0.0,
@@ -1059,6 +1080,39 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                   </button>
                 </div>
               </div>
+              
+              {/* HS CN 검색 정보 표시 */}
+              {(newProduct.goodsName || newProduct.goodsEngName || newProduct.aggrGoodsName) && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-blue-900 mb-2">HS CN 검색 정보</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    {newProduct.goodsName && (
+                      <div>
+                        <span className="font-medium text-blue-800">품목명:</span>
+                        <span className="ml-2 text-blue-700">{newProduct.goodsName}</span>
+                      </div>
+                    )}
+                    {newProduct.goodsEngName && (
+                      <div>
+                        <span className="font-medium text-blue-800">품목영문명:</span>
+                        <span className="ml-2 text-blue-700">{newProduct.goodsEngName}</span>
+                      </div>
+                    )}
+                    {newProduct.aggrGoodsName && (
+                      <div>
+                        <span className="font-medium text-blue-800">품목군명:</span>
+                        <span className="ml-2 text-blue-700">{newProduct.aggrGoodsName}</span>
+                      </div>
+                    )}
+                    {newProduct.aggrGoodsEngName && (
+                      <div>
+                        <span className="font-medium text-blue-800">품목군영문명:</span>
+                        <span className="ml-2 text-blue-700">{newProduct.aggrGoodsEngName}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             
             <div className="mt-6">
@@ -1249,6 +1303,39 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                   </button>
                 </div>
               </div>
+              
+              {/* HS CN 검색 정보 표시 */}
+              {(editingProduct.goodsName || editingProduct.goodsEngName || editingProduct.aggrGoodsName) && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-blue-900 mb-2">HS CN 검색 정보</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    {editingProduct.goodsName && (
+                      <div>
+                        <span className="font-medium text-blue-800">품목명:</span>
+                        <span className="ml-2 text-blue-700">{editingProduct.goodsName}</span>
+                      </div>
+                    )}
+                    {editingProduct.goodsEngName && (
+                      <div>
+                        <span className="font-medium text-blue-800">품목영문명:</span>
+                        <span className="ml-2 text-blue-700">{editingProduct.goodsEngName}</span>
+                      </div>
+                    )}
+                    {editingProduct.aggrGoodsName && (
+                      <div>
+                        <span className="font-medium text-blue-800">품목군명:</span>
+                        <span className="ml-2 text-blue-700">{editingProduct.aggrGoodsName}</span>
+                      </div>
+                    )}
+                    {editingProduct.aggrGoodsEngName && (
+                      <div>
+                        <span className="font-medium text-blue-800">품목군영문명:</span>
+                        <span className="ml-2 text-blue-700">{editingProduct.aggrGoodsEngName}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             
             <div className="mt-6 flex justify-end space-x-3">
@@ -1438,7 +1525,11 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                                     ...newProduct, 
                                     cnCode: cnCode,
                                     hsCode: hsCode,
-                                    productName: productName
+                                    productName: productName,
+                                    goodsName: result.goods_name || '',
+                                    goodsEngName: result.goods_engname || '',
+                                    aggrGoodsName: result.aggregoods_name || '',
+                                    aggrGoodsEngName: result.aggregoods_engname || ''
                                   });
                                 }
                                 setShowHSCNCodeModal(false);

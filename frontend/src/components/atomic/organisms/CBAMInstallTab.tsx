@@ -408,7 +408,12 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
       });
       
       let errorMessage = '제품 생성 중 오류가 발생했습니다.';
-      if (error?.response?.data?.detail) {
+      
+      // 중복 제품명 오류 처리
+      if (error?.response?.status === 500 && 
+          error?.response?.data?.detail?.includes('duplicate key value violates unique constraint "unique_install_product_name"')) {
+        errorMessage = `이미 존재하는 제품명입니다.\n\n사업장 "${selectedInstall?.name}"에 "${newProduct.productName}" 제품이 이미 등록되어 있습니다.\n\n다른 제품명을 입력해주세요.`;
+      } else if (error?.response?.data?.detail) {
         errorMessage = error.response.data.detail;
       }
       
@@ -583,7 +588,12 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
       });
       
       let errorMessage = '제품 수정 중 오류가 발생했습니다.';
-      if (error?.response?.data?.detail) {
+      
+      // 중복 제품명 오류 처리
+      if (error?.response?.status === 500 && 
+          error?.response?.data?.detail?.includes('duplicate key value violates unique constraint "unique_install_product_name"')) {
+        errorMessage = `이미 존재하는 제품명입니다.\n\n사업장 "${selectedInstall?.name}"에 "${editingProduct.name}" 제품이 이미 등록되어 있습니다.\n\n다른 제품명을 입력해주세요.`;
+      } else if (error?.response?.data?.detail) {
         errorMessage = error.response.data.detail;
       }
       

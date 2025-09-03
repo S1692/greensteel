@@ -256,20 +256,35 @@ logger.info("�� 기본 엔티티 → 중간 테이블 → 계산/분석 순�
 @app.get("/", tags=["root"])
 async def root():
     """서비스 루트 경로 (Gateway 호환성)"""
-    return {
-        "status": "healthy",
-        "service": APP_NAME,
-        "version": APP_VERSION,
-        "message": "CBAM Service is running",
-        "timestamp": time.time(),
-        "endpoints": {
-            "health": "/health",
-            "docs": "/docs" if DEBUG_MODE else "disabled",
-            "install": "/install",
-            "product": "/product",
-            "process": "/process"
+    try:
+        # 데이터베이스 연결 상태 확인
+        db_status = "connected" if async_engine else "disconnected"
+        
+        return {
+            "status": "healthy",
+            "service": APP_NAME,
+            "version": APP_VERSION,
+            "message": "CBAM Service is running",
+            "timestamp": time.time(),
+            "database": db_status,
+            "endpoints": {
+                "health": "/health",
+                "docs": "/docs" if DEBUG_MODE else "disabled",
+                "install": "/install",
+                "product": "/product",
+                "process": "/process"
+            }
         }
-    }
+    except Exception as e:
+        logger.error(f"❌ 루트 엔드포인트 오류: {str(e)}")
+        return {
+            "status": "error",
+            "service": APP_NAME,
+            "version": APP_VERSION,
+            "message": "Service is running but encountered an error",
+            "error": str(e) if DEBUG_MODE else "Internal error",
+            "timestamp": time.time()
+        }
 
 @app.get("/favicon.ico", tags=["static"])
 async def favicon():

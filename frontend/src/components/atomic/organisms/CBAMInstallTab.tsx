@@ -461,6 +461,43 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
     }
   };
 
+  // 로컬 스토리지에 공정 데이터 저장
+  const saveProcessToLocalStorage = (productId: number, processName: string, installId: number) => {
+    try {
+      // 기존 로컬 스토리지 데이터 가져오기
+      const existingData = localStorage.getItem('cbam_process_data');
+      let processData = existingData ? JSON.parse(existingData) : [];
+      
+      // 새로운 공정 데이터 생성
+      const newProcessData = {
+        id: Date.now(), // 임시 ID
+        product_id: productId,
+        product_name: products.find(p => p.id === productId)?.name || '',
+        process_name: processName,
+        install_id: installId,
+        install_name: installs.find(i => i.id === installId)?.name || '',
+        created_at: new Date().toISOString(),
+        consumption_amount: 0
+      };
+      
+      // 중복 확인 (같은 제품에 같은 공정이 이미 있는지)
+      const isDuplicate = processData.some((item: any) => 
+        item.product_id === productId && item.process_name === processName
+      );
+      
+      if (!isDuplicate) {
+        processData.push(newProcessData);
+        localStorage.setItem('cbam_process_data', JSON.stringify(processData));
+        console.log('✅ 로컬 스토리지에 공정 데이터 저장 완료:', newProcessData);
+      } else {
+        console.log('⚠️ 이미 존재하는 공정입니다:', { productId, processName });
+      }
+      
+    } catch (error) {
+      console.error('❌ 로컬 스토리지 저장 실패:', error);
+    }
+  };
+
   // 공정 추가 처리
   const handleAddProcess = async (productId: number) => {
     try {
@@ -485,7 +522,10 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
         return;
       }
       
-      // 1. 먼저 공정을 생성 (로컬스토리지의 공정명 사용)
+      // 1. 로컬 스토리지에 공정 데이터 저장
+      saveProcessToLocalStorage(productId, selectedSingleProcess, product.install_id);
+      
+      // 2. 먼저 공정을 생성 (로컬스토리지의 공정명 사용)
       const processData = {
         process_name: selectedSingleProcess, // 선택된 단일 공정명 사용
         start_period: null, // 필요시 추가
@@ -496,7 +536,7 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
       const processResponse = await axiosClient.post(apiEndpoints.cbam.process.create, processData);
       console.log('✅ 공정 생성 성공:', processResponse.data);
       
-      // 2. 제품-공정 관계 생성
+      // 3. 제품-공정 관계 생성
       const productProcessData = {
         product_id: productId,
         process_id: processResponse.data.id,
@@ -506,7 +546,7 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
       const relationResponse = await axiosClient.post(apiEndpoints.cbam.productProcess.create, productProcessData);
       console.log('✅ 제품-공정 관계 생성 성공:', relationResponse.data);
       
-      // 3. 로컬 상태 업데이트 (UI 업데이트용)
+      // 4. 로컬 상태 업데이트 (UI 업데이트용)
       setProducts(prevProducts => 
         prevProducts.map(product => 
           product.id === productId 

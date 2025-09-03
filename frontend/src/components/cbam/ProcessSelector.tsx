@@ -90,6 +90,30 @@ export const ProductProcessModal: React.FC<{
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'processes' | 'quantity'>('processes');
   const [selectedInstallForProcess, setSelectedInstallForProcess] = useState<Install | null>(null);
+  const [localProcessData, setLocalProcessData] = useState<any[]>([]);
+
+  // 로컬 스토리지에서 공정 데이터 불러오기
+  const loadLocalProcessData = () => {
+    try {
+      const storedData = localStorage.getItem('cbam_process_data');
+      if (storedData) {
+        const data = JSON.parse(storedData);
+        setLocalProcessData(data);
+        console.log('✅ 로컬 스토리지에서 공정 데이터 불러오기 성공:', data);
+      } else {
+        setLocalProcessData([]);
+        console.log('📝 로컬 스토리지에 공정 데이터가 없습니다.');
+      }
+    } catch (error) {
+      console.error('❌ 로컬 스토리지 데이터 불러오기 실패:', error);
+      setLocalProcessData([]);
+    }
+  };
+
+  // 컴포넌트 마운트 시 로컬 스토리지 데이터 불러오기
+  React.useEffect(() => {
+    loadLocalProcessData();
+  }, []);
 
   // 제품-공정 관계 데이터 가져오기
   React.useEffect(() => {
@@ -314,6 +338,12 @@ export const ProductProcessModal: React.FC<{
               <h4 className="text-lg font-medium text-white">
                 {selectedProduct?.product_name}에 연결된 공정 목록
               </h4>
+              <button
+                onClick={loadLocalProcessData}
+                className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+              >
+                로컬 데이터 새로고침
+              </button>
             </div>
 
             {/* 사업장 선택 드롭박스 */}
@@ -347,6 +377,43 @@ export const ProductProcessModal: React.FC<{
                 </div>
               ) : (
                 <>
+                  {/* 로컬 스토리지에서 저장된 공정들 */}
+                  <div>
+                    <h5 className="text-md font-medium text-green-400 mb-2">
+                      로컬 스토리지 공정 데이터
+                    </h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {localProcessData.length > 0 ? (
+                        localProcessData
+                          .filter(item => item.product_id === selectedProduct?.id)
+                          .map((item) => (
+                            <div
+                              key={`local-${item.id}`}
+                              className="p-3 border border-green-500 rounded-lg bg-gray-700 hover:border-green-400 transition-colors"
+                            >
+                              <div className="font-medium text-white mb-1">{item.process_name}</div>
+                              <div className="text-sm text-gray-300">
+                                제품: {item.product_name}
+                              </div>
+                              <div className="text-sm text-gray-300">
+                                사업장: {item.install_name}
+                              </div>
+                              <div className="text-sm text-gray-300">
+                                소비량: {item.consumption_amount || 0}
+                              </div>
+                              <div className="text-xs text-gray-400">
+                                생성일: {new Date(item.created_at).toLocaleDateString('ko-KR')}
+                              </div>
+                            </div>
+                          ))
+                      ) : (
+                        <div className="col-span-full text-center py-4 text-gray-400 text-sm">
+                          로컬 스토리지에 저장된 공정이 없습니다.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   {/* 현재 사업장의 공정들 */}
                   <div>
                     <h5 className="text-md font-medium text-purple-400 mb-2">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Factory, Package, Edit, Trash2, X, Calendar, Search } from 'lucide-react';
 import axiosClient, { apiEndpoints } from '@/lib/axiosClient';
 
@@ -22,6 +22,9 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [showEditProductModal, setShowEditProductModal] = useState(false);
   const [showHSCNCodeModal, setShowHSCNCodeModal] = useState(false);
+  const [inputData, setInputData] = useState<any[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
+  const [filteredProcesses, setFilteredProcesses] = useState<any[]>([]);
 
   // 더미 제품 데이터 (실제로는 API에서 가져올 것)
   const [products, setProducts] = useState([
@@ -79,16 +82,83 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
     }
   };
 
+  // input 데이터 가져오기
+  const fetchInputData = async () => {
+    try {
+      const response = await axiosClient.get(apiEndpoints.datagather.inputData);
+      setInputData(response.data);
+      console.log('Input 데이터 로드 완료:', response.data);
+    } catch (error) {
+      console.error('Input 데이터 로드 실패:', error);
+    }
+  };
+
+  // 생산품명 필터링 (투입일과 종료일 기준)
+  const filterProductsByDateRange = (startDate: string, endDate: string) => {
+    if (!inputData.length) return [];
+    
+    const filtered = inputData.filter((item: any) => {
+      const itemDate = new Date(item.투입일 || item.input_date);
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      return itemDate >= start && itemDate <= end;
+    });
+    
+    // 생산품명으로 그룹화하여 중복 제거
+    const uniqueProducts = filtered.reduce((acc: any[], item: any) => {
+      const productName = item.생산품명 || item.product_name;
+      if (!acc.find(p => p.name === productName)) {
+        acc.push({
+          id: acc.length + 1,
+          name: productName,
+          inputData: item
+        });
+      }
+      return acc;
+    }, []);
+    
+    setFilteredProducts(uniqueProducts);
+    return uniqueProducts;
+  };
+
+  // 생산품명에 따른 공정 필터링
+  const filterProcessesByProduct = (productName: string) => {
+    if (!inputData.length) return [];
+    
+    const productProcesses = inputData
+      .filter((item: any) => (item.생산품명 || item.product_name) === productName)
+      .map((item: any) => item.공정명 || item.process_name)
+      .filter((process: string) => process && process.trim() !== '');
+    
+    // 중복 제거
+    const uniqueProcesses = [...new Set(productProcesses)];
+    
+    setFilteredProcesses(uniqueProcesses);
+    return uniqueProcesses;
+  };
+
   // 제품 관리 모달 열기
   const handleProductManagement = (install: any) => {
     setSelectedInstall(install);
     setShowProductModal(true);
+    // 모달 열 때 input 데이터 가져오기
+    fetchInputData();
   };
 
   // 제품 추가 모달 열기
   const handleAddProduct = () => {
     setShowAddProductModal(true);
+    // 모달 열 때 input 데이터 가져오기
+    fetchInputData();
   };
+
+  // 날짜 변경 시 생산품명 필터링
+  useEffect(() => {
+    if (newProduct.startDate && newProduct.endDate && inputData.length > 0) {
+      filterProductsByDateRange(newProduct.startDate, newProduct.endDate);
+    }
+  }, [newProduct.startDate, newProduct.endDate, inputData, filterProductsByDateRange]);
 
   // 제품 추가 처리
   const handleCreateProduct = () => {
@@ -127,8 +197,17 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
 
   // 공정 추가 섹션 토글
   const toggleAddProcessSection = (productId: number) => {
-    setShowAddProcess(showAddProcess === productId ? null : productId);
+    const isOpening = showAddProcess !== productId;
+    setShowAddProcess(isOpening ? productId : null);
     setSelectedProcess(''); // 공정 선택 초기화
+    
+    // 공정 추가 섹션을 열 때 해당 제품의 공정을 미리 필터링
+    if (isOpening && inputData.length > 0) {
+      const product = products.find(p => p.id === productId);
+      if (product) {
+        filterProcessesByProduct(product.name);
+      }
+    }
   };
 
   // 제품 수정 핸들러
@@ -394,20 +473,35 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                         
                         <div>
                           <label className="block text-sm font-medium text-ecotrace-text mb-2">
-                            공정명 *
+                            공정명 * (생산품명에 따른 필터링)
                           </label>
                           <select 
                             value={selectedProcess}
-                            onChange={(e) => setSelectedProcess(e.target.value)}
+                            onChange={(e) => {
+                              setSelectedProcess(e.target.value);
+                              // 공정 선택 시 해당 제품의 공정 목록 업데이트
+                              if (e.target.value && product.name) {
+                                filterProcessesByProduct(product.name);
+                              }
+                            }}
                             className="w-full px-3 py-2 bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg text-ecotrace-text focus:outline-none focus:ring-2 focus:ring-purple-500"
                           >
-                            <option value="">공정을 선택하세요</option>
-                            <option value="제철공정">제철공정</option>
-                            <option value="압연공정">압연공정</option>
-                            <option value="열처리공정">열처리공정</option>
-                            <option value="표면처리공정">표면처리공정</option>
-                            <option value="포장공정">포장공정</option>
+                            <option value="">
+                              {product.name 
+                                ? "공정을 선택하세요" 
+                                : "제품을 먼저 선택해주세요"}
+                            </option>
+                            {product.name && filteredProcesses.map((process, index) => (
+                              <option key={index} value={process}>
+                                {process}
+                              </option>
+                            ))}
                           </select>
+                          {product.name && (
+                            <p className="text-blue-500 text-sm mt-1">
+                              &quot;{product.name}&quot; 제품의 공정: {filteredProcesses.length}개
+                            </p>
+                          )}
                         </div>
                         
                         <div className="flex justify-center">
@@ -445,7 +539,7 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                 className="text-ecotrace-textSecondary hover:text-ecotrace-text"
               >
                 <X className="h-6 w-6" />
-              </button>
+                    </button>
             </div>
             
             <div className="space-y-4">
@@ -483,18 +577,35 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
               
               <div>
                 <label className="block text-sm font-medium text-ecotrace-text mb-2">
-                  제품명 *
+                  생산품명 * (Input 데이터에서 필터링)
                 </label>
-                <input
-                  type="text"
+                <select
                   value={newProduct.productName}
                   onChange={(e) => setNewProduct({ ...newProduct, productName: e.target.value })}
-                  placeholder="기간을 먼저 설정해주세요"
-                  disabled={!newProduct.startDate || !newProduct.endDate}
-                  className="w-full px-3 py-2 bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg text-ecotrace-text placeholder-ecotrace-textSecondary focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                />
+                  disabled={!newProduct.startDate || !newProduct.endDate || filteredProducts.length === 0}
+                  className="w-full px-3 py-2 bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg text-ecotrace-text focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                >
+                  <option value="">
+                    {!newProduct.startDate || !newProduct.endDate 
+                      ? "기간을 먼저 설정해주세요" 
+                      : filteredProducts.length === 0 
+                        ? "해당 기간에 생산품명이 없습니다" 
+                        : "생산품명을 선택하세요"}
+                  </option>
+                  {filteredProducts.map((product) => (
+                    <option key={product.id} value={product.name}>
+                      {product.name}
+                    </option>
+                  ))}
+                </select>
                 {(!newProduct.startDate || !newProduct.endDate) && (
-                  <p className="text-yellow-500 text-sm mt-1">(기간을 먼저 설정해주세요)</p>
+                  <p className="text-yellow-500 text-sm mt-1">기간을 먼저 설정해주세요</p>
+                )}
+                {newProduct.startDate && newProduct.endDate && filteredProducts.length === 0 && (
+                  <p className="text-red-500 text-sm mt-1">해당 기간에 생산품명이 없습니다</p>
+                )}
+                {filteredProducts.length > 0 && (
+                  <p className="text-green-500 text-sm mt-1">{filteredProducts.length}개의 생산품명이 있습니다</p>
                 )}
               </div>
               

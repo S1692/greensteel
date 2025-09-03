@@ -102,9 +102,9 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
       const filterStart = new Date(startDate);
       const filterEnd = new Date(endDate);
       
-      // 생산 기간이 필터 기간과 겹치는지 확인
-      // 생산 시작일이 필터 종료일보다 늦거나, 생산 종료일이 필터 시작일보다 빠르면 겹치지 않음
-      const isOverlapping = productionStartDate <= filterEnd && productionEndDate >= filterStart;
+      // 기간 시작일과 생산 시작일, 기간 종료일과 생산 종료일을 매칭
+      // 생산 시작일이 기간 시작일보다 늦거나 같고, 생산 종료일이 기간 종료일보다 빠르거나 같아야 함
+      const isWithinRange = productionStartDate >= filterStart && productionEndDate <= filterEnd;
       
       console.log('필터링 체크:', {
         item: item.생산품명 || item.product_name,
@@ -112,10 +112,10 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
         productionEnd: item.생산종료일 || item.생산_종료일 || item.종료일 || item.end_date,
         filterStart: startDate,
         filterEnd: endDate,
-        isOverlapping
+        isWithinRange
       });
       
-      return isOverlapping;
+      return isWithinRange;
     });
     
     console.log('필터링 결과:', { filteredCount: filtered.length, filtered });

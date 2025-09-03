@@ -247,6 +247,20 @@ app.include_router(fueldir_router, prefix="/api/v1/cbam/fueldir")
 app.include_router(dummy_router, prefix="/api/v1/cbam/dummy")
 
 logger.info("✅ 모든 라우터 등록 완료 (엔티티 의존성 순서 고려)")
+
+# 라우터 등록 상태 로깅
+logger.info("🔍 라우터 등록 상태 확인:")
+logger.info(f"  - Install Router: {type(install_router).__name__} (routes: {len(install_router.routes)})")
+logger.info(f"  - Product Router: {type(product_router).__name__} (routes: {len(product_router.routes)})")
+logger.info(f"  - Process Router: {type(process_router).__name__} (routes: {len(process_router.routes)})")
+logger.info(f"  - Mapping Router: {type(mapping_router).__name__} (routes: {len(mapping_router.routes)})")
+logger.info(f"  - Total App Routes: {len(app.routes)}")
+
+# CBAM 라우트 확인
+cbam_routes = [r for r in app.routes if hasattr(r, 'path') and r.path.startswith('/api/v1/cbam')]
+logger.info(f"  - CBAM Routes Count: {len(cbam_routes)}")
+for route in cbam_routes:
+    logger.info(f"    * {route.path} ({list(route.methods) if hasattr(route, 'methods') and route.methods else []})")
 logger.info("�� 기본 엔티티 → 중간 테이블 → 계산/분석 순서로 등록")
 
 # ============================================================================
@@ -305,6 +319,57 @@ async def health_check():
         "timestamp": time.time()
     }
 
+@app.get("/debug/router-status", tags=["debug"])
+async def debug_router_status():
+    """라우터 등록 상태 확인 (디버그용)"""
+    try:
+        # 라우터 등록 상태 확인
+        router_status = {
+            "install_router": {
+                "imported": install_router is not None,
+                "type": type(install_router).__name__ if install_router else None,
+                "routes_count": len(install_router.routes) if install_router else 0
+            },
+            "product_router": {
+                "imported": product_router is not None,
+                "type": type(product_router).__name__ if product_router else None,
+                "routes_count": len(product_router.routes) if product_router else 0
+            },
+            "process_router": {
+                "imported": process_router is not None,
+                "type": type(process_router).__name__ if process_router else None,
+                "routes_count": len(process_router.routes) if process_router else 0
+            },
+            "mapping_router": {
+                "imported": mapping_router is not None,
+                "type": type(mapping_router).__name__ if mapping_router else None,
+                "routes_count": len(mapping_router.routes) if mapping_router else 0
+            }
+        }
+        
+        # 실제 등록된 라우트 확인
+        registered_routes = []
+        for route in app.routes:
+            if hasattr(route, 'path'):
+                registered_routes.append({
+                    "path": route.path,
+                    "methods": list(route.methods) if hasattr(route, 'methods') and route.methods else [],
+                    "name": getattr(route, 'name', 'unknown')
+                })
+        
+        return {
+            "router_status": router_status,
+            "registered_routes": registered_routes,
+            "total_registered_routes": len(registered_routes),
+            "cbam_routes": [r for r in registered_routes if r["path"].startswith("/api/v1/cbam")],
+            "app_routes_count": len(app.routes)
+        }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "message": "라우터 상태 확인 중 오류 발생"
+        }
+
 @app.get("/debug/routes", tags=["debug"])
 async def debug_routes():
     """등록된 라우트 정보 확인 (디버그용)"""
@@ -316,7 +381,8 @@ async def debug_routes():
                 "path": route.path,
                 "methods": list(route.methods) if route.methods else [],
                 "name": getattr(route, 'name', 'unknown'),
-                "endpoint": str(route.endpoint) if hasattr(route, 'endpoint') else 'unknown'
+                "endpoint": str(route.endpoint) if hasattr(route, 'endpoint') else 'unknown',
+                "type": type(route).__name__
             }
             
             # 동적 경로인지 확인
@@ -337,14 +403,24 @@ async def debug_routes():
     for route in routes:
         if route["path"] == "/":
             group = "root"
+        elif route["path"].startswith("/api/v1/cbam/install"):
+            group = "cbam_install"
+        elif route["path"].startswith("/api/v1/cbam/product"):
+            group = "cbam_product"
+        elif route["path"].startswith("/api/v1/cbam/process"):
+            group = "cbam_process"
+        elif route["path"].startswith("/api/v1/cbam/mapping"):
+            group = "cbam_mapping"
+        elif route["path"].startswith("/api/v1/cbam"):
+            group = "cbam_other"
         elif route["path"].startswith("/install"):
-            group = "install"
+            group = "install_legacy"
         elif route["path"].startswith("/product"):
-            group = "product"
+            group = "product_legacy"
         elif route["path"].startswith("/process"):
-            group = "process"
-        elif route["path"].startswith("/calculation"):
-            group = "calculation"
+            group = "process_legacy"
+        elif route["path"].startswith("/mapping"):
+            group = "mapping_legacy"
         else:
             group = "other"
         
@@ -352,13 +428,24 @@ async def debug_routes():
             router_groups[group] = []
         router_groups[group].append(route)
     
+    # CBAM 관련 라우트만 필터링
+    cbam_routes = [r for r in routes if r["path"].startswith("/api/v1/cbam")]
+    
     return {
         "total_routes": len(routes),
+        "cbam_routes_count": len(cbam_routes),
         "router_groups": router_groups,
+        "cbam_routes": cbam_routes,
         "static_routes": [r for r in routes if not r["dynamic"]],
         "dynamic_routes": [r for r in routes if r["dynamic"]],
         "all_routes": routes,
-        "install_routes": [r for r in routes if r["path"].startswith("/install")]
+        "expected_cbam_paths": [
+            "/api/v1/cbam/install",
+            "/api/v1/cbam/product", 
+            "/api/v1/cbam/process",
+            "/api/v1/cbam/mapping"
+        ],
+        "missing_paths": []
     }
 
 # ============================================================================

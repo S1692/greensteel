@@ -36,10 +36,11 @@ class InstallService:
     async def create_install(self, request: InstallCreateRequest) -> InstallResponse:
         """사업장 생성"""
         try:
-            logger.info(f"🏭 사업장 생성 요청: {request.name}")
+            logger.info(f"🏭 사업장 생성 요청: {request.name}, 보고기간: {request.reporting_year}")
             
             install_data = {
-                "name": request.name  # name 필드 사용
+                "name": request.name,
+                "reporting_year": request.reporting_year
             }
             
             logger.info(f"📝 사업장 데이터 준비 완료: {install_data}")

@@ -58,9 +58,9 @@ async def get_install_names():
 @router.post("/", response_model=InstallResponse)
 async def create_install(request: InstallCreateRequest):
     """사업장 생성"""
-    try:
-        logger.info(f"📝 사업장 생성 요청 시작: {request.name}")
-        logger.info(f"📝 요청 데이터: {request.dict()}")
+            try:
+            logger.info(f"📝 사업장 생성 요청 시작: {request.name}, 보고기간: {request.reporting_year}")
+            logger.info(f"📝 요청 데이터: {request.dict()}")
         
         install_service = get_install_service()
         logger.info("🔧 Install 서비스 인스턴스 생성 완료")

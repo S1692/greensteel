@@ -30,7 +30,7 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
 
   // 사업장 생성 폼 상태
   const [newInstall, setNewInstall] = useState({
-    install_name: '',
+    name: '',
     reporting_year: 2025
   });
 
@@ -44,10 +44,28 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
   });
 
   // 사업장 생성 처리
-  const handleCreateInstall = () => {
-    // TODO: API 호출하여 사업장 생성
-    console.log('사업장 생성:', newInstall);
-    setNewInstall({ install_name: '', reporting_year: 2025 });
+  const handleCreateInstall = async () => {
+    try {
+      console.log('🚀 사업장 생성 요청 시작:', newInstall);
+      
+      const response = await axiosClient.post(apiEndpoints.cbam.install.create, newInstall);
+      
+      console.log('✅ 사업장 생성 성공:', response.data);
+      
+      // 폼 초기화
+      setNewInstall({ name: '', reporting_year: 2025 });
+      
+      // 목록 새로고침 (실제로는 API에서 다시 가져와야 함)
+      // TODO: installs 목록 새로고침
+      
+    } catch (error: any) {
+      console.error('❌ 사업장 생성 실패:', error);
+      console.error('❌ 에러 상세:', {
+        message: error?.message || 'Unknown error',
+        status: error?.response?.status,
+        data: error?.response?.data
+      });
+    }
   };
 
   // 제품 관리 모달 열기
@@ -107,8 +125,8 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
             </label>
             <input
               type="text"
-              value={newInstall.install_name}
-              onChange={(e) => setNewInstall({ ...newInstall, install_name: e.target.value })}
+              value={newInstall.name}
+              onChange={(e) => setNewInstall({ ...newInstall, name: e.target.value })}
               placeholder="예: 포항제철소"
               className="w-full px-3 py-2 bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg text-ecotrace-text placeholder-ecotrace-textSecondary focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -119,10 +137,10 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
               보고기간 *
             </label>
             <input
-              type="text"
-                      value={newInstall.reporting_year}
-        onChange={(e) => setNewInstall({ ...newInstall, reporting_year: parseInt(e.target.value) || 2025 })}
-        placeholder="2025"
+              type="number"
+              value={newInstall.reporting_year}
+              onChange={(e) => setNewInstall({ ...newInstall, reporting_year: parseInt(e.target.value) || 2025 })}
+              placeholder="2025"
               className="w-full px-3 py-2 bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg text-ecotrace-text placeholder-ecotrace-textSecondary focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>

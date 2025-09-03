@@ -93,6 +93,7 @@ class InstallRepository:
                         CREATE TABLE install (
                             id SERIAL PRIMARY KEY,
                             name TEXT NOT NULL,
+                            reporting_year INTEGER NOT NULL DEFAULT EXTRACT(YEAR FROM NOW()),
                             created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                             updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
                         );
@@ -206,10 +207,10 @@ class InstallRepository:
         try:
             async with self.pool.acquire() as conn:
                 result = await conn.fetchrow("""
-                    INSERT INTO install (name)
-                    VALUES ($1)
+                    INSERT INTO install (name, reporting_year)
+                    VALUES ($1, $2)
                     RETURNING *
-                """, install_data['name'])
+                """, install_data['name'], install_data['reporting_year'])
                 
                 if result:
                     install_dict = dict(result)
@@ -233,7 +234,7 @@ class InstallRepository:
         try:
             async with self.pool.acquire() as conn:
                 results = await conn.fetch("""
-                    SELECT id, name, created_at, updated_at
+                    SELECT id, name, reporting_year, created_at, updated_at
                     FROM install
                     ORDER BY created_at DESC
                 """)
@@ -279,7 +280,7 @@ class InstallRepository:
         try:
             async with self.pool.acquire() as conn:
                 result = await conn.fetchrow("""
-                    SELECT id, name, created_at, updated_at
+                    SELECT id, name, reporting_year, created_at, updated_at
                     FROM install
                     WHERE id = $1
                 """, install_id)

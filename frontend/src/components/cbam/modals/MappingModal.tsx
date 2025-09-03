@@ -9,21 +9,24 @@ interface MappingModalProps {
 
 interface Mapping {
   id: number;
-  hs_code: string;
-  cn_code: string;
-  goods_name: string;
-  description?: string;
-  created_at?: string;
+  hscode: string;
+  aggregoods_name?: string;
+  aggregoods_engname?: string;
+  cncode_total: string;
+  goods_name?: string;
+  goods_engname?: string;
 }
 
 export const MappingModal: React.FC<MappingModalProps> = ({ onClose, onSuccess }) => {
   const [mappings, setMappings] = useState<Mapping[]>([]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    hs_code: '',
-    cn_code: '',
+    hscode: '',
+    aggregoods_name: '',
+    aggregoods_engname: '',
+    cncode_total: '',
     goods_name: '',
-    description: ''
+    goods_engname: ''
   });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -60,10 +63,12 @@ export const MappingModal: React.FC<MappingModalProps> = ({ onClose, onSuccess }
 
   const handleEdit = (mapping: Mapping) => {
     setFormData({
-      hs_code: mapping.hs_code,
-      cn_code: mapping.cn_code,
-      goods_name: mapping.goods_name,
-      description: mapping.description || ''
+      hscode: mapping.hscode,
+      aggregoods_name: mapping.aggregoods_name || '',
+      aggregoods_engname: mapping.aggregoods_engname || '',
+      cncode_total: mapping.cncode_total,
+      goods_name: mapping.goods_name || '',
+      goods_engname: mapping.goods_engname || ''
     });
     setEditingId(mapping.id);
   };
@@ -81,7 +86,14 @@ export const MappingModal: React.FC<MappingModalProps> = ({ onClose, onSuccess }
   };
 
   const handleCancel = () => {
-    setFormData({ hs_code: '', cn_code: '', goods_name: '', description: '' });
+    setFormData({ 
+      hscode: '', 
+      aggregoods_name: '', 
+      aggregoods_engname: '', 
+      cncode_total: '', 
+      goods_name: '', 
+      goods_engname: '' 
+    });
     setEditingId(null);
   };
 
@@ -200,33 +212,48 @@ export const MappingModal: React.FC<MappingModalProps> = ({ onClose, onSuccess }
             <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <input
                 type="text"
-                placeholder="HS 코드"
-                value={formData.hs_code}
-                onChange={(e) => setFormData(prev => ({ ...prev, hs_code: e.target.value }))}
+                placeholder="HS 코드 (6자리)"
+                value={formData.hscode}
+                onChange={(e) => setFormData(prev => ({ ...prev, hscode: e.target.value }))}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                maxLength={6}
                 required
               />
               <input
                 type="text"
-                placeholder="CN 코드"
-                value={formData.cn_code}
-                onChange={(e) => setFormData(prev => ({ ...prev, cn_code: e.target.value }))}
+                placeholder="CN 코드 (8자리)"
+                value={formData.cncode_total}
+                onChange={(e) => setFormData(prev => ({ ...prev, cncode_total: e.target.value }))}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                maxLength={8}
                 required
               />
               <input
                 type="text"
-                placeholder="상품명"
+                placeholder="품목명"
                 value={formData.goods_name}
                 onChange={(e) => setFormData(prev => ({ ...prev, goods_name: e.target.value }))}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
               />
               <input
                 type="text"
-                placeholder="설명"
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="품목영문명"
+                value={formData.goods_engname}
+                onChange={(e) => setFormData(prev => ({ ...prev, goods_engname: e.target.value }))}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <input
+                type="text"
+                placeholder="품목군명"
+                value={formData.aggregoods_name}
+                onChange={(e) => setFormData(prev => ({ ...prev, aggregoods_name: e.target.value }))}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <input
+                type="text"
+                placeholder="품목군영문명"
+                value={formData.aggregoods_engname}
+                onChange={(e) => setFormData(prev => ({ ...prev, aggregoods_engname: e.target.value }))}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               <div className="md:col-span-4 flex space-x-2">
@@ -266,9 +293,8 @@ export const MappingModal: React.FC<MappingModalProps> = ({ onClose, onSuccess }
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">HS 코드</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">CN 코드</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">상품명</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">설명</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">생성일</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">품목명</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">품목군명</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">액션</th>
                     </tr>
                   </thead>
@@ -276,13 +302,10 @@ export const MappingModal: React.FC<MappingModalProps> = ({ onClose, onSuccess }
                     {mappings.map((mapping) => (
                       <tr key={mapping.id} className="hover:bg-gray-50">
                         <td className="px-4 py-2 text-sm text-gray-900">{mapping.id}</td>
-                        <td className="px-4 py-2 text-sm text-gray-900">{mapping.hs_code}</td>
-                        <td className="px-4 py-2 text-sm text-gray-900">{mapping.cn_code}</td>
-                        <td className="px-4 py-2 text-sm text-gray-900">{mapping.goods_name}</td>
-                        <td className="px-4 py-2 text-sm text-gray-500">{mapping.description || '-'}</td>
-                        <td className="px-4 py-2 text-sm text-gray-500">
-                          {mapping.created_at ? new Date(mapping.created_at).toLocaleDateString() : '-'}
-                        </td>
+                        <td className="px-4 py-2 text-sm text-gray-900">{mapping.hscode}</td>
+                        <td className="px-4 py-2 text-sm text-gray-900">{mapping.cncode_total}</td>
+                        <td className="px-4 py-2 text-sm text-gray-900">{mapping.goods_name || '-'}</td>
+                        <td className="px-4 py-2 text-sm text-gray-900">{mapping.aggregoods_name || '-'}</td>
                         <td className="px-4 py-2 text-sm font-medium space-x-2">
                           <button 
                             onClick={() => handleEdit(mapping)}

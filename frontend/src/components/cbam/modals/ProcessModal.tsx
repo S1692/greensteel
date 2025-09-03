@@ -10,10 +10,10 @@ interface ProcessModalProps {
 interface Process {
   id: number;
   process_name: string;
-  process_code: string;
-  description?: string;
-  process_type?: string;
+  start_period?: string;
+  end_period?: string;
   created_at?: string;
+  updated_at?: string;
 }
 
 export const ProcessModal: React.FC<ProcessModalProps> = ({ onClose, onSuccess }) => {
@@ -21,9 +21,8 @@ export const ProcessModal: React.FC<ProcessModalProps> = ({ onClose, onSuccess }
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     process_name: '',
-    process_code: '',
-    description: '',
-    process_type: ''
+    start_period: '',
+    end_period: ''
   });
   const [editingId, setEditingId] = useState<number | null>(null);
 
@@ -59,9 +58,8 @@ export const ProcessModal: React.FC<ProcessModalProps> = ({ onClose, onSuccess }
   const handleEdit = (process: Process) => {
     setFormData({
       process_name: process.process_name,
-      process_code: process.process_code,
-      description: process.description || '',
-      process_type: process.process_type || ''
+      start_period: process.start_period || '',
+      end_period: process.end_period || ''
     });
     setEditingId(process.id);
   };
@@ -79,7 +77,7 @@ export const ProcessModal: React.FC<ProcessModalProps> = ({ onClose, onSuccess }
   };
 
   const handleCancel = () => {
-    setFormData({ process_name: '', process_code: '', description: '', process_type: '' });
+    setFormData({ process_name: '', start_period: '', end_period: '' });
     setEditingId(null);
   };
 
@@ -103,7 +101,7 @@ export const ProcessModal: React.FC<ProcessModalProps> = ({ onClose, onSuccess }
             <h3 className="font-medium text-gray-900 mb-4">
               {editingId ? '공정 수정' : '새 공정 추가'}
             </h3>
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <input
                 type="text"
                 placeholder="공정명"
@@ -113,25 +111,17 @@ export const ProcessModal: React.FC<ProcessModalProps> = ({ onClose, onSuccess }
                 required
               />
               <input
-                type="text"
-                placeholder="공정 코드"
-                value={formData.process_code}
-                onChange={(e) => setFormData(prev => ({ ...prev, process_code: e.target.value }))}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
-              />
-              <input
-                type="text"
-                placeholder="공정 유형"
-                value={formData.process_type}
-                onChange={(e) => setFormData(prev => ({ ...prev, process_type: e.target.value }))}
+                type="date"
+                placeholder="시작일"
+                value={formData.start_period}
+                onChange={(e) => setFormData(prev => ({ ...prev, start_period: e.target.value }))}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               <input
-                type="text"
-                placeholder="설명"
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                type="date"
+                placeholder="종료일"
+                value={formData.end_period}
+                onChange={(e) => setFormData(prev => ({ ...prev, end_period: e.target.value }))}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               <div className="md:col-span-2 flex space-x-2">
@@ -170,9 +160,8 @@ export const ProcessModal: React.FC<ProcessModalProps> = ({ onClose, onSuccess }
                     <tr>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">공정명</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">공정코드</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">공정유형</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">설명</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">시작일</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">종료일</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">생성일</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">액션</th>
                     </tr>
@@ -182,9 +171,8 @@ export const ProcessModal: React.FC<ProcessModalProps> = ({ onClose, onSuccess }
                       <tr key={process.id} className="hover:bg-gray-50">
                         <td className="px-4 py-2 text-sm text-gray-900">{process.id}</td>
                         <td className="px-4 py-2 text-sm text-gray-900">{process.process_name}</td>
-                        <td className="px-4 py-2 text-sm text-gray-900">{process.process_code}</td>
-                        <td className="px-4 py-2 text-sm text-gray-900">{process.process_type || '-'}</td>
-                        <td className="px-4 py-2 text-sm text-gray-500">{process.description || '-'}</td>
+                        <td className="px-4 py-2 text-sm text-gray-900">{process.start_period || '-'}</td>
+                        <td className="px-4 py-2 text-sm text-gray-900">{process.end_period || '-'}</td>
                         <td className="px-4 py-2 text-sm text-gray-500">
                           {process.created_at ? new Date(process.created_at).toLocaleDateString() : '-'}
                         </td>

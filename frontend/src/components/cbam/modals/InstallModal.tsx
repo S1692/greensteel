@@ -10,9 +10,7 @@ interface InstallModalProps {
 export const InstallModal: React.FC<InstallModalProps> = ({ onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     install_name: '',
-    reporting_year: new Date().getFullYear(),
-    address: '',
-    description: ''
+    reporting_year: new Date().getFullYear()
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,25 +57,7 @@ export const InstallModal: React.FC<InstallModalProps> = ({ onClose, onSuccess }
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">주소</label>
-            <input
-              type="text"
-              value={formData.address}
-              onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">설명</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
 
           <div className="flex justify-end space-x-3 pt-4">
             <button

@@ -360,12 +360,42 @@ const InputDataPage: React.FC = () => {
         throw new Error(responseData.message || 'AI 처리 실패');
       }
 
-    } catch (err) {
-      console.error('AI 처리 오류:', err);
-      setError(`AI 처리 중 오류가 발생했습니다: ${err}`);
-    } finally {
-      setIsAiProcessing(false);
-    }
+         } catch (err) {
+       console.error('AI 처리 오류:', err);
+       setError(`AI 처리 중 오류가 발생했습니다: ${err}`);
+       
+       // AI 처리 실패 시에도 기본 데이터로 테이블 표시
+       console.log('AI 처리 실패, 기본 데이터로 테이블 표시');
+       const fallbackData: DataRow[] = inputData.data.map((row: DataRow) => ({
+         ...row,
+         'AI추천답변': row['투입물명'] || '' // 원본 투입물명을 AI 추천 답변으로 사용
+       }));
+       
+       // AI 처리된 데이터로 상태 업데이트 (실패 시에도)
+       setAiProcessedData({
+         status: 'failed',
+         message: 'AI 처리 실패, 기본 데이터로 표시됩니다.',
+         filename: inputData.filename,
+         total_rows: fallbackData.length,
+         processed_rows: fallbackData.length,
+         data: fallbackData,
+         columns: inputData.columns
+       });
+
+       // AI 처리된 데이터를 편집 가능한 행 데이터로 변환
+       const updatedEditableRows: EditableRow[] = fallbackData.map((row: DataRow, index) => ({
+         id: `input-${index}`,
+         originalData: row,
+         modifiedData: { ...row },
+         isEditing: false
+       }));
+
+       setEditableInputRows(updatedEditableRows);
+       console.log('AI 처리 실패 시 기본 데이터로 편집 가능한 행 데이터 업데이트됨');
+       
+     } finally {
+       setIsAiProcessing(false);
+     }
   };
 
   // 입력 변경 핸들러
@@ -1452,7 +1482,7 @@ const InputDataPage: React.FC = () => {
           )}
 
           {/* 4. 데이터 미리보기 및 편집 */}
-          {inputData && editableInputRows.length > 0 && (
+          {inputData && (
             <div className='stitch-card p-6'>
               <div className='flex items-center justify-between mb-4'>
                 <div>
@@ -1682,22 +1712,36 @@ const InputDataPage: React.FC = () => {
             </div>
           )}
 
-          {/* 5. AI 처리 결과 */}
-          {aiProcessedData && (
-            <div className='stitch-card p-6'>
-              <div className='flex items-center gap-3 mb-4'>
-                <div className='w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center'>
-                  <CheckCircle className='w-5 h-5 text-green-600' />
-                </div>
-                <div>
-                  <h3 className='text-lg font-semibold text-white'>AI 처리 완료</h3>
-                  <p className='text-sm text-white/60'>
-                    총 {aiProcessedData.total_rows}행 중 {aiProcessedData.processed_rows}행이 처리되었습니다.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+                     {/* 5. AI 처리 결과 */}
+           {aiProcessedData && (
+             <div className={`stitch-card p-6 ${aiProcessedData.status === 'failed' ? 'bg-yellow-500/10 border border-yellow-500/20' : ''}`}>
+               <div className='flex items-center gap-3 mb-4'>
+                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                   aiProcessedData.status === 'failed' 
+                     ? 'bg-yellow-100' 
+                     : 'bg-green-100'
+                 }`}>
+                   {aiProcessedData.status === 'failed' ? (
+                     <AlertCircle className='w-5 h-5 text-yellow-600' />
+                   ) : (
+                     <CheckCircle className='w-5 h-5 text-green-600' />
+                   )}
+                 </div>
+                 <div>
+                   <h3 className={`text-lg font-semibold ${
+                     aiProcessedData.status === 'failed' ? 'text-yellow-400' : 'text-white'
+                   }`}>
+                     {aiProcessedData.status === 'failed' ? 'AI 처리 실패' : 'AI 처리 완료'}
+                   </h3>
+                   <p className={`text-sm ${
+                     aiProcessedData.status === 'failed' ? 'text-yellow-300' : 'text-white/60'
+                   }`}>
+                     {aiProcessedData.message}
+                   </p>
+                 </div>
+               </div>
+             </div>
+           )}
 
           {/* 6. 오류 메시지 */}
           {error && (

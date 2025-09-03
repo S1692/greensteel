@@ -9,9 +9,20 @@ interface ProductModalProps {
 
 interface Product {
   id: number;
+  install_id: number;
   product_name: string;
-  product_code: string;
-  description?: string;
+  product_category: string;
+  prostart_period: string;
+  proend_period: string;
+  product_amount?: number;
+  cncode_total?: string;
+  goods_name?: string;
+  goods_engname?: string;
+  aggrgoods_name?: string;
+  aggrgoods_engname?: string;
+  product_sell?: number;
+  product_eusell?: number;
+  attr_em?: number;
   created_at?: string;
 }
 
@@ -19,9 +30,20 @@ export const ProductModal: React.FC<ProductModalProps> = ({ onClose, onSuccess }
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
+    install_id: 1,
     product_name: '',
-    product_code: '',
-    description: ''
+    product_category: '단순제품',
+    prostart_period: '',
+    proend_period: '',
+    product_amount: 0,
+    cncode_total: '',
+    goods_name: '',
+    goods_engname: '',
+    aggrgoods_name: '',
+    aggrgoods_engname: '',
+    product_sell: 0,
+    product_eusell: 0,
+    attr_em: 0
   });
   const [editingId, setEditingId] = useState<number | null>(null);
 
@@ -56,9 +78,20 @@ export const ProductModal: React.FC<ProductModalProps> = ({ onClose, onSuccess }
 
   const handleEdit = (product: Product) => {
     setFormData({
+      install_id: product.install_id,
       product_name: product.product_name,
-      product_code: product.product_code,
-      description: product.description || ''
+      product_category: product.product_category,
+      prostart_period: product.prostart_period,
+      proend_period: product.proend_period,
+      product_amount: product.product_amount || 0,
+      cncode_total: product.cncode_total || '',
+      goods_name: product.goods_name || '',
+      goods_engname: product.goods_engname || '',
+      aggrgoods_name: product.aggrgoods_name || '',
+      aggrgoods_engname: product.aggrgoods_engname || '',
+      product_sell: product.product_sell || 0,
+      product_eusell: product.product_eusell || 0,
+      attr_em: product.attr_em || 0
     });
     setEditingId(product.id);
   };
@@ -76,7 +109,22 @@ export const ProductModal: React.FC<ProductModalProps> = ({ onClose, onSuccess }
   };
 
   const handleCancel = () => {
-    setFormData({ product_name: '', product_code: '', description: '' });
+    setFormData({
+      install_id: 1,
+      product_name: '',
+      product_category: '단순제품',
+      prostart_period: '',
+      proend_period: '',
+      product_amount: 0,
+      cncode_total: '',
+      goods_name: '',
+      goods_engname: '',
+      aggrgoods_name: '',
+      aggrgoods_engname: '',
+      product_sell: 0,
+      product_eusell: 0,
+      attr_em: 0
+    });
     setEditingId(null);
   };
 
@@ -109,19 +157,43 @@ export const ProductModal: React.FC<ProductModalProps> = ({ onClose, onSuccess }
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               />
+              <select
+                value={formData.product_category}
+                onChange={(e) => setFormData(prev => ({ ...prev, product_category: e.target.value }))}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              >
+                <option value="단순제품">단순제품</option>
+                <option value="복합제품">복합제품</option>
+              </select>
               <input
-                type="text"
-                placeholder="제품 코드"
-                value={formData.product_code}
-                onChange={(e) => setFormData(prev => ({ ...prev, product_code: e.target.value }))}
+                type="date"
+                placeholder="시작일"
+                value={formData.prostart_period}
+                onChange={(e) => setFormData(prev => ({ ...prev, prostart_period: e.target.value }))}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               />
               <input
+                type="date"
+                placeholder="종료일"
+                value={formData.proend_period}
+                onChange={(e) => setFormData(prev => ({ ...prev, proend_period: e.target.value }))}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+              <input
+                type="number"
+                placeholder="제품 수량"
+                value={formData.product_amount}
+                onChange={(e) => setFormData(prev => ({ ...prev, product_amount: parseFloat(e.target.value) || 0 }))}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <input
                 type="text"
-                placeholder="설명"
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="CN 코드"
+                value={formData.cncode_total}
+                onChange={(e) => setFormData(prev => ({ ...prev, cncode_total: e.target.value }))}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               <div className="md:col-span-3 flex space-x-2">
@@ -160,8 +232,10 @@ export const ProductModal: React.FC<ProductModalProps> = ({ onClose, onSuccess }
                     <tr>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">제품명</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">제품코드</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">설명</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">카테고리</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">시작일</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">종료일</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">수량</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">생성일</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">액션</th>
                     </tr>
@@ -171,8 +245,10 @@ export const ProductModal: React.FC<ProductModalProps> = ({ onClose, onSuccess }
                       <tr key={product.id} className="hover:bg-gray-50">
                         <td className="px-4 py-2 text-sm text-gray-900">{product.id}</td>
                         <td className="px-4 py-2 text-sm text-gray-900">{product.product_name}</td>
-                        <td className="px-4 py-2 text-sm text-gray-900">{product.product_code}</td>
-                        <td className="px-4 py-2 text-sm text-gray-500">{product.description || '-'}</td>
+                        <td className="px-4 py-2 text-sm text-gray-900">{product.product_category}</td>
+                        <td className="px-4 py-2 text-sm text-gray-900">{product.prostart_period}</td>
+                        <td className="px-4 py-2 text-sm text-gray-900">{product.proend_period}</td>
+                        <td className="px-4 py-2 text-sm text-gray-900">{product.product_amount || 0}</td>
                         <td className="px-4 py-2 text-sm text-gray-500">
                           {product.created_at ? new Date(product.created_at).toLocaleDateString() : '-'}
                         </td>

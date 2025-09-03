@@ -67,8 +67,28 @@ async def generate_ai_recommendation(input_text: str) -> tuple[str, float]:
         
         logger.info(f"🤗 Hugging Face API 호출: '{classification_text}'")
         
-        # huggingface_hub 라이브러리를 사용한 텍스트 분류
-        results = hf_client.text_classification(text=classification_text)
+        # httpx를 사용한 직접 JSON API 호출
+        payload = {"inputs": classification_text}
+        
+        async with httpx.AsyncClient(
+            headers={
+                "Authorization": f"Bearer {HF_TOKEN}",
+                "Content-Type": "application/json"
+            },
+            timeout=30.0
+        ) as client:
+            response = await client.post(
+                f"{HF_API_URL}/models/{HF_MODEL}",
+                json=payload
+            )
+            
+            logger.info(f"🤗 API 응답 상태: {response.status_code}")
+            
+            if response.status_code == 200:
+                results = response.json()
+            else:
+                logger.error(f"⚠️ Hugging Face API 호출 실패: {response.status_code} - {response.text}")
+                return input_text, 0.0
         
         logger.info(f"🤗 API 응답 결과: {results}")
         

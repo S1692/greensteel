@@ -113,19 +113,33 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
     console.log('필터링 시작:', { startDate, endDate, inputDataCount: currentInputData.length });
     
     const filtered = currentInputData.filter((item: any) => {
-      // 실제 데이터베이스 스키마에 맞춰 투입일과 종료일만 사용
-      const 투입일 = new Date(item.투입일 || item.input_date);
-      const 종료일 = new Date(item.종료일 || item.end_date);
+      // 로컬스토리지 데이터 구조에 맞춰 투입일과 종료일 필드 사용
+      const 투입일 = item.투입일;
+      const 종료일 = item.종료일;
+      
+      // 날짜가 없는 경우 제외
+      if (!투입일 || !종료일) {
+        return false;
+      }
+      
+      // 날짜 문자열을 Date 객체로 변환
+      const 투입일Date = new Date(투입일);
+      const 종료일Date = new Date(종료일);
       const filterStart = new Date(startDate);
       const filterEnd = new Date(endDate);
       
-      // 투입일이 기간 시작일보다 늦거나 같고, 종료일이 기간 종료일보다 빠르거나 같아야 함
-      const isWithinRange = 투입일 >= filterStart && 종료일 <= filterEnd;
+      // 유효한 날짜인지 확인
+      if (isNaN(투입일Date.getTime()) || isNaN(종료일Date.getTime())) {
+        return false;
+      }
+      
+      // 투입일이 기간 시작일보다 늦고, 종료일이 기간 종료일보다 빠른 것만 필터링
+      const isWithinRange = 투입일Date > filterStart && 종료일Date < filterEnd;
       
       console.log('필터링 체크:', {
-        item: item.생산품명 || item.product_name,
-        투입일: item.투입일 || item.input_date,
-        종료일: item.종료일 || item.end_date,
+        생산품명: item.생산품명,
+        투입일: 투입일,
+        종료일: 종료일,
         filterStart: startDate,
         filterEnd: endDate,
         isWithinRange
@@ -138,8 +152,8 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
     
     // 생산품명으로 그룹화하여 중복 제거 (생산품명만 중복 없이)
     const uniqueProducts = filtered.reduce((acc: any[], item: any) => {
-      const productName = item.생산품명 || item.product_name;
-      if (productName && !acc.find(p => p.name === productName)) {
+      const productName = item.생산품명;
+      if (productName && productName.trim() !== '' && !acc.find(p => p.name === productName)) {
         acc.push({
           id: acc.length + 1,
           name: productName,
@@ -148,6 +162,11 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
       }
       return acc;
     }, []);
+    
+    console.log('유니크 생산품명 결과:', { 
+      uniqueCount: uniqueProducts.length, 
+      uniqueProducts: uniqueProducts.map((p: any) => p.name) 
+    });
     
     setFilteredProducts(uniqueProducts);
     return uniqueProducts;
@@ -159,8 +178,8 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
     if (!currentInputData.length) return [];
     
     const productProcesses = currentInputData
-      .filter((item: any) => (item.생산품명 || item.product_name) === productName)
-      .map((item: any) => item.공정명 || item.process_name)
+      .filter((item: any) => item.생산품명 === productName)
+      .map((item: any) => item.공정)
       .filter((process: string) => process && process.trim() !== '');
     
     // 중복 제거
@@ -631,10 +650,16 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                   <p className="text-yellow-500 text-sm mt-1">기간을 먼저 설정해주세요</p>
                 )}
                 {newProduct.startDate && newProduct.endDate && filteredProducts.length === 0 && (
-                  <p className="text-red-500 text-sm mt-1">해당 기간에 생산품명이 없습니다</p>
+                  <div className="text-red-500 text-sm mt-1">
+                    <p>해당 기간에 생산품명이 없습니다</p>
+                    <p className="text-xs mt-1">조건: 투입일이 {newProduct.startDate}보다 늦고, 종료일이 {newProduct.endDate}보다 빠른 데이터</p>
+                  </div>
                 )}
                 {filteredProducts.length > 0 && (
-                  <p className="text-green-500 text-sm mt-1">{filteredProducts.length}개의 생산품명이 있습니다</p>
+                  <div className="text-green-500 text-sm mt-1">
+                    <p>{filteredProducts.length}개의 생산품명이 있습니다</p>
+                    <p className="text-xs mt-1">조건: 투입일이 {newProduct.startDate}보다 늦고, 종료일이 {newProduct.endDate}보다 빠른 데이터</p>
+                  </div>
                 )}
               </div>
               

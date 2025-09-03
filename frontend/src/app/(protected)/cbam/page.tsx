@@ -97,9 +97,6 @@ export default function CBAMPage() {
       products={products}
       processes={processes}
       mappings={mappings}
-      onShowInstallModal={() => setShowInstallModal(true)}
-      onShowProductModal={() => setShowProductModal(true)}
-      onShowProcessModal={() => setShowProcessModal(true)}
     />
   );
 

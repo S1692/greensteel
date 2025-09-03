@@ -11,7 +11,7 @@ export const CBAMTabNavigation: React.FC<CBAMTabNavigationProps> = ({
   onTabChange
 }) => {
   const tabs = [
-    { id: 'inputs' as const, label: '투입물' },
+    { id: 'inputs' as const, label: '개요' },
     { id: 'workplace' as const, label: '사업장관리' },
     { id: 'boundary' as const, label: '산정경계설정' },
     { id: 'report' as const, label: '보고서' }

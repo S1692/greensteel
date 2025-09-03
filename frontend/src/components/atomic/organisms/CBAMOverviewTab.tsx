@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Eye, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { CBAMStatsGrid } from '../molecules/CBAMStatsGrid';
 import { useInputData } from '@/hooks/useInputData';
 
@@ -8,19 +8,13 @@ interface CBAMOverviewTabProps {
   products: any[];
   processes: any[];
   mappings: any[];
-  onShowInstallModal: () => void;
-  onShowProductModal: () => void;
-  onShowProcessModal: () => void;
 }
 
 export const CBAMOverviewTab: React.FC<CBAMOverviewTabProps> = ({
   installs,
   products,
   processes,
-  mappings,
-  onShowInstallModal,
-  onShowProductModal,
-  onShowProcessModal
+  mappings
 }) => {
   const { data: inputData, loading, error, totalCount, refetch } = useInputData();
   const [currentPage, setCurrentPage] = useState(1);
@@ -102,17 +96,6 @@ export const CBAMOverviewTab: React.FC<CBAMOverviewTabProps> = ({
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-text">{item.투입물명}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-text">{item.수량}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-ecotrace-textSecondary">{item.단위}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                        <button className="text-blue-600 hover:text-blue-900">
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        <button className="text-green-600 hover:text-green-900">
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button className="text-red-600 hover:text-red-900">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -178,31 +161,7 @@ export const CBAMOverviewTab: React.FC<CBAMOverviewTabProps> = ({
       </div>
 
       {/* 기존 모달 버튼들 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <button
-          onClick={onShowInstallModal}
-          className="flex items-center justify-center p-4 bg-ecotrace-surface border border-ecotrace-border rounded-lg hover:bg-ecotrace-secondary/30 transition-colors"
-        >
-          <Plus className="h-5 w-5 text-ecotrace-textSecondary mr-2" />
-          <span className="text-ecotrace-text">사업장 추가</span>
-        </button>
-
-        <button
-          onClick={onShowProductModal}
-          className="flex items-center justify-center p-4 bg-ecotrace-surface border border-ecotrace-border rounded-lg hover:bg-ecotrace-secondary/30 transition-colors"
-        >
-          <Plus className="h-5 w-5 text-ecotrace-textSecondary mr-2" />
-          <span className="text-ecotrace-text">제품 추가</span>
-        </button>
-
-        <button
-          onClick={onShowProcessModal}
-          className="flex items-center justify-center p-4 bg-ecotrace-surface border border-ecotrace-border rounded-lg hover:bg-ecotrace-secondary/30 transition-colors"
-        >
-          <Plus className="h-5 w-5 text-ecotrace-textSecondary mr-2" />
-          <span className="text-ecotrace-text">공정 추가</span>
-        </button>
-      </div>
+      {/* 이미지의 버튼들 제거됨 */}
     </div>
   );
 };

@@ -293,9 +293,9 @@ class ProductRepository:
                     INSERT INTO product (
                         install_id, product_name, product_category, prostart_period, proend_period,
                         cncode_total, goods_name, goods_engname, aggrgoods_name, aggrgoods_engname,
-                        product_amount, product_sell, product_eusell
+                        product_amount, product_sell, product_eusell, attr_em
                     )
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
                     RETURNING *
                 """, *params)
                 

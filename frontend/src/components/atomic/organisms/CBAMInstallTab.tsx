@@ -86,18 +86,39 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
   // props로 받은 input 데이터 사용
   const inputData = propInputData;
 
-  // 생산품명 필터링 (투입일과 종료일 기준)
+  // 생산품명 필터링 (생산 시작일과 생산 종료일 기준)
   const filterProductsByDateRange = (startDate: string, endDate: string) => {
-    if (!inputData.length) return [];
+    if (!inputData.length) {
+      console.log('Input 데이터가 없습니다.');
+      return [];
+    }
+    
+    console.log('필터링 시작:', { startDate, endDate, inputDataCount: inputData.length });
     
     const filtered = inputData.filter((item: any) => {
-      const itemDate = new Date(item.투입일 || item.input_date);
-      const start = new Date(startDate);
-      const end = new Date(endDate);
+      // 생산 시작일과 생산 종료일을 모두 확인
+      const productionStartDate = new Date(item.생산시작일 || item.생산_시작일 || item.투입일 || item.input_date);
+      const productionEndDate = new Date(item.생산종료일 || item.생산_종료일 || item.종료일 || item.end_date);
+      const filterStart = new Date(startDate);
+      const filterEnd = new Date(endDate);
       
-      // 시작일과 같거나 이후이면서 종료일과 같거나 빠른 모든 데이터
-      return itemDate >= start && itemDate <= end;
+      // 생산 기간이 필터 기간과 겹치는지 확인
+      // 생산 시작일이 필터 종료일보다 늦거나, 생산 종료일이 필터 시작일보다 빠르면 겹치지 않음
+      const isOverlapping = productionStartDate <= filterEnd && productionEndDate >= filterStart;
+      
+      console.log('필터링 체크:', {
+        item: item.생산품명 || item.product_name,
+        productionStart: item.생산시작일 || item.생산_시작일 || item.투입일 || item.input_date,
+        productionEnd: item.생산종료일 || item.생산_종료일 || item.종료일 || item.end_date,
+        filterStart: startDate,
+        filterEnd: endDate,
+        isOverlapping
+      });
+      
+      return isOverlapping;
     });
+    
+    console.log('필터링 결과:', { filteredCount: filtered.length, filtered });
     
     // 생산품명으로 그룹화하여 중복 제거 (생산품명만 중복 없이)
     const uniqueProducts = filtered.reduce((acc: any[], item: any) => {

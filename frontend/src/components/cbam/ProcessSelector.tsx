@@ -135,7 +135,6 @@ export const ProductProcessModal: React.FC<{
               </div>
             )}
           </div>
-        )}
       </div>
     </div>
   );

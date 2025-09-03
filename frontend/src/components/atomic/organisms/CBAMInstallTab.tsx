@@ -31,13 +31,6 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
   const [hsSearchQuery, setHsSearchQuery] = useState('');
   const [hsSearchResults, setHsSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [showQuantityModal, setShowQuantityModal] = useState(false);
-  const [selectedProductForQuantity, setSelectedProductForQuantity] = useState<any>(null);
-  const [quantityData, setQuantityData] = useState({
-    product_sell: 0,
-    product_eusell: 0
-  });
-  const [activeTab, setActiveTab] = useState<'process' | 'quantity'>('process');
 
   // 제품 데이터 (실제로는 API에서 가져올 것)
   const [products, setProducts] = useState<any[]>([]);
@@ -312,46 +305,6 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
   const handleProductManagement = (install: any) => {
     setSelectedInstall(install);
     setShowProductModal(true);
-    setActiveTab('process'); // 기본 탭을 공정 관리로 설정
-  };
-
-  // 수량 관리 모달 열기
-  const openQuantityModal = (product: any) => {
-    setSelectedProductForQuantity(product);
-    setQuantityData({
-      product_sell: product.product_sell || 0,
-      product_eusell: product.product_eusell || 0
-    });
-    setShowQuantityModal(true);
-  };
-
-  // 수량 저장
-  const handleSaveQuantity = async () => {
-    if (!selectedProductForQuantity) return;
-
-    try {
-      const updateData = {
-        product_sell: quantityData.product_sell,
-        product_eusell: quantityData.product_eusell
-      };
-
-      await axiosClient.put(`${apiEndpoints.cbam.product.update}/${selectedProductForQuantity.id}`, updateData);
-      
-      // 로컬 상태 업데이트
-      setProducts(prevProducts => 
-        prevProducts.map(p => 
-          p.id === selectedProductForQuantity.id 
-            ? { ...p, ...updateData }
-            : p
-        )
-      );
-
-      setShowQuantityModal(false);
-      alert('수량 정보가 성공적으로 저장되었습니다.');
-    } catch (error) {
-      console.error('수량 저장 실패:', error);
-      alert('수량 저장에 실패했습니다.');
-    }
   };
 
   // 제품 추가 모달 열기
@@ -833,7 +786,7 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-ecotrace-surface rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-ecotrace-text">제품 관리 - {selectedInstall?.name}</h2>
+              <h2 className="text-xl font-semibold text-ecotrace-text">제품 관리</h2>
               <button
                 onClick={() => setShowProductModal(false)}
                 className="text-ecotrace-textSecondary hover:text-ecotrace-text"
@@ -841,46 +794,19 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                 <X className="h-6 w-6" />
               </button>
             </div>
-
-            {/* 탭 */}
-            <div className="flex space-x-1 mb-6">
-              <button 
-                onClick={() => setActiveTab('process')}
-                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === 'process' 
-                    ? 'text-blue-600 border-blue-600' 
-                    : 'text-gray-500 border-transparent hover:text-gray-700'
-                }`}
+            
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-ecotrace-text">
+                등록된 제품 목록 ({products.length}개)
+              </h3>
+              <button
+                onClick={handleAddProduct}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
               >
-                공정 관리
-              </button>
-              <button 
-                onClick={() => setActiveTab('quantity')}
-                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === 'quantity' 
-                    ? 'text-blue-600 border-blue-600' 
-                    : 'text-gray-500 border-transparent hover:text-gray-700'
-                }`}
-              >
-                수량 관리
+                <Plus className="h-4 w-4" />
+                <span>제품 추가</span>
               </button>
             </div>
-            
-            {/* 공정 관리 탭 내용 */}
-            {activeTab === 'process' && (
-              <>
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-medium text-ecotrace-text">
-                    등록된 제품 목록 ({products.length}개)
-                  </h3>
-                  <button
-                    onClick={handleAddProduct}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>제품 추가</span>
-                  </button>
-                </div>
 
             {/* 제품 목록 */}
             <div className="space-y-4">
@@ -1076,76 +1002,6 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                 ))
               )}
             </div>
-              </>
-            )}
-
-            {/* 수량 관리 탭 내용 */}
-            {activeTab === 'quantity' && (
-              <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-ecotrace-text">제품 수량 정보</h3>
-                
-                {products.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h4 className="text-lg font-medium text-gray-900 mb-2">등록된 제품이 없습니다</h4>
-                    <p className="text-gray-500 mb-6">먼저 제품을 추가한 후 수량을 관리하세요.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {products.map((product) => {
-                      // 로컬스토리지에서 해당 제품의 총 생산량 계산
-                      const totalProduction = calculateProductAmount(product.name);
-                      
-                      return (
-                        <div key={product.id} className="bg-ecotrace-secondary/20 rounded-lg p-4 border border-ecotrace-border">
-                          <div className="flex justify-between items-start mb-4">
-                            <h4 className="text-lg font-semibold text-ecotrace-text">{product.name}</h4>
-                            <button
-                              onClick={() => openQuantityModal(product)}
-                              className="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 transition-colors"
-                            >
-                              수량 관리
-                            </button>
-                          </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                            <div className="bg-gray-50 p-3 rounded">
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                총 생산량 (Total Production Quantity)
-                              </label>
-                              <div className="text-lg font-semibold text-gray-900">
-                                {totalProduction.toLocaleString()}
-                              </div>
-                              <p className="text-xs text-gray-500 mt-1">로컬스토리지에서 자동 계산</p>
-                            </div>
-                            
-                            <div className="bg-gray-50 p-3 rounded">
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                국내 판매량 (Domestic Sales Quantity)
-                              </label>
-                              <div className="text-lg font-semibold text-gray-900">
-                                {product.product_sell || 0}
-                              </div>
-                              <p className="text-xs text-gray-500 mt-1">수동 입력 필요</p>
-                            </div>
-                            
-                            <div className="bg-gray-50 p-3 rounded">
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                EU 판매량 (EU Sales Quantity)
-                              </label>
-                              <div className="text-lg font-semibold text-gray-900">
-                                {product.product_eusell || 0}
-                              </div>
-                              <p className="text-xs text-gray-500 mt-1">수동 입력 필요</p>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -1792,104 +1648,6 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
               </div>
         </div>
       </div>
-        </div>
-      )}
-
-      {/* 수량 관리 모달 */}
-      {showQuantityModal && selectedProductForQuantity && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900">
-                제품 관리 - {selectedProductForQuantity.name}
-              </h2>
-              <button
-                onClick={() => setShowQuantityModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-
-            {/* 탭 */}
-            <div className="flex space-x-1 mb-6">
-              <button className="px-4 py-2 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700">
-                공정 관리
-              </button>
-              <button className="px-4 py-2 text-sm font-medium text-blue-600 border-b-2 border-blue-600">
-                수량 관리
-              </button>
-            </div>
-
-            {/* 수량 관리 내용 */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900">제품 수량 정보</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    총 생산량 (Total Production Quantity)
-                  </label>
-                  <input
-                    type="number"
-                    value={calculateProductAmount(selectedProductForQuantity.name)}
-                    readOnly
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600"
-                    placeholder="0"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">로컬스토리지에서 자동 계산 (수정 불가)</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    국내 판매량 (Domestic Sales Quantity)
-                  </label>
-                  <input
-                    type="number"
-                    value={quantityData.product_sell}
-                    onChange={(e) => setQuantityData(prev => ({
-                      ...prev,
-                      product_sell: parseFloat(e.target.value) || 0
-                    }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="0"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    EU 판매량 (EU Sales Quantity)
-                  </label>
-                  <input
-                    type="number"
-                    value={quantityData.product_eusell}
-                    onChange={(e) => setQuantityData(prev => ({
-                      ...prev,
-                      product_eusell: parseFloat(e.target.value) || 0
-                    }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* 버튼 */}
-            <div className="flex justify-end space-x-3 mt-6">
-              <button
-                onClick={() => setShowQuantityModal(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-              >
-                취소
-              </button>
-              <button
-                onClick={handleSaveQuantity}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
-              >
-                저장
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>

@@ -21,9 +21,9 @@ CHATBOT_SERVICE_URL = os.getenv("CHATBOT_SERVICE_URL", "").strip()
 def _validate_upstream(name: str, url: str):
     if not url:
         raise RuntimeError(f"{name} is not set")
-    # If running on Railway, do not allow localhost upstreams
-    if os.getenv("RAILWAY_ENVIRONMENT") and "localhost" in url:
-        raise RuntimeError(f"{name} must be a public URL, not localhost: {url}")
+    # Railway 환경에서도 localhost URL 허용 (개발/테스트 목적)
+    # if os.getenv("RAILWAY_ENVIRONMENT") and "localhost" in url:
+    #     raise RuntimeError(f"{name} must be a public URL, not localhost: {url}")
 
 # 챗봇 업스트림 경로 설정
 CHATBOT_UPSTREAM_PATH = os.getenv("CHATBOT_UPSTREAM_PATH", "/api/v1/chatbot/chat")
@@ -36,7 +36,9 @@ allowed_origins = [origin.strip() for origin in ALLOWED_ORIGINS.split(",") if or
 
 async def _forward(target_service_url: str, target_path: str, request: Request) -> Response:
     """요청을 타겟 서비스로 전달하는 헬퍼 함수"""
-    _validate_upstream("CHATBOT_SERVICE_URL", target_service_url)
+    # 서비스 URL이 설정되어 있는지 확인
+    if not target_service_url:
+        raise HTTPException(status_code=503, detail="Target service not configured")
     
     try:
         # 타겟 URL 구성
@@ -372,6 +374,7 @@ async def proxy_cbam_service(request: Request, path: str):
     
     # CBAM 서비스의 실제 엔드포인트로 전달
     # 프론트엔드: /api/v1/cbam/install → CBAM 서비스: /install
+    # 프론트엔드: /api/v1/cbam/mapping → CBAM 서비스: /mapping
     target_path = f"/{path}"
     
     gateway_logger.log_info(f"CBAM proxy: {request.method} /api/v1/cbam/{path} → {CBAM_SERVICE_URL}{target_path}")

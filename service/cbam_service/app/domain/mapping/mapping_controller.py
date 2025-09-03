@@ -19,9 +19,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Mapping"])
 
 # 서비스 인스턴스는 요청 시마다 생성 (모듈 레벨 초기화 방지)
-def get_mapping_service():
+async def get_mapping_service():
     """매핑 서비스 인스턴스 반환"""
-    return HSCNMappingService(None)  # Repository에서 직접 DB 연결 사용
+    from app.common.database_base import get_async_db
+    db = get_async_db()
+    return HSCNMappingService(db)
 
 # ============================================================================
 # 🔍 HS 코드 조회 엔드포인트 (메인 기능)
@@ -38,7 +40,7 @@ async def lookup_cn_code_by_hs_code(hs_code: str):
     try:
         logger.info(f"🔍 HS 코드 조회 요청: {hs_code}")
         
-        mapping_service = get_mapping_service()
+        mapping_service = await get_mapping_service()
         result = await mapping_service.lookup_by_hs_code(hs_code)
         
         if not result.success:
@@ -65,7 +67,7 @@ async def get_all_mappings(
     """모든 HS-CN 매핑 조회 (페이지네이션)"""
     try:
         logger.info(f"📋 HS-CN 매핑 목록 조회 요청: skip={skip}, limit={limit}")
-        mapping_service = get_mapping_service()
+        mapping_service = await get_mapping_service()
         mappings = await mapping_service.get_all_mappings(skip, limit)
         logger.info(f"✅ HS-CN 매핑 목록 조회 성공: {len(mappings)}개")
         return mappings

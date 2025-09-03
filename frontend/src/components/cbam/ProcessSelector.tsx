@@ -71,7 +71,7 @@ export const ProductProcessModal: React.FC<{
   onClose: () => void;
 }> = ({
   selectedProduct,
-  allProcesses,
+  allProcesses: allProcessesProp,
   products,
   installs,
   selectedInstall,
@@ -80,6 +80,7 @@ export const ProductProcessModal: React.FC<{
 }) => {
   const [processFilterMode, setProcessFilterMode] = useState<'all' | 'product'>('all');
   const [productProcesses, setProductProcesses] = useState<any[]>([]);
+  const [allProcesses, setAllProcesses] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [quantityForm, setQuantityForm] = useState({
     product_amount: 0,
@@ -87,6 +88,8 @@ export const ProductProcessModal: React.FC<{
     product_eusell: 0
   });
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<'processes' | 'quantity'>('processes');
+  const [selectedInstallForProcess, setSelectedInstallForProcess] = useState<Install | null>(null);
 
   // 제품-공정 관계 데이터 가져오기
   React.useEffect(() => {
@@ -95,8 +98,8 @@ export const ProductProcessModal: React.FC<{
       
       setLoading(true);
       try {
-        const response = await axiosClient.get(`/api/v1/cbam/productprocess/product/${selectedProduct.id}`);
-        const data = response.data || [];
+        const response = await axiosClient.get(`/api/v1/cbam/productprocess/by-product/${selectedProduct.id}`);
+        const data = response.data.processes || response.data || [];
         
         // 해당 제품에만 연결된 공정들만 필터링 (추가 안전장치)
         const filteredData = data.filter((item: any) => 
@@ -115,6 +118,56 @@ export const ProductProcessModal: React.FC<{
 
     fetchProductProcesses();
   }, [selectedProduct?.id]);
+
+  // 사업장별 공정 조회
+  const fetchProcessesByInstall = React.useCallback(async (installId: number) => {
+    if (!installId) return;
+    
+    setLoading(true);
+    try {
+      console.log('🔍 사업장별 공정 조회:', installId);
+      
+      // 사업장별 제품 조회
+      const productsResponse = await axiosClient.get(`/api/v1/cbam/product/install/${installId}`);
+      const products = productsResponse.data || [];
+      
+      // 각 제품의 공정 관계 조회
+      const allProcessesData: any[] = [];
+      for (const product of products) {
+        try {
+          const processResponse = await axiosClient.get(`/api/v1/cbam/productprocess/by-product/${product.id}`);
+          const processData = processResponse.data.processes || processResponse.data || [];
+          allProcessesData.push(...processData);
+        } catch (error) {
+          console.error(`제품 ${product.id}의 공정 조회 실패:`, error);
+        }
+      }
+      
+      // 중복 제거 (process_id 기준)
+      const uniqueProcesses = allProcessesData.reduce((acc: any[], current: any) => {
+        const existing = acc.find(item => item.process_id === current.process_id);
+        if (!existing) {
+          acc.push(current);
+        }
+        return acc;
+      }, []);
+      
+      console.log(`🔍 사업장 ${installId}의 모든 공정들:`, uniqueProcesses);
+      setAllProcesses(uniqueProcesses);
+    } catch (error) {
+      console.error('사업장별 공정 조회 실패:', error);
+      setAllProcesses([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // 사업장 선택 시 공정 조회
+  React.useEffect(() => {
+    if (selectedInstallForProcess?.id) {
+      fetchProcessesByInstall(selectedInstallForProcess.id);
+    }
+  }, [selectedInstallForProcess?.id, fetchProcessesByInstall]);
 
   // 제품 수량 정보 초기화
   React.useEffect(() => {
@@ -162,75 +215,60 @@ export const ProductProcessModal: React.FC<{
           <button onClick={onClose} className="text-gray-400 hover:text-gray-200 text-xl">✕</button>
         </div>
 
-        {/* 수량 관리 */}
-        <div className="mb-8">
-          <h4 className="text-lg font-medium text-white mb-4">제품 수량 관리</h4>
-          <div className="bg-gray-700 p-4 rounded-lg">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  총 생산량
-                </label>
-                <input
-                  type="number"
-                  value={quantityForm.product_amount}
-                  onChange={(e) => setQuantityForm(prev => ({
-                    ...prev,
-                    product_amount: parseFloat(e.target.value) || 0
-                  }))}
-                  className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-purple-400"
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  국내 판매량
-                </label>
-                <input
-                  type="number"
-                  value={quantityForm.product_sell}
-                  onChange={(e) => setQuantityForm(prev => ({
-                    ...prev,
-                    product_sell: parseFloat(e.target.value) || 0
-                  }))}
-                  className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-purple-400"
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  EU 판매량
-                </label>
-                <input
-                  type="number"
-                  value={quantityForm.product_eusell}
-                  onChange={(e) => setQuantityForm(prev => ({
-                    ...prev,
-                    product_eusell: parseFloat(e.target.value) || 0
-                  }))}
-                  className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-purple-400"
-                  placeholder="0"
-                />
-              </div>
-            </div>
-            <div className="mt-4 flex justify-end">
-              <button
-                onClick={handleSaveQuantity}
-                disabled={saving}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white text-sm rounded-md transition-colors"
-              >
-                {saving ? '저장 중...' : '수량 저장'}
-              </button>
-            </div>
-          </div>
+        {/* 탭 네비게이션 */}
+        <div className="flex border-b border-gray-600 mb-6">
+          <button
+            onClick={() => setActiveTab('processes')}
+            className={`px-4 py-2 font-medium text-sm ${
+              activeTab === 'processes'
+                ? 'text-purple-400 border-b-2 border-purple-400'
+                : 'text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            공정 관리
+          </button>
+          <button
+            onClick={() => setActiveTab('quantity')}
+            className={`px-4 py-2 font-medium text-sm ${
+              activeTab === 'quantity'
+                ? 'text-purple-400 border-b-2 border-purple-400'
+                : 'text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            수량 관리
+          </button>
         </div>
 
-        {/* 공정 관리 */}
+        {/* 탭 컨텐츠 */}
+        {activeTab === 'processes' && (
           <div>
             <div className="flex justify-between items-center mb-4">
               <h4 className="text-lg font-medium text-white">
                 {selectedProduct?.product_name}에 연결된 공정 목록
               </h4>
+            </div>
+
+            {/* 사업장 선택 드롭박스 */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                사업장별 공정 조회
+              </label>
+              <select
+                value={selectedInstallForProcess?.id || ''}
+                onChange={(e) => {
+                  const installId = parseInt(e.target.value);
+                  const install = installs.find(i => i.id === installId);
+                  setSelectedInstallForProcess(install || null);
+                }}
+                className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-purple-400"
+              >
+                <option value="">사업장을 선택하세요</option>
+                {installs.map((install) => (
+                  <option key={install.id} value={install.id}>
+                    {install.install_name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* 공정 카드 목록 */}
@@ -239,35 +277,146 @@ export const ProductProcessModal: React.FC<{
                 <div className="col-span-full text-center py-8 text-gray-400">
                   로딩 중...
                 </div>
-              ) : productProcesses.length === 0 ? (
-                <div className="col-span-full text-center py-8 text-gray-400">
-                  등록된 공정이 없습니다.
-                </div>
               ) : (
-                productProcesses.map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-4 border border-gray-600 rounded-lg bg-gray-700 hover:border-purple-400 transition-colors"
-                  >
-                    <div className="font-medium text-white mb-2">{item.process_name}</div>
-                    <div className="text-sm text-gray-300 space-y-1">
-                      <div>제품: {item.product_name}</div>
-                      <div>사업장: {item.install_name}</div>
-                      <div>소비량: {item.consumption_amount || 0}</div>
+                <>
+                  {/* 해당 제품에 연결된 공정들 */}
+                  {productProcesses.length > 0 && (
+                    <>
+                      <div className="col-span-full">
+                        <h5 className="text-md font-medium text-purple-400 mb-2">
+                          현재 제품에 연결된 공정
+                        </h5>
+                      </div>
+                      {productProcesses.map((item) => (
+                        <div
+                          key={`product-${item.id}`}
+                          className="p-4 border border-purple-500 rounded-lg bg-gray-700 hover:border-purple-400 transition-colors"
+                        >
+                          <div className="font-medium text-white mb-2">{item.process_name}</div>
+                          <div className="text-sm text-gray-300 space-y-1">
+                            <div>제품: {item.product_name}</div>
+                            <div>사업장: {item.install_name}</div>
+                            <div>소비량: {item.consumption_amount || 0}</div>
+                          </div>
+                          <button
+                            onClick={() => onProcessSelect(item)}
+                            className="mt-3 w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-md transition-colors"
+                          >
+                            공정 선택
+                          </button>
+                        </div>
+                      ))}
+                    </>
+                  )}
+
+                  {/* 선택한 사업장의 모든 공정들 */}
+                  {selectedInstallForProcess && allProcesses.length > 0 && (
+                    <>
+                      <div className="col-span-full mt-4">
+                        <h5 className="text-md font-medium text-blue-400 mb-2">
+                          {selectedInstallForProcess.install_name}의 모든 공정
+                        </h5>
+                      </div>
+                      {allProcesses.map((item) => (
+                        <div
+                          key={`install-${item.id}`}
+                          className="p-4 border border-blue-500 rounded-lg bg-gray-700 hover:border-blue-400 transition-colors"
+                        >
+                          <div className="font-medium text-white mb-2">{item.process_name}</div>
+                          <div className="text-sm text-gray-300 space-y-1">
+                            <div>제품: {item.product_name}</div>
+                            <div>사업장: {item.install_name}</div>
+                            <div>소비량: {item.consumption_amount || 0}</div>
+                          </div>
+                          <button
+                            onClick={() => onProcessSelect(item)}
+                            className="mt-3 w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md transition-colors"
+                          >
+                            공정 선택
+                          </button>
+                        </div>
+                      ))}
+                    </>
+                  )}
+
+                  {/* 공정이 없는 경우 */}
+                  {productProcesses.length === 0 && (!selectedInstallForProcess || allProcesses.length === 0) && (
+                    <div className="col-span-full text-center py-8 text-gray-400">
+                      {selectedInstallForProcess 
+                        ? `${selectedInstallForProcess.install_name}에 등록된 공정이 없습니다.`
+                        : '등록된 공정이 없습니다.'
+                      }
                     </div>
-                    <button
-                      onClick={() => onProcessSelect(item)}
-                      className="mt-3 w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-md transition-colors"
-                    >
-                      공정 선택
-                    </button>
-                  </div>
-                ))
+                  )}
+                </>
               )}
             </div>
-
-
           </div>
+        )}
+
+        {activeTab === 'quantity' && (
+          <div>
+            <h4 className="text-lg font-medium text-white mb-4">제품 수량 관리</h4>
+            <div className="bg-gray-700 p-4 rounded-lg">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    총 생산량
+                  </label>
+                  <input
+                    type="number"
+                    value={quantityForm.product_amount}
+                    onChange={(e) => setQuantityForm(prev => ({
+                      ...prev,
+                      product_amount: parseFloat(e.target.value) || 0
+                    }))}
+                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-purple-400"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    국내 판매량
+                  </label>
+                  <input
+                    type="number"
+                    value={quantityForm.product_sell}
+                    onChange={(e) => setQuantityForm(prev => ({
+                      ...prev,
+                      product_sell: parseFloat(e.target.value) || 0
+                    }))}
+                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-purple-400"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    EU 판매량
+                  </label>
+                  <input
+                    type="number"
+                    value={quantityForm.product_eusell}
+                    onChange={(e) => setQuantityForm(prev => ({
+                      ...prev,
+                      product_eusell: parseFloat(e.target.value) || 0
+                    }))}
+                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white focus:outline-none focus:border-purple-400"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={handleSaveQuantity}
+                  disabled={saving}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white text-sm rounded-md transition-colors"
+                >
+                  {saving ? '저장 중...' : '수량 저장'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

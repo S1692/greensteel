@@ -27,7 +27,8 @@ logger = logging.getLogger(__name__)
 
 # Hugging Face API 설정
 HF_TOKEN = os.getenv("HF_TOKEN")
-HF_API_URL = os.getenv("HF_API_URL")
+HF_API_URL = "https://olbfpbg7i4varvwf.us-east-1.aws.endpoints.huggingface.cloud"
+HF_MODEL = "Halftotter/korean-xlm-roberta-classifier"
 
 # Hugging Face InferenceClient 인스턴스
 hf_client = None
@@ -38,19 +39,18 @@ async def initialize_huggingface_model():
     try:
         logger.info(f"🔍 환경 변수 확인:")
         logger.info(f"  - HF_TOKEN: {'설정됨' if HF_TOKEN else '설정되지 않음'}")
-        logger.info(f"  - HF_API_URL: {'설정됨' if HF_API_URL else '설정되지 않음'}")
+        logger.info(f"  - HF_API_URL: {HF_API_URL}")
+        logger.info(f"  - HF_MODEL: {HF_MODEL}")
         
         if not HF_TOKEN:
             logger.warning("⚠️ HF_TOKEN이 설정되지 않았습니다.")
             return
         
-        if not HF_API_URL:
-            logger.warning("⚠️ HF_API_URL이 설정되지 않았습니다.")
-            return
-        
         # Hugging Face InferenceClient 초기화
         hf_client = InferenceClient(endpoint=HF_API_URL, token=HF_TOKEN)
-        logger.info(f"🤗 Hugging Face Inference API 초기화 완료: {HF_API_URL}")
+        logger.info(f"🤗 Hugging Face Inference API 초기화 완료")
+        logger.info(f"  - 엔드포인트: {HF_API_URL}")
+        logger.info(f"  - 모델: {HF_MODEL}")
         
     except Exception as e:
         logger.error(f"❌ Hugging Face API 초기화 실패: {e}")
@@ -149,6 +149,11 @@ async def root():
         "service": "DataGather Service",
         "version": "1.0.0",
         "description": "Data Collection & Processing Service - DDD Structure",
+        "ai_config": {
+            "model": HF_MODEL,
+            "endpoint": HF_API_URL,
+            "token_configured": bool(HF_TOKEN)
+        },
         "endpoints": {
             "health": "/health",
             "ai_process": "/ai-process",
@@ -225,7 +230,7 @@ async def ai_process_data(data: Dict[str, Any]):
                 **item,
                 "AI추천답변": ai_추천답변,
                 "ai_processed": True,
-                "ai_model": "Halftotter/korean-xlm-roberta-classifier",
+                "ai_model": HF_MODEL,
                 "ai_task": "text-classification",
                 "classification": "processed",
                 "confidence": actual_confidence,
@@ -251,8 +256,9 @@ async def ai_process_data(data: Dict[str, Any]):
         
         response_data = {
             "success": True,
-            "message": f"Hugging Face Inference API (Halftotter/korean-xlm-roberta-classifier) AI 분류가 완료되었습니다.",
-            "ai_model": "Halftotter/korean-xlm-roberta-classifier",
+            "message": f"Hugging Face Inference API ({HF_MODEL}) AI 분류가 완료되었습니다.",
+            "ai_model": HF_MODEL,
+            "ai_endpoint": HF_API_URL,
             "ai_task": "text-classification",
             "total_classified": len(ai_classification_results),
             "ai_results": ai_classification_results  # AI 분류 결과만

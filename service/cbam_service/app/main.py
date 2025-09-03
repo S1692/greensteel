@@ -347,49 +347,15 @@ async def debug_routes():
 # 🔧 정적 파일 핸들러 (파비콘 등)
 # ============================================================================
 
-@app.get("/favicon.ico")
+@app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
-    """Favicon 요청 처리 - 404 방지"""
-    try:
-        logger.info("Favicon request handled - returning empty response")
-        return Response(
-            status_code=200,  # OK (204 대신 200 사용)
-            content=b"",  # 빈 내용
-            media_type="image/x-icon",
-            headers={
-                "Cache-Control": "public, max-age=86400",  # 24시간 캐시
-                "Content-Length": "0"
-            }
-        )
-    except Exception as e:
-        logger.error(f"Favicon handler error: {str(e)}")
-        return Response(
-            status_code=200,
-            content=b"",
-            media_type="image/x-icon"
-        )
+    """Favicon 요청 처리 - 최소한의 응답"""
+    return Response(status_code=204)
 
-@app.get("/robots.txt")
+@app.get("/robots.txt", include_in_schema=False)
 async def robots():
-    """Robots.txt 요청 처리"""
-    try:
-        logger.info("Robots.txt request handled - returning empty response")
-        return Response(
-            status_code=200,  # OK
-            content=b"",  # 빈 내용
-            media_type="text/plain",
-            headers={
-                "Cache-Control": "public, max-age=86400",  # 24시간 캐시
-                "Content-Length": "0"
-            }
-        )
-    except Exception as e:
-        logger.error(f"Robots.txt handler error: {str(e)}")
-        return Response(
-            status_code=200,
-            content=b"",
-            media_type="text/plain"
-        )
+    """Robots.txt 요청 처리 - 최소한의 응답"""
+    return Response(status_code=204)
 
 # ============================================================================
 # 🚨 예외 처리 핸들러

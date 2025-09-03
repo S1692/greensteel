@@ -460,17 +460,19 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
 
   // 공정 추가 처리
   const handleAddProcess = async (productId: number) => {
-    if (!selectedProcess) {
-      alert('공정을 선택해주세요.');
-      return;
-    }
-
     try {
-      console.log('🚀 공정 추가 요청 시작:', { productId, process: selectedProcess });
+      console.log('🚀 공정 추가 요청 시작:', { productId });
       
-      // 1. 먼저 공정을 생성
+      // 제품 정보에서 제품명 가져오기
+      const product = products.find(p => p.id === productId);
+      if (!product) {
+        alert('제품 정보를 찾을 수 없습니다.');
+        return;
+      }
+      
+      // 1. 먼저 공정을 생성 (제품명을 공정명으로 사용)
       const processData = {
-        process_name: selectedProcess,
+        process_name: product.name, // 제품 추가 시 입력한 이름을 공정명으로 사용
         start_period: null, // 필요시 추가
         end_period: null,   // 필요시 추가
         product_ids: [productId] // 다대다 관계를 위한 제품 ID
@@ -888,13 +890,13 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                         <h3 className="text-lg font-semibold text-ecotrace-text">+ 공정 추가</h3>
                       </div>
                       
-                      {/* 사용 가능한 공정 정보 */}
+                      {/* 공정 추가 정보 */}
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
                         <p className="text-sm text-blue-800">
-                          사용 가능한 공정: {filteredProcesses.length}개
+                          공정 추가 정보
                         </p>
                         <p className="text-sm text-blue-700 mt-1">
-                          아래 드롭다운에서 해당 제품에 적합한 공정을 선택해주세요.
+                          제품 추가 시 입력한 이름이 공정명으로 자동 설정됩니다.
                         </p>
                       </div>
 
@@ -907,37 +909,33 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                             className="w-full px-3 py-2 bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg text-ecotrace-text focus:outline-none focus:ring-2 focus:ring-purple-500"
                           >
                             <option value="">사업장을 선택하세요</option>
-                            <option value="포항제철소">포항제철소</option>
-                            <option value="광양제철소">광양제철소</option>
+                            {installs.map((install) => (
+                              <option key={install.id} value={install.id}>
+                                {install.name}
+                              </option>
+                            ))}
                           </select>
                         </div>
                         
                         <div>
                           <label className="block text-sm font-medium text-ecotrace-text mb-2">
-                            공정명 * (생산품명에 따른 필터링)
+                            공정명 * (제품명을 공정명으로 사용)
                           </label>
-                          <select 
-                            value={selectedProcess}
-                            onChange={(e) => {
-                              setSelectedProcess(e.target.value);
-                              // 공정 선택 시 해당 제품의 공정 목록 업데이트
-                              if (e.target.value && product.name) {
-                                filterProcessesByProduct(product.name);
-                              }
-                            }}
-                            className="w-full px-3 py-2 bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg text-ecotrace-text focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          >
-                            <option value="">
-                              {product.name 
-                                ? "공정을 선택하세요" 
-                                : "제품을 먼저 선택해주세요"}
-                            </option>
-                            {product.name && filteredProcesses.map((process, index) => (
-                              <option key={index} value={process}>
-                                {process}
-                              </option>
-                            ))}
-                          </select>
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                            <p className="text-sm text-blue-800">
+                              <span className="font-medium">공정명:</span> {product.name}
+                            </p>
+                            <p className="text-xs text-blue-600 mt-1">
+                              * 제품 추가 시 입력한 이름이 공정명으로 자동 설정됩니다
+                            </p>
+                          </div>
+                          <input
+                            type="text"
+                            value={product.name || ''}
+                            disabled
+                            className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-600 cursor-not-allowed"
+                            placeholder="제품명이 공정명으로 사용됩니다"
+                          />
                           {product.name && (
                             <p className="text-blue-500 text-sm mt-1">
                               &quot;{product.name}&quot; 제품의 공정: {filteredProcesses.length}개
@@ -946,11 +944,11 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                         </div>
                         
                         <div className="flex justify-center">
-                          <button 
+                                                    <button
                             onClick={() => handleAddProcess(product.id)}
-                            disabled={!selectedProcess}
+                            disabled={!product.name}
                             className={`px-6 py-2 rounded-lg flex items-center space-x-2 transition-colors ${
-                              selectedProcess 
+                              product.name 
                                 ? 'bg-purple-600 text-white hover:bg-purple-700' 
                                 : 'bg-gray-400 text-white cursor-not-allowed'
                             }`}

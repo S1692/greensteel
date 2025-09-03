@@ -32,6 +32,10 @@ async def create_product_process(request: ProductProcessCreateRequest):
     """제품-공정 관계 생성"""
     try:
         logger.info(f"🔄 제품-공정 관계 생성 요청: 제품 ID {request.product_id}, 공정 ID {request.process_id}")
+        
+        # 서비스 초기화 확인
+        await product_process_service.initialize()
+        
         result = await product_process_service.create_product_process(request)
         logger.info(f"✅ 제품-공정 관계 생성 성공: ID {result.id}")
         return result
@@ -107,6 +111,10 @@ async def get_product_processes_by_product(product_id: int):
     """제품별 제품-공정 관계 조회"""
     try:
         logger.info(f"🔍 제품별 제품-공정 관계 조회 요청: 제품 ID {product_id}")
+        
+        # 서비스 초기화 확인
+        await product_process_service.initialize()
+        
         result = await product_process_service.get_product_processes_by_product(product_id)
         logger.info(f"✅ 제품별 제품-공정 관계 조회 성공: 제품 ID {product_id}")
         return result

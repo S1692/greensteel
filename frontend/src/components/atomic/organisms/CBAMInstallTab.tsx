@@ -471,25 +471,43 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
         return;
       }
       
-      // 1. 먼저 공정을 생성 (제품명을 공정명으로 사용)
-      const processData = {
-        process_name: product.name, // 제품 추가 시 입력한 이름을 공정명으로 사용
-        start_period: null, // 필요시 추가
-        end_period: null,   // 필요시 추가
-        product_ids: [productId] // 다대다 관계를 위한 제품 ID
-      };
-
-      const processResponse = await axiosClient.post(apiEndpoints.cbam.process.create, processData);
-      console.log('✅ 공정 생성 성공:', processResponse.data);
+      // 로컬스토리지에서 해당 생산품명에 해당하는 공정명들 가져오기
+      const currentInputData = getInputDataFromStorage();
+      const productProcesses = currentInputData
+        .filter((item: any) => item.생산품명 === product.name)
+        .map((item: any) => item.공정)
+        .filter((process: string) => process && process.trim() !== '');
       
-      // 2. 제품-공정 관계 생성
-      const productProcessData = {
-        product_id: productId,
-        process_id: processResponse.data.id
-      };
+      // 중복 제거
+      const uniqueProcesses = [...new Set(productProcesses)];
+      
+      if (uniqueProcesses.length === 0) {
+        alert('해당 제품에 대한 공정 정보가 로컬스토리지에 없습니다.');
+        return;
+      }
+      
+      // 각 공정에 대해 개별적으로 생성
+      for (const processName of uniqueProcesses) {
+        // 1. 먼저 공정을 생성 (로컬스토리지의 공정명 사용)
+        const processData = {
+          process_name: processName, // 로컬스토리지의 공정명 사용
+          start_period: null, // 필요시 추가
+          end_period: null,   // 필요시 추가
+          product_ids: [productId] // 다대다 관계를 위한 제품 ID
+        };
 
-      const relationResponse = await axiosClient.post(apiEndpoints.cbam.productProcess.create, productProcessData);
-      console.log('✅ 제품-공정 관계 생성 성공:', relationResponse.data);
+        const processResponse = await axiosClient.post(apiEndpoints.cbam.process.create, processData);
+        console.log('✅ 공정 생성 성공:', processResponse.data);
+        
+        // 2. 제품-공정 관계 생성
+        const productProcessData = {
+          product_id: productId,
+          process_id: processResponse.data.id
+        };
+
+        const relationResponse = await axiosClient.post(apiEndpoints.cbam.productProcess.create, productProcessData);
+        console.log('✅ 제품-공정 관계 생성 성공:', relationResponse.data);
+      }
       
       // 3. 로컬 상태 업데이트 (UI 업데이트용)
       setProducts(prevProducts => 
@@ -497,16 +515,15 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
           product.id === productId 
             ? {
                 ...product,
-                processes: [...(product.processes || []), selectedProcess],
-                processCount: (product.processes || []).length + 1
+                processes: [...(product.processes || []), ...uniqueProcesses],
+                processCount: (product.processes || []).length + uniqueProcesses.length
               }
             : product
         )
       );
       
       setShowAddProcess(null);
-      setSelectedProcess('');
-      alert(`${selectedProcess} 공정이 성공적으로 추가되었습니다.`);
+      alert(`${uniqueProcesses.length}개의 공정이 성공적으로 추가되었습니다.`);
       
     } catch (error: any) {
       console.error('❌ 공정 추가 실패:', error);
@@ -897,7 +914,7 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                           공정 추가 정보
                         </p>
                         <p className="text-sm text-blue-700 mt-1">
-                          로컬스토리지의 생산품명이 공정명으로 자동 설정됩니다.
+                          로컬스토리지에서 해당 생산품명에 해당하는 모든 공정명들을 자동으로 가져와서 추가합니다.
                         </p>
                       </div>
 
@@ -924,38 +941,47 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                           </label>
                           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
                             <p className="text-sm text-blue-800">
-                              <span className="font-medium">공정명:</span> {product.name}
+                              <span className="font-medium">제품명:</span> {product.name}
                             </p>
                             <p className="text-xs text-blue-600 mt-1">
-                              * 로컬스토리지의 생산품명이 공정명으로 자동 설정됩니다
+                              * 로컬스토리지에서 해당 생산품명의 공정명들을 자동으로 가져옵니다
                             </p>
                           </div>
-                          <input
-                            type="text"
-                            value={product.name || ''}
-                            disabled
-                            className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-600 cursor-not-allowed"
-                            placeholder="제품명이 공정명으로 사용됩니다"
-                          />
+                          
+                          {/* 로컬스토리지의 공정명들 표시 */}
                           {product.name && (
-                            <p className="text-blue-500 text-sm mt-1">
-                              &quot;{product.name}&quot; 제품의 공정: {filteredProcesses.length}개
-                            </p>
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
+                              <p className="text-sm text-green-800 font-medium mb-2">
+                                추가될 공정명들:
+                              </p>
+                              <div className="space-y-1">
+                                {filteredProcesses.map((process, index) => (
+                                  <div key={index} className="text-sm text-green-700 bg-green-100 px-2 py-1 rounded">
+                                    • {process}
+                                  </div>
+                                ))}
+                              </div>
+                              {filteredProcesses.length === 0 && (
+                                <p className="text-sm text-red-600">
+                                  해당 제품에 대한 공정 정보가 로컬스토리지에 없습니다.
+                                </p>
+                              )}
+                            </div>
                           )}
                         </div>
                         
                         <div className="flex justify-center">
                                                     <button
                             onClick={() => handleAddProcess(product.id)}
-                            disabled={!product.name}
+                            disabled={!product.name || filteredProcesses.length === 0}
                             className={`px-6 py-2 rounded-lg flex items-center space-x-2 transition-colors ${
-                              product.name 
+                              product.name && filteredProcesses.length > 0
                                 ? 'bg-purple-600 text-white hover:bg-purple-700' 
                                 : 'bg-gray-400 text-white cursor-not-allowed'
                             }`}
                           >
                             <Plus className="h-4 w-4" />
-                            <span>+ 공정 추가</span>
+                            <span>+ 공정 추가 ({filteredProcesses.length}개)</span>
                     </button>
                         </div>
                       </div>

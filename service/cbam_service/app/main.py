@@ -270,9 +270,10 @@ async def root():
             "endpoints": {
                 "health": "/health",
                 "docs": "/docs" if DEBUG_MODE else "disabled",
-                "install": "/install",
-                "product": "/product",
-                "process": "/process"
+                "install": "/api/v1/cbam/install",
+                "product": "/api/v1/cbam/product",
+                "process": "/api/v1/cbam/process",
+                "mapping": "/api/v1/cbam/mapping"
             }
         }
     except Exception as e:

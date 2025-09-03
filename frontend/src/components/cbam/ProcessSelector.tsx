@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Process, Product, Install } from '@/hooks/useProcessManager';
+import axiosClient from '@/lib/axiosClient';
 
 interface ProcessSelectorProps {
   processes: Process[];
@@ -78,6 +79,28 @@ export const ProductProcessModal: React.FC<{
   onClose,
 }) => {
   const [processFilterMode, setProcessFilterMode] = useState<'all' | 'product'>('all');
+  const [productProcesses, setProductProcesses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // 제품-공정 관계 데이터 가져오기
+  React.useEffect(() => {
+    const fetchProductProcesses = async () => {
+      if (!selectedProduct?.id) return;
+      
+      setLoading(true);
+      try {
+        const response = await axiosClient.get(`/api/v1/cbam/productprocess/product/${selectedProduct.id}`);
+        setProductProcesses(response.data || []);
+      } catch (error) {
+        console.error('제품-공정 관계 조회 실패:', error);
+        setProductProcesses([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProductProcesses();
+  }, [selectedProduct?.id]);
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
@@ -105,35 +128,74 @@ export const ProductProcessModal: React.FC<{
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {allProcesses.map((process) => (
-                <div
-                  key={process.id}
-                  className="p-4 border border-gray-600 rounded-lg bg-gray-700 hover:border-purple-400 transition-colors"
-                >
-                  <div className="font-medium text-white mb-2">{process.process_name}</div>
-                  <div className="text-sm text-gray-300 space-y-1">
-                    <div>기간: {process.start_period || 'N/A'} ~ {process.end_period || 'N/A'}</div>
-                    <div>연결된 제품: {process.products?.length || 0}개</div>
-                  </div>
-                  <button
-                    onClick={() => onProcessSelect(process)}
-                    className="mt-3 w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-md transition-colors"
-                  >
-                    공정 선택
-                  </button>
-                </div>
-              ))}
+            {/* 제품-공정 관계 테이블 */}
+            <div className="bg-gray-700 rounded-lg overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-600">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">
+                        공정명
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">
+                        제품명
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">
+                        사업장명
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">
+                        소비량
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">
+                        액션
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-600">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
+                          로딩 중...
+                        </td>
+                      </tr>
+                    ) : productProcesses.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
+                          등록된 공정이 없습니다.
+                        </td>
+                      </tr>
+                    ) : (
+                      productProcesses.map((item) => (
+                        <tr key={item.id} className="hover:bg-gray-600">
+                          <td className="px-4 py-3 text-sm text-white">
+                            {item.process_name || 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-white">
+                            {item.product_name || 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-white">
+                            {item.install_name || 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-white">
+                            {item.consumption_amount || 0}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            <button
+                              onClick={() => onProcessSelect(item)}
+                              className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded-md transition-colors"
+                            >
+                              선택
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
-            {allProcesses.length === 0 && (
-              <div className="text-center py-8 text-gray-400">
-                {processFilterMode === 'all' 
-                  ? '등록된 공정이 없습니다.' 
-                  : `${selectedProduct?.product_name}에 등록된 공정이 없습니다.`
-                }
-              </div>
-            )}
+
           </div>
       </div>
     </div>

@@ -151,10 +151,11 @@ class ProductProcessRepository:
         try:
             async with self.pool.acquire() as conn:
                 results = await conn.fetch("""
-                    SELECT pp.*, p.product_name, proc.process_name
+                    SELECT pp.*, p.product_name, proc.process_name, i.install_name
                     FROM product_process pp
                     LEFT JOIN product p ON pp.product_id = p.id
                     LEFT JOIN process proc ON pp.process_id = proc.id
+                    LEFT JOIN install i ON p.install_id = i.id
                     ORDER BY pp.product_id, pp.process_id
                     LIMIT $1 OFFSET $2
                 """, limit, skip)
@@ -172,10 +173,11 @@ class ProductProcessRepository:
         try:
             async with self.pool.acquire() as conn:
                 results = await conn.fetch("""
-                    SELECT pp.*, p.product_name, proc.process_name
+                    SELECT pp.*, p.product_name, proc.process_name, i.install_name
                     FROM product_process pp
                     LEFT JOIN product p ON pp.product_id = p.id
                     LEFT JOIN process proc ON pp.process_id = proc.id
+                    LEFT JOIN install i ON p.install_id = i.id
                     WHERE pp.product_id = $1
                     ORDER BY pp.process_id
                 """, product_id)
@@ -193,10 +195,11 @@ class ProductProcessRepository:
         try:
             async with self.pool.acquire() as conn:
                 results = await conn.fetch("""
-                    SELECT pp.*, p.product_name, proc.process_name
+                    SELECT pp.*, p.product_name, proc.process_name, i.install_name
                     FROM product_process pp
                     LEFT JOIN product p ON pp.product_id = p.id
                     LEFT JOIN process proc ON pp.process_id = proc.id
+                    LEFT JOIN install i ON p.install_id = i.id
                     WHERE pp.process_id = $1
                     ORDER BY pp.product_id
                 """, process_id)

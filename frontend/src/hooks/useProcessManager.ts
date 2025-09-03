@@ -4,8 +4,12 @@ import axiosClient, { apiEndpoints } from '@/lib/axiosClient';
 export interface Process {
   id: number;
   process_name: string;  // CBAM 서비스 스키마와 일치
+  install_id?: number;    // 사업장 ID
+  install_name?: string;  // 사업장명
   start_period?: string;  // CBAM 서비스 스키마와 일치
   end_period?: string;    // CBAM 서비스 스키마와 일치
+  created_at?: string;
+  updated_at?: string;
   products?: any[];  // 다대다 관계를 위한 제품 정보
 }
 

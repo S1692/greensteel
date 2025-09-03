@@ -43,6 +43,8 @@ export interface Product {
 export interface Process {
   id: number;
   process_name: string;
+  install_id?: number;    // 사업장 ID
+  install_name?: string;  // 사업장명
   start_period?: string;  // CBAM 서비스 스키마와 일치
   end_period?: string;    // CBAM 서비스 스키마와 일치
   created_at?: string;

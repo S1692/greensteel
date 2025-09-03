@@ -92,27 +92,27 @@ export const ProductProcessModal: React.FC<{
   const [selectedInstallForProcess, setSelectedInstallForProcess] = useState<Install | null>(null);
   const [localProcessData, setLocalProcessData] = useState<any[]>([]);
 
-  // 로컬 스토리지에서 공정 데이터 불러오기
-  const loadLocalProcessData = () => {
+  // 저장소에서 공정 데이터 불러오기
+  const loadStoredProcessData = () => {
     try {
       const storedData = localStorage.getItem('cbam_process_data');
       if (storedData) {
         const data = JSON.parse(storedData);
         setLocalProcessData(data);
-        console.log('✅ 로컬 스토리지에서 공정 데이터 불러오기 성공:', data);
+        console.log('✅ 저장소에서 공정 데이터 불러오기 성공:', data);
       } else {
         setLocalProcessData([]);
-        console.log('📝 로컬 스토리지에 공정 데이터가 없습니다.');
+        console.log('📝 저장소에 공정 데이터가 없습니다.');
       }
     } catch (error) {
-      console.error('❌ 로컬 스토리지 데이터 불러오기 실패:', error);
+      console.error('❌ 저장소 데이터 불러오기 실패:', error);
       setLocalProcessData([]);
     }
   };
 
-  // 컴포넌트 마운트 시 로컬 스토리지 데이터 불러오기
+  // 컴포넌트 마운트 시 저장소 데이터 불러오기
   React.useEffect(() => {
-    loadLocalProcessData();
+    loadStoredProcessData();
   }, []);
 
   // 제품-공정 관계 데이터 가져오기
@@ -227,7 +227,7 @@ export const ProductProcessModal: React.FC<{
     fetchProductQuantity();
   }, [selectedProduct?.id]);
 
-  // 공정 선택 시 제품-공정 관계 생성
+  // 공정 선택 시 제품-공정 관계 생성 및 ReactFlow에 추가
   const handleProcessSelect = async (processData: any) => {
     if (!selectedProduct?.id || !processData?.process_id) {
       alert('제품 또는 공정 정보가 없습니다.');
@@ -245,6 +245,21 @@ export const ProductProcessModal: React.FC<{
       });
 
       console.log('✅ 제품-공정 관계 생성 성공:', response.data);
+      
+      // ReactFlow에 공정 추가
+      const processForFlow: Process = {
+        id: processData.process_id,
+        process_name: processData.process_name,
+        install_id: processData.install_id || selectedInstallForProcess?.id || 0,
+        install_name: processData.install_name || selectedInstallForProcess?.install_name || '',
+        start_period: processData.start_period || null,
+        end_period: processData.end_period || null,
+        created_at: processData.created_at || new Date().toISOString(),
+        updated_at: processData.updated_at || new Date().toISOString()
+      };
+      
+      console.log('🔄 ReactFlow에 공정 추가:', processForFlow);
+      onProcessSelect(processForFlow);
       
       // 성공 시 공정 목록 새로고침
       const productResponse = await axiosClient.get(apiEndpoints.cbam.productProcess.byProduct(selectedProduct.id));
@@ -339,10 +354,10 @@ export const ProductProcessModal: React.FC<{
                 {selectedProduct?.product_name}에 연결된 공정 목록
               </h4>
               <button
-                onClick={loadLocalProcessData}
+                onClick={loadStoredProcessData}
                 className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
               >
-                로컬 데이터 새로고침
+                데이터 새로고침
               </button>
             </div>
 
@@ -377,38 +392,64 @@ export const ProductProcessModal: React.FC<{
                 </div>
               ) : (
                 <>
-                  {/* 로컬 스토리지에서 저장된 공정들 */}
+                  {/* 저장된 공정 데이터 */}
                   <div>
                     <h5 className="text-md font-medium text-green-400 mb-2">
-                      로컬 스토리지 공정 데이터
+                      저장된 공정 데이터
                     </h5>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {localProcessData.length > 0 ? (
                         localProcessData
                           .filter(item => item.product_id === selectedProduct?.id)
-                          .map((item) => (
-                            <div
-                              key={`local-${item.id}`}
-                              className="p-3 border border-green-500 rounded-lg bg-gray-700 hover:border-green-400 transition-colors"
-                            >
-                              <div className="font-medium text-white mb-1">{item.process_name}</div>
-                              <div className="text-sm text-gray-300">
-                                제품: {item.product_name}
+                          .map((item) => {
+                            // 사업장 정보를 제대로 가져오기
+                            const installInfo = installs.find(install => install.id === item.install_id);
+                            const displayInstallName = installInfo?.install_name || item.install_name || '사업장 정보 없음';
+                            
+                            return (
+                              <div
+                                key={`stored-${item.id}`}
+                                className="p-3 border border-green-500 rounded-lg bg-gray-700 hover:border-green-400 transition-colors cursor-pointer"
+                                onClick={() => {
+                                  // 저장된 공정 데이터를 Process 객체 형태로 변환
+                                  const processData: Process = {
+                                    id: item.id,
+                                    process_name: item.process_name,
+                                    install_id: item.install_id,
+                                    install_name: displayInstallName,
+                                    start_period: undefined,
+                                    end_period: undefined,
+                                    created_at: item.created_at,
+                                    updated_at: item.created_at
+                                  };
+                                  
+                                  console.log('🔄 저장된 공정을 ReactFlow에 추가:', processData);
+                                  onProcessSelect(processData);
+                                }}
+                                title="클릭하여 ReactFlow에 공정 추가"
+                              >
+                                <div className="font-medium text-white mb-1">{item.process_name}</div>
+                                <div className="text-sm text-gray-300">
+                                  제품: {item.product_name}
+                                </div>
+                                <div className="text-sm text-gray-300">
+                                  사업장: {displayInstallName}
+                                </div>
+                                <div className="text-sm text-gray-300">
+                                  소비량: {item.consumption_amount || 0}
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                  생성일: {new Date(item.created_at).toLocaleDateString('ko-KR')}
+                                </div>
+                                <div className="text-xs text-green-400 mt-2">
+                                  클릭하여 ReactFlow에 추가
+                                </div>
                               </div>
-                              <div className="text-sm text-gray-300">
-                                사업장: {item.install_name}
-                              </div>
-                              <div className="text-sm text-gray-300">
-                                소비량: {item.consumption_amount || 0}
-                              </div>
-                              <div className="text-xs text-gray-400">
-                                생성일: {new Date(item.created_at).toLocaleDateString('ko-KR')}
-                              </div>
-                            </div>
-                          ))
+                            );
+                          })
                       ) : (
                         <div className="col-span-full text-center py-4 text-gray-400 text-sm">
-                          로컬 스토리지에 저장된 공정이 없습니다.
+                          저장된 공정이 없습니다.
                         </div>
                       )}
                     </div>
@@ -424,11 +465,31 @@ export const ProductProcessModal: React.FC<{
                         productProcesses.map((item) => (
                           <div
                             key={`current-${item.id}`}
-                            className="p-3 border border-purple-500 rounded-lg bg-gray-700 hover:border-purple-400 transition-colors"
+                            className="p-3 border border-purple-500 rounded-lg bg-gray-700 hover:border-purple-400 transition-colors cursor-pointer"
+                            onClick={() => {
+                              // 현재 사업장 공정을 Process 객체 형태로 변환
+                              const processData: Process = {
+                                id: item.id,
+                                process_name: item.process_name,
+                                install_id: selectedInstall?.id || 0,
+                                install_name: selectedInstall?.install_name || '',
+                                start_period: item.start_period || null,
+                                end_period: item.end_period || null,
+                                created_at: item.created_at || new Date().toISOString(),
+                                updated_at: item.updated_at || new Date().toISOString()
+                              };
+                              
+                              console.log('🔄 현재 사업장 공정을 ReactFlow에 추가:', processData);
+                              onProcessSelect(processData);
+                            }}
+                            title="클릭하여 ReactFlow에 공정 추가"
                           >
                             <div className="font-medium text-white mb-1">{item.process_name}</div>
                             <div className="text-sm text-gray-300">
                               소비량: {item.consumption_amount || 0}
+                            </div>
+                            <div className="text-xs text-purple-400 mt-2">
+                              클릭하여 ReactFlow에 추가
                             </div>
                           </div>
                         ))

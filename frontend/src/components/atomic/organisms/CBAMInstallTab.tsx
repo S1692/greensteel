@@ -461,21 +461,25 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
     }
   };
 
-  // 로컬 스토리지에 공정 데이터 저장
-  const saveProcessToLocalStorage = (productId: number, processName: string, installId: number) => {
+  // 저장소에 공정 데이터 저장
+  const saveProcessToStorage = (productId: number, processName: string, installId: number) => {
     try {
-      // 기존 로컬 스토리지 데이터 가져오기
+      // 기존 저장소 데이터 가져오기
       const existingData = localStorage.getItem('cbam_process_data');
       let processData = existingData ? JSON.parse(existingData) : [];
+      
+      // 제품 정보와 사업장 정보 가져오기
+      const product = products.find(p => p.id === productId);
+      const install = installs.find(i => i.id === installId);
       
       // 새로운 공정 데이터 생성
       const newProcessData = {
         id: Date.now(), // 임시 ID
         product_id: productId,
-        product_name: products.find(p => p.id === productId)?.name || '',
+        product_name: product?.name || product?.product_name || '',
         process_name: processName,
         install_id: installId,
-        install_name: installs.find(i => i.id === installId)?.name || '',
+        install_name: install?.install_name || install?.name || '',
         created_at: new Date().toISOString(),
         consumption_amount: 0
       };
@@ -488,13 +492,18 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
       if (!isDuplicate) {
         processData.push(newProcessData);
         localStorage.setItem('cbam_process_data', JSON.stringify(processData));
-        console.log('✅ 로컬 스토리지에 공정 데이터 저장 완료:', newProcessData);
+        console.log('✅ 저장소에 공정 데이터 저장 완료:', newProcessData);
+        console.log('📋 저장된 사업장 정보:', {
+          install_id: installId,
+          install_name: newProcessData.install_name,
+          product_name: newProcessData.product_name
+        });
       } else {
         console.log('⚠️ 이미 존재하는 공정입니다:', { productId, processName });
       }
       
     } catch (error) {
-      console.error('❌ 로컬 스토리지 저장 실패:', error);
+      console.error('❌ 저장소 저장 실패:', error);
     }
   };
 
@@ -522,8 +531,8 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
         return;
       }
       
-      // 1. 로컬 스토리지에 공정 데이터 저장
-      saveProcessToLocalStorage(productId, selectedSingleProcess, product.install_id);
+      // 1. 저장소에 공정 데이터 저장
+      saveProcessToStorage(productId, selectedSingleProcess, product.install_id);
       
       // 2. 먼저 공정을 생성 (로컬스토리지의 공정명 사용)
       const processData = {

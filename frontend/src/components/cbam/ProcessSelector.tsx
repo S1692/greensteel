@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { Process, Product, Install } from '@/hooks/useProcessManager';
-import axiosClient, { apiEndpoints } from '@/lib/axiosClient';
 
 interface ProcessSelectorProps {
   processes: Process[];
@@ -78,24 +77,7 @@ export const ProductProcessModal: React.FC<{
   onProcessSelect,
   onClose,
 }) => {
-  const [productModalTab, setProductModalTab] = useState<'process' | 'quantity'>('process');
   const [processFilterMode, setProcessFilterMode] = useState<'all' | 'product'>('all');
-  const [productQuantityForm, setProductQuantityForm] = useState({
-    product_amount: selectedProduct?.product_amount || 0,
-    product_sell: selectedProduct?.product_sell || 0,
-    product_eusell: selectedProduct?.product_eusell || 0
-  });
-
-  // useEffect로 selectedProduct 변경 시 폼 값 업데이트
-  React.useEffect(() => {
-    if (selectedProduct) {
-      setProductQuantityForm({
-        product_amount: selectedProduct.product_amount || 0,
-        product_sell: selectedProduct.product_sell || 0,
-        product_eusell: selectedProduct.product_eusell || 0
-      });
-    }
-  }, [selectedProduct]);
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
@@ -107,32 +89,7 @@ export const ProductProcessModal: React.FC<{
           <button onClick={onClose} className="text-gray-400 hover:text-gray-200 text-xl">✕</button>
         </div>
 
-        {/* 탭 네비게이션 */}
-        <div className="flex space-x-1 mb-6 bg-gray-700 p-1 rounded-lg">
-          <button
-            onClick={() => setProductModalTab('process')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              productModalTab === 'process'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-300 hover:text-white'
-            }`}
-          >
-            공정 관리
-          </button>
-          <button
-            onClick={() => setProductModalTab('quantity')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              productModalTab === 'quantity'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-300 hover:text-white'
-            }`}
-          >
-            수량 관리
-          </button>
-        </div>
-
-        {/* 공정 관리 탭 */}
-        {productModalTab === 'process' && (
+        {/* 공정 관리 */}
           <div>
             <div className="flex justify-between items-center mb-4">
               <h4 className="text-lg font-medium text-white">등록된 공정 목록</h4>
@@ -177,92 +134,6 @@ export const ProductProcessModal: React.FC<{
                 }
               </div>
             )}
-          </div>
-        )}
-
-        {/* 수량 관리 탭 */}
-        {productModalTab === 'quantity' && (
-          <div>
-            <h4 className="text-lg font-medium text-white mb-4">제품 수량 정보</h4>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  총 생산량 (Total Production Quantity)
-                </label>
-                <input
-                  type="number"
-                  value={productQuantityForm.product_amount}
-                  readOnly
-                  className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-gray-300 cursor-not-allowed"
-                  placeholder="0"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  국내 판매량 (Domestic Sales Quantity)
-                </label>
-                <input
-                  type="number"
-                  value={productQuantityForm.product_sell}
-                  onChange={(e) => setProductQuantityForm(prev => ({
-                    ...prev,
-                    product_sell: parseFloat(e.target.value) || 0
-                  }))}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
-                  placeholder="국내 판매량을 입력하세요"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  EU 판매량 (EU Sales Quantity)
-                </label>
-                <input
-                  type="number"
-                  value={productQuantityForm.product_eusell}
-                  onChange={(e) => setProductQuantityForm(prev => ({
-                    ...prev,
-                    product_eusell: parseFloat(e.target.value) || 0
-                  }))}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
-                  placeholder="EU 판매량을 입력하세요"
-                />
-              </div>
-            </div>
-            
-            <div className="mt-6 flex justify-end space-x-3">
-              <button
-                onClick={onClose}
-                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors"
-              >
-                취소
-              </button>
-              <button
-                onClick={async () => {
-                  if (!selectedProduct) return;
-                  
-                  try {
-                    const updateData = {
-                      product_amount: productQuantityForm.product_amount, // 현재 값 유지
-                      product_sell: productQuantityForm.product_sell,
-                      product_eusell: productQuantityForm.product_eusell
-                    };
-
-                    await axiosClient.put(`${apiEndpoints.cbam.product.update}/${selectedProduct.id}`, updateData);
-                    
-                    alert('수량 정보가 성공적으로 저장되었습니다.');
-                    onClose();
-                  } catch (error) {
-                    console.error('수량 저장 실패:', error);
-                    alert('수량 저장에 실패했습니다.');
-                  }
-                }}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
-              >
-                저장
-              </button>
-            </div>
           </div>
         )}
       </div>

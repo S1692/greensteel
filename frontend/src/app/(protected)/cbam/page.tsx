@@ -23,7 +23,7 @@ import { BoundaryModal } from '@/components/cbam/modals/BoundaryModal';
 // ============================================================================
 
 export default function CBAMPage() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'install' | 'boundary'>('overview');
+  const [activeTab, setActiveTab] = useState<'inputs' | 'workplace' | 'boundary' | 'report'>('inputs');
 
   // 모달 상태 관리
   const [showInstallModal, setShowInstallModal] = useState(false);
@@ -88,8 +88,8 @@ export default function CBAMPage() {
   // 🎯 탭 컴포넌트들
   // ============================================================================
 
-  // 개요 탭 (기존 CBAMOverviewTab 사용)
-  const OverviewTab = () => (
+  // 투입물 탭
+  const InputsTab = () => (
     <CBAMOverviewTab
       installs={installs}
       products={products}
@@ -102,14 +102,14 @@ export default function CBAMPage() {
   );
 
   // 사업장 관리 탭
-  const InstallTab = () => (
+  const WorkplaceTab = () => (
     <CBAMInstallTab
       installs={installs}
       onShowInstallModal={() => setShowInstallModal(true)}
     />
   );
 
-  // 산정경계 설정 탭 (기존 BoundaryModal을 탭으로 사용)
+  // 산정경계 설정 탭
   const BoundaryTab = () => (
     <BoundaryModal onSuccess={() => {
       // 경계 설정이 성공하면 데이터 새로고침
@@ -118,6 +118,30 @@ export default function CBAMPage() {
       fetchProcesses();
       fetchMappings();
     }} />
+  );
+
+  // 보고서 탭
+  const ReportTab = () => (
+    <div className="bg-ecotrace-surface rounded-lg p-6">
+      <h3 className="text-xl font-semibold text-ecotrace-text mb-4">CBAM 보고서</h3>
+      <p className="text-ecotrace-textSecondary">
+        CBAM 관련 보고서 및 분석 결과를 확인할 수 있습니다.
+      </p>
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="bg-ecotrace-secondary/20 p-4 rounded-lg">
+          <h4 className="font-medium text-ecotrace-text">탄소 배출량 보고서</h4>
+          <p className="text-sm text-ecotrace-textSecondary mt-2">월별/연간 탄소 배출량 현황</p>
+        </div>
+        <div className="bg-ecotrace-secondary/20 p-4 rounded-lg">
+          <h4 className="font-medium text-ecotrace-text">CBAM 신고서</h4>
+          <p className="text-sm text-ecotrace-textSecondary mt-2">EU CBAM 신고 관련 서류</p>
+        </div>
+        <div className="bg-ecotrace-secondary/20 p-4 rounded-lg">
+          <h4 className="font-medium text-ecotrace-text">데이터 분석 보고서</h4>
+          <p className="text-sm text-ecotrace-textSecondary mt-2">투입물 및 공정 분석 결과</p>
+        </div>
+      </div>
+    </div>
   );
 
   // ============================================================================
@@ -163,9 +187,10 @@ export default function CBAMPage() {
 
         {/* 탭 컨텐츠 */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {activeTab === 'overview' && <OverviewTab />}
-          {activeTab === 'install' && <InstallTab />}
+          {activeTab === 'inputs' && <InputsTab />}
+          {activeTab === 'workplace' && <WorkplaceTab />}
           {activeTab === 'boundary' && <BoundaryTab />}
+          {activeTab === 'report' && <ReportTab />}
         </div>
       </div>
 

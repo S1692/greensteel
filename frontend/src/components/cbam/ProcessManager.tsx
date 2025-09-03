@@ -313,7 +313,7 @@ function ProcessManagerInner() {
           onClick={refreshAllProcessEmissions} 
           className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
         >
-          📊 배출량 정보 초기화
+          초기화
         </Button>
 
       </div>

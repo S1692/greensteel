@@ -169,16 +169,33 @@ export const ProductProcessModal: React.FC<{
     }
   }, [selectedInstallForProcess?.id, fetchProcessesByInstall]);
 
-  // 제품 수량 정보 초기화
+  // 제품 수량 정보 초기화 (DB에서 최신 데이터 가져오기)
   React.useEffect(() => {
-    if (selectedProduct) {
-      setQuantityForm({
-        product_amount: selectedProduct.product_amount || 0,
-        product_sell: selectedProduct.product_sell || 0,
-        product_eusell: selectedProduct.product_eusell || 0
-      });
-    }
-  }, [selectedProduct]);
+    const fetchProductQuantity = async () => {
+      if (!selectedProduct?.id) return;
+      
+      try {
+        const response = await axiosClient.get(apiEndpoints.cbam.product.get(selectedProduct.id));
+        const productData = response.data;
+        
+        setQuantityForm({
+          product_amount: productData.product_amount || 0,
+          product_sell: productData.product_sell || 0,
+          product_eusell: productData.product_eusell || 0
+        });
+      } catch (error) {
+        console.error('제품 수량 정보 조회 실패:', error);
+        // 실패 시 기존 데이터 사용
+        setQuantityForm({
+          product_amount: selectedProduct.product_amount || 0,
+          product_sell: selectedProduct.product_sell || 0,
+          product_eusell: selectedProduct.product_eusell || 0
+        });
+      }
+    };
+
+    fetchProductQuantity();
+  }, [selectedProduct?.id]);
 
   // 공정 선택 시 제품-공정 관계 생성
   const handleProcessSelect = async (processData: any) => {
@@ -214,7 +231,7 @@ export const ProductProcessModal: React.FC<{
     }
   };
 
-  // 수량 저장 함수
+  // 수량 저장 함수 (DB 연동)
   const handleSaveQuantity = async () => {
     if (!selectedProduct?.id) return;
     
@@ -226,13 +243,24 @@ export const ProductProcessModal: React.FC<{
         product_eusell: quantityForm.product_eusell
       };
       
-      await axiosClient.put(apiEndpoints.cbam.product.update(selectedProduct.id), updateData);
+      console.log('💾 수량 저장 요청:', updateData);
+      const response = await axiosClient.put(apiEndpoints.cbam.product.update(selectedProduct.id), updateData);
+      console.log('✅ 수량 저장 성공:', response.data);
+      
       alert('수량이 성공적으로 저장되었습니다!');
       
-      // 제품 정보 새로고침을 위해 모달 닫기
-      onClose();
+      // 저장 후 최신 데이터 다시 가져오기
+      const refreshResponse = await axiosClient.get(apiEndpoints.cbam.product.get(selectedProduct.id));
+      const updatedProduct = refreshResponse.data;
+      
+      setQuantityForm({
+        product_amount: updatedProduct.product_amount || 0,
+        product_sell: updatedProduct.product_sell || 0,
+        product_eusell: updatedProduct.product_eusell || 0
+      });
+      
     } catch (error) {
-      console.error('수량 저장 실패:', error);
+      console.error('❌ 수량 저장 실패:', error);
       alert('수량 저장에 실패했습니다.');
     } finally {
       setSaving(false);
@@ -305,81 +333,66 @@ export const ProductProcessModal: React.FC<{
               </select>
             </div>
 
-            {/* 공정 카드 목록 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* 공정 목록 */}
+            <div className="space-y-4">
               {loading ? (
-                <div className="col-span-full text-center py-8 text-gray-400">
+                <div className="text-center py-8 text-gray-400">
                   로딩 중...
                 </div>
               ) : (
                 <>
-                  {/* 해당 제품에 연결된 공정들 */}
-                  {productProcesses.length > 0 && (
-                    <>
-                      <div className="col-span-full">
-                        <h5 className="text-md font-medium text-purple-400 mb-2">
-                          현재 제품에 연결된 공정
-                        </h5>
-                      </div>
-                      {productProcesses.map((item) => (
-                        <div
-                          key={`product-${item.id}`}
-                          className="p-4 border border-purple-500 rounded-lg bg-gray-700 hover:border-purple-400 transition-colors"
-                        >
-                          <div className="font-medium text-white mb-2">{item.process_name}</div>
-                          <div className="text-sm text-gray-300 space-y-1">
-                            <div>제품: {item.product_name}</div>
-                            <div>사업장: {item.install_name}</div>
-                            <div>소비량: {item.consumption_amount || 0}</div>
-                          </div>
-                          <button
-                            onClick={() => handleProcessSelect(item)}
-                            className="mt-3 w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-md transition-colors"
+                  {/* 현재 사업장의 공정들 */}
+                  <div>
+                    <h5 className="text-md font-medium text-purple-400 mb-2">
+                      현재 사업장 공정
+                    </h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {productProcesses.length > 0 ? (
+                        productProcesses.map((item) => (
+                          <div
+                            key={`current-${item.id}`}
+                            className="p-3 border border-purple-500 rounded-lg bg-gray-700 hover:border-purple-400 transition-colors"
                           >
-                            공정 선택
-                          </button>
-                        </div>
-                      ))}
-                    </>
-                  )}
-
-                  {/* 선택한 사업장의 모든 공정들 */}
-                  {selectedInstallForProcess && allProcesses.length > 0 && (
-                    <>
-                      <div className="col-span-full mt-4">
-                        <h5 className="text-md font-medium text-blue-400 mb-2">
-                          {selectedInstallForProcess.install_name}의 모든 공정
-                        </h5>
-                      </div>
-                      {allProcesses.map((item) => (
-                        <div
-                          key={`install-${item.id}`}
-                          className="p-4 border border-blue-500 rounded-lg bg-gray-700 hover:border-blue-400 transition-colors"
-                        >
-                          <div className="font-medium text-white mb-2">{item.process_name}</div>
-                          <div className="text-sm text-gray-300 space-y-1">
-                            <div>제품: {item.product_name}</div>
-                            <div>사업장: {item.install_name}</div>
-                            <div>소비량: {item.consumption_amount || 0}</div>
+                            <div className="font-medium text-white mb-1">{item.process_name}</div>
+                            <div className="text-sm text-gray-300">
+                              소비량: {item.consumption_amount || 0}
+                            </div>
                           </div>
-                          <button
-                            onClick={() => handleProcessSelect(item)}
-                            className="mt-3 w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md transition-colors"
-                          >
-                            공정 선택
-                          </button>
+                        ))
+                      ) : (
+                        <div className="col-span-full text-center py-4 text-gray-400 text-sm">
+                          현재 사업장에 연결된 공정이 없습니다.
                         </div>
-                      ))}
-                    </>
-                  )}
+                      )}
+                    </div>
+                  </div>
 
-                  {/* 공정이 없는 경우 */}
-                  {productProcesses.length === 0 && (!selectedInstallForProcess || allProcesses.length === 0) && (
-                    <div className="col-span-full text-center py-8 text-gray-400">
-                      {selectedInstallForProcess 
-                        ? `${selectedInstallForProcess.install_name}에 등록된 공정이 없습니다.`
-                        : '등록된 공정이 없습니다.'
-                      }
+                  {/* 전체 사업장의 공정들 */}
+                  {selectedInstallForProcess && (
+                    <div>
+                      <h5 className="text-md font-medium text-blue-400 mb-2">
+                        전체 사업장 공정
+                      </h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {allProcesses.length > 0 ? (
+                          allProcesses.map((item) => (
+                            <div
+                              key={`all-${item.id}`}
+                              className="p-3 border border-blue-500 rounded-lg bg-gray-700 hover:border-blue-400 transition-colors cursor-pointer"
+                              onClick={() => handleProcessSelect(item)}
+                            >
+                              <div className="font-medium text-white mb-1">{item.process_name}</div>
+                              <div className="text-sm text-gray-300">
+                                사업장: {item.install_name}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="col-span-full text-center py-4 text-gray-400 text-sm">
+                            {selectedInstallForProcess.install_name}에 등록된 공정이 없습니다.
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </>

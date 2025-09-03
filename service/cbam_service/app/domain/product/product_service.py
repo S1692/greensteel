@@ -42,7 +42,13 @@ class ProductService:
                 "product_name": request.product_name or "",
                 "product_category": request.product_category or "",
                 "prostart_period": request.prostart_period,
-                "proend_period": request.proend_period
+                "proend_period": request.proend_period,
+                                        "product_cncode": request.product_cncode or "",
+                "goods_name": request.goods_name or "",
+                "aggrgoods_name": request.aggrgoods_name or "",
+                "product_amount": request.product_amount or 0.0,
+                "product_sell": request.product_sell or 0.0,
+                "product_eusell": request.product_eusell or 0.0
             }
             
             # 🔴 추가: 필수 필드 검증
@@ -128,20 +134,19 @@ class ProductService:
                 update_data["proend_period"] = request.proend_period
             if request.product_amount is not None:
                 update_data["product_amount"] = request.product_amount
-            if request.cncode_total is not None:
-                update_data["cncode_total"] = request.cncode_total
+            if request.product_cncode is not None:
+                update_data["product_cncode"] = request.product_cncode
             if request.goods_name is not None:
                 update_data["goods_name"] = request.goods_name
-            if request.goods_engname is not None:
-                update_data["goods_engname"] = request.goods_engname
+
             if request.aggrgoods_name is not None:
                 update_data["aggrgoods_name"] = request.aggrgoods_name
-            if request.aggrgoods_engname is not None:
-                update_data["aggrgoods_engname"] = request.aggrgoods_engname
+
             if request.product_sell is not None:
                 update_data["product_sell"] = request.product_sell
             if request.product_eusell is not None:
                 update_data["product_eusell"] = request.product_eusell
+
             
             if not update_data:
                 raise Exception("업데이트할 데이터가 없습니다.")

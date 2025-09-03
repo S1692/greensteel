@@ -9,8 +9,7 @@ interface InstallModalProps {
 
 export const InstallModal: React.FC<InstallModalProps> = ({ onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
-    install_name: '',
-    reporting_year: new Date().getFullYear()
+    name: ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,22 +39,13 @@ export const InstallModal: React.FC<InstallModalProps> = ({ onClose, onSuccess }
             <input
               type="text"
               required
-              value={formData.install_name}
-              onChange={(e) => setFormData(prev => ({ ...prev, install_name: e.target.value }))}
+                          value={formData.name}
+            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">보고 연도 *</label>
-            <input
-              type="number"
-              required
-              value={formData.reporting_year}
-              onChange={(e) => setFormData(prev => ({ ...prev, reporting_year: parseInt(e.target.value) }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
+
 
 
 

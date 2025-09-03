@@ -92,21 +92,19 @@ class ProductRepository:
                     await conn.execute("""
                         CREATE TABLE IF NOT EXISTS product (
                             id SERIAL PRIMARY KEY,
-                            install_id INTEGER NOT NULL,
+                            install_id INT NOT NULL REFERENCES install(id) ON DELETE CASCADE,
                             product_name TEXT NOT NULL,
-                            product_category TEXT NOT NULL,
+                            product_category TEXT NOT NULL CHECK (product_category IN ('단순제품', '복합제품')),
                             prostart_period DATE NOT NULL,
                             proend_period DATE NOT NULL,
-                            product_amount NUMERIC(15, 6) NOT NULL DEFAULT 0,
-                            cncode_total TEXT,
+                            product_cncode TEXT,
                             goods_name TEXT,
-                            goods_engname TEXT,
                             aggrgoods_name TEXT,
-                            aggrgoods_engname TEXT,
-                            product_sell NUMERIC(15, 6) DEFAULT 0,
-                            product_eusell NUMERIC(15, 6) DEFAULT 0,
-                            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                            product_amount FLOAT NOT NULL,
+                            product_sell FLOAT,
+                            product_eusell FLOAT,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                         );
                     """)
                     
@@ -138,11 +136,9 @@ class ProductRepository:
             
             # 🔴 수정: 선택적 필드는 기본값으로 설정
             optional_fields = {
-                'cncode_total': '',
+                'product_cncode': '',
                 'goods_name': '',
-                'goods_engname': '',
                 'aggrgoods_name': '',
-                'aggrgoods_engname': '',
                 'product_amount': 0.0,
                 'product_sell': 0.0,
                 'product_eusell': 0.0
@@ -160,11 +156,9 @@ class ProductRepository:
                 product_data.get('product_category', ''),
                 product_data.get('prostart_period'),
                 product_data.get('proend_period'),
-                product_data.get('cncode_total', ''),
+                product_data.get('product_cncode', ''),
                 product_data.get('goods_name', ''),
-                product_data.get('goods_engname', ''),
                 product_data.get('aggrgoods_name', ''),
-                product_data.get('aggrgoods_engname', ''),
                 product_data.get('product_amount', 0.0),
                 product_data.get('product_sell', 0.0),
                 product_data.get('product_eusell', 0.0)
@@ -177,10 +171,10 @@ class ProductRepository:
                 result = await conn.fetchrow("""
                     INSERT INTO product (
                         install_id, product_name, product_category, prostart_period, proend_period,
-                        cncode_total, goods_name, goods_engname, aggrgoods_name, aggrgoods_engname,
+                        product_cncode, goods_name, aggrgoods_name, 
                         product_amount, product_sell, product_eusell
                     )
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
                     RETURNING *
                 """, *params)
                 

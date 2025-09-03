@@ -15,14 +15,13 @@ interface Product {
   prostart_period: string;
   proend_period: string;
   product_amount?: number;
-  cncode_total?: string;
+  product_cncode?: string;
   goods_name?: string;
-  goods_engname?: string;
   aggrgoods_name?: string;
-  aggrgoods_engname?: string;
+
   product_sell?: number;
   product_eusell?: number;
-  attr_em?: number;
+
   created_at?: string;
 }
 
@@ -36,14 +35,12 @@ export const ProductModal: React.FC<ProductModalProps> = ({ onClose, onSuccess }
     prostart_period: '',
     proend_period: '',
     product_amount: 0,
-    cncode_total: '',
+    product_cncode: '',
     goods_name: '',
-    goods_engname: '',
     aggrgoods_name: '',
-    aggrgoods_engname: '',
+
     product_sell: 0,
-    product_eusell: 0,
-    attr_em: 0
+    product_eusell: 0
   });
   const [editingId, setEditingId] = useState<number | null>(null);
 
@@ -74,7 +71,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ onClose, onSuccess }
         prostart_period: '',
         proend_period: '',
         product_amount: 0,
-        cncode_total: '',
+        product_cncode: '',
         goods_name: '',
         goods_engname: '',
         aggrgoods_name: '',
@@ -99,14 +96,12 @@ export const ProductModal: React.FC<ProductModalProps> = ({ onClose, onSuccess }
       prostart_period: product.prostart_period,
       proend_period: product.proend_period,
       product_amount: product.product_amount || 0,
-      cncode_total: product.cncode_total || '',
+      product_cncode: product.product_cncode || '',
       goods_name: product.goods_name || '',
-      goods_engname: product.goods_engname || '',
       aggrgoods_name: product.aggrgoods_name || '',
-      aggrgoods_engname: product.aggrgoods_engname || '',
       product_sell: product.product_sell || 0,
       product_eusell: product.product_eusell || 0,
-      attr_em: product.attr_em || 0
+
     });
     setEditingId(product.id);
   };
@@ -131,14 +126,11 @@ export const ProductModal: React.FC<ProductModalProps> = ({ onClose, onSuccess }
       prostart_period: '',
       proend_period: '',
       product_amount: 0,
-      cncode_total: '',
+      product_cncode: '',
       goods_name: '',
-      goods_engname: '',
       aggrgoods_name: '',
-      aggrgoods_engname: '',
       product_sell: 0,
-      product_eusell: 0,
-      attr_em: 0
+      product_eusell: 0
     });
     setEditingId(null);
   };
@@ -207,8 +199,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({ onClose, onSuccess }
               <input
                 type="text"
                 placeholder="CN 코드"
-                value={formData.cncode_total}
-                onChange={(e) => setFormData(prev => ({ ...prev, cncode_total: e.target.value }))}
+                value={formData.product_cncode}
+                onChange={(e) => setFormData(prev => ({ ...prev, product_cncode: e.target.value }))}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               <div className="md:col-span-3 flex space-x-2">

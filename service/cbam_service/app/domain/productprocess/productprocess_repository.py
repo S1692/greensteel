@@ -78,7 +78,7 @@ class ProductProcessRepository:
                     VALUES ($1, $2)
                     ON CONFLICT (product_id, process_id) DO NOTHING
                     RETURNING *
-                """, (product_process_data['product_id'], product_process_data['process_id']))
+                """, product_process_data['product_id'], product_process_data['process_id'])
                 
                 if result:
                     logger.info(f"✅ 제품-공정 관계 생성 성공: 제품 ID {product_process_data['product_id']}, 공정 ID {product_process_data['process_id']}")

@@ -18,6 +18,9 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
   const [selectedInstall, setSelectedInstall] = useState<any>(null);
   const [showAddProcess, setShowAddProcess] = useState<number | null>(null);
   const [showHSCodeModal, setShowHSCodeModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [showEditProductModal, setShowEditProductModal] = useState(false);
+  const [showHSCNCodeModal, setShowHSCNCodeModal] = useState(false);
 
   // 더미 제품 데이터 (실제로는 API에서 가져올 것)
   const [products, setProducts] = useState([
@@ -119,6 +122,46 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
   // 공정 추가 섹션 토글
   const toggleAddProcessSection = () => {
     setShowAddProcess(showAddProcess ? null : 1); // 임시로 1을 사용
+  };
+
+  // 제품 수정 핸들러
+  const handleEditProduct = (product: any) => {
+    setEditingProduct(product);
+    setShowEditProductModal(true);
+  };
+
+  // 제품 삭제 핸들러
+  const handleDeleteProduct = (productId: number) => {
+    if (window.confirm('정말로 이 제품을 삭제하시겠습니까?')) {
+      setProducts(products.filter(p => p.id !== productId));
+      console.log('제품 삭제:', productId);
+    }
+  };
+
+  // 제품 수정 저장
+  const handleSaveEditProduct = () => {
+    if (editingProduct) {
+      setProducts(products.map(p => 
+        p.id === editingProduct.id ? { ...p, ...editingProduct } : p
+      ));
+      setShowEditProductModal(false);
+      setEditingProduct(null);
+      console.log('제품 수정 완료:', editingProduct);
+    }
+  };
+
+  // 공정 수정 핸들러
+  const handleEditProcess = (processName: string) => {
+    console.log('공정 수정:', processName);
+    // TODO: 공정 수정 모달 구현
+  };
+
+  // 공정 삭제 핸들러
+  const handleDeleteProcess = (processName: string) => {
+    if (window.confirm(`정말로 "${processName}" 공정을 삭제하시겠습니까?`)) {
+      console.log('공정 삭제:', processName);
+      // TODO: 공정 삭제 로직 구현
+    }
   };
 
   return (
@@ -252,10 +295,16 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                       >
                         공정 추가
                       </button>
-                      <button className="bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 transition-colors">
+                                            <button 
+                        onClick={() => handleEditProduct(product)}
+                        className="bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 transition-colors"
+                      >
                         수정
-                    </button>
-                      <button className="bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700 transition-colors">
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteProduct(product.id)}
+                        className="bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700 transition-colors"
+                      >
                         삭제
                     </button>
                     </div>
@@ -284,11 +333,17 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                         <div key={index} className="flex items-center justify-between bg-ecotrace-secondary/10 rounded-lg p-3">
                           <span className="text-ecotrace-text">{process}</span>
                           <div className="flex space-x-2">
-                            <button className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors flex items-center space-x-1">
+                                                        <button 
+                              onClick={() => handleEditProcess(process)}
+                              className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors flex items-center space-x-1"
+                            >
                               <Edit className="h-3 w-3" />
                               <span>수정</span>
                     </button>
-                            <button className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition-colors flex items-center space-x-1">
+                            <button 
+                              onClick={() => handleDeleteProcess(process)}
+                              className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition-colors flex items-center space-x-1"
+                            >
                               <Trash2 className="h-3 w-3" />
                               <span>삭제</span>
                     </button>
@@ -464,7 +519,7 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                     className="flex-1 px-3 py-2 bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg text-ecotrace-text placeholder-ecotrace-textSecondary focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <button 
-                    onClick={() => setShowHSCodeModal(true)}
+                    onClick={() => setShowHSCNCodeModal(true)}
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
                   >
                     <Search className="h-4 w-4" />
@@ -537,6 +592,241 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                 <h3 className="text-lg font-medium text-gray-900 mb-3">검색 결과</h3>
                 <div className="border border-gray-200 rounded-lg p-4">
                   <p className="text-gray-500 text-center">검색어를 입력하고 검색 버튼을 클릭하세요.</p>
+                </div>
+              </div>
+        </div>
+      </div>
+        </div>
+      )}
+
+      {/* 제품 수정 모달 */}
+      {showEditProductModal && editingProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-ecotrace-surface rounded-lg p-6 w-full max-w-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold text-ecotrace-text">제품 수정</h2>
+              <button
+                onClick={() => {
+                  setShowEditProductModal(false);
+                  setEditingProduct(null);
+                }}
+                className="text-ecotrace-textSecondary hover:text-ecotrace-text"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-ecotrace-text mb-2">
+                    기간 시작일 *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={editingProduct.startDate}
+                      onChange={(e) => setEditingProduct({ ...editingProduct, startDate: e.target.value })}
+                      className="w-full px-3 py-2 bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg text-ecotrace-text focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <Calendar className="absolute right-3 top-2.5 h-4 w-4 text-ecotrace-textSecondary" />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-ecotrace-text mb-2">
+                    기간 종료일 *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={editingProduct.endDate}
+                      onChange={(e) => setEditingProduct({ ...editingProduct, endDate: e.target.value })}
+                      className="w-full px-3 py-2 bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg text-ecotrace-text focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <Calendar className="absolute right-3 top-2.5 h-4 w-4 text-ecotrace-textSecondary" />
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-ecotrace-text mb-2">
+                  제품명 *
+                </label>
+                <input
+                  type="text"
+                  value={editingProduct.name}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
+                  placeholder="제품명을 입력하세요"
+                  className="w-full px-3 py-2 bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg text-ecotrace-text placeholder-ecotrace-textSecondary focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-ecotrace-text mb-2">
+                  수량 *
+                </label>
+                <input
+                  type="number"
+                  value={editingProduct.quantity}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, quantity: parseInt(e.target.value) || 0 })}
+                  placeholder="수량을 입력하세요"
+                  className="w-full px-3 py-2 bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg text-ecotrace-text placeholder-ecotrace-textSecondary focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-ecotrace-text mb-2">
+                  카테고리 *
+                </label>
+                <select
+                  value={editingProduct.category}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, category: e.target.value })}
+                  className="w-full px-3 py-2 bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg text-ecotrace-text focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">카테고리를 선택하세요</option>
+                  <option value="복합제품">복합제품</option>
+                  <option value="단일제품">단일제품</option>
+                  <option value="원료">원료</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-ecotrace-text mb-2">
+                  HS CN 코드
+                </label>
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={editingProduct.cnCode}
+                    onChange={(e) => setEditingProduct({ ...editingProduct, cnCode: e.target.value })}
+                    placeholder="HS CODE 검색 후 자동 입력"
+                    className="flex-1 px-3 py-2 bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg text-ecotrace-text placeholder-ecotrace-textSecondary focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button 
+                    onClick={() => setShowHSCNCodeModal(true)}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                  >
+                    <Search className="h-4 w-4" />
+                    <span>HS CODE 검색</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-6 flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowEditProductModal(false);
+                  setEditingProduct(null);
+                }}
+                className="px-4 py-2 text-ecotrace-textSecondary bg-ecotrace-secondary/20 rounded-lg hover:bg-ecotrace-secondary/30 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleSaveEditProduct}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                수정 완료
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* HS CN 코드 검색 모달 */}
+      {showHSCNCodeModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-900">HS CN 코드 검색</h2>
+              <button 
+                onClick={() => setShowHSCNCodeModal(false)} 
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  검색어
+                </label>
+                <input
+                  type="text"
+                  placeholder="제품명 또는 HS CN 코드를 입력하세요"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowHSCNCodeModal(false)}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={() => {
+                    // TODO: HS CN 코드 검색 로직 구현
+                    console.log('HS CN 코드 검색 실행');
+                    setShowHSCNCodeModal(false);
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  검색
+                </button>
+              </div>
+
+              {/* 검색 결과 영역 */}
+              <div className="mt-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-3">검색 결과</h3>
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <div className="space-y-3">
+                    {/* 샘플 검색 결과 */}
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="font-medium text-gray-900">7208.10.00 - 철강재 (Hot-rolled)</p>
+                        <p className="text-sm text-gray-600">열간압연된 철강재</p>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          // 선택된 코드를 입력 필드에 자동 입력
+                          if (editingProduct) {
+                            setEditingProduct({ ...editingProduct, cnCode: '7208.10.00' });
+                          } else {
+                            setNewProduct({ ...newProduct, cnCode: '7208.10.00' });
+                          }
+                          setShowHSCNCodeModal(false);
+                        }}
+                        className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
+                      >
+                        선택
+                      </button>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="font-medium text-gray-900">7208.90.00 - 기타 철강재</p>
+                        <p className="text-sm text-gray-600">기타 형태의 철강재</p>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          if (editingProduct) {
+                            setEditingProduct({ ...editingProduct, cnCode: '7208.90.00' });
+                          } else {
+                            setNewProduct({ ...newProduct, cnCode: '7208.90.00' });
+                          }
+                          setShowHSCNCodeModal(false);
+                        }}
+                        className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
+                      >
+                        선택
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
         </div>

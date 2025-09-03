@@ -13,7 +13,7 @@ interface ProcessCanvasData {
   handleEdgeCreate: (connection: Connection, callback?: () => void) => Promise<void>;
   handleInstallSelect: (install: Install) => void;
   addProductNode: (product: any, onClick?: (product: any) => void) => void;
-  addProcessNode: (process: any, products: any[], onMatDirClick?: (process: any) => void, onFuelDirClick?: (process: any) => void) => Promise<void>;
+  addProcessNode: (process: any, products: any[], onMatDirClick?: (process: any) => void, onFuelDirClick?: (process: any) => void, onDoubleClick?: (process: any) => void) => Promise<void>;
 
   updateNodeData: (nodeId: string, data: any) => void;
 }
@@ -120,7 +120,7 @@ export const useProcessCanvas = (selectedInstall: Install | null) => {
     });
   }, [setNodes, selectedInstall?.id]);
   // 공정 노드 추가 (안전한 상태 업데이트)
-  const addProcessNode = useCallback(async (process: Process, products: Product[], openInputModal: (process: Process) => void, openProcessModal: (process: Process) => void) => {
+  const addProcessNode = useCallback(async (process: Process, products: Product[], openInputModal: (process: Process) => void, openProcessModal: (process: Process) => void, onDoubleClick?: (process: any) => void) => {
     // 해당 공정이 사용되는 모든 제품 정보 찾기 (Process 타입에 products 속성이 없으므로 빈 배열로 처리)
     const relatedProducts: Product[] = [];
 
@@ -167,6 +167,7 @@ export const useProcessCanvas = (selectedInstall: Install | null) => {
           ...emissionData
         },
         onMatDirClick: (processData: any) => openInputModal(processData),
+        onDoubleClick: onDoubleClick,
         // 🔴 추가: ProcessNode가 기대하는 추가 데이터
         size: 'md',
         showHandles: true,

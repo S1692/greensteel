@@ -15,14 +15,25 @@ interface ProcessNodeData {
     calculation_date?: string;
   };
   showHandles?: boolean;
+  onDoubleClick?: (processData: any) => void;
 }
 
 const ProcessNode: React.FC<NodeProps> = memo(({ data, selected }) => {
   const nodeData = data as any;
+  
+  const handleDoubleClick = () => {
+    if (nodeData.onDoubleClick) {
+      nodeData.onDoubleClick(nodeData);
+    }
+  };
+  
   return (
-    <div className={`bg-green-600 text-white p-4 rounded-lg border-2 min-w-[180px] ${
-      selected ? 'border-yellow-400 shadow-lg' : 'border-green-700'
-    }`}>
+    <div 
+      className={`bg-green-600 text-white p-4 rounded-lg border-2 min-w-[180px] cursor-pointer ${
+        selected ? 'border-yellow-400 shadow-lg' : 'border-green-700'
+      }`}
+      onDoubleClick={handleDoubleClick}
+    >
       {/* 입력 핸들들 */}
       {nodeData.showHandles && (
         <>

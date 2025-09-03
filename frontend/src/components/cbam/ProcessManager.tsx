@@ -11,6 +11,7 @@ import InputManager from '@/components/cbam/InputManager';
 import { InstallSelector } from '@/components/cbam/InstallSelector';
 import { ProductSelector } from '@/components/cbam/ProductSelector';
 import { ProcessSelector, ProductProcessModal } from '@/components/cbam/ProcessSelector';
+import { ProcessInputModal } from '@/components/cbam/ProcessInputModal';
 import { InstallModal } from '@/components/cbam/modals/InstallModal';
 
 import { useProcessManager, Process, Install, Product } from '@/hooks/useProcessManager';
@@ -123,6 +124,8 @@ function ProcessManagerInner() {
   const [showProcessModal, setShowProcessModal] = useState(false);
   const [showInputModal, setShowInputModal] = useState(false);
   const [selectedProcessForInput, setSelectedProcessForInput] = useState<Process | null>(null);
+  const [showProcessInputModal, setShowProcessInputModal] = useState(false);
+  const [selectedProcessForInputModal, setSelectedProcessForInputModal] = useState<Process | null>(null);
 
   // 모든 공정 노드의 배출량 정보 새로고침
   const refreshAllProcessEmissions = useCallback(async () => {
@@ -168,12 +171,18 @@ function ProcessManagerInner() {
     setShowInputModal(true);
   }, []);
 
+  // 공정 노드 더블클릭 핸들러
+  const handleProcessNodeDoubleClick = useCallback((processData: any) => {
+    setSelectedProcessForInputModal(processData);
+    setShowProcessInputModal(true);
+  }, []);
+
   // 공정 선택 처리
   const handleProcessSelect = useCallback(async (process: Process) => {
-    await addProcessNode(process, products, openInputModal, openInputModal);
+    await addProcessNode(process, products, openInputModal, openInputModal, handleProcessNodeDoubleClick);
     setShowProcessModal(false);
     setShowProcessModalForProduct(false);
-  }, [addProcessNode, products, openInputModal]);
+  }, [addProcessNode, products, openInputModal, handleProcessNodeDoubleClick]);
 
   // 제품 노드 클릭 시 공정 선택 모달 열기
   const handleProductNodeClickComplex = useCallback((productData: Product) => {
@@ -428,6 +437,17 @@ function ProcessManagerInner() {
           selectedProcess={selectedProcessForInput}
           onClose={() => setShowInputModal(false)}
           onDataSaved={refreshAllProcessEmissions} // 데이터 저장 후 배출량 정보 새로고침
+        />
+      )}
+
+      {/* 공정 노드 더블클릭 시 투입량 입력 모달 */}
+      {showProcessInputModal && selectedProcessForInputModal && (
+        <ProcessInputModal
+          selectedProcess={selectedProcessForInputModal}
+          onClose={() => {
+            setShowProcessInputModal(false);
+            setSelectedProcessForInputModal(null);
+          }}
         />
       )}
 

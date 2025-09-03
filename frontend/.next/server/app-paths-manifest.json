@@ -1,19 +1,19 @@
 {
-  "/(protected)/cbam/page": "app/(protected)/cbam/page.js",
   "/_not-found/page": "app/_not-found/page.js",
   "/(protected)/dashboard/page": "app/(protected)/dashboard/page.js",
   "/(protected)/data-upload/data-management/page": "app/(protected)/data-upload/data-management/page.js",
-  "/(protected)/data-upload/input/page": "app/(protected)/data-upload/input/page.js",
   "/(protected)/data-upload/output/page": "app/(protected)/data-upload/output/page.js",
+  "/(protected)/data-upload/input/page": "app/(protected)/data-upload/input/page.js",
   "/(protected)/data-upload/page": "app/(protected)/data-upload/page.js",
-  "/(protected)/data-upload/transport/page": "app/(protected)/data-upload/transport/page.js",
-  "/(protected)/settings/company/page": "app/(protected)/settings/company/page.js",
-  "/(protected)/settings/page": "app/(protected)/settings/page.js",
   "/(protected)/data-upload/process/page": "app/(protected)/data-upload/process/page.js",
-  "/(protected)/settings/user/page": "app/(protected)/settings/user/page.js",
-  "/(public)/landing/page": "app/(public)/landing/page.js",
-  "/(public)/register/user/page": "app/(public)/register/user/page.js",
+  "/(protected)/settings/company/page": "app/(protected)/settings/company/page.js",
+  "/(protected)/data-upload/transport/page": "app/(protected)/data-upload/transport/page.js",
+  "/(protected)/settings/page": "app/(protected)/settings/page.js",
   "/(protected)/lca/page": "app/(protected)/lca/page.js",
+  "/(protected)/settings/user/page": "app/(protected)/settings/user/page.js",
+  "/(public)/register/user/page": "app/(public)/register/user/page.js",
+  "/(protected)/cbam/page": "app/(protected)/cbam/page.js",
+  "/page": "app/page.js",
   "/(public)/register/page": "app/(public)/register/page.js",
-  "/page": "app/page.js"
+  "/(public)/landing/page": "app/(public)/landing/page.js"
 }

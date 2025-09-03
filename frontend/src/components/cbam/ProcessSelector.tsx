@@ -90,7 +90,15 @@ export const ProductProcessModal: React.FC<{
       setLoading(true);
       try {
         const response = await axiosClient.get(`/api/v1/cbam/productprocess/product/${selectedProduct.id}`);
-        setProductProcesses(response.data || []);
+        const data = response.data || [];
+        
+        // 해당 제품에만 연결된 공정들만 필터링 (추가 안전장치)
+        const filteredData = data.filter((item: any) => 
+          item.product_id === selectedProduct.id
+        );
+        
+        console.log(`🔍 제품 ${selectedProduct.product_name}에 연결된 공정들:`, filteredData);
+        setProductProcesses(filteredData);
       } catch (error) {
         console.error('제품-공정 관계 조회 실패:', error);
         setProductProcesses([]);
@@ -115,17 +123,9 @@ export const ProductProcessModal: React.FC<{
         {/* 공정 관리 */}
           <div>
             <div className="flex justify-between items-center mb-4">
-              <h4 className="text-lg font-medium text-white">등록된 공정 목록</h4>
-              <div className="flex space-x-2">
-                <select
-                  value={processFilterMode}
-                  onChange={(e) => setProcessFilterMode(e.target.value as 'all' | 'product')}
-                  className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white text-sm"
-                >
-                  <option value="all">전체 공정</option>
-                  <option value="product">제품별 공정</option>
-                </select>
-              </div>
+              <h4 className="text-lg font-medium text-white">
+                {selectedProduct?.product_name}에 연결된 공정 목록
+              </h4>
             </div>
 
             {/* 제품-공정 관계 테이블 */}

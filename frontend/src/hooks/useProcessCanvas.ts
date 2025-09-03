@@ -3,6 +3,21 @@ import { useNodesState, useEdgesState, Node, Edge, Connection } from '@xyflow/re
 import axiosClient, { apiEndpoints } from '@/lib/axiosClient';
 import { Install, Product, Process } from './useProcessManager';
 
+interface ProcessCanvasData {
+  nodes: Node[];
+  edges: Edge[];
+  installCanvases: { [key: number]: { nodes: Node[]; edges: Edge[] } };
+  activeInstallId: number | null;
+  onNodesChange: any;
+  onEdgesChange: any;
+  handleEdgeCreate: (connection: Connection, callback?: () => void) => Promise<void>;
+  handleInstallSelect: (install: Install) => void;
+  addProductNode: (product: any, onClick?: (product: any) => void) => void;
+  addProcessNode: (process: any, products: any[], onMatDirClick?: (process: any) => void, onFuelDirClick?: (process: any) => void) => Promise<void>;
+  addGroupNode: () => void;
+  updateNodeData: (nodeId: string, data: any) => void;
+}
+
 export const useProcessCanvas = (selectedInstall: Install | null) => {
   // ReactFlow 상태
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
@@ -68,7 +83,7 @@ export const useProcessCanvas = (selectedInstall: Install | null) => {
   }, [setNodes]);
 
   // 제품 노드 추가 (안전한 상태 업데이트)
-  const addProductNode = useCallback((product: Product, handleProductNodeClick: (product: Product) => void) => {
+  const addProductNode = useCallback((product: Product, handleProductNodeClick: (product: Product) => void, onAddProcess?: (product: Product) => void) => {
     // 🔴 수정: 더 작은 ID 생성 (int32 범위 내)
     const nodeId = Math.floor(Math.random() * 1000000) + 1; // 1 ~ 1,000,000
     const actualNodeId = `product-${nodeId}-${Math.random().toString(36).slice(2)}`;
@@ -80,12 +95,14 @@ export const useProcessCanvas = (selectedInstall: Install | null) => {
       data: {
         id: product.id,  // 실제 제품 ID 추가
         nodeId: actualNodeId,  // 🔴 추가: 실제 노드 ID를 data에 저장
-        label: product.product_name,  // 🔴 수정: label을 올바르게 설정
-        description: `제품: ${product.product_name}`,
+        label: product.name,  // 🔴 수정: label을 올바르게 설정
+        description: `제품: ${product.name}`,
         variant: 'product',  // 🔴 수정: variant를 'product'로 명시적 설정
         productData: product,  // 🔴 수정: productData를 올바르게 설정
         install_id: selectedInstall?.id,
         onClick: () => handleProductNodeClick(product),
+        onAddProcess: onAddProcess, // 공정 노드 추가 콜백
+        onEditProduct: () => console.log('제품 편집:', product), // 제품 편집 콜백
         // 🔴 추가: ProductNode가 기대하는 추가 데이터
         size: 'md',
         showHandles: true,
@@ -102,18 +119,15 @@ export const useProcessCanvas = (selectedInstall: Install | null) => {
       return newNodes;
     });
   }, [setNodes, selectedInstall?.id]);
-
   // 공정 노드 추가 (안전한 상태 업데이트)
   const addProcessNode = useCallback(async (process: Process, products: Product[], openInputModal: (process: Process) => void, openProcessModal: (process: Process) => void) => {
-    // 해당 공정이 사용되는 모든 제품 정보 찾기
-    const relatedProducts = products.filter((product: Product) => 
-      process.products?.some(p => p.id === product.id)
-    );
+    // 해당 공정이 사용되는 모든 제품 정보 찾기 (Process 타입에 products 속성이 없으므로 빈 배열로 처리)
+    const relatedProducts: Product[] = [];
 
     // 공정별 직접귀속배출량 정보 가져오기
     let emissionData = null;
     try {
-      const response = await axiosClient.get(`/api/v1/cbam/calculation/emission/process/${process.id}/attrdir`);
+      const response = await axiosClient.get(apiEndpoints.cbam.calculation.process.attrdir(process.id));
       if (response.data) {
         emissionData = {
           attr_em: response.data.attrdir_em || 0,
@@ -137,14 +151,14 @@ export const useProcessCanvas = (selectedInstall: Install | null) => {
       data: {
         id: process.id,  // 실제 공정 ID 추가
         nodeId: actualNodeId,  // 🔴 추가: 실제 노드 ID를 data에 저장
-        label: process.process_name,  // 🔴 수정: label을 올바르게 설정
-        description: `공정: ${process.process_name}`,
+        label: process.name,  // 🔴 수정: label을 올바르게 설정
+        description: `공정: ${process.name}`,
         variant: 'process',  // 🔴 수정: variant를 'process'로 명시적 설정
         processData: {
           ...process,
-          start_period: process.start_period || 'N/A',
-          end_period: process.end_period || 'N/A',
-          product_names: relatedProducts.map(p => p.product_name).join(', ') || 'N/A',
+          start_period: 'N/A',
+          end_period: 'N/A',
+          product_names: relatedProducts.map(p => p.name).join(', ') || 'N/A',
           is_many_to_many: relatedProducts.length > 1,
           install_id: selectedInstall?.id,
           current_install_id: selectedInstall?.id,

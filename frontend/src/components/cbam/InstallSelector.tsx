@@ -98,9 +98,7 @@ export const InstallSelector: React.FC<InstallSelectorProps> = ({
                   >
                     <div className="font-medium text-white">{install.install_name}</div>
                     <div className="text-sm text-gray-300">ID: {install.id}</div>
-                    {install.reporting_year && (
-                      <div className="text-sm text-gray-300">보고기간: {install.reporting_year}년</div>
-                    )}
+                    <div className="text-sm text-gray-300">보고기간: {install.reporting_year}년</div>
                   </div>
                 ))
               ) : (

@@ -1,14 +1,17 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import CommonShell from '@/components/common/CommonShell';
 import axiosClient, { apiEndpoints } from '@/lib/axiosClient';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Plus, ZoomIn, ZoomOut, Minus, Map } from 'lucide-react';
 
 // 아토믹 컴포넌트들
 import { CBAMTabNavigation } from '@/components/atomic/molecules/CBAMTabNavigation';
 import { CBAMOverviewTab } from '@/components/atomic/organisms/CBAMOverviewTab';
 import { CBAMInstallTab } from '@/components/atomic/organisms/CBAMInstallTab';
+
+// CBAM 컴포넌트들
+import ProcessManager from '@/components/cbam/ProcessManager';
 
 // 모달 컴포넌트들
 import { InstallModal } from '@/components/cbam/modals/InstallModal';
@@ -16,7 +19,6 @@ import { ProductModal } from '@/components/cbam/modals/ProductModal';
 import { ProcessModal } from '@/components/cbam/modals/ProcessModal';
 import { MappingModal } from '@/components/cbam/modals/MappingModal';
 import { CalculationModal } from '@/components/cbam/modals/CalculationModal';
-import { BoundaryModal } from '@/components/cbam/modals/BoundaryModal';
 
 // ============================================================================
 // 🎯 CBAM 관리 페이지
@@ -111,13 +113,9 @@ export default function CBAMPage() {
 
   // 산정경계 설정 탭
   const BoundaryTab = () => (
-    <BoundaryModal onSuccess={() => {
-      // 경계 설정이 성공하면 데이터 새로고침
-      fetchInstalls();
-      fetchProducts();
-      fetchProcesses();
-      fetchMappings();
-    }} />
+    <div className="w-full h-screen">
+      <ProcessManager />
+    </div>
   );
 
   // 보고서 탭
@@ -186,11 +184,11 @@ export default function CBAMPage() {
         />
 
         {/* 탭 컨텐츠 */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {activeTab === 'inputs' && <InputsTab />}
-          {activeTab === 'workplace' && <WorkplaceTab />}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {activeTab === 'inputs' && <div className="py-8"><InputsTab /></div>}
+          {activeTab === 'workplace' && <div className="py-8"><WorkplaceTab /></div>}
           {activeTab === 'boundary' && <BoundaryTab />}
-          {activeTab === 'report' && <ReportTab />}
+          {activeTab === 'report' && <div className="py-8"><ReportTab /></div>}
         </div>
       </div>
 

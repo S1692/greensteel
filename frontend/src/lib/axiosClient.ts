@@ -335,6 +335,16 @@ export const apiEndpoints = {
       delete: (id: number) => `/api/v1/cbam/calculation/${id}`,
       run: (id: number) => `/api/v1/cbam/calculation/${id}/run`,
       export: (id: number) => `/api/v1/cbam/calculation/${id}/export`,
+      // Process 배출량 계산 API (직접귀속배출량)
+      process: {
+        calculate: '/api/v1/cbam/calculation/emission/process/calculate',
+        attrdir: (process_id: number) => `/api/v1/cbam/calculation/emission/process/${process_id}/attrdir`,
+        attrdirAll: '/api/v1/cbam/calculation/emission/process/attrdir/all'
+      },
+      // Product 배출량 계산 API
+      product: {
+        calculate: '/api/v1/cbam/calculation/emission/product/calculate'
+      }
     },
     
     // Dummy Data API

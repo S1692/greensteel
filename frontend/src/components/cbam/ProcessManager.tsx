@@ -12,7 +12,6 @@ import { InstallSelector } from '@/components/cbam/InstallSelector';
 import { ProductSelector } from '@/components/cbam/ProductSelector';
 import { ProcessSelector, ProductProcessModal } from '@/components/cbam/ProcessSelector';
 
-
 import { useProcessManager, Process, Install, Product } from '@/hooks/useProcessManager';
 import { useProcessCanvas } from '@/hooks/useProcessCanvas';
 
@@ -77,7 +76,7 @@ function ProcessManagerInner() {
   // 공정별 직접귀속배출량 정보 가져오기
   const fetchProcessEmissionData = useCallback(async (processId: number) => {
     try {
-      const response = await axiosClient.get(`/api/v1/cbam/calculation/emission/process/${processId}/attrdir`);
+      const response = await axiosClient.get(apiEndpoints.cbam.calculation.process.attrdir(processId));
       if (response.data) {
         return {
           attr_em: response.data.attrdir_em || 0,
@@ -92,6 +91,15 @@ function ProcessManagerInner() {
     return null;
   }, []);
 
+
+
+  // 모달 상태
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [showProcessModalForProduct, setShowProcessModalForProduct] = useState(false);
+  const [showProcessModal, setShowProcessModal] = useState(false);
+  const [showInputModal, setShowInputModal] = useState(false);
+  const [selectedProcessForInput, setSelectedProcessForInput] = useState<Process | null>(null);
+
   // 모든 공정 노드의 배출량 정보 새로고침
   const refreshAllProcessEmissions = useCallback(async () => {
     const processNodes = nodes.filter(node => node.type === 'process');
@@ -101,7 +109,6 @@ function ProcessManagerInner() {
       if (processId && typeof processId === 'number') {
         const emissionData = await fetchProcessEmissionData(processId);
         if (emissionData && node.data.processData) {
-          // 노드 데이터 업데이트
           updateNodeData(node.id, {
             processData: {
               ...node.data.processData,
@@ -113,41 +120,23 @@ function ProcessManagerInner() {
     }
   }, [nodes, fetchProcessEmissionData, updateNodeData]);
 
-  // 모달 상태
-  const [showProductModal, setShowProductModal] = useState(false);
-  const [showProcessModalForProduct, setShowProcessModalForProduct] = useState(false);
-  const [showProcessModal, setShowProcessModal] = useState(false);
-  const [showInputModal, setShowInputModal] = useState(false);
-  const [selectedProcessForInput, setSelectedProcessForInput] = useState<Process | null>(null);
-
-
-
   // 사업장 선택 처리
   const handleInstallSelect = useCallback((install: Install) => {
     setSelectedInstall(install);
     // 캔버스 상태는 useProcessCanvas에서 자동으로 처리됨
   }, [setSelectedInstall]);
 
-  // 제품 노드 추가
-  const handleAddProductNode = useCallback(async () => {
-    if (!selectedInstall) {
-      alert('먼저 사업장을 선택해주세요.');
-      return;
-    }
-    setShowProductModal(true);
-  }, [selectedInstall]);
-
-  // 제품 선택 처리
-  const handleProductSelect = useCallback((product: Product) => {
-    addProductNode(product, handleProductNodeClickComplex);
-    setShowProductModal(false);
-  }, [addProductNode]);
-
-  // 제품 노드 클릭 시 복잡한 다대다 관계 공정 선택 모달 열기
-  const handleProductNodeClickComplex = useCallback((productData: Product) => {
+  // 제품 노드에서 공정 추가 요청 시
+  const handleProductNodeAddProcess = useCallback((productData: Product) => {
     setSelectedProduct(productData);
     setShowProcessModal(true);
   }, []);
+
+  // 제품 선택 처리
+  const handleProductSelect = useCallback((product: Product) => {
+    addProductNode(product, handleProductNodeClickComplex, handleProductNodeAddProcess);
+    setShowProductModal(false);
+  }, [addProductNode, handleProductNodeAddProcess]);
 
   // 투입량 입력 모달 열기
   const openInputModal = useCallback((process: Process) => {
@@ -162,7 +151,20 @@ function ProcessManagerInner() {
     setShowProcessModalForProduct(false);
   }, [addProcessNode, products, openInputModal]);
 
+  // 제품 노드 클릭 시 공정 선택 모달 열기
+  const handleProductNodeClickComplex = useCallback((productData: Product) => {
+    setSelectedProduct(productData);
+    setShowProcessModal(true);
+  }, []);
 
+  // 제품 노드 추가
+  const handleAddProductNode = useCallback(async () => {
+    if (!selectedInstall) {
+      alert('먼저 사업장을 선택해주세요.');
+      return;
+    }
+    setShowProductModal(true);
+  }, [selectedInstall]);
 
   // Edge 연결 처리
   const handleConnect = useCallback(async (params: Connection) => {
@@ -299,8 +301,6 @@ function ProcessManagerInner() {
         </Button>
 
       </div>
-      
-
 
       {/* ReactFlow 캔버스 */}
       <div className="flex-1 relative">
@@ -318,49 +318,57 @@ function ProcessManagerInner() {
              <div>콘솔에서 이벤트 확인</div>
            </div>
          </div>
-                 <ReactFlow
-           nodes={nodes}
-           edges={edges}
-           onNodesChange={onNodesChange}
-           onEdgesChange={onEdgesChange}
-           nodeTypes={nodeTypes}
-           edgeTypes={edgeTypes}
-           connectionMode={ConnectionMode.Loose}
-           defaultEdgeOptions={{ type: 'custom', markerEnd: { type: MarkerType.ArrowClosed } }}
-           deleteKeyCode="Delete"
-           className="bg-gray-900"
-           fitView
-           onConnectStart={(event, params) => {
-             console.log('🔗 4방향 연결 시작:', params);
-             handleConnectStart(event, params);
-           }}
-           onConnect={(params) => {
-             console.log('🔗 4방향 연결 완료:', params);
-             const validation = validateConnection(params);
-             if (validation.valid) {
-               console.log('✅ 연결 검증 통과, 연결 처리 시작');
-               handleConnect(params);
-             } else {
-               console.log(`❌ 연결 검증 실패: ${validation.reason}`, params);
-               alert(`연결이 유효하지 않습니다: ${validation.reason}`);
-             }
-           }}
-           onConnectEnd={handleConnectEnd}
-           isValidConnection={(connection) => {
-             const validation = validateConnection(connection as Connection);
-             return validation.valid;
-           }}
-         >
-          <Background color="#334155" gap={24} size={1} />
-          <Controls className="!bg-gray-800 !border !border-gray-700 !text-gray-200 !rounded-md" position="bottom-left" />
+        
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          connectionMode={ConnectionMode.Loose}
+          defaultEdgeOptions={{ type: 'custom', markerEnd: { type: MarkerType.ArrowClosed } }}
+          deleteKeyCode="Delete"
+          className="bg-gray-900"
+          fitView
+          onConnectStart={(event, params) => {
+            console.log('🔗 4방향 연결 시작:', params);
+            handleConnectStart(event, params);
+          }}
+          onConnect={(params) => {
+            console.log('🔗 4방향 연결 완료:', params);
+            const validation = validateConnection(params);
+            if (validation.valid) {
+              console.log('✅ 연결 검증 통과, 연결 처리 시작');
+              handleConnect(params);
+            } else {
+              console.log(`❌ 연결 검증 실패: ${validation.reason}`, params);
+              alert(`연결이 유효하지 않습니다: ${validation.reason}`);
+            }
+          }}
+          onConnectEnd={handleConnectEnd}
+          isValidConnection={(connection) => {
+            const validation = validateConnection(connection as Connection);
+            return validation.valid;
+          }}
+        >
+          <Background color="#1e293b" gap={20} size={1} />
+          <Controls 
+            className="!bg-gray-800 !border !border-gray-700 !text-gray-200 !rounded-md" 
+            position="bottom-left"
+            showZoom={true}
+            showFitView={true}
+            showInteractive={false}
+          />
           <MiniMap
             className="!border !border-gray-700 !rounded-md"
-            style={{ backgroundColor: '#0b1220' }}
-            maskColor="rgba(17,24,39,0.6)"
-            nodeColor={() => '#a78bfa'}
+            style={{ backgroundColor: '#0f172a' }}
+            maskColor="rgba(15,23,42,0.6)"
+            nodeColor={() => '#8b5cf6'}
             nodeStrokeColor={() => '#e5e7eb'}
             pannable
             zoomable
+            position="bottom-right"
           />
         </ReactFlow>
       </div>
@@ -406,8 +414,6 @@ function ProcessManagerInner() {
           onDataSaved={refreshAllProcessEmissions} // 데이터 저장 후 배출량 정보 새로고침
         />
       )}
-
-
     </div>
   );
 }

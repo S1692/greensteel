@@ -6,7 +6,7 @@ interface CBAMInstallTabProps {
   onShowInstallModal: () => void;
 }
 
-export const CBAMInstallTab: React.FC<CBAMInstallTabProps> => ({
+export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
   installs,
   onShowInstallModal
 }) => {
@@ -200,15 +200,15 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> => ({
               <h3 className="text-lg font-medium text-ecotrace-text">
                 등록된 제품 목록 ({products.length}개)
               </h3>
-              <button 
+        <button
                 onClick={handleAddProduct}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-              >
-                <Plus className="h-4 w-4" />
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+        >
+          <Plus className="h-4 w-4" />
                 <span>제품 추가</span>
-              </button>
-            </div>
-            
+        </button>
+      </div>
+
             {/* 제품 목록 */}
             <div className="space-y-4">
               {products.map((product) => (
@@ -224,10 +224,10 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> => ({
                       </button>
                       <button className="bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 transition-colors">
                         수정
-                      </button>
+                    </button>
                       <button className="bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700 transition-colors">
                         삭제
-                      </button>
+                    </button>
                     </div>
                   </div>
                   
@@ -281,7 +281,7 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> => ({
                       >
                         <Plus className="h-4 w-4" />
                         <span>공정 추가</span>
-                      </button>
+                    </button>
                     </div>
                   )}
                 </div>
@@ -402,8 +402,8 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> => ({
                 <Package className="h-4 w-4" />
                 <span>제품 생성</span>
               </button>
-            </div>
-          </div>
+        </div>
+      </div>
         </div>
       )}
     </div>

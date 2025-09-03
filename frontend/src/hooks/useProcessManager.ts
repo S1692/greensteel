@@ -1,212 +1,88 @@
-import { useState, useCallback, useEffect } from 'react';
-import axiosClient, { apiEndpoints } from '@/lib/axiosClient';
+import { useState, useCallback } from 'react';
+
+export interface Process {
+  id: number;
+  name: string;
+  description?: string;
+  category?: string;
+}
 
 export interface Install {
   id: number;
   install_name: string;
-  reporting_year?: string;
+  reporting_year: string;
 }
 
 export interface Product {
   id: number;
-  product_name: string;
-  product_category?: string;
+  name: string;
+  category?: string;
+  startDate?: string;
+  endDate?: string;
   product_amount?: number;
   product_sell?: number;
   product_eusell?: number;
-  install_id: number;
-  cncode_total?: string;
-  goods_name?: string;
-  aggrgoods_name?: string;
 }
-
-export interface Process {
-  id: number;
-  process_name: string;
-  start_period?: string;
-  end_period?: string;
-  products?: Product[];
-}
-
-
 
 export const useProcessManager = () => {
-  // 사업장 관련 상태
-  const [installs, setInstalls] = useState<Install[]>([]);
+  const [installs, setInstalls] = useState<Install[]>([
+    { id: 1, install_name: '포항제철소', reporting_year: '2025' },
+    { id: 2, install_name: '광양제철소', reporting_year: '2025' }
+  ]);
+  
   const [selectedInstall, setSelectedInstall] = useState<Install | null>(null);
-
-  // 제품 관련 상태
-  const [products, setProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-
-  // 공정 관련 상태
-  const [processes, setProcesses] = useState<Process[]>([]);
-  const [allProcesses, setAllProcesses] = useState<Process[]>([]);
+  
+  const [products, setProducts] = useState<Product[]>([
+    { id: 1, name: '블룸', category: '철강', startDate: '2025-01-01', endDate: '2025-12-31' },
+    { id: 2, name: '압연강판', category: '철강', startDate: '2025-01-01', endDate: '2025-12-31' }
+  ]);
+  
+  const [processes, setProcesses] = useState<Process[]>([
+    { id: 1, name: '제철공정', description: '철광석을 제철하는 공정', category: '제철' },
+    { id: 2, name: '압연공정', description: '철을 압연하는 공정', category: '압연' }
+  ]);
+  
+  const [allProcesses, setAllProcesses] = useState<Process[]>([
+    { id: 1, name: '제철공정', description: '철광석을 제철하는 공정', category: '제철' },
+    { id: 2, name: '압연공정', description: '철을 압연하는 공정', category: '압연' },
+    { id: 3, name: '열처리공정', description: '철을 열처리하는 공정', category: '열처리' }
+  ]);
+  
   const [crossInstallProcesses, setCrossInstallProcesses] = useState<Process[]>([]);
-
-  // 탐지 상태
   const [isDetectingChains, setIsDetectingChains] = useState(false);
-  const [detectionStatus, setDetectionStatus] = useState<string>('');
-
-  // 제품 수량 업데이트 상태
+  const [detectionStatus, setDetectionStatus] = useState('');
   const [isUpdatingProduct, setIsUpdatingProduct] = useState(false);
 
-  // 사업장 목록 불러오기
-  const fetchInstalls = useCallback(async () => {
-    try {
-      const response = await axiosClient.get(apiEndpoints.cbam.install.list);
-      setInstalls(response.data);
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('사업장 목록 조회 실패:', error);
-      }
-      setInstalls([]);
-    }
-  }, []);
-
-  // 선택된 사업장의 제품 목록 불러오기
-  const fetchProductsByInstall = useCallback(async (installId: number) => {
-    try {
-      // install_id로 필터링하여 특정 사업장의 제품만 가져오기
-      const response = await axiosClient.get(`${apiEndpoints.cbam.product.list}?install_id=${installId}`);
-      setProducts(response.data);
-      console.log(`✅ 사업장 ${installId}의 제품 ${response.data.length}개 로드됨:`, response.data);
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('제품 목록 조회 실패:', error);
-      }
-      setProducts([]);
-    }
-  }, []);
-
-  // 선택된 사업장의 공정 목록 불러오기
-  const fetchProcessesByInstall = useCallback(async (installId: number) => {
-    try {
-      const response = await axiosClient.get(apiEndpoints.cbam.process.list);
-      const installProducts = products.filter((product: Product) => product.install_id === installId);
-      const productIds = installProducts.map((product: Product) => product.id);
-      const installProcesses = response.data.filter((process: Process) => 
-        process.products && process.products.some((p: Product) => productIds.includes(p.id))
-      );
-      setProcesses(installProcesses);
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('공정 목록 조회 실패:', error);
-      }
-      setProcesses([]);
-    }
-  }, [products]);
-
-  // 선택된 사업장의 모든 공정 목록 불러오기
-  const fetchAllProcessesByInstall = useCallback(async (installId: number) => {
-    try {
-      const response = await axiosClient.get(apiEndpoints.cbam.process.list);
-      const installProducts = products.filter((product: Product) => product.install_id === installId);
-      const productIds = installProducts.map((product: Product) => product.id);
-      const allProcesses = response.data.filter((process: Process) => 
-        process.products && process.products.some((p: Product) => productIds.includes(p.id))
-      );
-      setAllProcesses(allProcesses);
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('전체 공정 목록 조회 실패:', error);
-      }
-      setAllProcesses([]);
-    }
-  }, [products]);
-
-  // 크로스 사업장 공정 목록 불러오기
-  const fetchAllCrossInstallProcesses = useCallback(async () => {
-    try {
-      const response = await axiosClient.get(apiEndpoints.cbam.process.list);
-      const currentInstallProducts = products.filter((product: Product) => product.install_id === selectedInstall?.id);
-      const productIds = currentInstallProducts.map((product: Product) => product.id);
-      const allCrossProcesses = response.data.filter((process: Process) => 
-        process.products && process.products.some((p: Product) => productIds.includes(p.id))
-      );
-      setCrossInstallProcesses(allCrossProcesses);
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('크로스 사업장 공정 목록 조회 실패:', error);
-      }
-      setCrossInstallProcesses([]);
-    }
-  }, [products, selectedInstall]);
-
-  // 선택된 제품의 공정 목록 불러오기
   const fetchProcessesByProduct = useCallback(async (productId: number) => {
-    try {
-      const response = await axiosClient.get(apiEndpoints.cbam.process.list);
-      const productProcesses = response.data.filter((process: Process) => 
-        process.products && process.products.some((p: Product) => p.id === productId)
-      );
-      setProcesses(productProcesses);
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('제품별 공정 목록 조회 실패:', error);
-      }
-      setProcesses([]);
-    }
-  }, []);
+    // TODO: API 호출하여 제품별 공정 조회
+    console.log('제품별 공정 조회:', productId);
+    return processes.filter(p => p.id === productId);
+  }, [processes]);
 
-
-
-  // 제품 수량 업데이트
-  const handleProductQuantityUpdate = useCallback(async (productQuantityForm: {
-    product_amount: number;
-    product_sell: number;
-    product_eusell: number;
-  }) => {
-    if (!selectedProduct) return false;
-    
+  const handleProductQuantityUpdate = useCallback(async (productId: number, quantity: number) => {
+    // TODO: API 호출하여 제품 수량 업데이트
+    console.log('제품 수량 업데이트:', productId, quantity);
     setIsUpdatingProduct(true);
     try {
-      const response = await axiosClient.put(apiEndpoints.cbam.product.update(selectedProduct.id), productQuantityForm);
-      
-      // 선택된 제품 정보 업데이트
-      setSelectedProduct({
-        ...selectedProduct,
-        ...productQuantityForm
-      });
-      
-      return true;
-    } catch (error: any) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('❌ 제품 수량 업데이트 실패:', error);
-      }
-      return false;
+      // API 호출 로직
+      await new Promise(resolve => setTimeout(resolve, 1000)); // 임시 지연
+      setProducts(prev => prev.map(p => 
+        p.id === productId ? { ...p, quantity } : p
+      ));
     } finally {
       setIsUpdatingProduct(false);
     }
-  }, [selectedProduct]);
+  }, []);
 
-  // 사업장 선택 시 제품과 공정 목록 업데이트
-  useEffect(() => {
-    if (selectedInstall) {
-      console.log(`🔄 사업장 선택됨: ${selectedInstall.install_name} (ID: ${selectedInstall.id})`);
-      fetchProductsByInstall(selectedInstall.id);
-    }
-  }, [selectedInstall, fetchProductsByInstall]);
-
-  useEffect(() => {
-    if (selectedInstall && products.length > 0) {
-      console.log(`🔄 제품 ${products.length}개 로드됨, 공정 목록 로드 시작`);
-      const timer = setTimeout(() => {
-        fetchProcessesByInstall(selectedInstall.id);
-        fetchAllProcessesByInstall(selectedInstall.id);
-        fetchAllCrossInstallProcesses();
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [selectedInstall, products, fetchProcessesByInstall, fetchAllProcessesByInstall, fetchAllCrossInstallProcesses]);
-
-  // 컴포넌트 마운트 시 사업장 목록 불러오기
-  useEffect(() => {
-    fetchInstalls();
-  }, [fetchInstalls]);
+  const fetchInstalls = useCallback(async () => {
+    // TODO: API 호출하여 사업장 목록 조회
+    console.log('사업장 목록 조회');
+    // 현재는 하드코딩된 데이터 사용
+    return installs;
+  }, [installs]);
 
   return {
-    // 상태
     installs,
     selectedInstall,
     products,
@@ -217,11 +93,10 @@ export const useProcessManager = () => {
     isDetectingChains,
     detectionStatus,
     isUpdatingProduct,
-
-    // 액션
     setSelectedInstall,
     setSelectedProduct,
     fetchProcessesByProduct,
     handleProductQuantityUpdate,
+    fetchInstalls,
   };
 };

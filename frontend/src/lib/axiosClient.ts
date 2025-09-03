@@ -229,8 +229,8 @@ export const apiEndpoints = {
   cbam: {
     // Install (사업장) API (Gateway를 거쳐 CBAM 서비스로 연결)
     install: {
-      create: '/api/v1/cbam/install',  // Gateway를 거쳐 CBAM 서비스의 /api/v1/cbam/install로 연결
-      list: '/api/v1/cbam/install',
+      create: '/api/v1/cbam/install/',  // Gateway를 거쳐 CBAM 서비스의 /api/v1/cbam/install/로 연결
+      list: '/api/v1/cbam/install/',
       get: (id: number) => `/api/v1/cbam/install/${id}`,
       update: (id: number) => `/api/v1/cbam/install/${id}`,
       delete: (id: number) => `/api/v1/cbam/install/${id}`,
@@ -239,8 +239,8 @@ export const apiEndpoints = {
     
     // Product (제품) API (Gateway를 거쳐 CBAM 서비스로 연결)
     product: {
-      create: '/api/v1/cbam/product',  // Gateway를 거쳐 CBAM 서비스의 /api/v1/cbam/product로 연결
-      list: '/api/v1/cbam/product',
+      create: '/api/v1/cbam/product/',  // Gateway를 거쳐 CBAM 서비스의 /api/v1/cbam/product/로 연결
+      list: '/api/v1/cbam/product/',
       get: (id: number) => `/api/v1/cbam/product/${id}`,
       update: (id: number) => `/api/v1/cbam/product/${id}`,
       delete: (id: number) => `/api/v1/cbam/product/${id}`,
@@ -250,8 +250,8 @@ export const apiEndpoints = {
     
     // Process (공정) API (Gateway를 거쳐 CBAM 서비스로 연결)
     process: {
-      create: '/api/v1/cbam/process',  // Gateway를 거쳐 CBAM 서비스의 /api/v1/cbam/process로 연결
-      list: '/api/v1/cbam/process',
+      create: '/api/v1/cbam/process/',  // Gateway를 거쳐 CBAM 서비스의 /api/v1/cbam/process/로 연결
+      list: '/api/v1/cbam/process/',
       get: (id: number) => `/api/v1/cbam/process/${id}`,
       update: (id: number) => `/api/v1/cbam/process/${id}`,
       delete: (id: number) => `/api/v1/cbam/process/${id}`,
@@ -270,19 +270,19 @@ export const apiEndpoints = {
     
     // Mapping (노드 위치) API
     mapping: {
-      create: '/api/v1/cbam/mapping',
-      list: '/api/v1/cbam/mapping',
-      get: (id: number) => `/api/v1/cbam/mapping/${id}`,
-      update: (id: number) => `/api/v1/cbam/mapping/${id}`,
-      delete: (id: number) => `/api/v1/cbam/mapping/${id}`,
-      lookup: (hs_code: string) => `/api/v1/cbam/mapping/lookup/${hs_code}`,
+      create: '/api/v1/cbam/mapping/mapping',
+      list: '/api/v1/cbam/mapping/mapping',
+      get: (id: number) => `/api/v1/cbam/mapping/mapping/${id}`,
+      update: (id: number) => `/api/v1/cbam/mapping/mapping/${id}`,
+      delete: (id: number) => `/api/v1/cbam/mapping/mapping/${id}`,
+      lookup: (hs_code: string) => `/api/v1/cbam/mapping/cncode/lookup/${hs_code}`,
       search: {
-        hs: (hs_code: string) => `/api/v1/cbam/mapping/search/hs/${hs_code}`,
-        cn: (cn_code: string) => `/api/v1/cbam/mapping/search/cn/${cn_code}`,
-        goods: (goods_name: string) => `/api/v1/cbam/mapping/search/goods/${goods_name}`,
+        hs: (hs_code: string) => `/api/v1/cbam/mapping/mapping/search/hs/${hs_code}`,
+        cn: (cn_code: string) => `/api/v1/cbam/mapping/mapping/search/cn/${cn_code}`,
+        goods: (goods_name: string) => `/api/v1/cbam/mapping/mapping/search/goods/${goods_name}`,
       },
-      stats: '/api/v1/cbam/mapping/stats',
-      batch: '/api/v1/cbam/mapping/batch',
+      stats: '/api/v1/cbam/mapping/mapping/stats',
+      batch: '/api/v1/cbam/mapping/mapping/batch',
     },
     
     // Matdir (원자재 투입) API

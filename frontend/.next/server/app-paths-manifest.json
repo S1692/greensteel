@@ -1,4 +1,4 @@
 {
-  "/(protected)/lca/page": "app/(protected)/lca/page.js",
-  "/(protected)/cbam/page": "app/(protected)/cbam/page.js"
+  "/(protected)/cbam/page": "app/(protected)/cbam/page.js",
+  "/(protected)/lca/page": "app/(protected)/lca/page.js"
 }

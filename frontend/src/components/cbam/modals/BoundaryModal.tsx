@@ -34,6 +34,7 @@ interface Process {
 
 interface Product {
   id: number;
+  install_id: number;
   product_name: string;
   product_code: string;
 }
@@ -132,52 +133,68 @@ export const BoundaryModal: React.FC<BoundaryModalProps> = ({ onSuccess }) => {
     const newEdges: Edge[] = [];
     const nodeMap = new Map();
 
-    // 사업장 노드 추가
-    installs.forEach((install, index) => {
-      const node: Node = {
+    // 사업장별로 노드 그룹화하여 배치
+    installs.forEach((install, installIndex) => {
+      // 사업장 노드 추가
+      const installNode: Node = {
         id: `install-${install.id}`,
         type: 'install',
-        position: { x: 100, y: 100 + index * 120 },
+        position: { x: installIndex * 800, y: 50 },
         data: {
-          label: '사업장',
+          label: install.install_name,
           install_name: install.install_name,
           install_id: install.id
         }
       };
-      newNodes.push(node);
-      nodeMap.set(`install-${install.id}`, node);
-    });
+      newNodes.push(installNode);
+      nodeMap.set(`install-${install.id}`, installNode);
 
-    // 공정 노드 추가
-    processes.forEach((process, index) => {
-      const node: Node = {
-        id: `process-${process.id}`,
-        type: 'process',
-        position: { x: 400, y: 100 + index * 120 },
-        data: {
-          label: '공정',
-          process_name: process.process_name,
-          process_id: process.id
-        }
-      };
-      newNodes.push(node);
-      nodeMap.set(`process-${process.id}`, node);
-    });
+      // 해당 사업장의 제품들
+      const installProducts = products.filter(product => product.install_id === install.id);
+      installProducts.forEach((product, productIndex) => {
+        const productNode: Node = {
+          id: `product-${product.id}`,
+          type: 'product',
+          position: { 
+            x: installIndex * 800 + (productIndex % 4) * 150, 
+            y: 200 + Math.floor(productIndex / 4) * 100 
+          },
+          data: {
+            label: product.product_name,
+            product_name: product.product_name,
+            product_id: product.id,
+            install_id: product.install_id
+          }
+        };
+        newNodes.push(productNode);
+        nodeMap.set(`product-${product.id}`, productNode);
+      });
 
-    // 제품 노드 추가
-    products.forEach((product, index) => {
-      const node: Node = {
-        id: `product-${product.id}`,
-        type: 'product',
-        position: { x: 700, y: 100 + index * 120 },
-        data: {
-          label: '제품',
-          product_name: product.product_name,
-          product_id: product.id
+      // 해당 사업장과 연결된 공정들 (경계 데이터 기반)
+      const installProcesses = boundaryData
+        .filter(boundary => boundary.install_id === install.id)
+        .map(boundary => processes.find(process => process.id === boundary.process_id))
+        .filter(Boolean);
+
+      installProcesses.forEach((process, processIndex) => {
+        if (process) {
+          const processNode: Node = {
+            id: `process-${process.id}`,
+            type: 'process',
+            position: { 
+              x: installIndex * 800 + (processIndex % 4) * 150, 
+              y: 400 + Math.floor(processIndex / 4) * 100 
+            },
+            data: {
+              label: process.process_name,
+              process_name: process.process_name,
+              process_id: process.id
+            }
+          };
+          newNodes.push(processNode);
+          nodeMap.set(`process-${process.id}`, processNode);
         }
-      };
-      newNodes.push(node);
-      nodeMap.set(`product-${product.id}`, node);
+      });
     });
 
     // 경계 연결선 추가

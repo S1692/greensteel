@@ -400,7 +400,7 @@ function ProcessManagerInner() {
       {/* 모달들 */}
       {showProductModal && (
         <ProductSelector
-          products={products}
+          products={products.filter(product => product.install_id === selectedInstall?.id)}
           onProductSelect={handleProductSelect}
           onClose={() => setShowProductModal(false)}
         />

@@ -17,6 +17,7 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [selectedInstall, setSelectedInstall] = useState<any>(null);
   const [showAddProcess, setShowAddProcess] = useState<number | null>(null);
+  const [showHSCodeModal, setShowHSCodeModal] = useState(false);
 
   // 더미 제품 데이터 (실제로는 API에서 가져올 것)
   const [products, setProducts] = useState([
@@ -176,7 +177,7 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
               <div className="flex justify-between items-start">
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
-                    <h4 className="text-lg font-semibold text-ecotrace-text">{install.install_name}</h4>
+                    <h4 className="text-lg font-semibold text-ecotrace-text">{install.name}</h4>
                     <span className="text-xs bg-ecotrace-secondary/50 text-ecotrace-textSecondary px-2 py-1 rounded">
                       ID: {install.id}
                     </span>
@@ -410,7 +411,10 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                     placeholder="HS CODE 검색 후 자동 입력"
                     className="flex-1 px-3 py-2 bg-ecotrace-secondary/20 border border-ecotrace-border rounded-lg text-ecotrace-text placeholder-ecotrace-textSecondary focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                  <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
+                  <button 
+                    onClick={() => setShowHSCodeModal(true)}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                  >
                     <Search className="h-4 w-4" />
                     <span>HS CODE 검색</span>
                   </button>
@@ -426,6 +430,63 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                 <Package className="h-4 w-4" />
                 <span>제품 생성</span>
               </button>
+        </div>
+      </div>
+        </div>
+      )}
+
+      {/* HS CODE 검색 모달 */}
+      {showHSCodeModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-900">HS CODE 검색</h2>
+              <button 
+                onClick={() => setShowHSCodeModal(false)} 
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  검색어
+                </label>
+                <input
+                  type="text"
+                  placeholder="제품명 또는 HS CODE를 입력하세요"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowHSCodeModal(false)}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={() => {
+                    // TODO: HS CODE 검색 로직 구현
+                    console.log('HS CODE 검색 실행');
+                    setShowHSCodeModal(false);
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  검색
+                </button>
+              </div>
+
+              {/* 검색 결과 영역 */}
+              <div className="mt-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-3">검색 결과</h3>
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <p className="text-gray-500 text-center">검색어를 입력하고 검색 버튼을 클릭하세요.</p>
+                </div>
+              </div>
         </div>
       </div>
         </div>

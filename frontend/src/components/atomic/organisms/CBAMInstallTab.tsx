@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Factory, Package, Edit, Trash2, X, Calendar, Search } from 'lucide-react';
+import axiosClient, { apiEndpoints } from '@/lib/axiosClient';
 
 interface CBAMInstallTabProps {
   installs: any[];

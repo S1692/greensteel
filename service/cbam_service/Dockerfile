@@ -30,7 +30,7 @@ COPY . .
 
 # 마이그레이션 스크립트는 main.py의 lifespan에서 처리됨
 
-# 포트 노출
+# 포트 노출 (Railway에서 자동 할당되는 포트 사용)
 EXPOSE 8083
 
 # PostgreSQL collation 문제 해결을 위한 환경 변수 설정
@@ -41,7 +41,9 @@ ENV PYTHONUNBUFFERED=1
 RUN echo '#!/bin/bash\n\
 echo "🚀 CBAM 서비스 시작 중..."\n\
 echo "🚀 애플리케이션 시작 (마이그레이션은 자동 처리됨)..."\n\
-exec uvicorn app.main:app --host 0.0.0.0 --port 8083\n\
+PORT=${PORT:-8083}\n\
+echo "🚀 포트: $PORT"\n\
+exec uvicorn app.main:app --host 0.0.0.0 --port $PORT\n\
 ' > /CBAM/start.sh && chmod +x /CBAM/start.sh
 
 # 애플리케이션 실행

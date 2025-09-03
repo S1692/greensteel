@@ -263,6 +263,12 @@ async def root():
         }
     }
 
+@app.get("/favicon.ico", tags=["static"])
+async def favicon():
+    """favicon.ico 요청 처리 - 502 오류 방지"""
+    from fastapi.responses import Response
+    return Response(status_code=204)  # No Content 응답
+
 @app.get("/health", tags=["health"])
 async def health_check():
     """서비스 상태 확인"""

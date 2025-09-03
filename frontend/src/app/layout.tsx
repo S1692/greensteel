@@ -63,6 +63,7 @@ export default function RootLayout({
     <html lang='ko' className='dark'>
       <head>
         <link rel='manifest' href='/manifest.json' />
+        <link rel='icon' href='/favicon.ico' sizes='any' />
         <link rel='icon' href='/icon-192x192.svg' type='image/svg+xml' />
         <link rel='apple-touch-icon' href='/apple-touch-icon.svg' />
         <meta name='apple-mobile-web-app-capable' content='yes' />

@@ -363,19 +363,45 @@ async def proxy_chatbot_general(request: Request, path: str):
     return await _forward(CHATBOT_SERVICE_URL, f"/api/v1/chatbot/{path}", request)
 
 # ============================================================================
-# 🏭 CBAM 서비스 프록시 라우트
+# 🏭 CBAM 서비스 프록시 라우트 (새로운 CBAM 서비스용)
 # ============================================================================
 
 @app.api_route("/api/v1/cbam/{path:path}", methods=["GET","POST","PUT","DELETE","PATCH","HEAD","OPTIONS"])
 async def proxy_cbam_service(request: Request, path: str):
-    """CBAM 서비스로 요청을 프록시"""
+    """CBAM 서비스로 요청을 프록시 - 새로운 CBAM 서비스 구조"""
     if not CBAM_SERVICE_URL:
         raise HTTPException(status_code=503, detail="CBAM service not configured")
     
-    # CBAM 서비스의 실제 엔드포인트로 전달
-    # 프론트엔드: /api/v1/cbam/install → CBAM 서비스: /api/v1/cbam/install
-    # 프론트엔드: /api/v1/cbam/mapping → CBAM 서비스: /api/v1/cbam/mapping
-    target_path = f"/api/v1/cbam/{path}"
+    # 새로운 CBAM 서비스의 실제 엔드포인트로 전달 (greensteel-new_cbam 구조 적용)
+    # 프론트엔드: /api/v1/cbam/install → CBAM 서비스: /install/
+    # 프론트엔드: /api/v1/cbam/product → CBAM 서비스: /product/
+    # 프론트엔드: /api/v1/cbam/process → CBAM 서비스: /process/
+    # 프론트엔드: /api/v1/cbam/mapping → CBAM 서비스: /mapping
+    # 프론트엔드: /api/v1/cbam/calculation → CBAM 서비스: /calculation
+    # 프론트엔드: /api/v1/cbam/matdir → CBAM 서비스: /matdir
+    # 프론트엔드: /api/v1/cbam/fueldir → CBAM 서비스: /fueldir
+    # 프론트엔드: /api/v1/cbam/edge → CBAM 서비스: /edge/
+    # 프론트엔드: /api/v1/cbam/productprocess → CBAM 서비스: /productprocess
+    
+    # greensteel-new_cbam의 경로 정규화 로직 적용
+    if path in ["install", "product", "process", "edge"]:
+        # 루트 경로는 슬래시 추가
+        target_path = f"/{path}/"
+    elif path.startswith(("install/", "product/", "process/", "edge/")):
+        # 하위 경로는 슬래시 정규화
+        path_parts = path.split('/')
+        if len(path_parts) == 2 and path_parts[1] == "":
+            # install/ 같은 경우 슬래시 추가
+            target_path = f"/{path_parts[0]}/"
+        elif len(path_parts) == 2 and path_parts[1].isdigit():
+            # install/1 같은 동적 경로는 슬래시 제거
+            target_path = f"/{path_parts[0]}/{path_parts[1]}"
+        else:
+            # 기타 하위 경로는 그대로
+            target_path = f"/{path}"
+    else:
+        # 기타 경로는 그대로
+        target_path = f"/{path}"
     
     gateway_logger.log_info(f"CBAM proxy: {request.method} /api/v1/cbam/{path} → {CBAM_SERVICE_URL}{target_path}")
     return await _forward(CBAM_SERVICE_URL, target_path, request)
@@ -386,8 +412,25 @@ async def proxy_cbam_service_legacy(request: Request, path: str):
     if not CBAM_SERVICE_URL:
         raise HTTPException(status_code=503, detail="CBAM service not configured")
     
-    # CBAM 서비스의 실제 엔드포인트로 전달
-    target_path = f"/api/{path}"
+    # 레거시 경로도 새로운 CBAM 서비스 구조에 맞게 전달 (greensteel-new_cbam 구조 적용)
+    if path in ["install", "product", "process", "edge"]:
+        # 루트 경로는 슬래시 추가
+        target_path = f"/{path}/"
+    elif path.startswith(("install/", "product/", "process/", "edge/")):
+        # 하위 경로는 슬래시 정규화
+        path_parts = path.split('/')
+        if len(path_parts) == 2 and path_parts[1] == "":
+            # install/ 같은 경우 슬래시 추가
+            target_path = f"/{path_parts[0]}/"
+        elif len(path_parts) == 2 and path_parts[1].isdigit():
+            # install/1 같은 동적 경로는 슬래시 제거
+            target_path = f"/{path_parts[0]}/{path_parts[1]}"
+        else:
+            # 기타 하위 경로는 그대로
+            target_path = f"/{path}"
+    else:
+        # 기타 경로는 그대로
+        target_path = f"/{path}"
     
     gateway_logger.log_info(f"CBAM legacy proxy: {request.method} /cbam/{path} → {CBAM_SERVICE_URL}{target_path}")
     return await _forward(CBAM_SERVICE_URL, target_path, request)
@@ -472,7 +515,7 @@ async def proxy_datagather_service_legacy(request: Request, path: str):
 
 @app.get("/cbam/health")
 async def cbam_health_check():
-    """CBAM 서비스 헬스체크"""
+    """CBAM 서비스 헬스체크 - 새로운 CBAM 서비스 구조"""
     if not CBAM_SERVICE_URL:
         return {
             "status": "unhealthy",
@@ -482,7 +525,7 @@ async def cbam_health_check():
         }
     
     try:
-        # CBAM 서비스 헬스체크 요청
+        # 새로운 CBAM 서비스 헬스체크 요청
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(f"{CBAM_SERVICE_URL}/health")
             if response.status_code == 200:
@@ -490,6 +533,11 @@ async def cbam_health_check():
                     "status": "healthy",
                     "service": "CBAM",
                     "upstream": CBAM_SERVICE_URL,
+                    "architecture": "DDD (Domain-Driven Design)",
+                    "domains": [
+                        "install", "product", "process", "mapping", 
+                        "calculation", "matdir", "fueldir", "edge", "productprocess"
+                    ],
                     "timestamp": time.time()
                 }
             else:

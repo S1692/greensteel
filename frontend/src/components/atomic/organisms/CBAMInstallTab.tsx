@@ -221,6 +221,22 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
     return uniqueProcesses;
   };
 
+  // 생산품명에 따른 생산수량 합계 계산
+  const calculateProductAmount = (productName: string) => {
+    const currentInputData = getInputDataFromStorage();
+    if (!currentInputData.length) return 0;
+    
+    const productAmount = currentInputData
+      .filter((item: any) => item.생산품명 === productName)
+      .reduce((sum: number, item: any) => {
+        const amount = parseFloat(item.생산수량) || 0;
+        return sum + amount;
+      }, 0);
+    
+    console.log(`제품 "${productName}"의 생산수량 합계:`, productAmount);
+    return productAmount;
+  };
+
   // HS 코드 검색 함수
   const handleHSCodeSearch = async () => {
     if (!hsSearchQuery.trim()) {
@@ -364,6 +380,9 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
     try {
       console.log('🚀 제품 생성 요청 시작:', newProduct);
       
+      // 로컬스토리지에서 해당 제품의 생산수량 합계 계산
+      const productAmount = calculateProductAmount(newProduct.productName);
+      
       // CBAM 서비스의 제품 생성 API 호출
       const productData = {
         install_id: selectedInstall.id,
@@ -376,7 +395,7 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
         goods_engname: newProduct.goodsEngName || null, // HS CN 검색에서 얻은 품목영문명
         aggrgoods_name: newProduct.aggrGoodsName || null, // HS CN 검색에서 얻은 품목군명
         aggrgoods_engname: newProduct.aggrGoodsEngName || null, // HS CN 검색에서 얻은 품목군영문명
-        product_amount: 0.0,
+        product_amount: productAmount, // 로컬스토리지에서 계산된 생산수량 합계
         product_sell: 0.0,
         product_eusell: 0.0,
         attr_em: 0.0
@@ -569,6 +588,9 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
     try {
       console.log('🚀 제품 수정 요청 시작:', editingProduct);
       
+      // 로컬스토리지에서 해당 제품의 생산수량 합계 계산
+      const productAmount = calculateProductAmount(editingProduct.name);
+      
       // CBAM 서비스의 제품 수정 API 호출
       const updateData = {
         product_name: editingProduct.name,
@@ -580,7 +602,7 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
         goods_engname: editingProduct.goodsEngName || null, // HS CN 검색에서 얻은 품목영문명
         aggrgoods_name: editingProduct.aggrGoodsName || null, // HS CN 검색에서 얻은 품목군명
         aggrgoods_engname: editingProduct.aggrGoodsEngName || null, // HS CN 검색에서 얻은 품목군영문명
-        product_amount: editingProduct.quantity || 0.0,
+        product_amount: productAmount, // 로컬스토리지에서 계산된 생산수량 합계
         product_sell: 0.0,
         product_eusell: 0.0,
         attr_em: 0.0
@@ -1081,6 +1103,25 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                 </div>
               </div>
               
+              {/* 생산수량 정보 표시 */}
+              {newProduct.productName && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-green-900 mb-2">생산수량 정보</h4>
+                  <div className="text-sm">
+                    <span className="font-medium text-green-800">제품명:</span>
+                    <span className="ml-2 text-green-700">{newProduct.productName}</span>
+                    <br />
+                    <span className="font-medium text-green-800">총 생산수량:</span>
+                    <span className="ml-2 text-green-700 font-semibold">
+                      {calculateProductAmount(newProduct.productName).toLocaleString()} 톤
+                    </span>
+                    <p className="text-xs text-green-600 mt-1">
+                      * 로컬스토리지의 해당 제품명 데이터에서 자동 계산됩니다
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* HS CN 검색 정보 표시 */}
               {(newProduct.goodsName || newProduct.goodsEngName || newProduct.aggrGoodsName) && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -1304,6 +1345,25 @@ export const CBAMInstallTab: React.FC<CBAMInstallTabProps> = ({
                 </div>
               </div>
               
+              {/* 생산수량 정보 표시 */}
+              {editingProduct.name && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-green-900 mb-2">생산수량 정보</h4>
+                  <div className="text-sm">
+                    <span className="font-medium text-green-800">제품명:</span>
+                    <span className="ml-2 text-green-700">{editingProduct.name}</span>
+                    <br />
+                    <span className="font-medium text-green-800">총 생산수량:</span>
+                    <span className="ml-2 text-green-700 font-semibold">
+                      {calculateProductAmount(editingProduct.name).toLocaleString()} 톤
+                    </span>
+                    <p className="text-xs text-green-600 mt-1">
+                      * 로컬스토리지의 해당 제품명 데이터에서 자동 계산됩니다
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* HS CN 검색 정보 표시 */}
               {(editingProduct.goodsName || editingProduct.goodsEngName || editingProduct.aggrGoodsName) && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

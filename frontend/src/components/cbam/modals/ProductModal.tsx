@@ -73,12 +73,9 @@ export const ProductModal: React.FC<ProductModalProps> = ({ onClose, onSuccess }
         product_amount: 0,
         product_cncode: '',
         goods_name: '',
-        goods_engname: '',
         aggrgoods_name: '',
-        aggrgoods_engname: '',
         product_sell: 0,
-        product_eusell: 0,
-        attr_em: 0
+        product_eusell: 0
       });
       setEditingId(null);
       fetchProducts();

@@ -71,8 +71,8 @@ async def register_company(request: CompanyRegisterRequest):
         country=request.country,
         country_en=request.country_en,
         unlocode=request.unlocode,
-        sourcelatitude=request.sourcelatitude,
-        sourcelongitude=request.sourcelongitude
+        source_latitude=request.source_latitude,
+        source_longitude=request.source_longitude
     )
     return StandardResponse(**result)
 

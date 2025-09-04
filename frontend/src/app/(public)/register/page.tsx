@@ -32,8 +32,8 @@ interface CompanyData {
   country_en: string;
   country_code: string;
   unlocode: string;
-  sourcelatitude: number | null;
-  sourcelongitude: number | null;
+  source_latitude: number | null;
+  source_longitude: number | null;
 }
 
 interface UserData {
@@ -102,8 +102,8 @@ export default function RegisterPage() {
     country_en: '',
     country_code: '',
     unlocode: '',
-    sourcelatitude: null,
-    sourcelongitude: null,
+    source_latitude: null,
+    source_longitude: null,
     // fullAddress_en은 DB로 전송하지 않음 (정규식 파싱 결과만 전송)
   });
 
@@ -225,8 +225,8 @@ export default function RegisterPage() {
         postcode: enhancedAddress.postalCode || addressData.postalCode || '',
         city: addressData.cityName || '', // 국문 도시명
         city_en: enhancedAddress.englishCity || '', // 영문 도시명 (직접 사용)
-        sourcelatitude: addressData.latitude, // 카카오 API에서 받은 위도
-        sourcelongitude: addressData.longitude, // 카카오 API에서 받은 경도
+        source_latitude: addressData.latitude, // 카카오 API에서 받은 위도
+        source_longitude: addressData.longitude, // 카카오 API에서 받은 경도
       }));
 
       console.log('영문 주소 변환 완료:', enhancedAddress);
@@ -245,8 +245,8 @@ export default function RegisterPage() {
         postcode: addressData.postalCode || '',
         city: addressData.cityName || '',
         city_en: '',
-        sourcelatitude: addressData.latitude,
-        sourcelongitude: addressData.longitude,
+        source_latitude: addressData.latitude,
+        source_longitude: addressData.longitude,
       }));
     }
   };
@@ -397,8 +397,8 @@ export default function RegisterPage() {
             country_en: formData.country_en,
             country_code: formData.country_code,
             unlocode: formData.unlocode,
-            sourcelatitude: formData.sourcelatitude,
-            sourcelongitude: formData.sourcelongitude,
+            source_latitude: formData.source_latitude,
+            source_longitude: formData.source_longitude,
           }),
         });
 
@@ -437,8 +437,8 @@ export default function RegisterPage() {
           country_en: '',
           country_code: '',
           unlocode: '',
-          sourcelatitude: null,
-          sourcelongitude: null,
+          source_latitude: null,
+          source_longitude: null,
         });
       } catch (err) {
         setError(
@@ -916,8 +916,8 @@ export default function RegisterPage() {
                     </label>
                     <Input
                       type='text'
-                      value={formData.sourcelatitude || ''}
-                      onChange={e => handleInputChange('sourcelatitude', e.target.value)}
+                      value={formData.source_latitude || ''}
+                      onChange={e => handleInputChange('source_latitude', e.target.value)}
                       className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
                       placeholder='위도 (자동 입력)'
                       readOnly
@@ -930,8 +930,8 @@ export default function RegisterPage() {
                     </label>
                     <Input
                       type='text'
-                      value={formData.sourcelongitude || ''}
-                      onChange={e => handleInputChange('sourcelongitude', e.target.value)}
+                      value={formData.source_longitude || ''}
+                      onChange={e => handleInputChange('source_longitude', e.target.value)}
                       className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
                       placeholder='경도 (자동 입력)'
                       readOnly

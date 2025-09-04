@@ -46,8 +46,8 @@ class CompanyRegisterRequest(BaseModel):
     country: str  # 국가명
     country_en: str  # 국가영문명
     unlocode: str  # UNLOCODE
-    sourcelatitude: Optional[float] = None  # 사업장위도
-    sourcelongitude: Optional[float] = None  # 사업장경도
+    source_latitude: Optional[float] = None  # 사업장위도
+    source_longitude: Optional[float] = None  # 사업장경도
 
 class LoginRequest(BaseModel):
     """로그인 요청"""

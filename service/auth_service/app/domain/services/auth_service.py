@@ -94,7 +94,7 @@ class AuthService:
                              economic_activity: str, economic_activity_en: str, representative: str, representative_en: str,
                              email: str, telephone: str, street: str, street_en: str, number: str, number_en: str,
                              postcode: str, city: str, city_en: str, country: str, country_en: str, unlocode: str,
-                             sourcelatitude: float = None, sourcelongitude: float = None) -> Dict[str, Any]:
+                             source_latitude: float = None, source_longitude: float = None) -> Dict[str, Any]:
         """회사 등록 (실제 DB 연동)"""
         connection = None
         try:
@@ -134,13 +134,13 @@ class AuthService:
                 INSERT INTO companies (
                     company_id, password, Installation, Installation_en, economic_activity, economic_activity_en,
                     representative, representative_en, email, telephone, street, street_en, number, number_en,
-                    postcode, city, city_en, country, country_en, unlocode, sourcelatitude, sourcelongitude
+                    postcode, city, city_en, country, country_en, unlocode, source_latitude, source_longitude
                 )
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
                 RETURNING company_id
             """, company_id, hashed_password, Installation, Installation_en, economic_activity, economic_activity_en,
                  representative, representative_en, email, telephone, street, street_en, number, number_en,
-                 postcode, city, city_en, country, country_en, unlocode, sourcelatitude, sourcelongitude)
+                 postcode, city, city_en, country, country_en, unlocode, source_latitude, source_longitude)
             
             auth_logger.info(f"Company registered successfully: {Installation}")
             return {

@@ -246,16 +246,16 @@ const GasEmissionReport: React.FC = () => {
   const t = texts[language];
 
   return (
-    <div className="max-w-6xl mx-auto p-6 bg-white">
+    <div className="max-w-6xl mx-auto p-6 bg-gray-900 text-white">
       {/* 언어 전환 버튼 */}
       <div className="flex justify-end mb-4">
-        <div className="flex bg-gray-100 rounded-lg p-1">
+        <div className="flex bg-gray-700 rounded-lg p-1">
           <button
             onClick={() => setLanguage('ko')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               language === 'ko' 
-                ? 'bg-white text-gray-900 shadow-sm' 
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-blue-600 text-white shadow-sm' 
+                : 'text-gray-300 hover:text-white'
             }`}
           >
             한국어
@@ -264,8 +264,8 @@ const GasEmissionReport: React.FC = () => {
             onClick={() => setLanguage('en')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               language === 'en' 
-                ? 'bg-white text-gray-900 shadow-sm' 
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-blue-600 text-white shadow-sm' 
+                : 'text-gray-300 hover:text-white'
             }`}
           >
             English
@@ -275,7 +275,7 @@ const GasEmissionReport: React.FC = () => {
 
       {/* 보고서 헤더 */}
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">{t.title}</h1>
+        <h1 className="text-3xl font-bold text-white mb-6">{t.title}</h1>
         
         {/* 발행자 및 발행일자 */}
         <div className="flex justify-between items-center mb-6">
@@ -307,7 +307,7 @@ const GasEmissionReport: React.FC = () => {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="border border-gray-300 rounded px-3 py-2 bg-gray-100"
+              className="border border-gray-600 rounded px-3 py-2 bg-gray-700 text-white"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -316,7 +316,7 @@ const GasEmissionReport: React.FC = () => {
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="border border-gray-300 rounded px-3 py-2 bg-gray-100"
+              className="border border-gray-600 rounded px-3 py-2 bg-gray-700 text-white"
             />
           </div>
         </div>
@@ -328,43 +328,43 @@ const GasEmissionReport: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium min-w-[120px]">{t.installationName}:</span>
-            <div className="bg-gray-100 px-3 py-2 rounded flex-1">
+            <div className="bg-gray-700 px-3 py-2 rounded flex-1 text-white">
               {companyInfo?.company_name || 'N/A'}
             </div>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium min-w-[120px]">{t.address}:</span>
-            <div className="bg-gray-100 px-3 py-2 rounded flex-1">
+            <div className="bg-gray-700 px-3 py-2 rounded flex-1 text-white">
               {companyInfo?.address || 'N/A'}
             </div>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium min-w-[120px]">{t.postCode}:</span>
-            <div className="bg-gray-100 px-3 py-2 rounded flex-1">
+            <div className="bg-gray-700 px-3 py-2 rounded flex-1 text-white">
               {companyInfo?.postal_code || 'N/A'}
             </div>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium min-w-[120px]">{t.city}:</span>
-            <div className="bg-gray-100 px-3 py-2 rounded flex-1">
+            <div className="bg-gray-700 px-3 py-2 rounded flex-1 text-white">
               {companyInfo?.city || 'N/A'}
             </div>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium min-w-[120px]">{t.country}:</span>
-            <div className="bg-gray-100 px-3 py-2 rounded flex-1">
+            <div className="bg-gray-700 px-3 py-2 rounded flex-1 text-white">
               {companyInfo?.country || 'N/A'}
             </div>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium min-w-[120px]">{t.unlocode}:</span>
-            <div className="bg-gray-100 px-3 py-2 rounded flex-1">
+            <div className="bg-gray-700 px-3 py-2 rounded flex-1 text-white">
               {companyInfo?.unlocode || 'N/A'}
             </div>
           </div>
           <div className="flex items-center gap-2 col-span-full">
             <span className="text-sm font-medium min-w-[200px]">{t.coordinates}:</span>
-            <div className="bg-gray-100 px-3 py-2 rounded flex-1">
+            <div className="bg-gray-700 px-3 py-2 rounded flex-1 text-white">
               {companyInfo?.coordinates || 'N/A'}
             </div>
           </div>
@@ -381,10 +381,10 @@ const GasEmissionReport: React.FC = () => {
           </div>
         ) : (
           productData.map((product, productIndex) => (
-            <div key={productIndex} className="mb-6 border border-gray-200 rounded-lg p-4">
+            <div key={productIndex} className="mb-6 border border-gray-600 rounded-lg p-4 bg-gray-800">
               <div className="flex items-center gap-2 mb-4">
                 <span className="text-sm font-medium">{t.product}:</span>
-                <div className="bg-gray-100 px-3 py-2 rounded flex-1">
+                <div className="bg-gray-700 px-3 py-2 rounded flex-1 text-white">
                   {product.cn_code ? `${product.cn_code} / ` : ''}{product.product_name}
                 </div>
               </div>
@@ -394,10 +394,10 @@ const GasEmissionReport: React.FC = () => {
               </div>
               
               {product.processes.map((process, processIndex) => (
-                <div key={processIndex} className="mb-4 border border-gray-100 rounded p-3">
+                <div key={processIndex} className="mb-4 border border-gray-600 rounded p-3 bg-gray-700">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="text-sm font-medium">{t.route}:</span>
-                    <div className="bg-gray-100 px-3 py-1 rounded text-sm">
+                    <div className="bg-gray-600 px-3 py-1 rounded text-sm text-white">
                       {processIndex + 1}
                     </div>
                   </div>
@@ -407,13 +407,13 @@ const GasEmissionReport: React.FC = () => {
                     <div className="space-y-2">
                       <div className="text-sm font-medium">{t.ingredient1}</div>
                       <div className="flex gap-2">
-                        <div className="bg-gray-100 px-2 py-1 rounded text-xs flex-1">
+                        <div className="bg-gray-600 px-2 py-1 rounded text-xs flex-1 text-white">
                           {process.materials[0]?.name || 'N/A'}
                         </div>
-                        <div className="bg-gray-100 px-2 py-1 rounded text-xs w-20 text-center">
+                        <div className="bg-gray-600 px-2 py-1 rounded text-xs w-20 text-center text-white">
                           {process.materials[0]?.emission?.toFixed(2) || '0.00'}
                         </div>
-                        <div className="bg-gray-100 px-2 py-1 rounded text-xs w-16 text-center">
+                        <div className="bg-gray-600 px-2 py-1 rounded text-xs w-16 text-center text-white">
                           {process.materials[0] ? 'Y' : 'N'}
                         </div>
                       </div>
@@ -423,13 +423,13 @@ const GasEmissionReport: React.FC = () => {
                     <div className="space-y-2">
                       <div className="text-sm font-medium">{t.ingredient2}</div>
                       <div className="flex gap-2">
-                        <div className="bg-gray-100 px-2 py-1 rounded text-xs flex-1">
+                        <div className="bg-gray-600 px-2 py-1 rounded text-xs text-white flex-1">
                           {process.materials[1]?.name || 'N/A'}
                         </div>
-                        <div className="bg-gray-100 px-2 py-1 rounded text-xs w-20 text-center">
+                        <div className="bg-gray-600 px-2 py-1 rounded text-xs text-white w-20 text-center">
                           {process.materials[1]?.emission?.toFixed(2) || '0.00'}
                         </div>
-                        <div className="bg-gray-100 px-2 py-1 rounded text-xs w-16 text-center">
+                        <div className="bg-gray-600 px-2 py-1 rounded text-xs text-white w-16 text-center">
                           {process.materials[1] ? 'Y' : 'N'}
                         </div>
                       </div>
@@ -439,13 +439,13 @@ const GasEmissionReport: React.FC = () => {
                     <div className="space-y-2">
                       <div className="text-sm font-medium">{t.fuel1}</div>
                       <div className="flex gap-2">
-                        <div className="bg-gray-100 px-2 py-1 rounded text-xs flex-1">
+                        <div className="bg-gray-600 px-2 py-1 rounded text-xs text-white flex-1">
                           {process.fuels[0]?.name || 'N/A'}
                         </div>
-                        <div className="bg-gray-100 px-2 py-1 rounded text-xs w-20 text-center">
+                        <div className="bg-gray-600 px-2 py-1 rounded text-xs text-white w-20 text-center">
                           {process.fuels[0]?.emission?.toFixed(2) || '0.00'}
                         </div>
-                        <div className="bg-gray-100 px-2 py-1 rounded text-xs w-16 text-center">
+                        <div className="bg-gray-600 px-2 py-1 rounded text-xs text-white w-16 text-center">
                           {process.fuels[0] ? 'Y' : 'N'}
                         </div>
                       </div>
@@ -455,13 +455,13 @@ const GasEmissionReport: React.FC = () => {
                     <div className="space-y-2">
                       <div className="text-sm font-medium">{t.fuel2}</div>
                       <div className="flex gap-2">
-                        <div className="bg-gray-100 px-2 py-1 rounded text-xs flex-1">
+                        <div className="bg-gray-600 px-2 py-1 rounded text-xs text-white flex-1">
                           {process.fuels[1]?.name || 'N/A'}
                         </div>
-                        <div className="bg-gray-100 px-2 py-1 rounded text-xs w-20 text-center">
+                        <div className="bg-gray-600 px-2 py-1 rounded text-xs text-white w-20 text-center">
                           {process.fuels[1]?.emission?.toFixed(2) || '0.00'}
                         </div>
-                        <div className="bg-gray-100 px-2 py-1 rounded text-xs w-16 text-center">
+                        <div className="bg-gray-600 px-2 py-1 rounded text-xs text-white w-16 text-center">
                           {process.fuels[1] ? 'Y' : 'N'}
                         </div>
                       </div>
@@ -494,13 +494,13 @@ const GasEmissionReport: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium min-w-[80px]">{t.email}:</span>
-            <div className="bg-gray-100 px-3 py-2 rounded flex-1">
+            <div className="bg-gray-700 px-3 py-2 rounded flex-1 text-white">
               {companyInfo?.email || 'N/A'}
             </div>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium min-w-[80px]">{t.phone}:</span>
-            <div className="bg-gray-100 px-3 py-2 rounded flex-1">
+            <div className="bg-gray-700 px-3 py-2 rounded flex-1 text-white">
               {companyInfo?.phone || 'N/A'}
             </div>
           </div>
@@ -510,8 +510,8 @@ const GasEmissionReport: React.FC = () => {
       {/* 공식 회사 인장 */}
       <div className="flex justify-end">
         <div className="text-center">
-          <div className="border-2 border-dashed border-gray-300 w-32 h-20 flex items-center justify-center mb-2">
-            <span className="text-xs text-gray-500">{t.officialStamp}</span>
+          <div className="border-2 border-dashed border-gray-600 w-32 h-20 flex items-center justify-center mb-2">
+            <span className="text-xs text-gray-400">{t.officialStamp}</span>
           </div>
         </div>
       </div>

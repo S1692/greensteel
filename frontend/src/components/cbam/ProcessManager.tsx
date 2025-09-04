@@ -57,9 +57,9 @@ const edgeTypes: EdgeTypes = { custom: CustomEdge };
    내부 컴포넌트
 ============================================================================ */
 function ProcessManagerInner() {
-  // 로컬 모드 상태
-  const [isLocalMode, setIsLocalMode] = useState(isLocalGraphMode());
+  // 로컬 모드 상태 (항상 활성화)
   const [localGraphState, setLocalGraphState] = useState<GraphState | null>(null);
+  const [selectedNodeInfo, setSelectedNodeInfo] = useState<any>(null);
 
   // 커스텀 훅 사용
   const {
@@ -118,19 +118,48 @@ function ProcessManagerInner() {
     return 'continue'; // 기본값
   }, []);
 
+  // 노드 클릭 핸들러
+  const handleNodeClick = useCallback((event: React.MouseEvent, node: any) => {
+    console.log('🔍 노드 클릭:', node);
+    
+    if (localGraphState) {
+      if (node.type === 'process') {
+        const processId = parseInt(node.id);
+        const processData = localGraphState.processesById[processId];
+        if (processData) {
+          setSelectedNodeInfo({
+            type: 'process',
+            id: processId,
+            data: processData,
+            nodeInfo: node
+          });
+        }
+      } else if (node.type === 'product') {
+        const productId = parseInt(node.id);
+        const productData = localGraphState.productsById[productId];
+        if (productData) {
+          setSelectedNodeInfo({
+            type: 'product',
+            id: productId,
+            data: productData,
+            nodeInfo: node
+          });
+        }
+      }
+    }
+  }, [localGraphState]);
+
   // 로컬 스토리지 변경 이벤트 리스너
   useEffect(() => {
     const handleLocalStorageUpdate = () => {
-      if (isLocalMode) {
-        loadLocalGraphState();
-      }
+      loadLocalGraphState();
     };
 
     window.addEventListener('cbam:ls:updated', handleLocalStorageUpdate);
     return () => {
       window.removeEventListener('cbam:ls:updated', handleLocalStorageUpdate);
     };
-  }, [isLocalMode, loadLocalGraphState]);
+  }, [loadLocalGraphState]);
 
   // 컴포넌트 마운트 시 데이터 초기화
   useEffect(() => {
@@ -138,26 +167,16 @@ function ProcessManagerInner() {
       try {
         console.log('🚀 ProcessManager 데이터 초기화 시작');
         
-        if (isLocalMode) {
-          // 로컬 모드: 로컬 스토리지에서 데이터 로드
-          loadLocalGraphState();
-          console.log('✅ 로컬 모드 데이터 초기화 완료');
-        } else {
-          // 서버 모드: 기존 API 호출
-          await Promise.all([
-            fetchInstalls(),
-            fetchProducts(),
-            fetchProcesses()
-          ]);
-          console.log('✅ 서버 모드 데이터 초기화 완료');
-        }
+        // 로컬 모드: 로컬 스토리지에서 데이터 로드
+        loadLocalGraphState();
+        console.log('✅ 로컬 모드 데이터 초기화 완료');
       } catch (error) {
         console.error('❌ ProcessManager 데이터 초기화 실패:', error);
       }
     };
 
     initializeData();
-  }, [fetchInstalls, fetchProducts, fetchProcesses, isLocalMode, loadLocalGraphState]);
+  }, [loadLocalGraphState]);
 
   // 사업장 선택 시 해당 사업장의 제품들 조회
   useEffect(() => {
@@ -423,24 +442,9 @@ function ProcessManagerInner() {
             <p className="text-gray-300">CBAM 배출량 산정을 위한 경계를 설정하고 노드를 생성합니다.</p>
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm">로컬 모드:</span>
-              <button
-                onClick={() => setIsLocalMode(!isLocalMode)}
-                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                  isLocalMode 
-                    ? 'bg-green-600 text-white' 
-                    : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                }`}
-              >
-                {isLocalMode ? 'ON' : 'OFF'}
-              </button>
+            <div className="text-xs text-green-400">
+              로컬 스토리지 모드 활성화
             </div>
-            {isLocalMode && (
-              <div className="text-xs text-green-400">
-                로컬 스토리지 모드 활성화
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -473,8 +477,10 @@ function ProcessManagerInner() {
 
       </div>
 
-      {/* ReactFlow 캔버스 */}
-      <div className="flex-1 relative">
+      {/* 메인 컨텐츠 영역 */}
+      <div className="flex-1 flex">
+        {/* ReactFlow 캔버스 */}
+        <div className="flex-1 relative">
                  {/* 디버깅 정보 */}
          <div className="absolute top-2 right-2 bg-black bg-opacity-75 text-white p-2 rounded text-xs z-10">
            <div>노드 수: {nodes.length}</div>
@@ -483,10 +489,10 @@ function ProcessManagerInner() {
            <div>모드: Loose (다중 핸들 연결 가능)</div>
            <div>핸들 수: {nodes.reduce((acc, node) => acc + (node.data?.showHandles ? 4 : 0), 0)}</div>
            <div>최대 연결 가능: {nodes.length * 4}</div>
-           <div className={`${isLocalMode ? 'text-green-400' : 'text-gray-400'}`}>
-             로컬 모드: {isLocalMode ? 'ON' : 'OFF'}
+           <div className="text-green-400">
+             로컬 모드: ON
            </div>
-           {isLocalMode && localGraphState && (
+           {localGraphState && (
              <div className="text-blue-400">
                로컬 공정: {Object.keys(localGraphState.processesById).length}
                <br />
@@ -507,24 +513,20 @@ function ProcessManagerInner() {
           edges={edges}
           onNodesChange={(changes) => {
             onNodesChange(changes);
-            // 로컬 모드에서 React Flow 데이터 저장
-            if (isLocalMode) {
-              const updatedNodes = nodes.map(node => {
-                const change = changes.find(c => 'id' in c && c.id === node.id);
-                if (change && change.type === 'position' && 'position' in change) {
-                  return { ...node, position: change.position };
-                }
-                return node;
-              });
-              saveReactFlowData(updatedNodes, edges);
-            }
+            // React Flow 데이터 저장
+            const updatedNodes = nodes.map(node => {
+              const change = changes.find(c => 'id' in c && c.id === node.id);
+              if (change && change.type === 'position' && 'position' in change) {
+                return { ...node, position: change.position };
+              }
+              return node;
+            });
+            saveReactFlowData(updatedNodes, edges);
           }}
           onEdgesChange={(changes) => {
             onEdgesChange(changes);
-            // 로컬 모드에서 React Flow 데이터 저장
-            if (isLocalMode) {
-              saveReactFlowData(nodes, edges);
-            }
+            // React Flow 데이터 저장
+            saveReactFlowData(nodes, edges);
           }}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
@@ -533,6 +535,7 @@ function ProcessManagerInner() {
           deleteKeyCode="Delete"
           className="bg-gray-900"
           fitView
+          onNodeClick={handleNodeClick}
           onConnectStart={(event, params) => {
             console.log('🔗 4방향 연결 시작:', params);
             handleConnectStart(event, params);
@@ -544,29 +547,27 @@ function ProcessManagerInner() {
               console.log('✅ 연결 검증 통과, 연결 처리 시작');
               handleConnect(params);
               
-              // 로컬 모드에서 엣지 저장
-              if (isLocalMode) {
-                const sourceNode = nodes.find(n => n.id === params.source);
-                const targetNode = nodes.find(n => n.id === params.target);
+              // 엣지 저장
+              const sourceNode = nodes.find(n => n.id === params.source);
+              const targetNode = nodes.find(n => n.id === params.target);
+              
+              if (sourceNode && targetNode) {
+                const edgeKind = determineEdgeKind(sourceNode, targetNode);
+                const newEdge: Edge = {
+                  id: getNextId('edge'),
+                  source_node_type: sourceNode.type === 'product' ? 'product' : 'process',
+                  source_id: parseInt(sourceNode.id),
+                  target_node_type: targetNode.type === 'product' ? 'product' : 'process',
+                  target_id: parseInt(targetNode.id),
+                  edge_kind: edgeKind,
+                  source: params.source,
+                  target: params.target,
+                  type: 'custom',
+                  data: { edgeKind }
+                };
                 
-                if (sourceNode && targetNode) {
-                  const edgeKind = determineEdgeKind(sourceNode, targetNode);
-                  const newEdge: Edge = {
-                    id: getNextId('edge'),
-                    source_node_type: sourceNode.type === 'product' ? 'product' : 'process',
-                    source_id: parseInt(sourceNode.id),
-                    target_node_type: targetNode.type === 'product' ? 'product' : 'process',
-                    target_id: parseInt(targetNode.id),
-                    edge_kind: edgeKind,
-                    source: params.source,
-                    target: params.target,
-                    type: 'custom',
-                    data: { edgeKind }
-                  };
-                  
-                  addEdge(newEdge);
-                  console.log('✅ 로컬 엣지 저장 완료:', newEdge);
-                }
+                addEdge(newEdge);
+                console.log('✅ 로컬 엣지 저장 완료:', newEdge);
               }
             } else {
               console.log(`❌ 연결 검증 실패: ${validation.reason}`, params);
@@ -598,6 +599,135 @@ function ProcessManagerInner() {
             position="bottom-right"
           />
         </ReactFlow>
+        </div>
+
+        {/* 노드 정보 사이드바 */}
+        <div className="w-80 bg-gray-800 border-l border-gray-700 p-4 overflow-y-auto">
+          <h3 className="text-lg font-semibold text-white mb-4">노드 정보</h3>
+          
+          {selectedNodeInfo ? (
+            <div className="space-y-4">
+              {/* 노드 타입 표시 */}
+              <div className="bg-gray-700 p-3 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`w-3 h-3 rounded-full ${
+                    selectedNodeInfo.type === 'process' ? 'bg-blue-500' : 'bg-green-500'
+                  }`}></div>
+                  <span className="text-white font-medium">
+                    {selectedNodeInfo.type === 'process' ? '공정 노드' : '제품 노드'}
+                  </span>
+                </div>
+                <div className="text-gray-300 text-sm">
+                  ID: {selectedNodeInfo.id}
+                </div>
+              </div>
+
+              {/* 공정 노드 정보 */}
+              {selectedNodeInfo.type === 'process' && (
+                <div className="space-y-3">
+                  <div className="bg-gray-700 p-3 rounded-lg">
+                    <h4 className="text-white font-medium mb-2">공정 정보</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">공정명:</span>
+                        <span className="text-white">{selectedNodeInfo.data.process_name || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">직접 배출량:</span>
+                        <span className="text-white">{selectedNodeInfo.data.attrdir_em?.toFixed(2) || '0.00'} tCO2e</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">누적 배출량:</span>
+                        <span className="text-white">{selectedNodeInfo.data.cumulative_emission?.toFixed(2) || '0.00'} tCO2e</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">원료 배출량:</span>
+                        <span className="text-white">{selectedNodeInfo.data.total_matdir_emission?.toFixed(2) || '0.00'} tCO2e</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">연료 배출량:</span>
+                        <span className="text-white">{selectedNodeInfo.data.total_fueldir_emission?.toFixed(2) || '0.00'} tCO2e</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 제품 노드 정보 */}
+              {selectedNodeInfo.type === 'product' && (
+                <div className="space-y-3">
+                  <div className="bg-gray-700 p-3 rounded-lg">
+                    <h4 className="text-white font-medium mb-2">제품 정보</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">제품명:</span>
+                        <span className="text-white">{selectedNodeInfo.data.product_name || 'N/A'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">생산량:</span>
+                        <span className="text-white">{selectedNodeInfo.data.product_amount || '0'} t</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">국내 판매:</span>
+                        <span className="text-white">{selectedNodeInfo.data.product_sell || '0'} t</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">EU 판매:</span>
+                        <span className="text-white">{selectedNodeInfo.data.product_eusell || '0'} t</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">저장된 배출량:</span>
+                        <span className="text-white">{selectedNodeInfo.data.attr_em?.toFixed(2) || '0.00'} tCO2e</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">프리뷰 배출량:</span>
+                        <span className="text-white">{selectedNodeInfo.data.preview_attr_em?.toFixed(2) || '0.00'} tCO2e</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 연결된 엣지 정보 */}
+              <div className="bg-gray-700 p-3 rounded-lg">
+                <h4 className="text-white font-medium mb-2">연결 정보</h4>
+                <div className="space-y-2 text-sm">
+                  {localGraphState && (
+                    <>
+                      {localGraphState.edges
+                        .filter(edge => 
+                          edge.source_id === selectedNodeInfo.id || edge.target_id === selectedNodeInfo.id
+                        )
+                        .map(edge => (
+                          <div key={edge.id} className="flex justify-between items-center">
+                            <span className="text-gray-400">
+                              {edge.edge_kind === 'continue' ? '연속' : 
+                               edge.edge_kind === 'produce' ? '생산' : '소비'}
+                            </span>
+                            <span className="text-white">
+                              {edge.source_id === selectedNodeInfo.id ? 
+                                `→ ${edge.target_id}` : 
+                                `${edge.source_id} →`}
+                            </span>
+                          </div>
+                        ))}
+                      {localGraphState.edges.filter(edge => 
+                        edge.source_id === selectedNodeInfo.id || edge.target_id === selectedNodeInfo.id
+                      ).length === 0 && (
+                        <div className="text-gray-400">연결된 엣지 없음</div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-gray-400 text-center py-8">
+              노드를 클릭하면<br />
+              상세 정보를 확인할 수 있습니다
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 모달들 */}

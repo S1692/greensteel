@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNodesState, useEdgesState, Node, Edge, Connection } from '@xyflow/react';
 import axiosClient, { apiEndpoints } from '@/lib/axiosClient';
 import { Install, Product, Process } from './useProcessManager';
+import { loadReactFlowData } from '@/lib/localGraph';
 
 interface ProcessCanvasData {
   nodes: Node[];
@@ -43,6 +44,24 @@ export const useProcessCanvas = (selectedInstall: Install | null) => {
       }));
     }
   }, [nodes, edges, activeInstallId]);
+
+  // 컴포넌트 마운트 시 로컬 스토리지에서 React Flow 데이터 로드
+  useEffect(() => {
+    const loadPersistedData = () => {
+      try {
+        const { nodes: persistedNodes, edges: persistedEdges } = loadReactFlowData();
+        if (persistedNodes.length > 0 || persistedEdges.length > 0) {
+          setNodes(persistedNodes);
+          setEdges(persistedEdges);
+          console.log('✅ 로컬 스토리지에서 React Flow 데이터 로드 완료:', persistedNodes.length, '노드,', persistedEdges.length, '엣지');
+        }
+      } catch (error) {
+        console.error('❌ 로컬 스토리지에서 React Flow 데이터 로드 실패:', error);
+      }
+    };
+
+    loadPersistedData();
+  }, []); // 컴포넌트 마운트 시 한 번만 실행
 
   // selectedInstall 변경 시 캔버스 상태 복원 (안전한 상태 업데이트)
   useEffect(() => {

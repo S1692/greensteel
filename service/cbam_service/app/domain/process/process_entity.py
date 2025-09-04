@@ -1,5 +1,5 @@
 # 🔄 Process Entity - 공정 데이터베이스 모델
-from sqlalchemy import Column, Integer, Text, DateTime, Date
+from sqlalchemy import Column, Integer, BigInteger, Text, DateTime, Date
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from typing import Dict, Any, List
@@ -12,7 +12,7 @@ class Process(Base):
     
     __tablename__ = "process"
     
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(BigInteger, primary_key=True, index=True)
     process_name = Column(Text, nullable=False, index=True)  # 프로세스명
     start_period = Column(Date, nullable=False)  # 시작일
     end_period = Column(Date, nullable=False)  # 종료일

@@ -2,7 +2,7 @@
 # 🔗 ProductProcess Entity - 제품-공정 중간 테이블 엔티티
 # ============================================================================
 
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Numeric
+from sqlalchemy import Column, Integer, BigInteger, String, DateTime, ForeignKey, Numeric
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from typing import Dict, Any
@@ -17,7 +17,7 @@ class ProductProcess(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     product_id = Column(Integer, ForeignKey("product.id"), nullable=False, index=True)  # 제품 ID
-    process_id = Column(Integer, ForeignKey("process.id"), nullable=False, index=True)  # 공정 ID
+    process_id = Column(BigInteger, ForeignKey("process.id"), nullable=False, index=True)  # 공정 ID
     consumption_amount = Column(Numeric(15, 6), default=0)  # 제품 소비량 (consume 엣지용)
     created_at = Column(DateTime(timezone=True), default=datetime.now)
     updated_at = Column(DateTime(timezone=True), default=datetime.now, onupdate=datetime.now)

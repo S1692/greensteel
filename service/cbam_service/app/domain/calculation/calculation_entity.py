@@ -21,7 +21,7 @@ class ProcessAttrdirEmission(Base):
     __tablename__ = "process_attrdir_emission"
     
     id = Column(Integer, primary_key=True, index=True)
-    process_id = Column(Integer, ForeignKey("process.id", ondelete="CASCADE"), nullable=False, index=True)
+    process_id = Column(BigInteger, ForeignKey("process.id", ondelete="CASCADE"), nullable=False, index=True)
     total_matdir_emission = Column(Numeric(15, 6), nullable=False, default=0, comment="총 원료직접배출량")
     total_fueldir_emission = Column(Numeric(15, 6), nullable=False, default=0, comment="총 연료직접배출량")
     attrdir_em = Column(Numeric(15, 6), nullable=False, default=0, comment="직접귀속배출량 (원료+연료)")

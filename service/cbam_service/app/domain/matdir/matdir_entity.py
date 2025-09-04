@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey, Text, Index
+from sqlalchemy import Column, Integer, BigInteger, String, Numeric, DateTime, ForeignKey, Text, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy.ext.declarative import declarative_base
@@ -13,7 +13,7 @@ class MatDir(Base):
     __tablename__ = "matdir"
 
     id = Column(Integer, primary_key=True, index=True)
-    process_id = Column(Integer, ForeignKey("process.id", ondelete="CASCADE"), nullable=False)
+    process_id = Column(BigInteger, ForeignKey("process.id", ondelete="CASCADE"), nullable=False)
     mat_name = Column(String(255), nullable=False, comment="투입된 원료명")
     mat_factor = Column(Numeric(10, 6), nullable=False, comment="배출계수")
     mat_amount = Column(Numeric(15, 6), nullable=False, comment="투입된 원료량")

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Text, DateTime, Index
+from sqlalchemy import Column, Integer, BigInteger, Text, DateTime, Index
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from typing import Dict, Any
@@ -16,9 +16,9 @@ class Edge(Base):
     
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     source_node_type = Column(Text, nullable=False, index=True)  # 소스 노드 타입 (USER-DEFINED)
-    source_id = Column(Integer, nullable=False, index=True)  # 소스 노드 ID
+    source_id = Column(BigInteger, nullable=False, index=True)  # 소스 노드 ID
     target_node_type = Column(Text, nullable=False, index=True)  # 타겟 노드 타입 (USER-DEFINED)
-    target_id = Column(Integer, nullable=False, index=True)  # 타겟 노드 ID
+    target_id = Column(BigInteger, nullable=False, index=True)  # 타겟 노드 ID
     edge_kind = Column(Text, nullable=False)  # 엣지 종류 (USER-DEFINED: consume/produce/continue)
     created_at = Column(DateTime(timezone=False), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=False), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

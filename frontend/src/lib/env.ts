@@ -8,6 +8,7 @@ export const env = {
   NEXT_PUBLIC_ENABLE_CBAM: process.env.NEXT_PUBLIC_ENABLE_CBAM === 'true',
   NEXT_PUBLIC_ENABLE_DATA_UPLOAD:
     process.env.NEXT_PUBLIC_ENABLE_DATA_UPLOAD === 'true',
+  NEXT_PUBLIC_LOCAL_GRAPH: process.env.NEXT_PUBLIC_LOCAL_GRAPH === '1',
 } as const;
 
 // Gateway URL이 유효한지 확인 (환경 변수가 있을 때만)

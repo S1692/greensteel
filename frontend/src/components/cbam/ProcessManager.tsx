@@ -15,6 +15,23 @@ import { InstallModal } from '@/components/cbam/modals/InstallModal';
 
 import { useProcessManager, Process, Install, Product } from '@/hooks/useProcessManager';
 import { useProcessCanvas } from '@/hooks/useProcessCanvas';
+import { 
+  loadState, 
+  saveState, 
+  propagateFullGraph, 
+  addEdge, 
+  deleteEdge, 
+  upsertProcess, 
+  upsertProduct,
+  saveReactFlowData,
+  loadReactFlowData,
+  isLocalGraphMode,
+  getNextId,
+  type GraphState,
+  type Process as LocalProcess,
+  type Product as LocalProduct,
+  type Edge
+} from '@/lib/localGraph';
 
 import {
   ReactFlow,
@@ -40,6 +57,10 @@ const edgeTypes: EdgeTypes = { custom: CustomEdge };
    내부 컴포넌트
 ============================================================================ */
 function ProcessManagerInner() {
+  // 로컬 모드 상태
+  const [isLocalMode, setIsLocalMode] = useState(isLocalGraphMode());
+  const [localGraphState, setLocalGraphState] = useState<GraphState | null>(null);
+
   // 커스텀 훅 사용
   const {
     installs,
@@ -78,24 +99,65 @@ function ProcessManagerInner() {
     updateNodeData,
   } = useProcessCanvas(selectedInstall);
 
+  // 로컬 스토리지 상태 로드
+  const loadLocalGraphState = useCallback(() => {
+    const state = loadState();
+    setLocalGraphState(state);
+    console.log('✅ 로컬 그래프 상태 로드 완료:', state);
+  }, []);
+
+  // 엣지 종류 결정 함수
+  const determineEdgeKind = useCallback((sourceNode: any, targetNode: any): 'continue' | 'produce' | 'consume' => {
+    if (sourceNode.type === 'process' && targetNode.type === 'process') {
+      return 'continue';
+    } else if (sourceNode.type === 'process' && targetNode.type === 'product') {
+      return 'produce';
+    } else if (sourceNode.type === 'product' && targetNode.type === 'process') {
+      return 'consume';
+    }
+    return 'continue'; // 기본값
+  }, []);
+
+  // 로컬 스토리지 변경 이벤트 리스너
+  useEffect(() => {
+    const handleLocalStorageUpdate = () => {
+      if (isLocalMode) {
+        loadLocalGraphState();
+      }
+    };
+
+    window.addEventListener('cbam:ls:updated', handleLocalStorageUpdate);
+    return () => {
+      window.removeEventListener('cbam:ls:updated', handleLocalStorageUpdate);
+    };
+  }, [isLocalMode, loadLocalGraphState]);
+
   // 컴포넌트 마운트 시 데이터 초기화
   useEffect(() => {
     const initializeData = async () => {
       try {
         console.log('🚀 ProcessManager 데이터 초기화 시작');
-        await Promise.all([
-          fetchInstalls(),
-          fetchProducts(),
-          fetchProcesses()
-        ]);
-        console.log('✅ ProcessManager 데이터 초기화 완료');
+        
+        if (isLocalMode) {
+          // 로컬 모드: 로컬 스토리지에서 데이터 로드
+          loadLocalGraphState();
+          console.log('✅ 로컬 모드 데이터 초기화 완료');
+        } else {
+          // 서버 모드: 기존 API 호출
+          await Promise.all([
+            fetchInstalls(),
+            fetchProducts(),
+            fetchProcesses()
+          ]);
+          console.log('✅ 서버 모드 데이터 초기화 완료');
+        }
       } catch (error) {
         console.error('❌ ProcessManager 데이터 초기화 실패:', error);
       }
     };
 
     initializeData();
-  }, [fetchInstalls, fetchProducts, fetchProcesses]);
+  }, [fetchInstalls, fetchProducts, fetchProcesses, isLocalMode, loadLocalGraphState]);
 
   // 사업장 선택 시 해당 사업장의 제품들 조회
   useEffect(() => {
@@ -355,8 +417,32 @@ function ProcessManagerInner() {
     <div className="w-full h-full flex flex-col">
       {/* 헤더 */}
       <div className="bg-gray-900 text-white p-4">
-        <h1 className="text-2xl font-bold">CBAM 산정경계설정</h1>
-        <p className="text-gray-300">CBAM 배출량 산정을 위한 경계를 설정하고 노드를 생성합니다.</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold">CBAM 산정경계설정</h1>
+            <p className="text-gray-300">CBAM 배출량 산정을 위한 경계를 설정하고 노드를 생성합니다.</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm">로컬 모드:</span>
+              <button
+                onClick={() => setIsLocalMode(!isLocalMode)}
+                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                  isLocalMode 
+                    ? 'bg-green-600 text-white' 
+                    : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                }`}
+              >
+                {isLocalMode ? 'ON' : 'OFF'}
+              </button>
+            </div>
+            {isLocalMode && (
+              <div className="text-xs text-green-400">
+                로컬 스토리지 모드 활성화
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* 사업장 선택 */}
@@ -397,6 +483,18 @@ function ProcessManagerInner() {
            <div>모드: Loose (다중 핸들 연결 가능)</div>
            <div>핸들 수: {nodes.reduce((acc, node) => acc + (node.data?.showHandles ? 4 : 0), 0)}</div>
            <div>최대 연결 가능: {nodes.length * 4}</div>
+           <div className={`${isLocalMode ? 'text-green-400' : 'text-gray-400'}`}>
+             로컬 모드: {isLocalMode ? 'ON' : 'OFF'}
+           </div>
+           {isLocalMode && localGraphState && (
+             <div className="text-blue-400">
+               로컬 공정: {Object.keys(localGraphState.processesById).length}
+               <br />
+               로컬 제품: {Object.keys(localGraphState.productsById).length}
+               <br />
+               로컬 엣지: {localGraphState.edges.length}
+             </div>
+           )}
            <div className="mt-2 pt-2 border-t border-gray-600">
              <div className="text-yellow-400">🔗 연결 테스트</div>
              <div>노드 간 드래그하여 연결</div>
@@ -407,8 +505,27 @@ function ProcessManagerInner() {
         <ReactFlow
           nodes={nodes}
           edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
+          onNodesChange={(changes) => {
+            onNodesChange(changes);
+            // 로컬 모드에서 React Flow 데이터 저장
+            if (isLocalMode) {
+              const updatedNodes = nodes.map(node => {
+                const change = changes.find(c => 'id' in c && c.id === node.id);
+                if (change && change.type === 'position' && 'position' in change) {
+                  return { ...node, position: change.position };
+                }
+                return node;
+              });
+              saveReactFlowData(updatedNodes, edges);
+            }
+          }}
+          onEdgesChange={(changes) => {
+            onEdgesChange(changes);
+            // 로컬 모드에서 React Flow 데이터 저장
+            if (isLocalMode) {
+              saveReactFlowData(nodes, edges);
+            }
+          }}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           connectionMode={ConnectionMode.Loose}
@@ -426,6 +543,31 @@ function ProcessManagerInner() {
             if (validation.valid) {
               console.log('✅ 연결 검증 통과, 연결 처리 시작');
               handleConnect(params);
+              
+              // 로컬 모드에서 엣지 저장
+              if (isLocalMode) {
+                const sourceNode = nodes.find(n => n.id === params.source);
+                const targetNode = nodes.find(n => n.id === params.target);
+                
+                if (sourceNode && targetNode) {
+                  const edgeKind = determineEdgeKind(sourceNode, targetNode);
+                  const newEdge: Edge = {
+                    id: getNextId('edge'),
+                    source_node_type: sourceNode.type === 'product' ? 'product' : 'process',
+                    source_id: parseInt(sourceNode.id),
+                    target_node_type: targetNode.type === 'product' ? 'product' : 'process',
+                    target_id: parseInt(targetNode.id),
+                    edge_kind: edgeKind,
+                    source: params.source,
+                    target: params.target,
+                    type: 'custom',
+                    data: { edgeKind }
+                  };
+                  
+                  addEdge(newEdge);
+                  console.log('✅ 로컬 엣지 저장 완료:', newEdge);
+                }
+              }
             } else {
               console.log(`❌ 연결 검증 실패: ${validation.reason}`, params);
               alert(`연결이 유효하지 않습니다: ${validation.reason}`);

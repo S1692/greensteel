@@ -346,7 +346,7 @@ export default function GasEmissionReportPage() {
                   type="text"
                   value={HARDCODED_DATA.installation[language]}
                   readOnly
-                  className="w-32 px-2 py-1 border border-gray-300 rounded bg-gray-100"
+                  className="w-32 px-2 py-1 border border-gray-300 rounded bg-gray-50 text-gray-800"
                 />
               </div>
               <div className="flex items-center space-x-2">
@@ -355,7 +355,7 @@ export default function GasEmissionReportPage() {
                   type="date"
                   value="2024-01-15"
                   readOnly
-                  className="w-32 px-2 py-1 border border-gray-300 rounded bg-gray-100"
+                  className="w-32 px-2 py-1 border border-gray-300 rounded bg-gray-50 text-gray-800"
                 />
               </div>
             </div>
@@ -375,14 +375,14 @@ export default function GasEmissionReportPage() {
                   type="date"
                   value="2024-01-01"
                   readOnly
-                  className="px-3 py-2 border border-gray-300 rounded bg-gray-100"
+                  className="px-3 py-2 border border-gray-300 rounded bg-gray-50 text-gray-800"
                 />
                 <span>~</span>
                 <input
                   type="date"
                   value="2024-12-31"
                   readOnly
-                  className="px-3 py-2 border border-gray-300 rounded bg-gray-100"
+                  className="px-3 py-2 border border-gray-300 rounded bg-gray-50 text-gray-800"
                 />
               </div>
             </div>
@@ -390,20 +390,20 @@ export default function GasEmissionReportPage() {
             {/* 시설군 정보 */}
             <div className="mb-6">
               <h3 className="text-lg font-medium text-gray-800 mb-3">1. {t.facilityInfo}</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
                     {t.workplaceName}
                   </label>
                   <input
                     type="text"
                     value={HARDCODED_DATA.installation[language]}
                     readOnly
-                    className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100"
+                    className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-50 text-gray-800"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
                     {t.address}
                   </label>
                   <div className="space-y-2">
@@ -411,20 +411,20 @@ export default function GasEmissionReportPage() {
                       type="text"
                       value={HARDCODED_DATA.contact.street[language]}
                       readOnly
-                      className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100"
+                      className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-50 text-gray-800"
                     />
                     <div className="grid grid-cols-2 gap-2">
                       <input
                         type="text"
                         value={HARDCODED_DATA.location.country[language]}
                         readOnly
-                        className="px-3 py-2 border border-gray-300 rounded bg-gray-100"
+                        className="px-3 py-2 border border-gray-300 rounded bg-gray-50 text-gray-800"
                       />
                       <input
                         type="text"
                         value={HARDCODED_DATA.location.city[language]}
                         readOnly
-                        className="px-3 py-2 border border-gray-300 rounded bg-gray-100"
+                        className="px-3 py-2 border border-gray-300 rounded bg-gray-50 text-gray-800"
                       />
                     </div>
                     <div className="grid grid-cols-3 gap-2">
@@ -432,26 +432,26 @@ export default function GasEmissionReportPage() {
                         type="text"
                         value={HARDCODED_DATA.contact.postcode}
                         readOnly
-                        className="px-3 py-2 border border-gray-300 rounded bg-gray-100"
+                        className="px-3 py-2 border border-gray-300 rounded bg-gray-50 text-gray-800"
                       />
                       <input
                         type="text"
                         value={HARDCODED_DATA.contact.number[language]}
                         readOnly
-                        className="px-3 py-2 border border-gray-300 rounded bg-gray-100"
+                        className="px-3 py-2 border border-gray-300 rounded bg-gray-50 text-gray-800"
                       />
                       <input
                         type="text"
                         value={HARDCODED_DATA.location.unlocode}
                         readOnly
-                        className="px-3 py-2 border border-gray-300 rounded bg-gray-100"
+                        className="px-3 py-2 border border-gray-300 rounded bg-gray-50 text-gray-800"
                       />
                     </div>
                     <input
                       type="text"
                       value={`${HARDCODED_DATA.location.coordinates.latitude}, ${HARDCODED_DATA.location.coordinates.longitude}`}
                       readOnly
-                      className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100"
+                      className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-50 text-gray-800"
                     />
                   </div>
                 </div>
@@ -459,37 +459,35 @@ export default function GasEmissionReportPage() {
             </div>
           </div>
 
-         
+    
 
-          
-
-                
-          {/* 5. 연락처 */}
+                         
+          {/* 2. 연락처 */}
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              5. {t.contact}
+              2. {t.contact}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-600 mb-2">
                   {t.email}
                 </label>
                 <input
                   type="email"
                   value={HARDCODED_DATA.contact.email}
                   readOnly
-                  className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-50 text-gray-800"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-600 mb-2">
                   {t.representativeNumber}
                 </label>
                 <input
                   type="text"
                   value={HARDCODED_DATA.contact.telephone}
                   readOnly
-                  className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-50 text-gray-800"
                 />
               </div>
             </div>

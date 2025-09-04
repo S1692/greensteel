@@ -10,10 +10,11 @@ export default function LandingPage() {
   const [isMobile, setIsMobile] = useState(false);
   const [isPWAInstalled, setIsPWAInstalled] = useState(false);
   const [loginData, setLoginData] = useState({
-    username: '',
-    password: '',
-    companyId: ''
+    id: '',
+    password: ''
   });
+  const [loginType, setLoginType] = useState<'user' | 'company'>('user');
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     // 모바일 디바이스 감지
@@ -40,15 +41,55 @@ export default function LandingPage() {
   const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     
-    // 로그인 검증 로직
-    if (!loginData.username || !loginData.password || !loginData.companyId) {
-      alert('모든 필드를 입력해주세요.');
-      return;
-    }
+    setIsLoading(true);
     
-    // 로그인 성공 시 기업아이디와 유저아이디를 포함하여 리다이렉트
-    const redirectUrl = `/dashboard?companyId=${encodeURIComponent(loginData.companyId)}&userId=${encodeURIComponent(loginData.username)}`;
-    router.push(redirectUrl);
+    try {
+      // 로그인 검증 로직
+      if (!loginData.id || !loginData.password) {
+        alert('ID와 비밀번호를 모두 입력해주세요.');
+        return;
+      }
+      
+      // 임시 로그인 검증 (실제로는 API 호출)
+      const isValidLogin = await validateLogin(loginData.id, loginData.password, loginType);
+      
+      if (isValidLogin) {
+        // 로그인 성공 시 리다이렉트
+        const redirectUrl = `/dashboard?${loginType}Id=${encodeURIComponent(loginData.id)}`;
+        router.push(redirectUrl);
+      } else {
+        alert('ID 또는 비밀번호가 올바르지 않습니다.');
+      }
+    } catch (error) {
+      console.error('로그인 오류:', error);
+      alert('로그인 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 로그인 검증 함수 (임시 - 실제로는 API 호출)
+  const validateLogin = async (id: string, password: string, type: 'user' | 'company'): Promise<boolean> => {
+    // 임시 검증 로직 (실제로는 서버 API 호출)
+    await new Promise(resolve => setTimeout(resolve, 1000)); // 로딩 시뮬레이션
+    
+    // 임시 유효한 계정들
+    const validAccounts = {
+      user: [
+        { id: 'user1', password: 'password1' },
+        { id: 'user2', password: 'password2' },
+        { id: 'admin', password: 'admin123' }
+      ],
+      company: [
+        { id: 'company1', password: 'company123' },
+        { id: 'company2', password: 'company456' },
+        { id: 'greensteel', password: 'greensteel123' }
+      ]
+    };
+    
+    return validAccounts[type].some(account => 
+      account.id === id && account.password === password
+    );
   };
 
   const handleEnter = () => {
@@ -79,30 +120,42 @@ export default function LandingPage() {
           {/* 로그인 카드 */}
           <div className='bg-ecotrace-card rounded-2xl p-6 shadow-lg border border-white/10'>
             <div className='space-y-4'>
-              {/* 기업 ID 입력 필드 */}
-              <div className='text-left'>
-                <label className='block text-white text-sm font-medium mb-2'>
-                  기업 ID *
-                </label>
-                <Input
-                  type='text'
-                  value={loginData.companyId}
-                  onChange={(e) => setLoginData(prev => ({ ...prev, companyId: e.target.value }))}
-                  placeholder='예: company123'
-                  className='w-full bg-ecotrace-input border-white/20 text-white placeholder:text-white/50'
-                />
+              {/* 로그인 타입 탭 */}
+              <div className='flex bg-white/10 rounded-lg p-1'>
+                <button
+                  type='button'
+                  onClick={() => setLoginType('user')}
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                    loginType === 'user'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-white/70 hover:text-white'
+                  }`}
+                >
+                  사용자
+                </button>
+                <button
+                  type='button'
+                  onClick={() => setLoginType('company')}
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                    loginType === 'company'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-white/70 hover:text-white'
+                  }`}
+                >
+                  기업
+                </button>
               </div>
 
-              {/* 사용자 ID 입력 필드 */}
+              {/* ID 입력 필드 */}
               <div className='text-left'>
                 <label className='block text-white text-sm font-medium mb-2'>
-                  사용자 ID *
+                  {loginType === 'user' ? '사용자 ID' : '기업 ID'} *
                 </label>
                 <Input
                   type='text'
-                  value={loginData.username}
-                  onChange={(e) => setLoginData(prev => ({ ...prev, username: e.target.value }))}
-                  placeholder='예: smartuser'
+                  value={loginData.id}
+                  onChange={(e) => setLoginData(prev => ({ ...prev, id: e.target.value }))}
+                  placeholder={loginType === 'user' ? '예: user1, admin' : '예: company1, greensteel'}
                   className='w-full bg-ecotrace-input border-white/20 text-white placeholder:text-white/50'
                 />
               </div>
@@ -124,9 +177,10 @@ export default function LandingPage() {
               {/* 로그인 버튼 */}
               <Button
                 onClick={handleLogin}
-                className='w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-lg py-3 mt-6'
+                disabled={isLoading}
+                className='w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-lg py-3 mt-6 disabled:opacity-50'
               >
-                로그인
+                {isLoading ? '로그인 중...' : '로그인'}
               </Button>
 
               {/* 구분선 */}
@@ -142,9 +196,10 @@ export default function LandingPage() {
               {/* 들어가기 버튼 */}
               <Button
                 onClick={handleEnter}
-                className='w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-lg py-3'
+                disabled={isLoading}
+                className='w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-lg py-3 disabled:opacity-50'
               >
-                들어가기
+                {isLoading ? '로그인 중...' : '들어가기'}
               </Button>
 
               {/* 회원가입 버튼 */}
@@ -182,38 +237,46 @@ export default function LandingPage() {
         {/* 로그인 폼 */}
         <div className='bg-white/5 backdrop-blur-sm rounded-xl p-8 border border-white/10'>
           <form onSubmit={handleLogin} className='space-y-6'>
-            {/* 기업 ID 입력 */}
-            <div>
-              <label
-                htmlFor='companyId'
-                className='block text-sm font-medium text-white mb-2'
+            {/* 로그인 타입 탭 */}
+            <div className='flex bg-white/10 rounded-lg p-1'>
+              <button
+                type='button'
+                onClick={() => setLoginType('user')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                  loginType === 'user'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-white/70 hover:text-white'
+                }`}
               >
-                기업 ID *
-              </label>
-              <Input
-                id='companyId'
-                type='text'
-                value={loginData.companyId}
-                onChange={(e) => setLoginData(prev => ({ ...prev, companyId: e.target.value }))}
-                placeholder='예: company123'
-                className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
-              />
+                사용자
+              </button>
+              <button
+                type='button'
+                onClick={() => setLoginType('company')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                  loginType === 'company'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-white/70 hover:text-white'
+                }`}
+              >
+                기업
+              </button>
             </div>
 
-            {/* 사용자 ID 입력 */}
+            {/* ID 입력 */}
             <div>
               <label
-                htmlFor='username'
+                htmlFor='id'
                 className='block text-sm font-medium text-white mb-2'
               >
-                사용자 ID *
+                {loginType === 'user' ? '사용자 ID' : '기업 ID'} *
               </label>
               <Input
-                id='username'
+                id='id'
                 type='text'
-                value={loginData.username}
-                onChange={(e) => setLoginData(prev => ({ ...prev, username: e.target.value }))}
-                placeholder='예: smartuser'
+                value={loginData.id}
+                onChange={(e) => setLoginData(prev => ({ ...prev, id: e.target.value }))}
+                placeholder={loginType === 'user' ? '예: user1, admin' : '예: company1, greensteel'}
                 className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
               />
             </div>
@@ -240,9 +303,10 @@ export default function LandingPage() {
             <div className='flex justify-center'>
               <Button
                 type='submit'
-                className='w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors'
+                disabled={isLoading}
+                className='w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50'
               >
-                로그인
+                {isLoading ? '로그인 중...' : '로그인'}
               </Button>
             </div>
 
@@ -263,9 +327,10 @@ export default function LandingPage() {
               <Button
                 type='button'
                 onClick={handleEnter}
-                className='w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors'
+                disabled={isLoading}
+                className='w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50'
               >
-                들어가기
+                {isLoading ? '로그인 중...' : '들어가기'}
               </Button>
               <Button
                 type='button'

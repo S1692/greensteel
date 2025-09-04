@@ -220,6 +220,15 @@ async def health_check():
             content={"status": "error", "error": str(e)}
         )
 
+# Favicon 엔드포인트 (502 에러 방지)
+@app.get("/favicon.ico")
+async def favicon():
+    """Favicon 요청 처리"""
+    return JSONResponse(
+        status_code=204,  # No Content
+        content=None
+    )
+
 # AI 처리 관련 엔드포인트
 @app.post("/ai-process")
 async def ai_process_data(data: Dict[str, Any]):

@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, Dict, Any
 import uvicorn
+import httpx
 from huggingface_hub import InferenceClient
 
 from .infrastructure.database import database
@@ -27,7 +28,7 @@ logger = logging.getLogger(__name__)
 # Hugging Face API 설정
 HF_TOKEN = os.getenv("HF_TOKEN")
 HF_API_URL = os.getenv("HF_API_URL" )
-HF_MODEL = os.getenv("HF_MODEL", "Halftotter/korean-xlm-roberta-classifier")
+HF_MODEL = os.getenv("HF_MODEL", "Halftotter/flud")
 
 # Hugging Face InferenceClient 인스턴스
 hf_client = None
@@ -45,8 +46,9 @@ async def initialize_huggingface_model():
             logger.warning("⚠️ HF_TOKEN이 설정되지 않았습니다.")
             return
         
-        # Hugging Face InferenceClient 초기화 (model과 token 파라미터 사용)
-        hf_client = InferenceClient(model=HF_MODEL, token=HF_TOKEN)
+        # Hugging Face API 클라이언트 초기화 (커스텀 엔드포인트 사용)
+        # InferenceClient는 커스텀 엔드포인트를 지원하지 않으므로 httpx를 사용
+        hf_client = "initialized"  # httpx를 사용하므로 플래그만 설정
         logger.info(f"🤗 Hugging Face Inference API 초기화 완료")
         logger.info(f"  - 엔드포인트: {HF_API_URL}")
         logger.info(f"  - 모델: {HF_MODEL}")
@@ -66,8 +68,28 @@ async def generate_ai_recommendation(input_text: str) -> tuple[str, float]:
         
         logger.info(f"🤗 Hugging Face API 호출: '{classification_text}'")
         
-        # InferenceClient를 사용한 분류 호출
-        results = hf_client.text_classification(classification_text)
+        # httpx를 사용한 직접 API 호출 (커스텀 엔드포인트)
+        payload = {"inputs": classification_text}
+        
+        async with httpx.AsyncClient(
+            headers={
+                "Authorization": f"Bearer {HF_TOKEN}",
+                "Content-Type": "application/json"
+            },
+            timeout=30.0
+        ) as client:
+            response = await client.post(
+                HF_API_URL,  # 커스텀 엔드포인트 직접 사용
+                json=payload
+            )
+            
+            logger.info(f"🤗 API 응답 상태: {response.status_code}")
+            
+            if response.status_code == 200:
+                results = response.json()
+            else:
+                logger.error(f"⚠️ Hugging Face API 호출 실패: {response.status_code} - {response.text}")
+                return input_text, 0.0
         
         logger.info(f"🤗 API 응답 결과: {results}")
         

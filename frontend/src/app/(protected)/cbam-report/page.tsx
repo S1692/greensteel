@@ -472,116 +472,235 @@ export default function GasEmissionReportPage() {
               2. {t.productInfo}
             </h2>
             
-            {/* 품목군 */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t.productGroup}
-              </label>
-              <input
-                type="text"
-                placeholder={t.cnCode}
-                value={formData.productGroup}
-                onChange={(e) => handleFormChange('productGroup', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded"
-              />
-            </div>
+                         {/* 품목군 */}
+             <div className="mb-6">
+               <label className="block text-sm font-medium text-gray-700 mb-2">
+                 {t.productGroup}
+               </label>
+               <input
+                 type="text"
+                 placeholder={t.cnCode}
+                 value="홍석근"
+                 readOnly
+                 className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100"
+               />
+             </div>
 
-            {/* 생산 공정 */}
-            <div className="mb-6">
-              <h3 className="text-lg font-medium text-gray-800 mb-3">{t.productionProcess}</h3>
-              
-              {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <span className="ml-3 text-gray-600">제품 정보를 불러오는 중...</span>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {products.map((product) => (
-                    <div key={product.id} className="border border-gray-300 rounded-lg p-4">
-                      <h4 className="font-medium text-gray-800 mb-3">
-                        {product.cnCode} - {product.productName}
-                      </h4>
-                      
-                      {product.routes.map((route, routeIndex) => (
-                        <div key={route.id} className="mb-4">
-                          <h5 className="font-medium text-gray-700 mb-2">
-                            {route.name} / {t.productionVolume}
-                          </h5>
-                          
-                          <div className="overflow-x-auto">
-                            <table className="w-full border-collapse border border-gray-300">
-                              <thead>
-                                <tr className="bg-gray-50">
-                                  <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
-                                    {t.ingredient}/{t.fuel}
-                                  </th>
-                                  <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
-                                    {t.emission}
-                                  </th>
-                                  <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
-                                    {t.precursorMaterial}
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {route.ingredients.map((ingredient) => (
-                                  <tr key={ingredient.id}>
-                                    <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700">
-                                      {ingredient.name}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                      <input
-                                        type="number"
-                                        value={ingredient.emission}
-                                        onChange={(e) => {
-                                          // 실제 구현에서는 제품 데이터 업데이트 로직 필요
-                                        }}
-                                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                                      />
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                      <input
-                                        type="checkbox"
-                                        checked={ingredient.isAggregatedGoods}
-                                        onChange={(e) => {
-                                          // 실제 구현에서는 제품 데이터 업데이트 로직 필요
-                                        }}
-                                        className="w-4 h-4"
-                                      />
-                                    </td>
-                                  </tr>
-                                ))}
-                                {route.fuels.map((fuel) => (
-                                  <tr key={fuel.id}>
-                                    <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700">
-                                      {fuel.name}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                      <input
-                                        type="number"
-                                        value={fuel.emission}
-                                        onChange={(e) => {
-                                          // 실제 구현에서는 제품 데이터 업데이트 로직 필요
-                                        }}
-                                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                                      />
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                      <span className="text-gray-400">-</span>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+             {/* CN코드/제품명 */}
+             <div className="mb-6">
+               <label className="block text-sm font-medium text-gray-700 mb-2">
+                 CN코드/제품명
+               </label>
+               <input
+                 type="text"
+                 value="7200 - 고정도 강판"
+                 readOnly
+                 className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100"
+               />
+             </div>
+
+             {/* 생산 공정 */}
+             <div className="mb-6">
+               <h3 className="text-lg font-medium text-gray-800 mb-3">{t.productionProcess}</h3>
+               
+               <div className="space-y-6">
+                 <div className="border border-gray-300 rounded-lg p-4">
+                   <h4 className="font-medium text-gray-800 mb-3">
+                     7200 - 고정도 강판
+                   </h4>
+                   
+                   {/* Route 1 */}
+                   <div className="mb-4">
+                     <h5 className="font-medium text-gray-700 mb-2">
+                       Route 1 / 생산량
+                     </h5>
+                     
+                     <div className="overflow-x-auto">
+                       <table className="w-full border-collapse border border-gray-300">
+                         <thead>
+                           <tr className="bg-gray-50">
+                             <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                               원료/연료
+                             </th>
+                             <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                               배출량
+                             </th>
+                             <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                               전구물질 여부
+                             </th>
+                           </tr>
+                         </thead>
+                         <tbody>
+                           <tr>
+                             <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700">
+                               원료 1
+                             </td>
+                             <td className="border border-gray-300 px-3 py-2">
+                               <input
+                                 type="number"
+                                 value="0"
+                                 className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                               />
+                             </td>
+                             <td className="border border-gray-300 px-3 py-2">
+                               <input
+                                 type="checkbox"
+                                 checked={true}
+                                 className="w-4 h-4"
+                               />
+                             </td>
+                           </tr>
+                           <tr>
+                             <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700">
+                               원료 2
+                             </td>
+                             <td className="border border-gray-300 px-3 py-2">
+                               <input
+                                 type="number"
+                                 value="0"
+                                 className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                               />
+                             </td>
+                             <td className="border border-gray-300 px-3 py-2">
+                               <input
+                                 type="checkbox"
+                                 checked={true}
+                                 className="w-4 h-4"
+                               />
+                             </td>
+                           </tr>
+                           <tr>
+                             <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700">
+                               연료 1
+                             </td>
+                             <td className="border border-gray-300 px-3 py-2">
+                               <input
+                                 type="number"
+                                 value="0"
+                                 className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                               />
+                             </td>
+                             <td className="border border-gray-300 px-3 py-2">
+                               <span className="text-gray-400">-</span>
+                             </td>
+                           </tr>
+                           <tr>
+                             <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700">
+                               연료 2
+                             </td>
+                             <td className="border border-gray-300 px-3 py-2">
+                               <input
+                                 type="number"
+                                 value="0"
+                                 className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                               />
+                             </td>
+                             <td className="border border-gray-300 px-3 py-2">
+                               <span className="text-gray-400">-</span>
+                             </td>
+                           </tr>
+                         </tbody>
+                       </table>
+                     </div>
+                   </div>
+
+                   {/* Route 2 */}
+                   <div className="mb-4">
+                     <h5 className="font-medium text-gray-700 mb-2">
+                       Route 2 / 생산량
+                     </h5>
+                     
+                     <div className="overflow-x-auto">
+                       <table className="w-full border-collapse border border-gray-300">
+                         <thead>
+                           <tr className="bg-gray-50">
+                             <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                               원료/연료
+                             </th>
+                             <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                               배출량
+                             </th>
+                             <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
+                               전구물질 여부
+                             </th>
+                           </tr>
+                         </thead>
+                         <tbody>
+                           <tr>
+                             <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700">
+                               원료 1
+                             </td>
+                             <td className="border border-gray-300 px-3 py-2">
+                               <input
+                                 type="number"
+                                 value="0"
+                                 className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                               />
+                             </td>
+                             <td className="border border-gray-300 px-3 py-2">
+                               <input
+                                 type="checkbox"
+                                 checked={true}
+                                 className="w-4 h-4"
+                               />
+                             </td>
+                           </tr>
+                           <tr>
+                             <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700">
+                               원료 2
+                             </td>
+                             <td className="border border-gray-300 px-3 py-2">
+                               <input
+                                 type="number"
+                                 value="0"
+                                 className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                               />
+                             </td>
+                             <td className="border border-gray-300 px-3 py-2">
+                               <input
+                                 type="checkbox"
+                                 checked={true}
+                                 className="w-4 h-4"
+                               />
+                             </td>
+                           </tr>
+                           <tr>
+                             <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700">
+                               연료 1
+                             </td>
+                             <td className="border border-gray-300 px-3 py-2">
+                               <input
+                                 type="number"
+                                 value="0"
+                                 className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                               />
+                             </td>
+                             <td className="border border-gray-300 px-3 py-2">
+                               <span className="text-gray-400">-</span>
+                             </td>
+                           </tr>
+                           <tr>
+                             <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700">
+                               연료 2
+                             </td>
+                             <td className="border border-gray-300 px-3 py-2">
+                               <input
+                                 type="number"
+                                 value="0"
+                                 className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                               />
+                             </td>
+                             <td className="border border-gray-300 px-3 py-2">
+                               <span className="text-gray-400">-</span>
+                             </td>
+                           </tr>
+                         </tbody>
+                       </table>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+             </div>
           </div>
 
           {/* 3. 전구체 정보 */}

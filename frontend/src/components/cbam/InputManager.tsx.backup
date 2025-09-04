@@ -1,14 +1,16 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useMaterialMasterAPI } from '@/hooks/useMaterialMasterAPI';
+import React, { useState, useCallback, useEffect } from 'react';
+import axiosClient, { apiEndpoints } from '@/lib/axiosClient';
 import { useFuelMasterAPI } from '@/hooks/useFuelMasterAPI';
+import { useMaterialMasterAPI } from '@/hooks/useMaterialMasterAPI';
+import { FuelMaster, MaterialMaster } from '@/lib/types';
 
 interface InputManagerProps {
   selectedProcess: any;
-  selectedProduct?: any;
+  selectedProduct?: any; // 선택된 제품 정보 추가
   onClose: () => void;
-  onDataSaved?: () => void;
+  onDataSaved?: () => void; // 데이터 저장 후 콜백 추가
 }
 
 interface InputForm {
@@ -19,7 +21,7 @@ interface InputForm {
 }
 
 interface InputResult {
-  id: number;
+  id: number | string;
   name: string;
   factor: number;
   amount: number;
@@ -27,48 +29,68 @@ interface InputResult {
   emission: number;
   calculation_formula: string;
   type: 'matdir' | 'fueldir';
-  created_at: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export default function InputManager({ selectedProcess, selectedProduct, onClose, onDataSaved }: InputManagerProps) {
-  const { getMaterialMasterList } = useMaterialMasterAPI();
-  const { getAllFuels } = useFuelMasterAPI();
+  // Fuel Master API Hook
+  const { searchFuels, getFuelFactor, getAllFuels } = useFuelMasterAPI();
   
-  // 탭 상태
+  // Material Master API Hook
+  const { lookupMaterialByName, getMaterialMasterList } = useMaterialMasterAPI();
+
+  // 현재 활성 탭
   const [activeTab, setActiveTab] = useState<'matdir' | 'fueldir'>('matdir');
-  
-  // 폼 상태
+
+  // 입력 폼 상태
   const [matdirForm, setMatdirForm] = useState<InputForm>({
     name: '',
     factor: 0,
     amount: 0,
     oxyfactor: 1.0000
   });
-  
+
   const [fueldirForm, setFueldirForm] = useState<InputForm>({
     name: '',
     factor: 0,
     amount: 0,
     oxyfactor: 1.0000
   });
-  
+
   // 결과 목록
   const [inputResults, setInputResults] = useState<InputResult[]>([]);
-  
-  // 계산 상태
   const [isCalculating, setIsCalculating] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(false);
+
+  // Fuel Master 자동 배출계수 관련 상태
+  const [fuelSuggestions, setFuelSuggestions] = useState<FuelMaster[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [autoFactorStatus, setAutoFactorStatus] = useState<string>('');
   
-  // 마스터 테이블 데이터
+  // Material Master 자동 배출계수 관련 상태
+  const [materialSuggestions, setMaterialSuggestions] = useState<any[]>([]);
+  const [showMaterialSuggestions, setShowMaterialSuggestions] = useState(false);
+  const [materialAutoFactorStatus, setMaterialAutoFactorStatus] = useState<string>('');
+  
+  // 드롭다운을 위한 전체 목록 상태
   const [allMaterials, setAllMaterials] = useState<any[]>([]);
-  const [allFuels, setAllFuels] = useState<any[]>([]);
-  
-  // 드롭다운 상태
+  const [allFuels, setAllFuels] = useState<FuelMaster[]>([]);
   const [showMaterialDropdown, setShowMaterialDropdown] = useState(false);
   const [showFuelDropdown, setShowFuelDropdown] = useState(false);
   
   // 로컬 스토리지 input data에서 투입물명 목록
   const [inputMaterialNames, setInputMaterialNames] = useState<string[]>([]);
   const [inputFuelNames, setInputFuelNames] = useState<string[]>([]);
+
+  // 수정 모드 상태
+  const [editingResult, setEditingResult] = useState<InputResult | null>(null);
+  const [editForm, setEditForm] = useState<InputForm>({
+    name: '',
+    factor: 0,
+    amount: 0,
+    oxyfactor: 1.0000
+  });
 
   // ============================================================================
   // 📋 마스터 테이블 데이터 로드 (배출계수 계산용)
@@ -181,10 +203,11 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
   }, [selectedProduct]);
 
   // ============================================================================
-  // 🔍 기존 데이터 로드
+  // 🔍 기존 데이터 로드 (공정별 데이터는 제거하고 마스터 테이블만 사용)
   // ============================================================================
 
   const loadAllExistingData = useCallback(async () => {
+    // 로컬 스토리지에서 기존 계산 데이터 로드
     try {
       const existingData = localStorage.getItem('cbam_emission_calculations');
       if (existingData) {
@@ -198,7 +221,8 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
           emission: item.emission || 0,
           calculation_formula: item.calculation_formula || '',
           type: item.type === 'material' ? 'matdir' : 'fueldir',
-          created_at: item.created_at
+          created_at: item.created_at,
+          updated_at: item.updated_at
         }));
         setInputResults(results);
         console.log('✅ 로컬 스토리지에서 기존 데이터 로드 완료:', results.length, '개 항목');
@@ -212,11 +236,67 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
     }
   }, []);
 
+  // 컴포넌트 마운트 시 데이터 로드
+  useEffect(() => {
+    if (selectedProcess?.id) {
+      console.log('🚀 InputManager 초기화 시작...');
+      loadAllExistingData(); // 기존 계산 데이터 로드
+      loadAllMaterials(); // 마스터 테이블 로드 (배출계수 계산용)
+      loadAllFuels(); // 마스터 테이블 로드 (배출계수 계산용)
+      loadInputDataNames(); // 로컬 스토리지에서 투입물명 추출
+    }
+  }, [selectedProcess?.id, loadAllExistingData, loadAllMaterials, loadAllFuels, loadInputDataNames]);
+
+  // 외부 클릭 시 드롭다운 닫기
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.dropdown-container')) {
+        setShowMaterialDropdown(false);
+        setShowFuelDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // ============================================================================
+  // 🔥 배출량 계산
+  // ============================================================================
+
+  const calculateEmission = useCallback((form: InputForm): number => {
+    return form.amount * form.factor * form.oxyfactor;
+  }, []);
+
+  // ============================================================================
+  // 📝 폼 입력 처리
+  // ============================================================================
+
+  const handleMatdirInputChange = (field: keyof InputForm, value: string | number) => {
+    setMatdirForm(prev => {
+      const newForm = { ...prev, [field]: value };
+      return newForm;
+    });
+  };
+
+  const handleFueldirInputChange = (field: keyof InputForm, value: string | number) => {
+    setFueldirForm(prev => {
+      const newForm = { ...prev, [field]: value };
+      return newForm;
+    });
+  };
+
+
+
+
   // ============================================================================
   // 🔍 투입물명 선택 처리 (로컬 스토리지 + 마스터 테이블 매칭)
   // ============================================================================
 
-  const handleMaterialSelect = useCallback((selectedName: string) => {
+  const handleMaterialSelect = useCallback(async (selectedName: string) => {
     try {
       console.log('🔍 선택된 투입물명:', selectedName);
       
@@ -227,55 +307,43 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
                selectedName.toLowerCase().includes(matName.toLowerCase());
       });
       
-      // 로컬 스토리지에서 해당 투입물명의 수량 찾기
-      const storedData = localStorage.getItem('cbam_input_data');
-      let inputAmount = 0;
-      if (storedData) {
-        const parsedData = JSON.parse(storedData);
-        const inputDataArray = Array.isArray(parsedData) ? parsedData : (parsedData?.data || []);
-        const matchedItem = inputDataArray.find((item: any) => 
-          item.투입물명 === selectedName && 
-          selectedProduct && 
-          item.생산품명 === selectedProduct.product_name
-        );
-        if (matchedItem) {
-          inputAmount = matchedItem.수량 || 0;
-        }
-      }
-      
       if (matchedMaterial) {
         // 배출계수 자동 계산: mat_factor만 사용
         const matFactor = matchedMaterial.mat_factor || matchedMaterial.em_factor || 0;
+        const emissionFactor = matFactor;
         
-        setMatdirForm({
+        setMatdirForm(prev => ({
+          ...prev,
           name: selectedName,
-          factor: matFactor,
-          amount: inputAmount,
-          oxyfactor: 1.0000
-        });
+          factor: emissionFactor
+        }));
         
+        setMaterialAutoFactorStatus(`✅ ${selectedName} → ${matchedMaterial.mat_name || matchedMaterial.item_name} 자동 배출계수 적용: ${emissionFactor.toFixed(4)}`);
         console.log('✅ 마스터 테이블 매칭 성공:', matchedMaterial);
-        console.log('✅ 투입량 자동 설정:', inputAmount);
       } else {
         // 마스터 테이블에 일치하는 항목이 없는 경우
-        setMatdirForm({
+        setMatdirForm(prev => ({
+          ...prev,
           name: selectedName,
-          factor: 0,
-          amount: inputAmount,
-          oxyfactor: 1.0000
-        });
+          factor: 0
+        }));
         
+        setMaterialAutoFactorStatus(`⚠️ ${selectedName}에 해당하는 마스터 테이블 항목을 찾을 수 없습니다. 수동으로 배출계수를 입력해주세요.`);
         console.log('⚠️ 마스터 테이블 매칭 실패:', selectedName);
-        console.log('✅ 투입량 자동 설정:', inputAmount);
       }
       
+      setShowMaterialSuggestions(false);
       setShowMaterialDropdown(false);
+      
+      // 5초 후 상태 메시지 제거
+      setTimeout(() => setMaterialAutoFactorStatus(''), 5000);
     } catch (error) {
-      console.error('원료 선택 처리 실패:', error);
+      console.error('원료 배출계수 적용 실패:', error);
+      setMaterialAutoFactorStatus('❌ 배출계수 적용 실패');
     }
-  }, [allMaterials, selectedProduct]);
+  }, [allMaterials]);
 
-  const handleFuelSelect = useCallback((selectedName: string) => {
+  const handleFuelSelect = useCallback(async (selectedName: string) => {
     try {
       console.log('🔍 선택된 투입물명 (연료):', selectedName);
       
@@ -286,61 +354,45 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
                selectedName.toLowerCase().includes(fuelName.toLowerCase());
       });
       
-      // 로컬 스토리지에서 해당 투입물명의 수량 찾기
-      const storedData = localStorage.getItem('cbam_input_data');
-      let inputAmount = 0;
-      if (storedData) {
-        const parsedData = JSON.parse(storedData);
-        const inputDataArray = Array.isArray(parsedData) ? parsedData : (parsedData?.data || []);
-        const matchedItem = inputDataArray.find((item: any) => 
-          item.투입물명 === selectedName && 
-          selectedProduct && 
-          item.생산품명 === selectedProduct.product_name
-        );
-        if (matchedItem) {
-          inputAmount = matchedItem.수량 || 0;
-        }
-      }
-      
       if (matchedFuel) {
         // 배출계수 자동 계산: fuel_factor만 사용
         const fuelFactor = matchedFuel.fuel_factor || 0;
+        const emissionFactor = fuelFactor;
         
-        setFueldirForm({
+        setFueldirForm(prev => ({
+          ...prev,
           name: selectedName,
-          factor: fuelFactor,
-          amount: inputAmount,
-          oxyfactor: 1.0000
-        });
+          factor: emissionFactor
+        }));
         
+        setAutoFactorStatus(`✅ ${selectedName} → ${matchedFuel.fuel_name} 자동 배출계수 적용: ${emissionFactor.toFixed(4)}`);
         console.log('✅ 마스터 테이블 매칭 성공:', matchedFuel);
-        console.log('✅ 투입량 자동 설정:', inputAmount);
       } else {
         // 마스터 테이블에 일치하는 항목이 없는 경우
-        setFueldirForm({
+        setFueldirForm(prev => ({
+          ...prev,
           name: selectedName,
-          factor: 0,
-          amount: inputAmount,
-          oxyfactor: 1.0000
-        });
+          factor: 0
+        }));
         
+        setAutoFactorStatus(`⚠️ ${selectedName}에 해당하는 마스터 테이블 항목을 찾을 수 없습니다. 수동으로 배출계수를 입력해주세요.`);
         console.log('⚠️ 마스터 테이블 매칭 실패:', selectedName);
-        console.log('✅ 투입량 자동 설정:', inputAmount);
       }
       
+      setShowSuggestions(false);
       setShowFuelDropdown(false);
+      
+      // 5초 후 상태 메시지 제거
+      setTimeout(() => setAutoFactorStatus(''), 5000);
     } catch (error) {
-      console.error('연료 선택 처리 실패:', error);
+      console.error('연료 배출계수 적용 실패:', error);
+      setAutoFactorStatus('❌ 배출계수 적용 실패');
     }
-  }, [allFuels, selectedProduct]);
+  }, [allFuels]);
 
   // ============================================================================
   // 💾 데이터 저장
   // ============================================================================
-
-  const calculateEmission = (form: InputForm) => {
-    return form.amount * form.factor * form.oxyfactor;
-  };
 
   const saveMatdirData = useCallback(async () => {
     if (!matdirForm.name || matdirForm.amount <= 0) {
@@ -364,7 +416,7 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
     try {
       const emission = calculateEmission(matdirForm);
       
-      // 로컬 스토리지에 저장
+      // 로컬 스토리지에 저장 (이미지 요구사항에 따라)
       const localData = {
         id: Date.now(),
         type: 'material',
@@ -385,6 +437,11 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
       };
       
       console.log('🔍 원료직접배출량 저장 데이터:', localData);
+      console.log('🔍 selectedProcess 정보:', selectedProcess);
+      console.log('🔍 사업장 정보 확인:', {
+        install_id: selectedProcess?.install_id,
+        install_name: selectedProcess?.install_name
+      });
       
       // 기존 로컬 스토리지 데이터 가져오기
       const existingData = localStorage.getItem('cbam_emission_calculations');
@@ -416,6 +473,7 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
       });
 
       console.log('✅ 원료직접배출량 계산 완료:', newResult);
+      console.log('✅ 로컬 스토리지 저장 완료:', localData);
       
       // 콜백 호출
       if (onDataSaved) {
@@ -427,7 +485,7 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
     } finally {
       setIsCalculating(false);
     }
-  }, [matdirForm, allMaterials, selectedProcess, onDataSaved]);
+  }, [matdirForm, calculateEmission, onDataSaved, allMaterials]);
 
   const saveFueldirData = useCallback(async () => {
     if (!fueldirForm.name || fueldirForm.amount <= 0) {
@@ -451,7 +509,7 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
     try {
       const emission = calculateEmission(fueldirForm);
       
-      // 로컬 스토리지에 저장
+      // 로컬 스토리지에 저장 (이미지 요구사항에 따라)
       const localData = {
         id: Date.now(),
         type: 'fuel',
@@ -472,6 +530,11 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
       };
       
       console.log('🔍 연료직접배출량 저장 데이터:', localData);
+      console.log('🔍 selectedProcess 정보:', selectedProcess);
+      console.log('🔍 사업장 정보 확인:', {
+        install_id: selectedProcess?.install_id,
+        install_name: selectedProcess?.install_name
+      });
       
       // 기존 로컬 스토리지 데이터 가져오기
       const existingData = localStorage.getItem('cbam_emission_calculations');
@@ -503,6 +566,7 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
       });
 
       console.log('✅ 연료직접배출량 계산 완료:', newResult);
+      console.log('✅ 로컬 스토리지 저장 완료:', localData);
       
       // 콜백 호출
       if (onDataSaved) {
@@ -514,80 +578,122 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
     } finally {
       setIsCalculating(false);
     }
-  }, [fueldirForm, allFuels, selectedProcess, onDataSaved]);
+  }, [fueldirForm, calculateEmission, onDataSaved, allFuels]);
 
   // ============================================================================
-  // 🗑️ 데이터 삭제
+  // ✏️ 수정 모드
   // ============================================================================
 
-  const handleDelete = useCallback((id: number) => {
+  const handleEdit = (result: InputResult) => {
+    setEditingResult(result);
+    setEditForm({
+      name: result.name,
+      factor: result.factor,
+      amount: result.amount,
+      oxyfactor: result.oxyfactor
+    });
+  };
+
+  const handleEditSave = async () => {
+    if (!editingResult) return;
+
     try {
-      // 로컬 스토리지에서 삭제
+      const emission = calculateEmission(editForm);
+      
+      // 로컬 스토리지에서 해당 항목 찾아서 업데이트
       const existingData = localStorage.getItem('cbam_emission_calculations');
       if (existingData) {
-        const calculations = JSON.parse(existingData);
-        const updatedCalculations = calculations.filter((item: any) => item.id !== id);
-        localStorage.setItem('cbam_emission_calculations', JSON.stringify(updatedCalculations));
+        let calculations = JSON.parse(existingData);
+        const index = calculations.findIndex((item: any) => item.id === editingResult.id);
+        
+        if (index !== -1) {
+          calculations[index] = {
+            ...calculations[index],
+            ...editForm,
+            emission: emission,
+            calculation_formula: `${editForm.amount} × ${editForm.factor} × ${editForm.oxyfactor} = ${emission}`,
+            updated_at: new Date().toISOString()
+          };
+          localStorage.setItem('cbam_emission_calculations', JSON.stringify(calculations));
+        }
       }
       
-      // 화면에서 삭제
-      setInputResults(prev => prev.filter(result => result.id !== id));
+      // 화면 상태 업데이트
+      setInputResults(prev => prev.map(item => 
+        item.id === editingResult.id 
+          ? { ...item, ...editForm, emission, calculation_formula: `${editForm.amount} × ${editForm.factor} × ${editForm.oxyfactor} = ${emission}` }
+          : item
+      ));
       
-      console.log('✅ 데이터 삭제 완료:', id);
+      setEditingResult(null);
+      console.log('✅ 수정 완료:', editingResult.id);
       
       // 콜백 호출
       if (onDataSaved) {
         onDataSaved();
       }
     } catch (error) {
-      console.error('❌ 데이터 삭제 실패:', error);
+      console.error('❌ 수정 실패:', error);
+      alert('수정에 실패했습니다.');
     }
-  }, [onDataSaved]);
+  };
+
+  const handleEditCancel = () => {
+    setEditingResult(null);
+    setEditForm({
+      name: '',
+      factor: 0,
+      amount: 0,
+      oxyfactor: 1.0000
+    });
+  };
 
   // ============================================================================
-  // 📊 통계 계산
+  // 🗑️ 삭제
+  // ============================================================================
+
+  const handleDelete = async (result: InputResult) => {
+    if (!confirm('정말 삭제하시겠습니까?')) return;
+
+    try {
+      // 로컬 스토리지에서 해당 항목 삭제
+      const existingData = localStorage.getItem('cbam_emission_calculations');
+      if (existingData) {
+        let calculations = JSON.parse(existingData);
+        calculations = calculations.filter((item: any) => item.id !== result.id);
+        localStorage.setItem('cbam_emission_calculations', JSON.stringify(calculations));
+      }
+      
+      // 화면 상태에서도 삭제
+      setInputResults(prev => prev.filter(item => item.id !== result.id));
+      console.log('✅ 삭제 완료:', result.id);
+      
+      // 콜백 호출
+      if (onDataSaved) {
+        onDataSaved();
+      }
+    } catch (error) {
+      console.error('❌ 삭제 실패:', error);
+      alert('삭제에 실패했습니다.');
+    }
+  };
+
+  // ============================================================================
+  // 📊 총 배출량 계산
   // ============================================================================
 
   const totalMatdirEmission = inputResults
-    .filter(result => result.type === 'matdir')
-    .reduce((sum, result) => sum + result.emission, 0);
+    .filter(item => item.type === 'matdir')
+    .reduce((sum, item) => sum + item.emission, 0);
 
   const totalFueldirEmission = inputResults
-    .filter(result => result.type === 'fueldir')
-    .reduce((sum, result) => sum + result.emission, 0);
+    .filter(item => item.type === 'fueldir')
+    .reduce((sum, item) => sum + item.emission, 0);
 
   const totalEmission = totalMatdirEmission + totalFueldirEmission;
 
   // ============================================================================
-  // 🚀 초기화
-  // ============================================================================
-
-  useEffect(() => {
-    if (selectedProcess?.id) {
-      console.log('🚀 InputManager 초기화 시작...');
-      loadAllExistingData(); // 기존 계산 데이터 로드
-      loadAllMaterials(); // 마스터 테이블 로드 (배출계수 계산용)
-      loadAllFuels(); // 마스터 테이블 로드 (배출계수 계산용)
-      loadInputDataNames(); // 로컬 스토리지에서 투입물명 추출
-    }
-  }, [selectedProcess?.id, loadAllExistingData, loadAllMaterials, loadAllFuels, loadInputDataNames]);
-
-  // 외부 클릭 시 드롭다운 닫기
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (!target.closest('.dropdown-container')) {
-        setShowMaterialDropdown(false);
-        setShowFuelDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // ============================================================================
-  // 🎨 렌더링
+  // 🎨 UI 렌더링
   // ============================================================================
 
   if (!selectedProcess) {
@@ -609,7 +715,7 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-xl font-semibold text-white">
-              투입량 입력 - {selectedProcess.process_name}
+              입력물 관리 - {selectedProcess.process_name}
             </h2>
             <p className="text-gray-400 text-sm">
               공정 ID: {selectedProcess.id} | 총 배출량: {totalEmission.toFixed(2)} tCO2
@@ -624,36 +730,34 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
         </div>
 
         {/* 탭 네비게이션 */}
-        <div className="flex border-b border-gray-600 mb-6">
+        <div className="flex space-x-1 mb-6 bg-gray-700 p-1 rounded-lg">
           <button
             onClick={() => setActiveTab('matdir')}
-            className={`px-4 py-2 font-medium text-sm flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === 'matdir'
-                ? 'text-blue-400 border-b-2 border-blue-400'
-                : 'text-gray-400 hover:text-gray-200'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-300 hover:text-white'
             }`}
           >
-            <span>📊</span>
-            원료직접배출량
+            원료직접배출량 ({totalMatdirEmission.toFixed(2)} tCO2)
           </button>
           <button
             onClick={() => setActiveTab('fueldir')}
-            className={`px-4 py-2 font-medium text-sm flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === 'fueldir'
-                ? 'text-blue-400 border-b-2 border-blue-400'
-                : 'text-gray-400 hover:text-gray-200'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-300 hover:text-white'
             }`}
           >
-            <span>⛽</span>
-            연료직접배출량
+            연료직접배출량 ({totalFueldirEmission.toFixed(2)} tCO2)
           </button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* 왼쪽: 입력 폼 */}
+          {/* 입력 폼 */}
           <div className="bg-gray-700 p-4 rounded-lg">
             <h3 className="text-lg font-medium text-white mb-4">
-              + {activeTab === 'matdir' ? '원료' : '연료'} | 공정 배출 활동량
+              {activeTab === 'matdir' ? '원료' : '연료'} 입력
             </h3>
             
             {activeTab === 'matdir' ? (
@@ -672,10 +776,10 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
                       placeholder="드롭다운에서 선택하세요"
                       readOnly
                     />
-                    {showMaterialDropdown && (
-                      <div className="absolute top-full left-0 right-0 bg-gray-600 border border-gray-500 rounded-md mt-1 max-h-60 overflow-y-auto z-10">
+                    {showMaterialDropdown && inputMaterialNames.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 bg-gray-600 border border-gray-500 rounded-md mt-1 max-h-40 overflow-y-auto z-10">
                         {inputMaterialNames
-                          .filter(name =>
+                          .filter(name => 
                             name.toLowerCase().includes(matdirForm.name.toLowerCase())
                           )
                           .map((name, index) => (
@@ -693,37 +797,40 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
                       </div>
                     )}
                   </div>
+                  {materialAutoFactorStatus && (
+                    <p className="text-xs text-green-400 mt-1">{materialAutoFactorStatus}</p>
+                  )}
                 </div>
 
                 {/* 배출계수 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    배출계수 (수정 불가)
+                    배출계수 *
                   </label>
                   <input
                     type="number"
+                    step="0.0001"
                     value={matdirForm.factor}
-                    onChange={(e) => setMatdirForm(prev => ({ ...prev, factor: parseFloat(e.target.value) || 0 }))}
+                    onChange={(e) => handleMatdirInputChange('factor', parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white"
                     placeholder="0"
                   />
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-yellow-400">💡</span>
-                    <span className="text-xs text-gray-400">
-                      배출계수는 Master Table의 값만 사용 가능합니다
-                    </span>
+                  <div className="flex items-center mt-1 text-xs text-gray-400">
+                    <span className="mr-1">💡</span>
+                    <span>마스터 테이블 매칭 시 자동 계산, 매칭 실패 시 수동 입력</span>
                   </div>
                 </div>
 
-                {/* 투입량 */}
+                {/* 수량 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    투입된 원료량
+                    투입된 원료량 *
                   </label>
                   <input
                     type="number"
+                    step="0.01"
                     value={matdirForm.amount}
-                    onChange={(e) => setMatdirForm(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                    onChange={(e) => handleMatdirInputChange('amount', parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white"
                     placeholder="0"
                   />
@@ -738,13 +845,25 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
                     type="number"
                     step="0.0001"
                     value={matdirForm.oxyfactor}
-                    onChange={(e) => setMatdirForm(prev => ({ ...prev, oxyfactor: parseFloat(e.target.value) || 1.0000 }))}
+                    onChange={(e) => handleMatdirInputChange('oxyfactor', parseFloat(e.target.value) || 1)}
                     className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white"
-                    placeholder="1.0000"
+                    placeholder="1"
                   />
                 </div>
 
-                {/* 계산 버튼 */}
+                {/* 계산 결과 미리보기 */}
+                {matdirForm.amount > 0 && matdirForm.factor > 0 && (
+                  <div className="bg-gray-600 p-3 rounded-md">
+                    <div className="text-sm text-gray-300">
+                      예상 배출량: {calculateEmission(matdirForm).toFixed(4)} tCO2
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {matdirForm.amount} × {matdirForm.factor} × {matdirForm.oxyfactor}
+                    </div>
+                  </div>
+                )}
+
+                {/* 저장 버튼 */}
                 <button
                   onClick={saveMatdirData}
                   disabled={isCalculating || !matdirForm.name || matdirForm.amount <= 0}
@@ -769,10 +888,10 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
                       placeholder="드롭다운에서 선택하세요"
                       readOnly
                     />
-                    {showFuelDropdown && (
-                      <div className="absolute top-full left-0 right-0 bg-gray-600 border border-gray-500 rounded-md mt-1 max-h-60 overflow-y-auto z-10">
+                    {showFuelDropdown && inputFuelNames.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 bg-gray-600 border border-gray-500 rounded-md mt-1 max-h-40 overflow-y-auto z-10">
                         {inputFuelNames
-                          .filter(name =>
+                          .filter(name => 
                             name.toLowerCase().includes(fueldirForm.name.toLowerCase())
                           )
                           .map((name, index) => (
@@ -790,37 +909,40 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
                       </div>
                     )}
                   </div>
+                  {autoFactorStatus && (
+                    <p className="text-xs text-green-400 mt-1">{autoFactorStatus}</p>
+                  )}
                 </div>
 
                 {/* 배출계수 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    배출계수 (수정 불가)
+                    배출계수 *
                   </label>
                   <input
                     type="number"
+                    step="0.0001"
                     value={fueldirForm.factor}
-                    onChange={(e) => setFueldirForm(prev => ({ ...prev, factor: parseFloat(e.target.value) || 0 }))}
+                    onChange={(e) => handleFueldirInputChange('factor', parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white"
                     placeholder="0"
                   />
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-yellow-400">💡</span>
-                    <span className="text-xs text-gray-400">
-                      배출계수는 Master Table의 값만 사용 가능합니다
-                    </span>
+                  <div className="flex items-center mt-1 text-xs text-gray-400">
+                    <span className="mr-1">💡</span>
+                    <span>마스터 테이블 매칭 시 자동 계산, 매칭 실패 시 수동 입력</span>
                   </div>
                 </div>
 
-                {/* 투입량 */}
+                {/* 수량 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    투입된 연료량
+                    투입된 연료량 *
                   </label>
                   <input
                     type="number"
+                    step="0.01"
                     value={fueldirForm.amount}
-                    onChange={(e) => setFueldirForm(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                    onChange={(e) => handleFueldirInputChange('amount', parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white"
                     placeholder="0"
                   />
@@ -835,13 +957,25 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
                     type="number"
                     step="0.0001"
                     value={fueldirForm.oxyfactor}
-                    onChange={(e) => setFueldirForm(prev => ({ ...prev, oxyfactor: parseFloat(e.target.value) || 1.0000 }))}
+                    onChange={(e) => handleFueldirInputChange('oxyfactor', parseFloat(e.target.value) || 1.0000)}
                     className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white"
                     placeholder="1.0000"
                   />
                 </div>
 
-                {/* 계산 버튼 */}
+                {/* 계산 결과 미리보기 */}
+                {fueldirForm.amount > 0 && fueldirForm.factor > 0 && (
+                  <div className="bg-gray-600 p-3 rounded-md">
+                    <div className="text-sm text-gray-300">
+                      예상 배출량: {calculateEmission(fueldirForm).toFixed(4)} tCO2
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {fueldirForm.amount} × {fueldirForm.factor} × {fueldirForm.oxyfactor}
+                    </div>
+                  </div>
+                )}
+
+                {/* 저장 버튼 */}
                 <button
                   onClick={saveFueldirData}
                   disabled={isCalculating || !fueldirForm.name || fueldirForm.amount <= 0}
@@ -853,70 +987,129 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
             )}
           </div>
 
-          {/* 오른쪽: 입력된 목록 */}
+          {/* 결과 목록 */}
           <div className="bg-gray-700 p-4 rounded-lg">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-white">입력된 목록</h3>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-400">{inputResults.length}개</span>
-                <button
-                  onClick={() => {
-                    loadAllExistingData();
-                  }}
-                  className="text-gray-400 hover:text-gray-200"
-                >
-                  🔄
-                </button>
+            <h3 className="text-lg font-medium text-white mb-4">
+              {activeTab === 'matdir' ? '원료' : '연료'} 목록
+            </h3>
+            
+            {isLoadingData ? (
+              <div className="text-center py-8 text-gray-400">
+                데이터 로딩 중...
               </div>
-            </div>
-
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {inputResults.length === 0 ? (
-                <div className="text-center text-gray-400 py-8">
-                  입력된 데이터가 없습니다.
-                </div>
-              ) : (
-                inputResults.map((result) => (
-                  <div
-                    key={result.id}
-                    className="bg-gray-600 p-3 rounded-md border border-gray-500"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm font-medium text-white">
-                            {result.name}
-                          </span>
-                          <span className={`px-2 py-1 rounded text-xs ${
-                            result.type === 'matdir' 
-                              ? 'bg-blue-600 text-white' 
-                              : 'bg-green-600 text-white'
-                          }`}>
-                            {result.type === 'matdir' ? '원료' : '연료'}
-                          </span>
-                        </div>
-                        <div className="text-xs text-gray-300 space-y-1">
-                          <div>배출계수: {result.factor}</div>
-                          <div>투입량: {result.amount}</div>
-                          <div>산화계수: {result.oxyfactor}</div>
-                          <div className="font-medium text-white">
-                            배출량: {result.emission.toFixed(2)} tCO2
+            ) : inputResults.filter(item => item.type === activeTab).length === 0 ? (
+              <div className="text-center py-8 text-gray-400">
+                등록된 {activeTab === 'matdir' ? '원료' : '연료'}가 없습니다.
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {inputResults
+                  .filter(item => item.type === activeTab)
+                  .map((result) => (
+                    <div
+                      key={result.id}
+                      className="bg-gray-600 p-3 rounded-md border border-gray-500"
+                    >
+                      {editingResult?.id === result.id ? (
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            value={editForm.name}
+                            onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                            className="w-full px-2 py-1 bg-gray-500 border border-gray-400 rounded text-white text-sm"
+                          />
+                          <div className="grid grid-cols-3 gap-2">
+                            <input
+                              type="number"
+                              step="0.0001"
+                              value={editForm.factor}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, factor: parseFloat(e.target.value) || 0 }))}
+                              className="px-2 py-1 bg-gray-500 border border-gray-400 rounded text-white text-xs"
+                              placeholder="계수"
+                            />
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={editForm.amount}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                              className="px-2 py-1 bg-gray-500 border border-gray-400 rounded text-white text-xs"
+                              placeholder="수량"
+                            />
+                            <input
+                              type="number"
+                              step="0.0001"
+                              value={editForm.oxyfactor}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, oxyfactor: parseFloat(e.target.value) || 1.0000 }))}
+                              className="px-2 py-1 bg-gray-500 border border-gray-400 rounded text-white text-xs"
+                              placeholder="산화"
+                            />
                           </div>
-                          <div className="text-gray-400">
-                            {result.calculation_formula}
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={handleEditSave}
+                              className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded"
+                            >
+                              저장
+                            </button>
+                            <button
+                              onClick={handleEditCancel}
+                              className="px-2 py-1 bg-gray-600 hover:bg-gray-700 text-white text-xs rounded"
+                            >
+                              취소
+                            </button>
                           </div>
                         </div>
-                      </div>
-                      <button
-                        onClick={() => handleDelete(result.id)}
-                        className="text-red-400 hover:text-red-300 ml-2"
-                      >
-                        🗑️
-                      </button>
+                      ) : (
+                        <div>
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="font-medium text-white">{result.name}</div>
+                            <div className="flex space-x-1">
+                              <button
+                                onClick={() => handleEdit(result)}
+                                className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded"
+                              >
+                                수정
+                              </button>
+                              <button
+                                onClick={() => handleDelete(result)}
+                                className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded"
+                              >
+                                삭제
+                              </button>
+                            </div>
+                          </div>
+                          <div className="text-sm text-gray-300 space-y-1">
+                            <div>배출계수: {result.factor}</div>
+                            <div>수량: {result.amount}</div>
+                            <div>산화계수: {result.oxyfactor}</div>
+                            <div className="font-medium text-green-400">
+                              배출량: {result.emission.toFixed(4)} tCO2
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))
-              )}
+                  ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 하단 요약 */}
+        <div className="mt-6 bg-gray-700 p-4 rounded-lg">
+          <h3 className="text-lg font-medium text-white mb-3">배출량 요약</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-gray-600 p-3 rounded-md">
+              <div className="text-sm text-gray-300">원료직접배출량</div>
+              <div className="text-xl font-bold text-blue-400">{totalMatdirEmission.toFixed(4)} tCO2</div>
+            </div>
+            <div className="bg-gray-600 p-3 rounded-md">
+              <div className="text-sm text-gray-300">연료직접배출량</div>
+              <div className="text-xl font-bold text-green-400">{totalFueldirEmission.toFixed(4)} tCO2</div>
+            </div>
+            <div className="bg-gray-600 p-3 rounded-md">
+              <div className="text-sm text-gray-300">총 배출량</div>
+              <div className="text-xl font-bold text-white">{totalEmission.toFixed(4)} tCO2</div>
             </div>
           </div>
         </div>

@@ -89,14 +89,24 @@ def load_model():
 def predict_material(text):
     """텍스트를 입력받아 재료를 분류하는 함수"""
     try:
+        # 디버깅용 코드
+        print(f"입력 테스트: {text}")
+        
         # 텍스트 벡터화
         text_vector = vectorizer.transform([text]).toarray()
+        print(f"벡터화 후 형태: {text_vector.shape}")
+        
         text_tensor = torch.FloatTensor(text_vector)
+        print(f"텐서 형태: {text_tensor.shape}")
         
         # 예측
         with torch.no_grad():
             outputs = model(text_tensor)
+            print(f"모델 출력 형태: {outputs.shape}")
+            
             probabilities = F.softmax(outputs, dim=1)
+            print(f"확률 분포: {probabilities}")
+            
             predicted_class = torch.argmax(probabilities, dim=1).item()
         
         # 결과 반환
@@ -175,6 +185,62 @@ def get_labels():
         'total_count': len(label2id) if label2id else 0
     })
 
+@app.route('/debug', methods=['POST'])
+def debug_prediction():
+    """디버깅용 예측 엔드포인트 - 상세한 디버깅 정보 반환"""
+    try:
+        data = request.get_json()
+        
+        if not data or 'text' not in data:
+            return jsonify({
+                'error': '텍스트 입력이 필요합니다.'
+            }), 400
+        
+        text = data['text'].strip()
+        
+        if not text:
+            return jsonify({
+                'error': '빈 텍스트는 처리할 수 없습니다.'
+            }), 400
+        
+        # 디버깅 정보 수집
+        debug_info = {
+            'input_text': text,
+            'vectorizer_vocab_size': len(vectorizer.vocabulary_) if hasattr(vectorizer, 'vocabulary_') else 'Unknown',
+            'model_input_size': 3000,  # 고정된 input_size
+            'model_num_classes': len(id2label) if id2label else 'Unknown'
+        }
+        
+        # 텍스트 벡터화
+        text_vector = vectorizer.transform([text]).toarray()
+        debug_info['vector_shape'] = text_vector.shape.tolist()
+        debug_info['vector_nonzero_count'] = int(np.count_nonzero(text_vector))
+        
+        # 텐서 변환
+        text_tensor = torch.FloatTensor(text_vector)
+        debug_info['tensor_shape'] = list(text_tensor.shape)
+        
+        # 예측
+        with torch.no_grad():
+            outputs = model(text_tensor)
+            debug_info['model_output_shape'] = list(outputs.shape)
+            
+            probabilities = F.softmax(outputs, dim=1)
+            predicted_class = torch.argmax(probabilities, dim=1).item()
+            
+            debug_info['predicted_class_id'] = int(predicted_class)
+            debug_info['predicted_label'] = id2label[str(predicted_class)] if id2label else 'Unknown'
+            debug_info['confidence'] = float(probabilities[0][predicted_class].item())
+            debug_info['all_probabilities'] = probabilities[0].tolist()
+        
+        return jsonify(debug_info)
+        
+    except Exception as e:
+        logger.error(f"디버깅 API 오류: {str(e)}")
+        return jsonify({
+            'error': f'디버깅 중 오류가 발생했습니다: {str(e)}'
+        }), 500
+
 @app.route('/', methods=['GET'])
 def home():
     """홈페이지"""
@@ -183,6 +249,7 @@ def home():
         'version': '1.0.0',
         'endpoints': {
             'POST /predict': '텍스트를 입력받아 재료를 분류합니다.',
+            'POST /debug': '디버깅용 상세 정보를 반환합니다.',
             'GET /labels': '사용 가능한 라벨 목록을 반환합니다.',
             'GET /health': '서버 상태를 확인합니다.'
         }

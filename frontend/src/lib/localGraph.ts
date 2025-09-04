@@ -3,7 +3,6 @@
  * DB 없이 localStorage만으로 전파 규칙(continue/produce/consume)과 재계산 흐름을 구현
  */
 
-import { env } from './env';
 
 // ============================================================================
 // 타입 정의
@@ -418,7 +417,7 @@ function broadcastUpdate(): void {
 // ============================================================================
 
 export function isLocalGraphMode(): boolean {
-  return env.NEXT_PUBLIC_LOCAL_GRAPH;
+  return true; // 항상 하이브리드 모드로 작동
 }
 
 // ============================================================================

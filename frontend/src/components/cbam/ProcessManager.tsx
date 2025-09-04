@@ -410,11 +410,6 @@ function ProcessManagerInner() {
             <h1 className="text-2xl font-bold">CBAM 산정경계설정</h1>
             <p className="text-gray-300">CBAM 배출량 산정을 위한 경계를 설정하고 노드를 생성합니다.</p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="text-xs text-green-400">
-              로컬 스토리지 모드 활성화
-            </div>
-          </div>
         </div>
       </div>
 
@@ -458,9 +453,6 @@ function ProcessManagerInner() {
            <div>모드: Loose (다중 핸들 연결 가능)</div>
            <div>핸들 수: {nodes.reduce((acc, node) => acc + (node.data?.showHandles ? 4 : 0), 0)}</div>
            <div>최대 연결 가능: {nodes.length * 4}</div>
-           <div className="text-green-400">
-             로컬 모드: ON
-           </div>
            {localGraphState && (
              <div className="text-blue-400">
                로컬 공정: {Object.keys(localGraphState.processesById).length}

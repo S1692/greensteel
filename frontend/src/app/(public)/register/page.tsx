@@ -309,7 +309,7 @@ export default function RegisterPage() {
           country: formData.country,
           country_en: formData.country_en,
           country_code: formData.country_code,
-          unlocode: formData.unlocode,
+          unlocode: 'KR', // 자동으로 KR 설정
           source_latitude: formData.source_latitude,
           source_longitude: formData.source_longitude,
         }),
@@ -403,7 +403,7 @@ export default function RegisterPage() {
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
                   <div>
                     <label className='block text-sm font-medium text-white mb-2'>
-                      기업 ID *
+                      ID *
                     </label>
                     <div className='flex gap-2'>
                       <Input
@@ -784,20 +784,6 @@ export default function RegisterPage() {
                     />
                   </div>
 
-                  <div>
-                    <label className='block text-sm font-medium text-white mb-2'>
-                      UNLOCODE
-                    </label>
-                    <Input
-                      type='text'
-                      value={formData.unlocode}
-                      onChange={e =>
-                        handleInputChange('unlocode', e.target.value)
-                      }
-                      placeholder='UNLOCODE를 입력하세요 (예: KR, US, JP)'
-                      className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
-                    />
-                  </div>
                 </div>
               </div>
 

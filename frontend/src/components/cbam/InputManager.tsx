@@ -8,6 +8,7 @@ import { FuelMaster, MaterialMaster } from '@/lib/types';
 
 interface InputManagerProps {
   selectedProcess: any;
+  selectedProduct?: any; // 선택된 제품 정보 추가
   onClose: () => void;
   onDataSaved?: () => void; // 데이터 저장 후 콜백 추가
 }
@@ -32,7 +33,7 @@ interface InputResult {
   updated_at?: string;
 }
 
-export default function InputManager({ selectedProcess, onClose, onDataSaved }: InputManagerProps) {
+export default function InputManager({ selectedProcess, selectedProduct, onClose, onDataSaved }: InputManagerProps) {
   // Fuel Master API Hook
   const { searchFuels, getFuelFactor, getAllFuels } = useFuelMasterAPI();
   
@@ -77,6 +78,10 @@ export default function InputManager({ selectedProcess, onClose, onDataSaved }: 
   const [allFuels, setAllFuels] = useState<FuelMaster[]>([]);
   const [showMaterialDropdown, setShowMaterialDropdown] = useState(false);
   const [showFuelDropdown, setShowFuelDropdown] = useState(false);
+  
+  // 로컬 스토리지 input data에서 투입물명 목록
+  const [inputMaterialNames, setInputMaterialNames] = useState<string[]>([]);
+  const [inputFuelNames, setInputFuelNames] = useState<string[]>([]);
 
   // 수정 모드 상태
   const [editingResult, setEditingResult] = useState<InputResult | null>(null);
@@ -120,6 +125,59 @@ export default function InputManager({ selectedProcess, onClose, onDataSaved }: 
   }, [getAllFuels]);
 
   // ============================================================================
+  // 📋 로컬 스토리지 input data에서 투입물명 추출
+  // ============================================================================
+
+  const loadInputDataNames = useCallback(() => {
+    try {
+      console.log('🔍 로컬 스토리지 input data에서 투입물명 추출 시작...');
+      console.log('선택된 제품:', selectedProduct);
+      
+      // 로컬 스토리지에서 input data 가져오기
+      const storedData = localStorage.getItem('cbam_input_data');
+      if (storedData) {
+        const parsedData = JSON.parse(storedData);
+        let inputDataArray = [];
+        
+        // 데이터 구조에 따라 배열 추출
+        if (Array.isArray(parsedData)) {
+          inputDataArray = parsedData;
+        } else if (parsedData && parsedData.data && Array.isArray(parsedData.data)) {
+          inputDataArray = parsedData.data;
+        }
+        
+        // 선택된 제품에 해당하는 투입물명만 필터링
+        let filteredData = inputDataArray;
+        if (selectedProduct && selectedProduct.product_name) {
+          filteredData = inputDataArray.filter((item: any) => 
+            item.생산품명 === selectedProduct.product_name
+          );
+          console.log('제품별 필터링된 데이터:', filteredData.length, '개');
+        }
+        
+        // 투입물명 추출 및 중복 제거
+        const materialNames: string[] = [...new Set(
+          filteredData
+            .map((item: any) => item.투입물명)
+            .filter((name: string) => name && name.trim())
+        )] as string[];
+        
+        console.log('✅ 추출된 투입물명 목록:', materialNames);
+        setInputMaterialNames(materialNames);
+        setInputFuelNames(materialNames); // 연료도 동일한 투입물명 사용
+      } else {
+        console.log('⚠️ 로컬 스토리지에 input data가 없습니다.');
+        setInputMaterialNames([]);
+        setInputFuelNames([]);
+      }
+    } catch (error) {
+      console.error('❌ 투입물명 추출 실패:', error);
+      setInputMaterialNames([]);
+      setInputFuelNames([]);
+    }
+  }, [selectedProduct]);
+
+  // ============================================================================
   // 🔍 기존 데이터 로드 (공정별 데이터는 제거하고 마스터 테이블만 사용)
   // ============================================================================
 
@@ -159,8 +217,9 @@ export default function InputManager({ selectedProcess, onClose, onDataSaved }: 
       loadAllExistingData();
       loadAllMaterials();
       loadAllFuels();
+      loadInputDataNames();
     }
-  }, [selectedProcess?.id, loadAllExistingData, loadAllMaterials, loadAllFuels]);
+  }, [selectedProcess?.id, loadAllExistingData, loadAllMaterials, loadAllFuels, loadInputDataNames]);
 
   // 외부 클릭 시 드롭다운 닫기
   useEffect(() => {
@@ -257,57 +316,101 @@ export default function InputManager({ selectedProcess, onClose, onDataSaved }: 
     }
   }, []);
 
-  const handleMaterialSelect = useCallback(async (material: any) => {
+  const handleMaterialSelect = useCallback(async (selectedName: string) => {
     try {
-      // 배출계수 자동 계산: carbon_content × mat_factor
-      const carbonContent = material.carbon_content || material.carbon_factor || 0;
-      const matFactor = material.mat_factor || material.em_factor || 0;
-      const emissionFactor = carbonContent * matFactor;
+      console.log('🔍 선택된 투입물명:', selectedName);
       
-      const materialName = material.mat_name || material.item_name || material.name;
+      // 마스터 테이블에서 해당 투입물명과 일치하는 항목 찾기
+      const matchedMaterial = allMaterials.find(m => {
+        const matName = m.mat_name || m.item_name || '';
+        return matName.toLowerCase().includes(selectedName.toLowerCase()) || 
+               selectedName.toLowerCase().includes(matName.toLowerCase());
+      });
       
-      setMatdirForm(prev => ({
-        ...prev,
-        name: materialName,
-        factor: emissionFactor
-      }));
+      if (matchedMaterial) {
+        // 배출계수 자동 계산: carbon_content × mat_factor
+        const carbonContent = matchedMaterial.carbon_content || matchedMaterial.carbon_factor || 0;
+        const matFactor = matchedMaterial.mat_factor || matchedMaterial.em_factor || 0;
+        const emissionFactor = carbonContent * matFactor;
+        
+        setMatdirForm(prev => ({
+          ...prev,
+          name: selectedName,
+          factor: emissionFactor
+        }));
+        
+        setMaterialAutoFactorStatus(`✅ ${selectedName} → ${matchedMaterial.mat_name || matchedMaterial.item_name} 자동 배출계수 적용: ${emissionFactor.toFixed(4)}`);
+        console.log('✅ 마스터 테이블 매칭 성공:', matchedMaterial);
+      } else {
+        // 마스터 테이블에 일치하는 항목이 없는 경우
+        setMatdirForm(prev => ({
+          ...prev,
+          name: selectedName,
+          factor: 0
+        }));
+        
+        setMaterialAutoFactorStatus(`⚠️ ${selectedName}에 해당하는 마스터 테이블 항목을 찾을 수 없습니다. 수동으로 배출계수를 입력해주세요.`);
+        console.log('⚠️ 마스터 테이블 매칭 실패:', selectedName);
+      }
+      
       setShowMaterialSuggestions(false);
       setShowMaterialDropdown(false);
-      setMaterialAutoFactorStatus(`✅ ${materialName} 자동 배출계수 적용: ${emissionFactor.toFixed(4)}`);
       
-      // 3초 후 상태 메시지 제거
-      setTimeout(() => setMaterialAutoFactorStatus(''), 3000);
+      // 5초 후 상태 메시지 제거
+      setTimeout(() => setMaterialAutoFactorStatus(''), 5000);
     } catch (error) {
       console.error('원료 배출계수 적용 실패:', error);
       setMaterialAutoFactorStatus('❌ 배출계수 적용 실패');
     }
-  }, []);
+  }, [allMaterials]);
 
-  const handleFuelSelect = useCallback(async (fuel: any) => {
+  const handleFuelSelect = useCallback(async (selectedName: string) => {
     try {
-      // 배출계수 자동 계산: fuel_factor × net_calory
-      const fuelFactor = fuel.fuel_factor || 0;
-      const netCalory = fuel.net_calory || 0;
-      const emissionFactor = fuelFactor * netCalory;
+      console.log('🔍 선택된 투입물명 (연료):', selectedName);
       
-      const fuelName = fuel.fuel_name || fuel.name;
+      // 마스터 테이블에서 해당 투입물명과 일치하는 항목 찾기
+      const matchedFuel = allFuels.find(f => {
+        const fuelName = f.fuel_name || '';
+        return fuelName.toLowerCase().includes(selectedName.toLowerCase()) || 
+               selectedName.toLowerCase().includes(fuelName.toLowerCase());
+      });
       
-      setFueldirForm(prev => ({
-        ...prev,
-        name: fuelName,
-        factor: emissionFactor
-      }));
+      if (matchedFuel) {
+        // 배출계수 자동 계산: fuel_factor × net_calory
+        const fuelFactor = matchedFuel.fuel_factor || 0;
+        const netCalory = matchedFuel.net_calory || 0;
+        const emissionFactor = fuelFactor * netCalory;
+        
+        setFueldirForm(prev => ({
+          ...prev,
+          name: selectedName,
+          factor: emissionFactor
+        }));
+        
+        setAutoFactorStatus(`✅ ${selectedName} → ${matchedFuel.fuel_name} 자동 배출계수 적용: ${emissionFactor.toFixed(4)}`);
+        console.log('✅ 마스터 테이블 매칭 성공:', matchedFuel);
+      } else {
+        // 마스터 테이블에 일치하는 항목이 없는 경우
+        setFueldirForm(prev => ({
+          ...prev,
+          name: selectedName,
+          factor: 0
+        }));
+        
+        setAutoFactorStatus(`⚠️ ${selectedName}에 해당하는 마스터 테이블 항목을 찾을 수 없습니다. 수동으로 배출계수를 입력해주세요.`);
+        console.log('⚠️ 마스터 테이블 매칭 실패:', selectedName);
+      }
+      
       setShowSuggestions(false);
       setShowFuelDropdown(false);
-      setAutoFactorStatus(`✅ ${fuelName} 자동 배출계수 적용: ${emissionFactor.toFixed(4)}`);
       
-      // 3초 후 상태 메시지 제거
-      setTimeout(() => setAutoFactorStatus(''), 3000);
+      // 5초 후 상태 메시지 제거
+      setTimeout(() => setAutoFactorStatus(''), 5000);
     } catch (error) {
       console.error('연료 배출계수 적용 실패:', error);
       setAutoFactorStatus('❌ 배출계수 적용 실패');
     }
-  }, []);
+  }, [allFuels]);
 
   // ============================================================================
   // 💾 데이터 저장
@@ -319,23 +422,30 @@ export default function InputManager({ selectedProcess, onClose, onDataSaved }: 
       return;
     }
 
+    // 마스터 테이블에서 해당 투입물명과 일치하는 항목 찾기
+    const matchedMaterial = allMaterials.find(m => {
+      const matName = m.mat_name || m.item_name || '';
+      return matName.toLowerCase().includes(matdirForm.name.toLowerCase()) || 
+             matdirForm.name.toLowerCase().includes(matName.toLowerCase());
+    });
+
+    if (!matchedMaterial) {
+      alert('선택한 투입물명에 해당하는 마스터 테이블 항목을 찾을 수 없습니다.\n저장할 수 없습니다.');
+      return;
+    }
+
     setIsCalculating(true);
     try {
       const emission = calculateEmission(matdirForm);
-      
-      // 선택된 원료 정보 찾기
-      const selectedMaterial = allMaterials.find(m => 
-        (m.mat_name || m.item_name) === matdirForm.name
-      );
       
       // 로컬 스토리지에 저장 (이미지 요구사항에 따라)
       const localData = {
         id: Date.now(),
         type: 'material',
         mat_name: matdirForm.name,
-        mat_engname: selectedMaterial?.mat_engname || selectedMaterial?.item_eng || '',
-        carbon_content: selectedMaterial?.carbon_content || selectedMaterial?.carbon_factor || 0,
-        mat_factor: selectedMaterial?.mat_factor || selectedMaterial?.em_factor || 0,
+        mat_engname: matchedMaterial.mat_engname || matchedMaterial.item_eng || '',
+        carbon_content: matchedMaterial.carbon_content || matchedMaterial.carbon_factor || 0,
+        mat_factor: matchedMaterial.mat_factor || matchedMaterial.em_factor || 0,
         emission_factor: matdirForm.factor,
         amount: matdirForm.amount,
         oxyfactor: matdirForm.oxyfactor,
@@ -394,21 +504,30 @@ export default function InputManager({ selectedProcess, onClose, onDataSaved }: 
       return;
     }
 
+    // 마스터 테이블에서 해당 투입물명과 일치하는 항목 찾기
+    const matchedFuel = allFuels.find(f => {
+      const fuelName = f.fuel_name || '';
+      return fuelName.toLowerCase().includes(fueldirForm.name.toLowerCase()) || 
+             fueldirForm.name.toLowerCase().includes(fuelName.toLowerCase());
+    });
+
+    if (!matchedFuel) {
+      alert('선택한 투입물명에 해당하는 마스터 테이블 항목을 찾을 수 없습니다.\n저장할 수 없습니다.');
+      return;
+    }
+
     setIsCalculating(true);
     try {
       const emission = calculateEmission(fueldirForm);
-      
-      // 선택된 연료 정보 찾기
-      const selectedFuel = allFuels.find(f => f.fuel_name === fueldirForm.name);
       
       // 로컬 스토리지에 저장 (이미지 요구사항에 따라)
       const localData = {
         id: Date.now(),
         type: 'fuel',
         fuel_name: fueldirForm.name,
-        fuel_engname: selectedFuel?.fuel_engname || '',
-        fuel_factor: selectedFuel?.fuel_factor || 0,
-        net_calory: selectedFuel?.net_calory || 0,
+        fuel_engname: matchedFuel.fuel_engname || '',
+        fuel_factor: matchedFuel.fuel_factor || 0,
+        net_calory: matchedFuel.net_calory || 0,
         emission_factor: fueldirForm.factor,
         amount: fueldirForm.amount,
         oxyfactor: fueldirForm.oxyfactor,
@@ -660,21 +779,21 @@ export default function InputManager({ selectedProcess, onClose, onDataSaved }: 
                       className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white"
                       placeholder="예: 직접환원철, EAF 탄소 전극"
                     />
-                    {showMaterialDropdown && allMaterials.length > 0 && (
+                    {showMaterialDropdown && inputMaterialNames.length > 0 && (
                       <div className="absolute top-full left-0 right-0 bg-gray-600 border border-gray-500 rounded-md mt-1 max-h-40 overflow-y-auto z-10">
-                        {allMaterials
-                          .filter(material => 
-                            (material.mat_name || material.item_name || '').toLowerCase().includes(matdirForm.name.toLowerCase())
+                        {inputMaterialNames
+                          .filter(name => 
+                            name.toLowerCase().includes(matdirForm.name.toLowerCase())
                           )
-                          .map((material) => (
+                          .map((name, index) => (
                             <div
-                              key={material.id}
-                              onClick={() => handleMaterialSelect(material)}
+                              key={index}
+                              onClick={() => handleMaterialSelect(name)}
                               className="px-3 py-2 hover:bg-gray-500 cursor-pointer text-white text-sm"
                             >
-                              <div className="font-medium">{material.mat_name || material.item_name}</div>
+                              <div className="font-medium">{name}</div>
                               <div className="text-xs text-gray-300">
-                                {material.mat_engname || material.item_eng} | C: {material.carbon_content || material.carbon_factor || 0} | Factor: {material.mat_factor || material.em_factor || 0}
+                                로컬 스토리지 투입물명
                               </div>
                             </div>
                           ))}
@@ -689,19 +808,19 @@ export default function InputManager({ selectedProcess, onClose, onDataSaved }: 
                 {/* 배출계수 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    배출계수 (수정 불가) *
+                    배출계수 *
                   </label>
                   <input
                     type="number"
                     step="0.0001"
                     value={matdirForm.factor}
-                    readOnly
-                    className="w-full px-3 py-2 bg-gray-500 border border-gray-500 rounded-md text-white cursor-not-allowed"
+                    onChange={(e) => handleMatdirInputChange('factor', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white"
                     placeholder="0"
                   />
                   <div className="flex items-center mt-1 text-xs text-gray-400">
                     <span className="mr-1">💡</span>
-                    <span>배출계수는 Master Table의 값만 사용 가능합니다</span>
+                    <span>마스터 테이블 매칭 시 자동 계산, 매칭 실패 시 수동 입력</span>
                   </div>
                 </div>
 
@@ -775,21 +894,21 @@ export default function InputManager({ selectedProcess, onClose, onDataSaved }: 
                       className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white"
                       placeholder="예: 원유, 휘발유, 등유"
                     />
-                    {showFuelDropdown && allFuels.length > 0 && (
+                    {showFuelDropdown && inputFuelNames.length > 0 && (
                       <div className="absolute top-full left-0 right-0 bg-gray-600 border border-gray-500 rounded-md mt-1 max-h-40 overflow-y-auto z-10">
-                        {allFuels
-                          .filter(fuel => 
-                            (fuel.fuel_name || '').toLowerCase().includes(fueldirForm.name.toLowerCase())
+                        {inputFuelNames
+                          .filter(name => 
+                            name.toLowerCase().includes(fueldirForm.name.toLowerCase())
                           )
-                          .map((fuel) => (
+                          .map((name, index) => (
                             <div
-                              key={fuel.id}
-                              onClick={() => handleFuelSelect(fuel)}
+                              key={index}
+                              onClick={() => handleFuelSelect(name)}
                               className="px-3 py-2 hover:bg-gray-500 cursor-pointer text-white text-sm"
                             >
-                              <div className="font-medium">{fuel.fuel_name}</div>
+                              <div className="font-medium">{name}</div>
                               <div className="text-xs text-gray-300">
-                                {fuel.fuel_engname} | Factor: {fuel.fuel_factor || 0} | Calory: {fuel.net_calory || 0}
+                                로컬 스토리지 투입물명
                               </div>
                             </div>
                           ))}
@@ -804,19 +923,19 @@ export default function InputManager({ selectedProcess, onClose, onDataSaved }: 
                 {/* 배출계수 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    배출계수 (수정 불가) *
+                    배출계수 *
                   </label>
                   <input
                     type="number"
                     step="0.0001"
                     value={fueldirForm.factor}
-                    readOnly
-                    className="w-full px-3 py-2 bg-gray-500 border border-gray-500 rounded-md text-white cursor-not-allowed"
+                    onChange={(e) => handleFueldirInputChange('factor', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white"
                     placeholder="0"
                   />
                   <div className="flex items-center mt-1 text-xs text-gray-400">
                     <span className="mr-1">💡</span>
-                    <span>배출계수는 Master Table의 값만 사용 가능합니다</span>
+                    <span>마스터 테이블 매칭 시 자동 계산, 매칭 실패 시 수동 입력</span>
                   </div>
                 </div>
 

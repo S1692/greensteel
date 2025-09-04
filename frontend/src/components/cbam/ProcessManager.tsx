@@ -452,6 +452,7 @@ function ProcessManagerInner() {
       {showInputModal && selectedProcessForInput && (
         <InputManager
           selectedProcess={selectedProcessForInput}
+          selectedProduct={selectedProduct}
           onClose={() => setShowInputModal(false)}
           onDataSaved={refreshAllProcessEmissions} // 데이터 저장 후 배출량 정보 새로고침
         />

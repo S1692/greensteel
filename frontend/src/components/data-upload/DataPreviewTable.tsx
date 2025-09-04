@@ -115,16 +115,19 @@ const DataPreviewTable: React.FC<DataPreviewTableProps> = ({
                             </svg>
                             편집
                           </button>
-                          <button
-                            onClick={() => onDeleteRow(row.id)}
-                            className='bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs flex items-center gap-1'
-                          >
-                            <svg className='w-3 h-3' fill='currentColor' viewBox='0 0 20 20'>
-                              <path fillRule='evenodd' d='M9 2a1 1 0 000 2h2a1 1 0 100-2H9z' clipRule='evenodd' />
-                              <path fillRule='evenodd' d='M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z' clipRule='evenodd' />
-                            </svg>
-                            삭제
-                          </button>
+                          {/* 엑셀 데이터는 삭제 버튼을 표시하지 않음 */}
+                          {row.isNewlyAdded && (
+                            <button
+                              onClick={() => onDeleteRow(row.id)}
+                              className='bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs flex items-center gap-1'
+                            >
+                              <svg className='w-3 h-3' fill='currentColor' viewBox='0 0 20 20'>
+                                <path fillRule='evenodd' d='M9 2a1 1 0 000 2h2a1 1 0 100-2H9z' clipRule='evenodd' />
+                                <path fillRule='evenodd' d='M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z' clipRule='evenodd' />
+                              </svg>
+                              삭제
+                            </button>
+                          )}
                         </div>
                       )}
                     </td>

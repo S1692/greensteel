@@ -52,7 +52,6 @@ const InputFieldRenderer: React.FC<InputFieldRendererProps> = ({
   };
 
   const handleInputChange = (newValue: string) => {
-    const { isValid, errorMessage } = validateInput(column, newValue);
     onInputChange(row.id, column, newValue);
     
     if (column === '투입일' || column === '종료일') {
@@ -208,33 +207,13 @@ const InputFieldRenderer: React.FC<InputFieldRendererProps> = ({
     case '투입물_단위':
       return (
         <div className='relative'>
-          <select
+          <input
+            type='text'
             value={value}
-            onChange={(e) => onInputChange(row.id, column, e.target.value)}
+            onChange={(e) => handleInputChange(e.target.value)}
+            placeholder={column === '생산수량_단위' ? '생산수량 단위를 입력하세요 (예: kg, t, 개수)' : '투입물 단위를 입력하세요 (예: kg, t, 개수)'}
             className={getInputClassName()}
-          >
-            <option value=''>{column === '생산수량_단위' ? '생산수량 단위를 선택하세요' : '투입물 단위를 선택하세요'}</option>
-            <option value='t'>톤</option>
-            <option value='kg'>킬로그램</option>
-            <option value='개수'>개수</option>
-            <option value='kg/h'>킬로그램/시간</option>
-            <option value='kg/m'>킬로그램/미터</option>
-            <option value='kg/m2'>킬로그램/제곱미터</option>
-            <option value='kg/m3'>킬로그램/세제곱미터</option>
-            <option value='kg/L'>킬로그램/리터</option>
-            <option value='kg/m2/h'>킬로그램/제곱미터/시간</option>
-            <option value='kg/m3/h'>킬로그램/세제곱미터/시간</option>
-            <option value='kg/L/h'>킬로그램/리터/시간</option>
-            <option value='kg/m2/m'>킬로그램/제곱미터/미터</option>
-            <option value='kg/m3/m'>킬로그램/세제곱미터/미터</option>
-            <option value='kg/L/m'>킬로그램/리터/미터</option>
-            <option value='kg/m2/m2'>킬로그램/제곱미터/제곱미터</option>
-            <option value='kg/m3/m2'>킬로그램/세제곱미터/제곱미터</option>
-            <option value='kg/L/m2'>킬로그램/리터/제곱미터</option>
-            <option value='kg/m3/m3'>킬로그램/세제곱미터/세제곱미터</option>
-            <option value='kg/L/m3'>킬로그램/리터/세제곱미터</option>
-            <option value='kg/m2/m3'>킬로그램/제곱미터/세제곱미터</option>
-          </select>
+          />
           {isRequired && (
             <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
           )}

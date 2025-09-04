@@ -87,6 +87,7 @@ const CommonShell: React.FC<CommonShellProps> = ({ children }) => {
       { name: '운송 데이터', href: '/data-upload/transport', description: '운송 정보 업로드' },
       { name: '공정 데이터', href: '/data-upload/process', description: '공정 정보 업로드' },
       { name: '데이터 관리', href: '/data-upload/data-management', description: '데이터 통합 및 분류 관리' },
+      { name: '데이터 삭제', href: '/data-upload/delete', description: '업로드된 데이터 삭제 및 로그 관리' },
     ],
   };
 

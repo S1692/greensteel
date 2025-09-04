@@ -293,11 +293,11 @@ export default function DataDeletePage() {
           </div>
         )}
 
-        {/* 4분할 레이아웃 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* 투입물 데이터 */}
-          <div className="bg-ecotrace-surface border border-ecotrace-border rounded-lg p-6">
-            <div className="flex items-center gap-3 mb-4">
+        {/* 테이블 형식 레이아웃 */}
+        <div className="space-y-8">
+          {/* 투입물 데이터 테이블 */}
+          <div className="bg-ecotrace-surface border border-ecotrace-border rounded-lg overflow-hidden">
+            <div className="flex items-center gap-3 p-6 border-b border-ecotrace-border">
               <Database className="w-6 h-6 text-blue-600" />
               <h2 className="text-xl font-semibold text-ecotrace-text">투입물 데이터</h2>
               <span className="bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded-full">
@@ -305,38 +305,59 @@ export default function DataDeletePage() {
               </span>
             </div>
             
-            <div className="max-h-96 overflow-y-auto">
-              {inputData.length === 0 ? (
-                <p className="text-ecotrace-text-secondary text-center py-8">데이터가 없습니다.</p>
-              ) : (
-                <div className="space-y-2">
-                  {inputData.map((item) => (
-                    <div key={item.id} className="bg-white/5 border border-ecotrace-border rounded-lg p-3 flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-ecotrace-text">
-                          {item.생산품명} - {item.투입물명}
-                        </p>
-                        <p className="text-xs text-ecotrace-text-secondary">
-                          로트: {item.로트번호} | 수량: {item.수량} {item.단위}
-                        </p>
-                      </div>
-                      <Button
-                        onClick={() => deleteInputData(item.id)}
-                        className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg"
-                        size="sm"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-ecotrace-secondary/50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">ID</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산품명</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입물명</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">단위</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입일</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">종료일</th>
+                    <th className="px-4 py-3 text-center text-sm font-medium text-ecotrace-textSecondary">액션</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-ecotrace-border">
+                  {inputData.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="px-4 py-8 text-center text-ecotrace-textSecondary">
+                        데이터가 없습니다.
+                      </td>
+                    </tr>
+                  ) : (
+                    inputData.map((item) => (
+                      <tr key={item.id} className="hover:bg-ecotrace-secondary/30 transition-colors">
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.id}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.로트번호 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.생산품명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.투입물명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.수량 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.단위 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.투입일 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.종료일 || '-'}</td>
+                        <td className="px-4 py-3 text-center">
+                          <Button
+                            onClick={() => deleteInputData(item.id)}
+                            className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg"
+                            size="sm"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
 
-          {/* 산출물 데이터 */}
-          <div className="bg-ecotrace-surface border border-ecotrace-border rounded-lg p-6">
-            <div className="flex items-center gap-3 mb-4">
+          {/* 산출물 데이터 테이블 */}
+          <div className="bg-ecotrace-surface border border-ecotrace-border rounded-lg overflow-hidden">
+            <div className="flex items-center gap-3 p-6 border-b border-ecotrace-border">
               <Package className="w-6 h-6 text-green-600" />
               <h2 className="text-xl font-semibold text-ecotrace-text">산출물 데이터</h2>
               <span className="bg-green-100 text-green-800 text-sm px-2 py-1 rounded-full">
@@ -344,38 +365,59 @@ export default function DataDeletePage() {
               </span>
             </div>
             
-            <div className="max-h-96 overflow-y-auto">
-              {outputData.length === 0 ? (
-                <p className="text-ecotrace-text-secondary text-center py-8">데이터가 없습니다.</p>
-              ) : (
-                <div className="space-y-2">
-                  {outputData.map((item) => (
-                    <div key={item.id} className="bg-white/5 border border-ecotrace-border rounded-lg p-3 flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-ecotrace-text">
-                          {item.생산품명} - {item.산출물명}
-                        </p>
-                        <p className="text-xs text-ecotrace-text-secondary">
-                          로트: {item.로트번호} | 수량: {item.수량} {item.단위}
-                        </p>
-                      </div>
-                      <Button
-                        onClick={() => deleteOutputData(item.id)}
-                        className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg"
-                        size="sm"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-ecotrace-secondary/50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">ID</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산품명</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">산출물명</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">단위</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입일</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">종료일</th>
+                    <th className="px-4 py-3 text-center text-sm font-medium text-ecotrace-textSecondary">액션</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-ecotrace-border">
+                  {outputData.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="px-4 py-8 text-center text-ecotrace-textSecondary">
+                        데이터가 없습니다.
+                      </td>
+                    </tr>
+                  ) : (
+                    outputData.map((item) => (
+                      <tr key={item.id} className="hover:bg-ecotrace-secondary/30 transition-colors">
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.id}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.로트번호 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.생산품명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.산출물명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.수량 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.단위 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.투입일 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.종료일 || '-'}</td>
+                        <td className="px-4 py-3 text-center">
+                          <Button
+                            onClick={() => deleteOutputData(item.id)}
+                            className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg"
+                            size="sm"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
 
-          {/* 운송 데이터 */}
-          <div className="bg-ecotrace-surface border border-ecotrace-border rounded-lg p-6">
-            <div className="flex items-center gap-3 mb-4">
+          {/* 운송 데이터 테이블 */}
+          <div className="bg-ecotrace-surface border border-ecotrace-border rounded-lg overflow-hidden">
+            <div className="flex items-center gap-3 p-6 border-b border-ecotrace-border">
               <Truck className="w-6 h-6 text-yellow-600" />
               <h2 className="text-xl font-semibold text-ecotrace-text">운송 데이터</h2>
               <span className="bg-yellow-100 text-yellow-800 text-sm px-2 py-1 rounded-full">
@@ -383,38 +425,59 @@ export default function DataDeletePage() {
               </span>
             </div>
             
-            <div className="max-h-96 overflow-y-auto">
-              {transportData.length === 0 ? (
-                <p className="text-ecotrace-text-secondary text-center py-8">데이터가 없습니다.</p>
-              ) : (
-                <div className="space-y-2">
-                  {transportData.map((item) => (
-                    <div key={item.id} className="bg-white/5 border border-ecotrace-border rounded-lg p-3 flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-ecotrace-text">
-                          {item.생산품명} - {item.운송물질}
-                        </p>
-                        <p className="text-xs text-ecotrace-text-secondary">
-                          로트: {item.로트번호} | 수량: {item.운송수량} | 일자: {item.운송일자}
-                        </p>
-                      </div>
-                      <Button
-                        onClick={() => deleteTransportData(item.id)}
-                        className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg"
-                        size="sm"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-ecotrace-secondary/50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">ID</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산품명</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">운송물질</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">운송수량</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">운송일자</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">도착공정</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">출발지</th>
+                    <th className="px-4 py-3 text-center text-sm font-medium text-ecotrace-textSecondary">액션</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-ecotrace-border">
+                  {transportData.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="px-4 py-8 text-center text-ecotrace-textSecondary">
+                        데이터가 없습니다.
+                      </td>
+                    </tr>
+                  ) : (
+                    transportData.map((item) => (
+                      <tr key={item.id} className="hover:bg-ecotrace-secondary/30 transition-colors">
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.id}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.생산품명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.로트번호 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.운송물질 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.운송수량 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.운송일자 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.도착공정 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.출발지 || '-'}</td>
+                        <td className="px-4 py-3 text-center">
+                          <Button
+                            onClick={() => deleteTransportData(item.id)}
+                            className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg"
+                            size="sm"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
 
-          {/* 공정 데이터 */}
-          <div className="bg-ecotrace-surface border border-ecotrace-border rounded-lg p-6">
-            <div className="flex items-center gap-3 mb-4">
+          {/* 공정 데이터 테이블 */}
+          <div className="bg-ecotrace-surface border border-ecotrace-border rounded-lg overflow-hidden">
+            <div className="flex items-center gap-3 p-6 border-b border-ecotrace-border">
               <Factory className="w-6 h-6 text-purple-600" />
               <h2 className="text-xl font-semibold text-ecotrace-text">공정 데이터</h2>
               <span className="bg-purple-100 text-purple-800 text-sm px-2 py-1 rounded-full">
@@ -422,32 +485,47 @@ export default function DataDeletePage() {
               </span>
             </div>
             
-            <div className="max-h-96 overflow-y-auto">
-              {processData.length === 0 ? (
-                <p className="text-ecotrace-text-secondary text-center py-8">데이터가 없습니다.</p>
-              ) : (
-                <div className="space-y-2">
-                  {processData.map((item) => (
-                    <div key={item.id} className="bg-white/5 border border-ecotrace-border rounded-lg p-3 flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-ecotrace-text">
-                          {item.공정명} - {item.생산제품}
-                        </p>
-                        <p className="text-xs text-ecotrace-text-secondary">
-                          세부공정: {item.세부공정}
-                        </p>
-                      </div>
-                      <Button
-                        onClick={() => deleteProcessData(item.id)}
-                        className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg"
-                        size="sm"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-ecotrace-secondary/50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">ID</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정명</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산제품</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">세부공정</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정설명</th>
+                    <th className="px-4 py-3 text-center text-sm font-medium text-ecotrace-textSecondary">액션</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-ecotrace-border">
+                  {processData.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-ecotrace-textSecondary">
+                        데이터가 없습니다.
+                      </td>
+                    </tr>
+                  ) : (
+                    processData.map((item) => (
+                      <tr key={item.id} className="hover:bg-ecotrace-secondary/30 transition-colors">
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.id}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.공정명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.생산제품 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.세부공정 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item['공정 설명'] || item.공정설명 || '-'}</td>
+                        <td className="px-4 py-3 text-center">
+                          <Button
+                            onClick={() => deleteProcessData(item.id)}
+                            className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg"
+                            size="sm"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

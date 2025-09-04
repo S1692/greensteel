@@ -1,120 +1,64 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axiosClient, { apiEndpoints } from '@/lib/axiosClient';
 
-interface InstallationInfo {
+interface CompanyInfo {
   id: number;
-  name: string;
+  company_name: string;
   address?: string;
   country?: string;
   city?: string;
   postal_code?: string;
   coordinates?: string;
-  currency_code?: string;
+  email?: string;
+  phone?: string;
+  representative_name?: string;
 }
 
-interface ProcessInfo {
+interface EmissionData {
   id: number;
-  process_name: string;
-  start_period?: string;
-  end_period?: string;
-  materials: any[];
-  fuels: any[];
-  emission_amount?: number;
-  aggregated_emission?: number;
-}
-
-interface ProductInfo {
-  id: number;
-  product_name: string;
-  product_category: string;
-  cn_code?: string;
-  goods_name?: string;
-  aggrgoods_name?: string;
-  product_amount: number;
-  prostart_period: string;
-  proend_period: string;
-  processes: ProcessInfo[];
-}
-
-interface GasEmissionReport {
-  company_name: string;
-  issue_date: string;
-  start_period: string;
-  end_period: string;
-  installation: InstallationInfo;
-  products: ProductInfo[];
-  precursors: any[];
-  emission_factor: {
-    cbam_default_value?: number;
-  };
-  contact: {
-    email?: string;
-    phone?: string;
-  };
-}
-
-interface Installation {
-  id: number;
+  type: 'material' | 'fuel';
   name: string;
-  address?: string;
-  country?: string;
-  city?: string;
-  company_name?: string;
-  product_count: number;
+  engname: string;
+  amount: number;
+  factor: number;
+  emission: number;
+  process_name: string;
+  product_name: string;
+  created_at: string;
+}
+
+interface ProcessData {
+  process_name: string;
+  product_name: string;
+  materials: EmissionData[];
+  fuels: EmissionData[];
+  total_emission: number;
+}
+
+interface ProductData {
+  product_name: string;
+  cn_code?: string;
+  processes: ProcessData[];
+  total_emission: number;
 }
 
 const GasEmissionReport: React.FC = () => {
-  const [installations, setInstallations] = useState<Installation[]>([]);
-  const [selectedInstallId, setSelectedInstallId] = useState<number | null>(null);
+  // 언어 설정
+  const [language, setLanguage] = useState<'ko' | 'en'>('ko');
+  
+  // 기간 설정
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
-  const [report, setReport] = useState<GasEmissionReport | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // 사업장 목록 조회
-  useEffect(() => {
-    const fetchInstallations = async () => {
-      try {
-        const response = await axiosClient.get(apiEndpoints.cbam.report.installations);
-        setInstallations(response.data);
-        console.log('✅ 사업장 목록 조회 성공:', response.data);
-      } catch (error) {
-        console.error('❌ 사업장 목록 조회 실패:', error);
-        setError('사업장 목록을 불러올 수 없습니다.');
-      }
-    };
-
-    fetchInstallations();
-  }, []);
-
-  // 보고서 조회
-  const fetchReport = async () => {
-    if (!selectedInstallId || !startDate || !endDate) {
-      setError('사업장, 시작일, 종료일을 모두 선택해주세요.');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await axiosClient.get(
-        `${apiEndpoints.cbam.report.gasEmission(selectedInstallId)}?start_date=${startDate}&end_date=${endDate}`
-      );
-      setReport(response.data);
-      console.log('✅ 가스 배출 보고서 조회 성공:', response.data);
-    } catch (error) {
-      console.error('❌ 가스 배출 보고서 조회 실패:', error);
-      setError('보고서를 불러올 수 없습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 날짜 기본값 설정
+  
+  // 데이터
+  const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
+  const [emissionData, setEmissionData] = useState<EmissionData[]>([]);
+  const [productData, setProductData] = useState<ProductData[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // 현재 날짜 설정
   useEffect(() => {
     const today = new Date();
     const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -124,374 +68,452 @@ const GasEmissionReport: React.FC = () => {
     setEndDate(lastDay.toISOString().split('T')[0]);
   }, []);
 
+  // 회사 정보 로드
+  const loadCompanyInfo = useCallback(async () => {
+    try {
+      const response = await axiosClient.get(apiEndpoints.companies.list);
+      if (response.data && response.data.length > 0) {
+        setCompanyInfo(response.data[0]); // 첫 번째 회사 정보 사용
+        console.log('✅ 회사 정보 로드 완료:', response.data[0]);
+      }
+    } catch (error) {
+      console.error('❌ 회사 정보 로드 실패:', error);
+    }
+  }, []);
+
+  // 배출량 데이터 로드
+  const loadEmissionData = useCallback(() => {
+    try {
+      const storedData = localStorage.getItem('cbam_emission_calculations');
+      if (storedData) {
+        const calculations = JSON.parse(storedData);
+        
+        // 기간 필터링
+        const filteredData = calculations.filter((item: any) => {
+          if (!startDate || !endDate) return true;
+          const itemDate = new Date(item.created_at);
+          const start = new Date(startDate);
+          const end = new Date(endDate);
+          return itemDate >= start && itemDate <= end;
+        });
+        
+        setEmissionData(filteredData);
+        console.log('✅ 배출량 데이터 로드 완료:', filteredData.length, '개');
+        
+        // 제품별 데이터 구성
+        const productMap = new Map<string, ProductData>();
+        
+        filteredData.forEach((item: any) => {
+          const productName = item.product_name || 'Unknown Product';
+          
+          if (!productMap.has(productName)) {
+            productMap.set(productName, {
+              product_name: productName,
+              cn_code: item.cn_code,
+              processes: [],
+              total_emission: 0
+            });
+          }
+          
+          const product = productMap.get(productName)!;
+          const processName = item.process_name || 'Unknown Process';
+          
+          let process = product.processes.find(p => p.process_name === processName);
+          if (!process) {
+            process = {
+              process_name: processName,
+              product_name: productName,
+              materials: [],
+              fuels: [],
+              total_emission: 0
+            };
+            product.processes.push(process);
+          }
+          
+          const emissionItem: EmissionData = {
+            id: item.id,
+            type: item.type,
+            name: item.mat_name || item.fuel_name || item.name,
+            engname: item.mat_engname || item.fuel_engname || '',
+            amount: item.amount || 0,
+            factor: item.emission_factor || item.factor || 0,
+            emission: item.emission || 0,
+            process_name: processName,
+            product_name: productName,
+            created_at: item.created_at
+          };
+          
+          if (item.type === 'material') {
+            process.materials.push(emissionItem);
+          } else {
+            process.fuels.push(emissionItem);
+          }
+          
+          process.total_emission += emissionItem.emission;
+          product.total_emission += emissionItem.emission;
+        });
+        
+        setProductData(Array.from(productMap.values()));
+        console.log('✅ 제품별 데이터 구성 완료:', Array.from(productMap.values()));
+      }
+    } catch (error) {
+      console.error('❌ 배출량 데이터 로드 실패:', error);
+    }
+  }, [startDate, endDate]);
+
+  // 데이터 로드
+  useEffect(() => {
+    loadCompanyInfo();
+  }, [loadCompanyInfo]);
+
+  useEffect(() => {
+    if (startDate && endDate) {
+      loadEmissionData();
+    }
+  }, [loadEmissionData]);
+
+  // 언어별 텍스트
+  const texts = {
+    ko: {
+      title: '가스 배출 보고서',
+      issuer: '발행자',
+      issueDate: '발행일자',
+      reportingPeriod: '보고 기간',
+      start: '시작',
+      end: '종료',
+      aboutInstallation: '1. 시설 정보',
+      installationName: '시설명',
+      address: '주소',
+      postCode: '우편번호',
+      city: '도시',
+      country: '국가',
+      unlocode: 'UNLOCODE',
+      coordinates: '주요 배출원 좌표 (위도, 경도)',
+      productInfo: '2. 제품 정보',
+      product: '제품',
+      cnCode: 'CN 코드/제품명',
+      productionProcess: '생산 공정',
+      route: '경로',
+      ingredient1: '원료 1',
+      ingredient2: '원료 2',
+      fuel1: '연료 1',
+      fuel2: '연료 2',
+      emission: '배출량',
+      acquiredGoods: '취득 상품?',
+      contact: '3. 연락처',
+      email: '이메일',
+      phone: '연락처',
+      officialStamp: '공식 회사 인장',
+      totalEmission: '총 배출량',
+      noData: '선택된 기간에 데이터가 없습니다.'
+    },
+    en: {
+      title: 'Gas Emission Report',
+      issuer: 'Issuer',
+      issueDate: 'Issue Date',
+      reportingPeriod: 'Reporting Period',
+      start: 'Start',
+      end: 'End',
+      aboutInstallation: '1. About the installation',
+      installationName: 'Name of the installation',
+      address: 'Address',
+      postCode: 'Post code',
+      city: 'City',
+      country: 'Country',
+      unlocode: 'UNLOCODE',
+      coordinates: 'Coordinates of the main emission source (latitude, longitude)',
+      productInfo: '2. Product information',
+      product: 'Product',
+      cnCode: 'CN Code/Product name',
+      productionProcess: 'Production Process',
+      route: 'Route',
+      ingredient1: 'ingredient 1',
+      ingredient2: 'ingredient 2',
+      fuel1: 'fuel 1',
+      fuel2: 'fuel 2',
+      emission: 'Emission',
+      acquiredGoods: 'Acquired goods?',
+      contact: '3. Contact',
+      email: 'EMAIL',
+      phone: 'CONTACT',
+      officialStamp: 'Official Company Stamp',
+      totalEmission: 'Total Emission',
+      noData: 'No data available for the selected period.'
+    }
+  };
+
+  const t = texts[language];
+
   return (
-    <div className="max-w-7xl mx-auto p-6 bg-white">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">가스 배출 보고서</h1>
-        <p className="text-gray-600">사업장별 가스 배출량 보고서를 조회할 수 있습니다.</p>
+    <div className="max-w-6xl mx-auto p-6 bg-white">
+      {/* 언어 전환 버튼 */}
+      <div className="flex justify-end mb-4">
+        <div className="flex bg-gray-100 rounded-lg p-1">
+          <button
+            onClick={() => setLanguage('ko')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              language === 'ko' 
+                ? 'bg-white text-gray-900 shadow-sm' 
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            한국어
+          </button>
+          <button
+            onClick={() => setLanguage('en')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              language === 'en' 
+                ? 'bg-white text-gray-900 shadow-sm' 
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            English
+          </button>
+        </div>
       </div>
 
-      {/* 보고서 조회 폼 */}
-      <div className="bg-gray-50 p-6 rounded-lg mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              사업장 선택
-            </label>
-            <select
-              value={selectedInstallId || ''}
-              onChange={(e) => setSelectedInstallId(Number(e.target.value) || null)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">사업장을 선택하세요</option>
-              {installations.map((install) => (
-                <option key={install.id} value={install.id}>
-                  {install.name} ({install.product_count}개 제품)
-                </option>
-              ))}
-            </select>
+      {/* 보고서 헤더 */}
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">{t.title}</h1>
+        
+        {/* 발행자 및 발행일자 */}
+        <div className="flex justify-between items-center mb-6">
+          <div></div>
+          <div className="flex gap-6">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">{t.issuer}:</span>
+              <div className="bg-gray-100 px-3 py-1 rounded text-sm min-w-[100px]">
+                {companyInfo?.representative_name || 'N/A'}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">{t.issueDate}:</span>
+              <div className="bg-gray-100 px-3 py-1 rounded text-sm min-w-[100px]">
+                {new Date().toLocaleDateString()}
+              </div>
+            </div>
           </div>
+        </div>
+      </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              시작 기간
-            </label>
+      {/* 보고 기간 설정 */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold mb-4">{t.reportingPeriod}</h2>
+        <div className="flex gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">{t.start}:</span>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded px-3 py-2 bg-gray-100"
             />
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              종료 기간
-            </label>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">{t.end}:</span>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded px-3 py-2 bg-gray-100"
             />
           </div>
+        </div>
+      </div>
 
-          <div className="flex items-end">
-            <button
-              onClick={fetchReport}
-              disabled={loading}
-              className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? '조회 중...' : '보고서 조회'}
-            </button>
+      {/* 1. 시설 정보 */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold mb-4">{t.aboutInstallation}</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium min-w-[120px]">{t.installationName}:</span>
+            <div className="bg-gray-100 px-3 py-2 rounded flex-1">
+              {companyInfo?.company_name || 'N/A'}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium min-w-[120px]">{t.address}:</span>
+            <div className="bg-gray-100 px-3 py-2 rounded flex-1">
+              {companyInfo?.address || 'N/A'}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium min-w-[120px]">{t.postCode}:</span>
+            <div className="bg-gray-100 px-3 py-2 rounded flex-1">
+              {companyInfo?.postal_code || 'N/A'}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium min-w-[120px]">{t.city}:</span>
+            <div className="bg-gray-100 px-3 py-2 rounded flex-1">
+              {companyInfo?.city || 'N/A'}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium min-w-[120px]">{t.country}:</span>
+            <div className="bg-gray-100 px-3 py-2 rounded flex-1">
+              {companyInfo?.country || 'N/A'}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium min-w-[120px]">{t.unlocode}:</span>
+            <div className="bg-gray-100 px-3 py-2 rounded flex-1">
+              {companyInfo?.unlocode || 'N/A'}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 col-span-full">
+            <span className="text-sm font-medium min-w-[200px]">{t.coordinates}:</span>
+            <div className="bg-gray-100 px-3 py-2 rounded flex-1">
+              {companyInfo?.coordinates || 'N/A'}
+            </div>
           </div>
         </div>
+      </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-            {error}
+      {/* 2. 제품 정보 */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold mb-4">{t.productInfo}</h2>
+        
+        {productData.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            {t.noData}
           </div>
+        ) : (
+          productData.map((product, productIndex) => (
+            <div key={productIndex} className="mb-6 border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-sm font-medium">{t.product}:</span>
+                <div className="bg-gray-100 px-3 py-2 rounded flex-1">
+                  {product.cn_code ? `${product.cn_code} / ` : ''}{product.product_name}
+                </div>
+              </div>
+              
+              <div className="mb-4">
+                <span className="text-sm font-medium">{t.productionProcess}:</span>
+              </div>
+              
+              {product.processes.map((process, processIndex) => (
+                <div key={processIndex} className="mb-4 border border-gray-100 rounded p-3">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-sm font-medium">{t.route}:</span>
+                    <div className="bg-gray-100 px-3 py-1 rounded text-sm">
+                      {processIndex + 1}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* 원료 1 */}
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium">{t.ingredient1}</div>
+                      <div className="flex gap-2">
+                        <div className="bg-gray-100 px-2 py-1 rounded text-xs flex-1">
+                          {process.materials[0]?.name || 'N/A'}
+                        </div>
+                        <div className="bg-gray-100 px-2 py-1 rounded text-xs w-20 text-center">
+                          {process.materials[0]?.emission?.toFixed(2) || '0.00'}
+                        </div>
+                        <div className="bg-gray-100 px-2 py-1 rounded text-xs w-16 text-center">
+                          {process.materials[0] ? 'Y' : 'N'}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* 원료 2 */}
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium">{t.ingredient2}</div>
+                      <div className="flex gap-2">
+                        <div className="bg-gray-100 px-2 py-1 rounded text-xs flex-1">
+                          {process.materials[1]?.name || 'N/A'}
+                        </div>
+                        <div className="bg-gray-100 px-2 py-1 rounded text-xs w-20 text-center">
+                          {process.materials[1]?.emission?.toFixed(2) || '0.00'}
+                        </div>
+                        <div className="bg-gray-100 px-2 py-1 rounded text-xs w-16 text-center">
+                          {process.materials[1] ? 'Y' : 'N'}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* 연료 1 */}
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium">{t.fuel1}</div>
+                      <div className="flex gap-2">
+                        <div className="bg-gray-100 px-2 py-1 rounded text-xs flex-1">
+                          {process.fuels[0]?.name || 'N/A'}
+                        </div>
+                        <div className="bg-gray-100 px-2 py-1 rounded text-xs w-20 text-center">
+                          {process.fuels[0]?.emission?.toFixed(2) || '0.00'}
+                        </div>
+                        <div className="bg-gray-100 px-2 py-1 rounded text-xs w-16 text-center">
+                          {process.fuels[0] ? 'Y' : 'N'}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* 연료 2 */}
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium">{t.fuel2}</div>
+                      <div className="flex gap-2">
+                        <div className="bg-gray-100 px-2 py-1 rounded text-xs flex-1">
+                          {process.fuels[1]?.name || 'N/A'}
+                        </div>
+                        <div className="bg-gray-100 px-2 py-1 rounded text-xs w-20 text-center">
+                          {process.fuels[1]?.emission?.toFixed(2) || '0.00'}
+                        </div>
+                        <div className="bg-gray-100 px-2 py-1 rounded text-xs w-16 text-center">
+                          {process.fuels[1] ? 'Y' : 'N'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3 text-right">
+                    <span className="text-sm font-medium">{t.totalEmission}: </span>
+                    <span className="text-sm font-bold">
+                      {process.total_emission.toFixed(2)} tCO2e
+                    </span>
+                  </div>
+                </div>
+              ))}
+              
+              <div className="mt-4 text-right border-t pt-2">
+                <span className="text-sm font-medium">{t.totalEmission}: </span>
+                <span className="text-lg font-bold text-blue-600">
+                  {product.total_emission.toFixed(2)} tCO2e
+                </span>
+              </div>
+            </div>
+          ))
         )}
       </div>
 
-      {/* 보고서 내용 */}
-      {report && (
-        <div className="bg-white border border-gray-200 rounded-lg p-8">
-          {/* 헤더 */}
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Gas Emission Report</h2>
-            <div className="flex justify-between text-sm text-gray-600">
-              <div>
-                <span className="font-medium">발행처:</span> {report.company_name}
-              </div>
-              <div>
-                <span className="font-medium">발행일자:</span> {new Date(report.issue_date).toLocaleDateString('ko-KR')}
-              </div>
+      {/* 3. 연락처 */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold mb-4">{t.contact}</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium min-w-[80px]">{t.email}:</span>
+            <div className="bg-gray-100 px-3 py-2 rounded flex-1">
+              {companyInfo?.email || 'N/A'}
             </div>
           </div>
-
-          {/* 생산 기간 */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">생산 기간</h3>
-            <div className="flex items-center space-x-4">
-              <input
-                type="text"
-                value={new Date(report.start_period).toLocaleDateString('ko-KR')}
-                readOnly
-                className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-              />
-              <span className="text-gray-500">-</span>
-              <input
-                type="text"
-                value={new Date(report.end_period).toLocaleDateString('ko-KR')}
-                readOnly
-                className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-              />
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium min-w-[80px]">{t.phone}:</span>
+            <div className="bg-gray-100 px-3 py-2 rounded flex-1">
+              {companyInfo?.phone || 'N/A'}
             </div>
-          </div>
-
-          {/* 1. 시설군 정보 */}
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">1. 시설군 정보</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">사업장 명</label>
-                <input
-                  type="text"
-                  value={report.installation.name}
-                  readOnly
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">주소</label>
-                <input
-                  type="text"
-                  value={report.installation.address || ''}
-                  readOnly
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">국가/코드</label>
-                <input
-                  type="text"
-                  value={report.installation.country || ''}
-                  readOnly
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">도시</label>
-                <input
-                  type="text"
-                  value={report.installation.city || ''}
-                  readOnly
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">우편번호</label>
-                <input
-                  type="text"
-                  value={report.installation.postal_code || ''}
-                  readOnly
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">UN 통화 코드</label>
-                <input
-                  type="text"
-                  value={report.installation.currency_code || ''}
-                  readOnly
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                />
-              </div>
-            </div>
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">좌표(위 경도)</label>
-              <input
-                type="text"
-                value={report.installation.coordinates || ''}
-                readOnly
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-              />
-            </div>
-          </div>
-
-          {/* 2. 제품 생산 info */}
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">2. 제품 생산 info</h3>
-            {report.products.map((product, productIndex) => (
-              <div key={product.id} className="mb-6 border border-gray-200 rounded-lg p-4">
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">품목군</label>
-                  <input
-                    type="text"
-                    value={`${product.cn_code || ''} / ${product.product_name}`}
-                    readOnly
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                  />
-                </div>
-
-                <div className="mb-4">
-                  <h4 className="text-md font-medium text-gray-900 mb-2">생산 공정</h4>
-                  {product.processes.map((process, processIndex) => (
-                    <div key={process.id} className="mb-4 border border-gray-100 rounded p-3">
-                      <div className="mb-2">
-                        <span className="font-medium">공정{processIndex + 1} / 생산량</span>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        {/* 원료 1 */}
-                        <div>
-                          <label className="block text-xs text-gray-600 mb-1">원료1</label>
-                          <div className="space-y-1">
-                            <input
-                              type="text"
-                              placeholder="배출량"
-                              value={process.materials[0]?.em_factor || ''}
-                              readOnly
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-gray-50"
-                            />
-                            <input
-                              type="text"
-                              placeholder="전구 물질 여부"
-                              value={process.materials[0]?.item_name || ''}
-                              readOnly
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-gray-50"
-                            />
-                          </div>
-                        </div>
-
-                        {/* 원료 2 */}
-                        <div>
-                          <label className="block text-xs text-gray-600 mb-1">원료2</label>
-                          <div className="space-y-1">
-                            <input
-                              type="text"
-                              placeholder="배출량"
-                              value={process.materials[1]?.em_factor || ''}
-                              readOnly
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-gray-50"
-                            />
-                            <input
-                              type="text"
-                              placeholder="전구 물질 여부"
-                              value={process.materials[1]?.item_name || ''}
-                              readOnly
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-gray-50"
-                            />
-                          </div>
-                        </div>
-
-                        {/* 연료 1 */}
-                        <div>
-                          <label className="block text-xs text-gray-600 mb-1">연료</label>
-                          <div className="space-y-1">
-                            <input
-                              type="text"
-                              placeholder="배출량"
-                              value={process.fuels[0]?.fuel_emfactor || ''}
-                              readOnly
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-gray-50"
-                            />
-                          </div>
-                        </div>
-
-                        {/* 연료 2 */}
-                        <div>
-                          <label className="block text-xs text-gray-600 mb-1">연료</label>
-                          <div className="space-y-1">
-                            <input
-                              type="text"
-                              placeholder="배출량"
-                              value={process.fuels[1]?.fuel_emfactor || ''}
-                              readOnly
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded bg-gray-50"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* 3. 전구체 info */}
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">3. 전구체 info</h3>
-            {report.precursors.map((precursor, index) => (
-              <div key={precursor.id} className="mb-4">
-                <div className="mb-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    전구물질 명 {index + 1}
-                  </label>
-                  <input
-                    type="text"
-                    value={precursor.precursor_name}
-                    readOnly
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                  />
-                </div>
-                <div className="mb-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    이동 루트 (국가 or 생산 공정 소모 공정)
-                  </label>
-                  <input
-                    type="text"
-                    value={precursor.movement_route || ''}
-                    readOnly
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  {precursor.consumption_processes.map((process: string, processIndex: number) => (
-                    <div key={processIndex}>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        소모 공정
-                      </label>
-                      <input
-                        type="text"
-                        value={process}
-                        readOnly
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* 4. 배출계수 */}
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">4. 배출계수</h3>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">CBAM 기본값*</label>
-              <input
-                type="text"
-                value={report.emission_factor.cbam_default_value || ''}
-                readOnly
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-              />
-            </div>
-          </div>
-
-          {/* 5. Contact */}
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">5. Contact</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input
-                  type="text"
-                  value={report.contact.email || ''}
-                  readOnly
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">대표 번호</label>
-                <input
-                  type="text"
-                  value={report.contact.phone || ''}
-                  readOnly
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* 푸터 */}
-          <div className="text-right">
-            <div className="text-sm text-gray-600">회사 직인 (인)</div>
           </div>
         </div>
-      )}
+      </div>
+
+      {/* 공식 회사 인장 */}
+      <div className="flex justify-end">
+        <div className="text-center">
+          <div className="border-2 border-dashed border-gray-300 w-32 h-20 flex items-center justify-center mb-2">
+            <span className="text-xs text-gray-500">{t.officialStamp}</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

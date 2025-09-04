@@ -197,6 +197,13 @@ export const apiEndpoints = {
     overview: '/api/dashboard/overview',
     stats: '/api/dashboard/stats',
   },
+  // Companies API (Gateway를 통해)
+  companies: {
+    list: '/api/v1/companies',
+    create: '/api/v1/companies',
+    update: '/api/v1/companies',
+    delete: '/api/v1/companies',
+  },
   // Settings (Gateway를 통해)
   settings: {
     profile: '/api/settings/profile',

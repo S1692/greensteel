@@ -146,13 +146,18 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
           inputDataArray = parsedData.data;
         }
         
+        console.log('📊 전체 input data:', inputDataArray.length, '개');
+        
         // 선택된 제품에 해당하는 투입물명만 필터링
         let filteredData = inputDataArray;
         if (selectedProduct && selectedProduct.product_name) {
           filteredData = inputDataArray.filter((item: any) => 
             item.생산품명 === selectedProduct.product_name
           );
-          console.log('제품별 필터링된 데이터:', filteredData.length, '개');
+          console.log(`🎯 제품 "${selectedProduct.product_name}"에 해당하는 데이터:`, filteredData.length, '개');
+          console.log('필터링된 데이터:', filteredData);
+        } else {
+          console.log('⚠️ 선택된 제품이 없어서 전체 데이터를 사용합니다.');
         }
         
         // 투입물명 추출 및 중복 제거
@@ -771,7 +776,7 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
                 {/* 원료명 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    투입된 원료명 (자유 입력 가능) *
+                    투입된 원료명 (선택) *
                   </label>
                   <div className="relative dropdown-container">
                     <input
@@ -783,9 +788,10 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
                       }}
                       onFocus={() => setShowMaterialDropdown(true)}
                       className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white"
-                      placeholder="예: 직접환원철, EAF 탄소 전극"
+                      placeholder="드롭다운에서 선택하세요"
+                      readOnly
                     />
-                    {showMaterialDropdown && inputMaterialNames.length > 0 && (
+                    {inputMaterialNames.length > 0 && (
                       <div className="absolute top-full left-0 right-0 bg-gray-600 border border-gray-500 rounded-md mt-1 max-h-40 overflow-y-auto z-10">
                         {inputMaterialNames
                           .filter(name => 
@@ -886,7 +892,7 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
                 {/* 연료명 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    투입된 연료명 (자유 입력 가능) *
+                    투입된 연료명 (선택) *
                   </label>
                   <div className="relative dropdown-container">
                     <input
@@ -898,9 +904,10 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
                       }}
                       onFocus={() => setShowFuelDropdown(true)}
                       className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white"
-                      placeholder="예: 원유, 휘발유, 등유"
+                      placeholder="드롭다운에서 선택하세요"
+                      readOnly
                     />
-                    {showFuelDropdown && inputFuelNames.length > 0 && (
+                    {inputFuelNames.length > 0 && (
                       <div className="absolute top-full left-0 right-0 bg-gray-600 border border-gray-500 rounded-md mt-1 max-h-40 overflow-y-auto z-10">
                         {inputFuelNames
                           .filter(name => 

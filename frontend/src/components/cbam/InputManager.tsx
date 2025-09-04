@@ -69,6 +69,10 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
   // 로컬 스토리지 input data에서 투입물명 목록
   const [inputMaterialNames, setInputMaterialNames] = useState<string[]>([]);
   const [inputFuelNames, setInputFuelNames] = useState<string[]>([]);
+  
+  // 투입물 정보 (이름과 수량을 함께 저장)
+  const [inputMaterialData, setInputMaterialData] = useState<Array<{name: string, amount: number, unit: string}>>([]);
+  const [inputFuelData, setInputFuelData] = useState<Array<{name: string, amount: number, unit: string}>>([]);
 
   // ============================================================================
   // 📋 마스터 테이블 데이터 로드 (배출계수 계산용)
@@ -191,21 +195,45 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
         console.log('⚠️ 선택된 제품 또는 공정이 없어서 전체 데이터를 사용합니다.');
       }
       
-      // 투입물명 추출 및 중복 제거
-      const materialNames: string[] = [...new Set(
-        filteredData
-          .map((item: any) => item.투입물명)
-          .filter((name: string) => name && name.trim())
-      )] as string[];
+      // 투입물 정보 추출 (이름, 수량, 단위를 함께 저장)
+      const materialDataMap = new Map<string, {name: string, amount: number, unit: string}>();
+      const fuelDataMap = new Map<string, {name: string, amount: number, unit: string}>();
       
-      console.log('✅ 추출된 투입물명 목록:', materialNames);
+      filteredData.forEach((item: any) => {
+        const 투입물명 = item.투입물명;
+        const 수량 = item.수량 || 0;
+        const 단위 = item.단위 || '톤';
+        
+        if (투입물명 && 투입물명.trim()) {
+          // 원료와 연료 모두 동일한 데이터 사용
+          materialDataMap.set(투입물명, { name: 투입물명, amount: 수량, unit: 단위 });
+          fuelDataMap.set(투입물명, { name: 투입물명, amount: 수량, unit: 단위 });
+        }
+      });
+      
+      const materialData = Array.from(materialDataMap.values());
+      const fuelData = Array.from(fuelDataMap.values());
+      const materialNames = materialData.map(item => item.name);
+      const fuelNames = fuelData.map(item => item.name);
+      
+      console.log('✅ 추출된 투입물 정보:', {
+        materialData: materialData.slice(0, 3), // 처음 3개만 로그
+        fuelData: fuelData.slice(0, 3),
+        materialNames: materialNames.slice(0, 5), // 처음 5개만 로그
+        fuelNames: fuelNames.slice(0, 5)
+      });
+      
       setInputMaterialNames(materialNames);
-      setInputFuelNames(materialNames); // 연료도 동일한 투입물명 사용
+      setInputFuelNames(fuelNames);
+      setInputMaterialData(materialData);
+      setInputFuelData(fuelData);
       
     } catch (error) {
       console.error('❌ 투입물명 추출 실패:', error);
       setInputMaterialNames([]);
       setInputFuelNames([]);
+      setInputMaterialData([]);
+      setInputFuelData([]);
     }
   }, [selectedProduct, selectedProcess]);
 
@@ -247,7 +275,7 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
 
   const handleMaterialSelect = useCallback((selectedName: string) => {
     try {
-      console.log('🔍 선택된 투입물명:', selectedName);
+      console.log('🔍 선택된 투입물명 (원료):', selectedName);
       
       // 마스터 테이블에서 해당 투입물명과 일치하는 항목 찾기
       const matchedMaterial = allMaterials.find(m => {
@@ -256,88 +284,15 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
                selectedName.toLowerCase().includes(matName.toLowerCase());
       });
       
-      // 로컬 스토리지에서 해당 투입물명의 수량 찾기
-      const storedData = localStorage.getItem('cbam_input_data');
-      let inputAmount = 0;
-      if (storedData) {
-        const parsedData = JSON.parse(storedData);
-        const inputDataArray = Array.isArray(parsedData) ? parsedData : (parsedData?.data || []);
-        
-        console.log('🔍 투입량 검색 시작:', {
-          selectedName,
-          selectedProduct: selectedProduct?.product_name,
-          selectedProcess: selectedProcess?.process_name,
-          totalDataCount: inputDataArray.length
-        });
-        
-        // 실제 데이터 구조 확인을 위한 샘플 로그
-        if (inputDataArray.length > 0) {
-          console.log('📋 로컬 스토리지 데이터 샘플 (첫 번째 항목):', inputDataArray[0]);
-          console.log('📋 사용 가능한 필드들:', Object.keys(inputDataArray[0]));
-        }
-        
-        // 1차: 엄격한 매칭 (투입물명, 제품명, 공정명 모두 정확히 일치)
-        let matchedItem = inputDataArray.find((item: any) => {
-          const itemProductName = (item.생산품명 || '').trim();
-          const itemProcessName = (item.공정 || '').trim();
-          const itemInputName = (item.투입물명 || '').trim();
-          
-          const isInputNameMatch = itemInputName === selectedName;
-          const isProductMatch = selectedProduct && selectedProduct.product_name ? 
-            itemProductName === selectedProduct.product_name.trim() : false;
-          const isProcessMatch = selectedProcess && selectedProcess.process_name ?
-            itemProcessName === selectedProcess.process_name.trim() : false;
-          
-          return isInputNameMatch && isProductMatch && isProcessMatch;
-        });
-        
-        // 2차: 유연한 매칭 (투입물명만 일치하면 제품명과 공정명은 유사 매칭)
-        if (!matchedItem) {
-          console.log('🔍 엄격한 매칭 실패, 유연한 매칭 시도...');
-          matchedItem = inputDataArray.find((item: any) => {
-            const itemProductName = (item.생산품명 || '').trim();
-            const itemProcessName = (item.공정 || '').trim();
-            const itemInputName = (item.투입물명 || '').trim();
-            
-            const isInputNameMatch = itemInputName === selectedName;
-            const isProductMatch = selectedProduct && selectedProduct.product_name ? 
-              itemProductName.toLowerCase().includes(selectedProduct.product_name.toLowerCase()) ||
-              selectedProduct.product_name.toLowerCase().includes(itemProductName.toLowerCase()) : false;
-            const isProcessMatch = selectedProcess && selectedProcess.process_name ?
-              itemProcessName.toLowerCase().includes(selectedProcess.process_name.toLowerCase()) ||
-              selectedProcess.process_name.toLowerCase().includes(itemProcessName.toLowerCase()) : false;
-            
-            return isInputNameMatch && isProductMatch && isProcessMatch;
-          });
-        }
-        
-        if (matchedItem) {
-          // 여러 가능한 수량 필드명 시도
-          inputAmount = matchedItem.수량 || matchedItem.amount || matchedItem.투입량 || matchedItem.quantity || 0;
-          console.log('🎯 투입량 매칭 성공 (원료):', {
-            투입물명: matchedItem.투입물명,
-            제품명: matchedItem.생산품명,
-            공정명: matchedItem.공정,
-            수량: matchedItem.수량,
-            amount: matchedItem.amount,
-            투입량: matchedItem.투입량,
-            quantity: matchedItem.quantity,
-            단위: matchedItem.단위,
-            최종수량: inputAmount
-          });
-        } else {
-          console.log('⚠️ 투입량 매칭 실패 (원료) - 모든 조건 시도 후 실패:', {
-            selectedName,
-            selectedProduct: selectedProduct?.product_name,
-            selectedProcess: selectedProcess?.process_name,
-            availableItems: inputDataArray.slice(0, 3).map((item: any) => ({
-              투입물명: item.투입물명,
-              제품명: item.생산품명,
-              공정명: item.공정
-            }))
-          });
-        }
-      }
+      // 저장된 투입물 데이터에서 수량 가져오기
+      const matchedInputData = inputMaterialData.find(item => item.name === selectedName);
+      const inputAmount = matchedInputData ? matchedInputData.amount : 0;
+      
+      console.log('🎯 저장된 투입물 데이터에서 수량 가져오기 (원료):', {
+        selectedName,
+        matchedInputData,
+        inputAmount
+      });
       
       if (matchedMaterial) {
         // 배출계수 자동 계산: mat_factor만 사용
@@ -369,7 +324,7 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
     } catch (error) {
       console.error('원료 선택 처리 실패:', error);
     }
-  }, [allMaterials, selectedProduct, selectedProcess]);
+  }, [allMaterials, selectedProduct, selectedProcess, inputMaterialData]);
 
   const handleFuelSelect = useCallback((selectedName: string) => {
     try {
@@ -382,88 +337,15 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
                selectedName.toLowerCase().includes(fuelName.toLowerCase());
       });
       
-      // 로컬 스토리지에서 해당 투입물명의 수량 찾기
-      const storedData = localStorage.getItem('cbam_input_data');
-      let inputAmount = 0;
-      if (storedData) {
-        const parsedData = JSON.parse(storedData);
-        const inputDataArray = Array.isArray(parsedData) ? parsedData : (parsedData?.data || []);
-        
-        console.log('🔍 투입량 검색 시작 (연료):', {
-          selectedName,
-          selectedProduct: selectedProduct?.product_name,
-          selectedProcess: selectedProcess?.process_name,
-          totalDataCount: inputDataArray.length
-        });
-        
-        // 실제 데이터 구조 확인을 위한 샘플 로그
-        if (inputDataArray.length > 0) {
-          console.log('📋 로컬 스토리지 데이터 샘플 (첫 번째 항목) - 연료:', inputDataArray[0]);
-          console.log('📋 사용 가능한 필드들 - 연료:', Object.keys(inputDataArray[0]));
-        }
-        
-        // 1차: 엄격한 매칭 (투입물명, 제품명, 공정명 모두 정확히 일치)
-        let matchedItem = inputDataArray.find((item: any) => {
-          const itemProductName = (item.생산품명 || '').trim();
-          const itemProcessName = (item.공정 || '').trim();
-          const itemInputName = (item.투입물명 || '').trim();
-          
-          const isInputNameMatch = itemInputName === selectedName;
-          const isProductMatch = selectedProduct && selectedProduct.product_name ? 
-            itemProductName === selectedProduct.product_name.trim() : false;
-          const isProcessMatch = selectedProcess && selectedProcess.process_name ?
-            itemProcessName === selectedProcess.process_name.trim() : false;
-          
-          return isInputNameMatch && isProductMatch && isProcessMatch;
-        });
-        
-        // 2차: 유연한 매칭 (투입물명만 일치하면 제품명과 공정명은 유사 매칭)
-        if (!matchedItem) {
-          console.log('🔍 엄격한 매칭 실패, 유연한 매칭 시도 (연료)...');
-          matchedItem = inputDataArray.find((item: any) => {
-            const itemProductName = (item.생산품명 || '').trim();
-            const itemProcessName = (item.공정 || '').trim();
-            const itemInputName = (item.투입물명 || '').trim();
-            
-            const isInputNameMatch = itemInputName === selectedName;
-            const isProductMatch = selectedProduct && selectedProduct.product_name ? 
-              itemProductName.toLowerCase().includes(selectedProduct.product_name.toLowerCase()) ||
-              selectedProduct.product_name.toLowerCase().includes(itemProductName.toLowerCase()) : false;
-            const isProcessMatch = selectedProcess && selectedProcess.process_name ?
-              itemProcessName.toLowerCase().includes(selectedProcess.process_name.toLowerCase()) ||
-              selectedProcess.process_name.toLowerCase().includes(itemProcessName.toLowerCase()) : false;
-            
-            return isInputNameMatch && isProductMatch && isProcessMatch;
-          });
-        }
-        
-        if (matchedItem) {
-          // 여러 가능한 수량 필드명 시도
-          inputAmount = matchedItem.수량 || matchedItem.amount || matchedItem.투입량 || matchedItem.quantity || 0;
-          console.log('🎯 투입량 매칭 성공 (연료):', {
-            투입물명: matchedItem.투입물명,
-            제품명: matchedItem.생산품명,
-            공정명: matchedItem.공정,
-            수량: matchedItem.수량,
-            amount: matchedItem.amount,
-            투입량: matchedItem.투입량,
-            quantity: matchedItem.quantity,
-            단위: matchedItem.단위,
-            최종수량: inputAmount
-          });
-        } else {
-          console.log('⚠️ 투입량 매칭 실패 (연료) - 모든 조건 시도 후 실패:', {
-            selectedName,
-            selectedProduct: selectedProduct?.product_name,
-            selectedProcess: selectedProcess?.process_name,
-            availableItems: inputDataArray.slice(0, 3).map((item: any) => ({
-              투입물명: item.투입물명,
-              제품명: item.생산품명,
-              공정명: item.공정
-            }))
-          });
-        }
-      }
+      // 저장된 투입물 데이터에서 수량 가져오기
+      const matchedInputData = inputFuelData.find(item => item.name === selectedName);
+      const inputAmount = matchedInputData ? matchedInputData.amount : 0;
+      
+      console.log('🎯 저장된 투입물 데이터에서 수량 가져오기 (연료):', {
+        selectedName,
+        matchedInputData,
+        inputAmount
+      });
       
       if (matchedFuel) {
         // 배출계수 자동 계산: fuel_factor만 사용
@@ -495,7 +377,7 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
     } catch (error) {
       console.error('연료 선택 처리 실패:', error);
     }
-  }, [allFuels, selectedProduct, selectedProcess]);
+  }, [allFuels, selectedProduct, selectedProcess, inputFuelData]);
 
   // ============================================================================
   // 💾 데이터 저장

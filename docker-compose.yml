@@ -181,6 +181,7 @@ services:
         condition: service_healthy
     volumes:
       - ./service/datagather_service:/app
+      - ./service/datagather_service/rail:/app/rail
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8085/health"]
       interval: 30s

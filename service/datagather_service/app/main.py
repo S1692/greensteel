@@ -775,7 +775,7 @@ async def save_process_data(
                     
                     session.execute(text("""
                         INSERT INTO process_data 
-                        (공정명, 생산제품, 세부공정, "공정 설명")
+                        (공정명, 생산제품, 세부공정, 공정설명)
                         VALUES (:공정명, :생산제품, :세부공정, :공정설명)
                     """), {
                         '공정명': row.get('공정명', ''),
@@ -945,13 +945,13 @@ async def save_processed_data(data: Dict[str, Any]):
                             elif table_name == 'process_data':
                                 session.execute(text("""
                                     INSERT INTO process_data 
-                                    (공정명, 생산제품, 세부공정, 공정_설명)
-                                    VALUES (:공정명, :생산제품, :세부공정, :공정_설명)
+                                    (공정명, 생산제품, 세부공정, 공정설명)
+                                    VALUES (:공정명, :생산제품, :세부공정, :공정설명)
                                 """), {
                                     '공정명': row.get('공정', ''),
                                     '생산제품': row.get('생산품명', ''),
                                     '세부공정': row.get('투입물명', ''),
-                                    '공정_설명': row.get('분류', '')
+                                    '공정설명': row.get('분류', '')
                                 })
                             else:
                                 # utility_data, waste_data, fuel_data, process_product_data

@@ -1111,7 +1111,7 @@ function LcaPageContent() {
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정명 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산제품 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.세부공정 || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row['공정 설명'] || row.공정설명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정설명 || row['공정 설명'] || '-'}</td>
                       </tr>
                     ))}
                   </tbody>

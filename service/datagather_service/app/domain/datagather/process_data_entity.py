@@ -14,10 +14,10 @@ class ProcessData(Base):
     
     # 기본 컬럼
     id = Column(Integer, primary_key=True, index=True)
-    공정명 = Column(String, nullable=False)
-    생산제품 = Column(String, nullable=False)
-    세부공정 = Column(String, nullable=False)
-    공정_설명 = Column(Text, nullable=True)
+    공정명 = Column(String(500), nullable=False)
+    생산제품 = Column(String(500), nullable=False)
+    세부공정 = Column(String(500), nullable=False)
+    공정설명 = Column(Text, nullable=True)  # 공정_설명에서 공정설명으로 통일
     created_at = Column(DateTime, nullable=True, default=func.now())
     updated_at = Column(DateTime, nullable=True, default=func.now())
     
@@ -31,7 +31,7 @@ class ProcessData(Base):
             '공정명': self.공정명,
             '생산제품': self.생산제품,
             '세부공정': self.세부공정,
-            '공정_설명': self.공정_설명,
+            '공정설명': self.공정설명,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }

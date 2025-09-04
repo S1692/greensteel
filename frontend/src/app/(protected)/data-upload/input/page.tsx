@@ -157,14 +157,28 @@ const InputDataPage: React.FC = () => {
       const jsonData = XLSX.utils.sheet_to_json(worksheet, {
         header: columns,
         range: 1,
-        defval: ''
+        defval: '',
+        raw: false, // 날짜를 문자열로 변환
+        dateNF: 'yyyy-mm-dd' // 날짜 형식 지정
       });
 
-      // AI추천답변 컬럼 추가
-      const dataWithAiColumn = jsonData.map((row: any) => ({
-        ...row,
-        'AI추천답변': ''
-      }));
+      // AI추천답변 컬럼 추가 및 날짜 데이터 변환
+      const dataWithAiColumn = jsonData.map((row: any) => {
+        const processedRow = { ...row };
+        
+        // 투입일과 종료일을 날짜 형식으로 변환
+        if (processedRow['투입일']) {
+          processedRow['투입일'] = convertExcelDate(processedRow['투입일']);
+        }
+        if (processedRow['종료일']) {
+          processedRow['종료일'] = convertExcelDate(processedRow['종료일']);
+        }
+        
+        return {
+          ...processedRow,
+          'AI추천답변': ''
+        };
+      });
 
       // 편집 가능한 행 데이터 생성
       const editableRows: EditableRow[] = dataWithAiColumn.map((row, index) => ({

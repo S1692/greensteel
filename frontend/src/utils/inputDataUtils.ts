@@ -131,16 +131,45 @@ export const convertExcelDate = (excelDate: any): string | null => {
   if (!excelDate || excelDate === '') return null;
   
   try {
-    // 이미 문자열 형태의 날짜인 경우
+    // 이미 YYYY-MM-DD 형식의 문자열인 경우
     if (typeof excelDate === 'string') {
-      return excelDate;
+      // YYYY-MM-DD 형식인지 확인
+      if (/^\d{4}-\d{2}-\d{2}$/.test(excelDate)) {
+        return excelDate;
+      }
+      
+      // 다른 날짜 형식들을 시도
+      const date = new Date(excelDate);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString().split('T')[0];
+      }
+      
+      return null;
     }
     
     // Excel 날짜 숫자인 경우 (1900년 1월 1일부터의 일수)
     if (typeof excelDate === 'number') {
+      // Excel의 날짜 시스템 (1900년 1월 1일 = 1)
+      // 단, Excel은 1900년을 윤년으로 잘못 계산하므로 1900년 2월 29일 이후는 1을 빼야 함
+      let excelDateNum = excelDate;
+      if (excelDateNum > 59) {
+        excelDateNum = excelDateNum - 1; // Excel의 1900년 윤년 버그 보정
+      }
+      
       const baseDate = new Date(1900, 0, 1); // JavaScript는 0부터 시작
-      const resultDate = new Date(baseDate.getTime() + (excelDate - 1) * 24 * 60 * 60 * 1000);
-      return resultDate.toISOString().split('T')[0]; // YYYY-MM-DD 형식
+      const resultDate = new Date(baseDate.getTime() + (excelDateNum - 1) * 24 * 60 * 60 * 1000);
+      
+      // 유효한 날짜인지 확인
+      if (!isNaN(resultDate.getTime())) {
+        return resultDate.toISOString().split('T')[0]; // YYYY-MM-DD 형식
+      }
+    }
+    
+    // Date 객체인 경우
+    if (excelDate instanceof Date) {
+      if (!isNaN(excelDate.getTime())) {
+        return excelDate.toISOString().split('T')[0];
+      }
     }
     
     return null;

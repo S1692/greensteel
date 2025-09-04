@@ -56,10 +56,10 @@ class ProcessData(Base):
     __tablename__ = "process_data"
     
     id = Column(Integer, primary_key=True, index=True)
-    공정명 = Column(String(255), nullable=False)
-    생산제품 = Column(String(255), nullable=False)
-    세부공정 = Column(String(255), nullable=False)
-    공정설명 = Column(Text, nullable=True)  # 공정 설명 (띄어쓰기 반영)
+    공정명 = Column(String(500), nullable=False)
+    생산제품 = Column(String(500), nullable=False)
+    세부공정 = Column(String(500), nullable=False)
+    공정설명 = Column(Text, nullable=True)  # 공정 설명 (더 큰 텍스트 타입)
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 

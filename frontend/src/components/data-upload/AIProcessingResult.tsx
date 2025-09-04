@@ -28,7 +28,19 @@ const AIProcessingResult: React.FC<AIProcessingResultProps> = ({
   }
 
   if (!aiProcessedData) {
-    return null;
+    return (
+      <div className='stitch-card p-6'>
+        <div className='flex items-center gap-3'>
+          <div className='w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center'>
+            <Brain className='w-5 h-5 text-gray-600' />
+          </div>
+          <div>
+            <h3 className='text-lg font-semibold text-white'>AI 처리 결과</h3>
+            <p className='text-sm text-white/60'>파일을 업로드하고 AI 처리를 실행하면 결과가 표시됩니다.</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

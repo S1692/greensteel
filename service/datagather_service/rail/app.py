@@ -9,6 +9,11 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import logging
 from huggingface_hub import hf_hub_download
+# RAG 시스템용 임포트
+import faiss
+import chromadb
+from sentence_transformers import SentenceTransformer
+from typing import List, Dict, Any
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -22,6 +27,12 @@ model = None
 vectorizer = None
 id2label = None
 label2id = None
+
+# RAG 시스템용 전역 변수
+embedding_model = None
+vector_db = None
+chroma_client = None
+knowledge_collection = None
 
 class SimpleClassifier(torch.nn.Module):
     """간단한 분류기 모델 클래스"""
@@ -45,11 +56,11 @@ def load_model():
     global model, vectorizer, id2label, label2id
     
     try:
-        # 볼륨 경로와 로컬 경로 확인
+        # Railway 볼륨 경로와 로컬 경로 확인
         volume_paths = {
-            'model': '/app/rail/pytorch_model.bin',
-            'vectorizer': '/app/rail/vectorizer.pkl', 
-            'config': '/app/rail/config.json'
+            'model': '/app/models/pytorch_model.bin',
+            'vectorizer': '/app/models/vectorizer.pkl', 
+            'config': '/app/models/config.json'
         }
         
         local_paths = {
@@ -108,11 +119,123 @@ def load_model():
         logger.error(f"모델 로드 실패: {str(e)}")
         return False
 
+def initialize_rag_system():
+    """RAG 시스템 초기화"""
+    global embedding_model, vector_db, chroma_client, knowledge_collection
+    
+    try:
+        logger.info("RAG 시스템 초기화 중...")
+        
+        # 임베딩 모델 로드 (한국어 지원)
+        embedding_model = SentenceTransformer('jhgan/ko-sroberta-multitask')
+        logger.info("임베딩 모델 로드 완료")
+        
+        # ChromaDB 클라이언트 초기화
+        chroma_client = chromadb.PersistentClient(path="/app/models/chroma_db")
+        
+        # 컬렉션 생성 또는 가져오기
+        try:
+            knowledge_collection = chroma_client.get_collection("steel_knowledge")
+            logger.info("기존 지식 컬렉션 로드 완료")
+        except:
+            knowledge_collection = chroma_client.create_collection(
+                name="steel_knowledge",
+                metadata={"description": "강철 산업 재료 분류 지식베이스"}
+            )
+            logger.info("새 지식 컬렉션 생성 완료")
+        
+        # 기존 지식 데이터가 없으면 기본 데이터 추가
+        if knowledge_collection.count() == 0:
+            initialize_knowledge_base()
+        
+        logger.info("RAG 시스템 초기화 완료")
+        return True
+        
+    except Exception as e:
+        logger.error(f"RAG 시스템 초기화 실패: {str(e)}")
+        return False
+
+def initialize_knowledge_base():
+    """기본 지식베이스 초기화"""
+    global knowledge_collection, embedding_model
+    
+    try:
+        # config.json에서 라벨 정보를 가져와서 지식베이스에 추가
+        if id2label:
+            documents = []
+            metadatas = []
+            ids = []
+            
+            for label_id, label_name in id2label.items():
+                # 각 재료에 대한 설명 생성
+                description = f"{label_name}은(는) 강철 제조 공정에서 사용되는 중요한 재료입니다."
+                
+                documents.append(description)
+                metadatas.append({
+                    "label_id": label_id,
+                    "label_name": label_name,
+                    "category": "steel_material"
+                })
+                ids.append(f"material_{label_id}")
+            
+            # 벡터화 및 저장
+            embeddings = embedding_model.encode(documents)
+            
+            knowledge_collection.add(
+                documents=documents,
+                metadatas=metadatas,
+                ids=ids,
+                embeddings=embeddings.tolist()
+            )
+            
+            logger.info(f"기본 지식베이스 초기화 완료: {len(documents)}개 항목 추가")
+            
+    except Exception as e:
+        logger.error(f"지식베이스 초기화 실패: {str(e)}")
+
+def rag_search(query: str, top_k: int = 5) -> List[Dict[str, Any]]:
+    """RAG 검색 수행"""
+    global knowledge_collection, embedding_model
+    
+    try:
+        if not knowledge_collection or not embedding_model:
+            logger.warning("RAG 시스템이 초기화되지 않음")
+            return []
+        
+        # 쿼리 임베딩
+        query_embedding = embedding_model.encode([query])
+        
+        # 유사도 검색
+        results = knowledge_collection.query(
+            query_embeddings=query_embedding.tolist(),
+            n_results=top_k
+        )
+        
+        # 결과 포맷팅
+        formatted_results = []
+        if results['documents'] and results['documents'][0]:
+            for i, doc in enumerate(results['documents'][0]):
+                formatted_results.append({
+                    'document': doc,
+                    'metadata': results['metadatas'][0][i] if results['metadatas'] else {},
+                    'distance': results['distances'][0][i] if results['distances'] else 0
+                })
+        
+        return formatted_results
+        
+    except Exception as e:
+        logger.error(f"RAG 검색 실패: {str(e)}")
+        return []
+
 def predict_material(text):
-    """텍스트를 입력받아 재료를 분류하는 함수"""
+    """텍스트를 입력받아 재료를 분류하는 함수 (RAG 결합)"""
     try:
         # 디버깅용 코드
         print(f"입력 테스트: {text}")
+        
+        # RAG 검색으로 관련 지식 검색
+        rag_results = rag_search(text, top_k=3)
+        print(f"RAG 검색 결과: {len(rag_results)}개")
         
         # 텍스트 벡터화
         text_vector = vectorizer.transform([text]).toarray()
@@ -147,7 +270,8 @@ def predict_material(text):
         return {
             'predicted_label': label,
             'confidence': confidence,
-            'top5_predictions': top5_results
+            'top5_predictions': top5_results,
+            'rag_context': rag_results  # RAG 검색 결과 추가
         }
         
     except Exception as e:
@@ -263,6 +387,40 @@ def debug_prediction():
             'error': f'디버깅 중 오류가 발생했습니다: {str(e)}'
         }), 500
 
+@app.route('/rag/search', methods=['POST'])
+def rag_search_endpoint():
+    """RAG 검색 전용 엔드포인트"""
+    try:
+        data = request.get_json()
+        
+        if not data or 'query' not in data:
+            return jsonify({
+                'error': '검색 쿼리가 필요합니다.'
+            }), 400
+        
+        query = data['query'].strip()
+        top_k = data.get('top_k', 5)
+        
+        if not query:
+            return jsonify({
+                'error': '빈 검색 쿼리는 처리할 수 없습니다.'
+            }), 400
+        
+        # RAG 검색 수행
+        results = rag_search(query, top_k=top_k)
+        
+        return jsonify({
+            'query': query,
+            'results': results,
+            'total_results': len(results)
+        })
+        
+    except Exception as e:
+        logger.error(f"RAG 검색 API 오류: {str(e)}")
+        return jsonify({
+            'error': f'RAG 검색 중 오류가 발생했습니다: {str(e)}'
+        }), 500
+
 @app.route('/', methods=['GET'])
 def home():
     """홈페이지"""
@@ -270,7 +428,8 @@ def home():
         'message': '강철 산업 재료 분류 API',
         'version': '1.0.0',
         'endpoints': {
-            'POST /predict': '텍스트를 입력받아 재료를 분류합니다.',
+            'POST /predict': '텍스트를 입력받아 재료를 분류합니다 (RAG 결합).',
+            'POST /rag/search': 'RAG 검색을 수행합니다.',
             'POST /debug': '디버깅용 상세 정보를 반환합니다.',
             'GET /labels': '사용 가능한 라벨 목록을 반환합니다.',
             'GET /health': '서버 상태를 확인합니다.'
@@ -280,6 +439,12 @@ def home():
 if __name__ == '__main__':
     # 모델 로드
     if load_model():
+        # RAG 시스템 초기화
+        if initialize_rag_system():
+            logger.info("RAG 시스템 초기화 완료")
+        else:
+            logger.warning("RAG 시스템 초기화 실패 - 기본 모델만 사용")
+        
         port = int(os.environ.get('PORT', 8000))
         app.run(host='0.0.0.0', port=port, debug=False)
     else:

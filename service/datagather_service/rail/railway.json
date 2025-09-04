@@ -12,8 +12,8 @@
   },
   "volumes": [
     {
-      "name": "rail-data",
-      "mountPath": "/app/rail"
+      "name": "rail-models",
+      "mountPath": "/app/models"
     }
   ]
 }

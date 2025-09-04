@@ -407,11 +407,11 @@ export default function RegisterPage() {
           throw new Error(errorData.detail || '회원가입에 실패했습니다.');
         }
 
-        setSuccess('기업 회원가입이 완료되었습니다! 3초 후 로그인 페이지로 이동합니다.');
+        setSuccess('기업 회원가입이 완료되었습니다! 3초 후 메인 페이지로 이동합니다.');
         
-        // 3초 후 프로덕션 로그인 페이지로 이동
+        // 3초 후 프로덕션 메인 페이지로 이동
         setTimeout(() => {
-          window.location.href = 'https://greensteel-pwdneh4wh-123s-projects-eed55fc0.vercel.app/login';
+          window.location.href = 'https://greensteel-pwdneh4wh-123s-projects-eed55fc0.vercel.app/';
         }, 3000);
         
         setFormData({
@@ -500,11 +500,11 @@ export default function RegisterPage() {
           throw new Error(errorData.detail || '회원가입에 실패했습니다.');
         }
 
-        setSuccess('개인 사용자 회원가입이 완료되었습니다! 3초 후 로그인 페이지로 이동합니다.');
+        setSuccess('개인 사용자 회원가입이 완료되었습니다! 3초 후 메인 페이지로 이동합니다.');
         
-        // 3초 후 프로덕션 로그인 페이지로 이동
+        // 3초 후 프로덕션 메인 페이지로 이동
         setTimeout(() => {
-          window.location.href = 'https://greensteel-pwdneh4wh-123s-projects-eed55fc0.vercel.app/login';
+          window.location.href = 'https://greensteel-pwdneh4wh-123s-projects-eed55fc0.vercel.app/';
         }, 3000);
         
         setUserFormData({

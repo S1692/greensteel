@@ -41,23 +41,45 @@ class SimpleClassifier(torch.nn.Module):
         return x
 
 def load_model():
-    """모델과 관련 데이터를 로드하는 함수 - 올바른 로드 방식"""
+    """모델과 관련 데이터를 로드하는 함수 - 볼륨 우선, 없으면 Hugging Face에서 다운로드"""
     global model, vectorizer, id2label, label2id
     
     try:
-        logger.info("Hugging Face Hub에서 모델 파일들을 다운로드 중...")
+        # 볼륨 경로와 로컬 경로 확인
+        volume_paths = {
+            'model': '/app/rail/pytorch_model.bin',
+            'vectorizer': '/app/rail/vectorizer.pkl', 
+            'config': '/app/rail/config.json'
+        }
         
-        # Download model files
-        model_path = hf_hub_download(repo_id="Halftotter/flud", filename="pytorch_model.bin")
-        vectorizer_path = hf_hub_download(repo_id="Halftotter/flud", filename="vectorizer.pkl")
-        config_path = hf_hub_download(repo_id="Halftotter/flud", filename="config.json")
+        local_paths = {
+            'model': 'pytorch_model.bin',
+            'vectorizer': 'vectorizer.pkl',
+            'config': 'config.json'
+        }
         
-        logger.info(f"모델 파일 다운로드 완료: {model_path}")
-        logger.info(f"벡터라이저 파일 다운로드 완료: {vectorizer_path}")
-        logger.info(f"설정 파일 다운로드 완료: {config_path}")
+        # 파일 경로 결정 (볼륨 우선, 없으면 로컬, 없으면 Hugging Face)
+        file_paths = {}
+        for key in ['model', 'vectorizer', 'config']:
+            if os.path.exists(volume_paths[key]):
+                file_paths[key] = volume_paths[key]
+                logger.info(f"볼륨에서 {key} 파일 발견: {volume_paths[key]}")
+            elif os.path.exists(local_paths[key]):
+                file_paths[key] = local_paths[key]
+                logger.info(f"로컬에서 {key} 파일 발견: {local_paths[key]}")
+            else:
+                # Hugging Face에서 다운로드
+                logger.info(f"Hugging Face Hub에서 {key} 파일 다운로드 중...")
+                if key == 'model':
+                    file_paths[key] = hf_hub_download(repo_id="Halftotter/flud", filename="pytorch_model.bin")
+                elif key == 'vectorizer':
+                    file_paths[key] = hf_hub_download(repo_id="Halftotter/flud", filename="vectorizer.pkl")
+                elif key == 'config':
+                    file_paths[key] = hf_hub_download(repo_id="Halftotter/flud", filename="config.json")
+                logger.info(f"{key} 파일 다운로드 완료: {file_paths[key]}")
         
         # Load configuration
-        with open(config_path, 'r', encoding='utf-8') as f:
+        with open(file_paths['config'], 'r', encoding='utf-8') as f:
             config = json.load(f)
         
         id2label = config['id2label']
@@ -67,7 +89,7 @@ def load_model():
         intermediate_size = config['intermediate_size']
         
         # Load vectorizer
-        vectorizer = joblib.load(vectorizer_path)
+        vectorizer = joblib.load(file_paths['vectorizer'])
         
         # Load model
         model = SimpleClassifier(
@@ -76,7 +98,7 @@ def load_model():
             intermediate_size=intermediate_size,
             num_labels=num_labels
         )
-        model.load_state_dict(torch.load(model_path, map_location='cpu'))
+        model.load_state_dict(torch.load(file_paths['model'], map_location='cpu'))
         model.eval()
         
         logger.info("모델 로드 완료")

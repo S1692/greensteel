@@ -281,14 +281,22 @@ const InputDataPage: React.FC = () => {
           // AI 처리된 데이터가 있는 경우: 기존 편집 가능한 행 데이터에 AI 추천 답변만 추가
           updatedEditableRows = editableInputRows.map((existingRow, index) => {
             const aiResult = aiResults[index];
+            console.log(`AI 결과 처리 중 - 행 ${index}:`, {
+              existingRow: existingRow.modifiedData,
+              aiResult: aiResult,
+              aiRecommendation: aiResult?.['AI분류결과']
+            });
+            
             if (aiResult) {
-              return {
+              const updatedRow = {
                 ...existingRow,
                 modifiedData: {
                   ...existingRow.modifiedData, // 기존 데이터 유지
                   'AI추천답변': aiResult['AI분류결과'] || '' // AI 분류 결과를 AI 추천 답변으로 사용
                 }
               };
+              console.log(`업데이트된 행 ${index}:`, updatedRow.modifiedData);
+              return updatedRow;
             }
             return existingRow;
           });
@@ -336,13 +344,17 @@ const InputDataPage: React.FC = () => {
        });
 
        // AI 처리 실패 시에도 기존 편집 가능한 행 데이터에 빈 AI 추천 답변 추가
-       const updatedEditableRows: EditableRow[] = editableInputRows.map((existingRow) => ({
-         ...existingRow,
-         modifiedData: {
-           ...existingRow.modifiedData,
-           'AI추천답변': existingRow.modifiedData['투입물명'] || '' // 원본 투입물명을 AI 추천 답변으로 사용
-         }
-       }));
+       const updatedEditableRows: EditableRow[] = editableInputRows.map((existingRow, index) => {
+         const fallbackRow = {
+           ...existingRow,
+           modifiedData: {
+             ...existingRow.modifiedData,
+             'AI추천답변': existingRow.modifiedData['투입물명'] || '' // 원본 투입물명을 AI 추천 답변으로 사용
+           }
+         };
+         console.log(`AI 처리 실패 시 fallback 행 ${index}:`, fallbackRow.modifiedData);
+         return fallbackRow;
+       });
 
        setEditableInputRows(updatedEditableRows);
        console.log('AI 처리 실패 시 기본 데이터로 편집 가능한 행 데이터 업데이트됨');

@@ -68,20 +68,30 @@ const DataPreviewTable: React.FC<DataPreviewTableProps> = ({
               </tr>
             </thead>
             <tbody>
-              {editableInputRows.map((row) => (
-                <React.Fragment key={row.id}>
-                  <tr className='border-b border-white/10 hover:bg-white/5'>
-                    {inputData.columns.map((column) => (
-                      <td key={column} className='border border-white/20 px-3 py-2 text-sm text-white'>
-                        {row.isEditing ? (
-                          renderInputField(row, column)
-                        ) : (
-                          <span className={column === 'AI추천답변' ? 'text-blue-300' : ''}>
-                            {row.modifiedData[column] || '-'}
-                          </span>
-                        )}
-                      </td>
-                    ))}
+              {editableInputRows.map((row, rowIndex) => {
+                // AI 추천 답변 디버깅을 위한 로그
+                if (rowIndex === 0) {
+                  console.log('DataPreviewTable 렌더링 - 첫 번째 행:', {
+                    rowId: row.id,
+                    modifiedData: row.modifiedData,
+                    aiRecommendation: row.modifiedData['AI추천답변']
+                  });
+                }
+                
+                return (
+                  <React.Fragment key={row.id}>
+                    <tr className='border-b border-white/10 hover:bg-white/5'>
+                      {inputData.columns.map((column) => (
+                        <td key={column} className='border border-white/20 px-3 py-2 text-sm text-white'>
+                          {row.isEditing ? (
+                            renderInputField(row, column)
+                          ) : (
+                            <span className={column === 'AI추천답변' ? 'text-blue-300 font-medium' : ''}>
+                              {row.modifiedData[column] || '-'}
+                            </span>
+                          )}
+                        </td>
+                      ))}
                     <td className='border border-white/20 px-3 py-2 text-sm'>
                       {row.isEditing ? (
                         <div className='flex gap-2'>
@@ -155,7 +165,8 @@ const DataPreviewTable: React.FC<DataPreviewTableProps> = ({
                     </tr>
                   )}
                 </React.Fragment>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

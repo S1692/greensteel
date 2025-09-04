@@ -344,18 +344,18 @@ export default function GasEmissionReportPage() {
                 <span>{t.companyName}</span>
                 <input
                   type="text"
-                  value={formData.companyName}
-                  onChange={(e) => handleFormChange('companyName', e.target.value)}
-                  className="w-32 px-2 py-1 border border-gray-300 rounded"
+                  value={HARDCODED_DATA.installation[language]}
+                  readOnly
+                  className="w-32 px-2 py-1 border border-gray-300 rounded bg-gray-100"
                 />
               </div>
               <div className="flex items-center space-x-2">
                 <span>{t.issueDate}</span>
                 <input
                   type="date"
-                  value={formData.issueDate}
-                  onChange={(e) => handleFormChange('issueDate', e.target.value)}
-                  className="w-32 px-2 py-1 border border-gray-300 rounded"
+                  value="2024-01-15"
+                  readOnly
+                  className="w-32 px-2 py-1 border border-gray-300 rounded bg-gray-100"
                 />
               </div>
             </div>
@@ -373,16 +373,16 @@ export default function GasEmissionReportPage() {
               <div className="flex items-center space-x-4">
                 <input
                   type="date"
-                  value={formData.startPeriod}
-                  onChange={(e) => handleFormChange('startPeriod', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded"
+                  value="2024-01-01"
+                  readOnly
+                  className="px-3 py-2 border border-gray-300 rounded bg-gray-100"
                 />
                 <span>~</span>
                 <input
                   type="date"
-                  value={formData.endPeriod}
-                  onChange={(e) => handleFormChange('endPeriod', e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded"
+                  value="2024-12-31"
+                  readOnly
+                  className="px-3 py-2 border border-gray-300 rounded bg-gray-100"
                 />
               </div>
             </div>
@@ -397,9 +397,9 @@ export default function GasEmissionReportPage() {
                   </label>
                   <input
                     type="text"
-                    value={formData.installationName}
-                    onChange={(e) => handleFormChange('installationName', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded"
+                    value={HARDCODED_DATA.installation[language]}
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100"
                   />
                 </div>
                 <div>
@@ -409,56 +409,49 @@ export default function GasEmissionReportPage() {
                   <div className="space-y-2">
                     <input
                       type="text"
-                      placeholder={t.workplaceName}
-                      value={formData.address.workplaceName}
-                      onChange={(e) => handleFormChange('address.workplaceName', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded"
+                      value={HARDCODED_DATA.contact.street[language]}
+                      readOnly
+                      className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100"
                     />
                     <div className="grid grid-cols-2 gap-2">
                       <input
                         type="text"
-                        placeholder={t.country}
-                        value={formData.address.country}
-                        onChange={(e) => handleFormChange('address.country', e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded"
+                        value={HARDCODED_DATA.location.country[language]}
+                        readOnly
+                        className="px-3 py-2 border border-gray-300 rounded bg-gray-100"
                       />
                       <input
                         type="text"
-                        placeholder={t.city}
-                        value={formData.address.city}
-                        onChange={(e) => handleFormChange('address.city', e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded"
+                        value={HARDCODED_DATA.location.city[language]}
+                        readOnly
+                        className="px-3 py-2 border border-gray-300 rounded bg-gray-100"
                       />
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       <input
                         type="text"
-                        placeholder={t.postcode}
-                        value={formData.address.postcode}
-                        onChange={(e) => handleFormChange('address.postcode', e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded"
+                        value={HARDCODED_DATA.contact.postcode}
+                        readOnly
+                        className="px-3 py-2 border border-gray-300 rounded bg-gray-100"
                       />
                       <input
                         type="text"
-                        placeholder={t.workplace}
-                        value={formData.address.workplace}
-                        onChange={(e) => handleFormChange('address.workplace', e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded"
+                        value={HARDCODED_DATA.contact.number[language]}
+                        readOnly
+                        className="px-3 py-2 border border-gray-300 rounded bg-gray-100"
                       />
                       <input
                         type="text"
-                        placeholder={t.currencyCode}
-                        value={formData.address.currencyCode}
-                        onChange={(e) => handleFormChange('address.currencyCode', e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded"
+                        value={HARDCODED_DATA.location.unlocode}
+                        readOnly
+                        className="px-3 py-2 border border-gray-300 rounded bg-gray-100"
                       />
                     </div>
                     <input
                       type="text"
-                      placeholder={t.coordinates}
-                      value={formData.address.coordinates}
-                      onChange={(e) => handleFormChange('address.coordinates', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded"
+                      value={`${HARDCODED_DATA.location.coordinates.latitude}, ${HARDCODED_DATA.location.coordinates.longitude}`}
+                      readOnly
+                      className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100"
                     />
                   </div>
                 </div>
@@ -466,316 +459,11 @@ export default function GasEmissionReportPage() {
             </div>
           </div>
 
-          {/* 2. 제품 생산 정보 */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              2. {t.productInfo}
-            </h2>
-            
-                         {/* 품목군 */}
-             <div className="mb-6">
-               <label className="block text-sm font-medium text-gray-700 mb-2">
-                 {t.productGroup}
-               </label>
-               <input
-                 type="text"
-                 placeholder={t.cnCode}
-                 value="홍석근"
-                 readOnly
-                 className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100"
-               />
-             </div>
+         
 
-             {/* CN코드/제품명 */}
-             <div className="mb-6">
-               <label className="block text-sm font-medium text-gray-700 mb-2">
-                 CN코드/제품명
-               </label>
-               <input
-                 type="text"
-                 value="7200 - 고정도 강판"
-                 readOnly
-                 className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100"
-               />
-             </div>
+          
 
-             {/* 생산 공정 */}
-             <div className="mb-6">
-               <h3 className="text-lg font-medium text-gray-800 mb-3">{t.productionProcess}</h3>
-               
-               <div className="space-y-6">
-                 <div className="border border-gray-300 rounded-lg p-4">
-                   <h4 className="font-medium text-gray-800 mb-3">
-                     7200 - 고정도 강판
-                   </h4>
-                   
-                   {/* Route 1 */}
-                   <div className="mb-4">
-                     <h5 className="font-medium text-gray-700 mb-2">
-                       Route 1 / 생산량
-                     </h5>
-                     
-                     <div className="overflow-x-auto">
-                       <table className="w-full border-collapse border border-gray-300">
-                         <thead>
-                           <tr className="bg-gray-50">
-                             <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
-                               원료/연료
-                             </th>
-                             <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
-                               배출량
-                             </th>
-                             <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
-                               전구물질 여부
-                             </th>
-                           </tr>
-                         </thead>
-                         <tbody>
-                           <tr>
-                             <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700">
-                               원료 1
-                             </td>
-                             <td className="border border-gray-300 px-3 py-2">
-                               <input
-                                 type="number"
-                                 value="0"
-                                 className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                               />
-                             </td>
-                             <td className="border border-gray-300 px-3 py-2">
-                               <input
-                                 type="checkbox"
-                                 checked={true}
-                                 className="w-4 h-4"
-                               />
-                             </td>
-                           </tr>
-                           <tr>
-                             <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700">
-                               원료 2
-                             </td>
-                             <td className="border border-gray-300 px-3 py-2">
-                               <input
-                                 type="number"
-                                 value="0"
-                                 className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                               />
-                             </td>
-                             <td className="border border-gray-300 px-3 py-2">
-                               <input
-                                 type="checkbox"
-                                 checked={true}
-                                 className="w-4 h-4"
-                               />
-                             </td>
-                           </tr>
-                           <tr>
-                             <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700">
-                               연료 1
-                             </td>
-                             <td className="border border-gray-300 px-3 py-2">
-                               <input
-                                 type="number"
-                                 value="0"
-                                 className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                               />
-                             </td>
-                             <td className="border border-gray-300 px-3 py-2">
-                               <span className="text-gray-400">-</span>
-                             </td>
-                           </tr>
-                           <tr>
-                             <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700">
-                               연료 2
-                             </td>
-                             <td className="border border-gray-300 px-3 py-2">
-                               <input
-                                 type="number"
-                                 value="0"
-                                 className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                               />
-                             </td>
-                             <td className="border border-gray-300 px-3 py-2">
-                               <span className="text-gray-400">-</span>
-                             </td>
-                           </tr>
-                         </tbody>
-                       </table>
-                     </div>
-                   </div>
-
-                   {/* Route 2 */}
-                   <div className="mb-4">
-                     <h5 className="font-medium text-gray-700 mb-2">
-                       Route 2 / 생산량
-                     </h5>
-                     
-                     <div className="overflow-x-auto">
-                       <table className="w-full border-collapse border border-gray-300">
-                         <thead>
-                           <tr className="bg-gray-50">
-                             <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
-                               원료/연료
-                             </th>
-                             <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
-                               배출량
-                             </th>
-                             <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium text-gray-700">
-                               전구물질 여부
-                             </th>
-                           </tr>
-                         </thead>
-                         <tbody>
-                           <tr>
-                             <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700">
-                               원료 1
-                             </td>
-                             <td className="border border-gray-300 px-3 py-2">
-                               <input
-                                 type="number"
-                                 value="0"
-                                 className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                               />
-                             </td>
-                             <td className="border border-gray-300 px-3 py-2">
-                               <input
-                                 type="checkbox"
-                                 checked={true}
-                                 className="w-4 h-4"
-                               />
-                             </td>
-                           </tr>
-                           <tr>
-                             <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700">
-                               원료 2
-                             </td>
-                             <td className="border border-gray-300 px-3 py-2">
-                               <input
-                                 type="number"
-                                 value="0"
-                                 className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                               />
-                             </td>
-                             <td className="border border-gray-300 px-3 py-2">
-                               <input
-                                 type="checkbox"
-                                 checked={true}
-                                 className="w-4 h-4"
-                               />
-                             </td>
-                           </tr>
-                           <tr>
-                             <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700">
-                               연료 1
-                             </td>
-                             <td className="border border-gray-300 px-3 py-2">
-                               <input
-                                 type="number"
-                                 value="0"
-                                 className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                               />
-                             </td>
-                             <td className="border border-gray-300 px-3 py-2">
-                               <span className="text-gray-400">-</span>
-                             </td>
-                           </tr>
-                           <tr>
-                             <td className="border border-gray-300 px-3 py-2 text-sm text-gray-700">
-                               연료 2
-                             </td>
-                             <td className="border border-gray-300 px-3 py-2">
-                               <input
-                                 type="number"
-                                 value="0"
-                                 className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                               />
-                             </td>
-                             <td className="border border-gray-300 px-3 py-2">
-                               <span className="text-gray-400">-</span>
-                             </td>
-                           </tr>
-                         </tbody>
-                       </table>
-                     </div>
-                   </div>
-                 </div>
-               </div>
-             </div>
-          </div>
-
-          {/* 3. 전구체 정보 */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              3. {t.precursorInfo}
-            </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-lg font-medium text-gray-800 mb-3">
-                  {t.precursorMaterialName} 1
-                </h3>
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    placeholder={t.movementRoute}
-                    className="w-full px-3 py-2 border border-gray-300 rounded"
-                  />
-                  <input
-                    type="text"
-                    placeholder={t.consumptionProcess}
-                    className="w-full px-3 py-2 border border-gray-300 rounded"
-                  />
-                  <input
-                    type="text"
-                    placeholder={t.consumptionProcess}
-                    className="w-full px-3 py-2 border border-gray-300 rounded"
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="text-lg font-medium text-gray-800 mb-3">
-                  {t.precursorMaterialName} 2
-                </h3>
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    placeholder={t.movementRoute}
-                    className="w-full px-3 py-2 border border-gray-300 rounded"
-                  />
-                  <input
-                    type="text"
-                    placeholder={t.consumptionProcess}
-                    className="w-full px-3 py-2 border border-gray-300 rounded"
-                  />
-                  <input
-                    type="text"
-                    placeholder={t.consumptionProcess}
-                    className="w-full px-3 py-2 border border-gray-300 rounded"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* 4. 배출계수 */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              4. {t.emissionFactor}
-            </h2>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t.cbamDefaultValue}
-              </label>
-              <input
-                type="number"
-                value={formData.emissionFactor}
-                onChange={(e) => handleFormChange('emissionFactor', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded"
-              />
-            </div>
-          </div>
-
+                
           {/* 5. 연락처 */}
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
@@ -788,9 +476,9 @@ export default function GasEmissionReportPage() {
                 </label>
                 <input
                   type="email"
-                  value={formData.email}
-                  onChange={(e) => handleFormChange('email', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded"
+                  value={HARDCODED_DATA.contact.email}
+                  readOnly
+                  className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100"
                 />
               </div>
               <div>
@@ -799,9 +487,9 @@ export default function GasEmissionReportPage() {
                 </label>
                 <input
                   type="text"
-                  value={formData.contact}
-                  onChange={(e) => handleFormChange('contact', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded"
+                  value={HARDCODED_DATA.contact.telephone}
+                  readOnly
+                  className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100"
                 />
               </div>
             </div>

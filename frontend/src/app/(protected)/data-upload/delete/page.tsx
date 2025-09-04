@@ -18,17 +18,18 @@ import {
 // 데이터 인터페이스
 interface InputData {
   id: number;
+  주문처명?: string;
+  오더번호?: string;
   로트번호: string;
   생산품명: string;
   생산수량: number;
+  생산수량_단위: string;
   투입일: string;
   종료일: string;
   공정: string;
   투입물명: string;
   수량: number;
-  단위: string;
-  주문처명?: string;
-  오더번호?: string;
+  투입물_단위: string;
 }
 
 interface OutputData {
@@ -36,12 +37,13 @@ interface OutputData {
   로트번호: string;
   생산품명: string;
   생산수량: number;
+  생산수량_단위: string;
   투입일: string;
   종료일: string;
   공정: string;
   산출물명: string;
   수량: number;
-  단위: string;
+  산출물_단위: string;
   주문처명?: string;
   오더번호?: string;
 }
@@ -310,20 +312,25 @@ export default function DataDeletePage() {
                 <thead className="bg-ecotrace-secondary/50">
                   <tr>
                     <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">ID</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">주문처명</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">오더번호</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산품명</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입물명</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">단위</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량 단위</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입일</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">종료일</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입물명</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입물 단위</th>
                     <th className="px-4 py-3 text-center text-sm font-medium text-ecotrace-textSecondary">액션</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-ecotrace-border">
                   {inputData.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="px-4 py-8 text-center text-ecotrace-textSecondary">
+                      <td colSpan={14} className="px-4 py-8 text-center text-ecotrace-textSecondary">
                         데이터가 없습니다.
                       </td>
                     </tr>
@@ -331,13 +338,18 @@ export default function DataDeletePage() {
                     inputData.map((item) => (
                       <tr key={item.id} className="hover:bg-ecotrace-secondary/30 transition-colors">
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{item.id}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.주문처명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.오더번호 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{item.로트번호 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{item.생산품명 || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.투입물명 || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.수량 || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.단위 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.생산수량 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.생산수량_단위 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{item.투입일 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{item.종료일 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.공정 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.투입물명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.수량 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.투입물_단위 || '-'}</td>
                         <td className="px-4 py-3 text-center">
                           <Button
                             onClick={() => deleteInputData(item.id)}
@@ -372,18 +384,23 @@ export default function DataDeletePage() {
                     <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">ID</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산품명</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">산출물명</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">단위</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량 단위</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입일</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">종료일</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">산출물명</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">산출물 단위</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">주문처명</th>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">오더번호</th>
                     <th className="px-4 py-3 text-center text-sm font-medium text-ecotrace-textSecondary">액션</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-ecotrace-border">
                   {outputData.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="px-4 py-8 text-center text-ecotrace-textSecondary">
+                      <td colSpan={14} className="px-4 py-8 text-center text-ecotrace-textSecondary">
                         데이터가 없습니다.
                       </td>
                     </tr>
@@ -393,11 +410,16 @@ export default function DataDeletePage() {
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{item.id}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{item.로트번호 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{item.생산품명 || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.산출물명 || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.수량 || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.단위 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.생산수량 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.생산수량_단위 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{item.투입일 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{item.종료일 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.공정 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.산출물명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.수량 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.산출물_단위 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.주문처명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{item.오더번호 || '-'}</td>
                         <td className="px-4 py-3 text-center">
                           <Button
                             onClick={() => deleteOutputData(item.id)}
@@ -443,7 +465,7 @@ export default function DataDeletePage() {
                 <tbody className="divide-y divide-ecotrace-border">
                   {transportData.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="px-4 py-8 text-center text-ecotrace-textSecondary">
+                      <td colSpan={14} className="px-4 py-8 text-center text-ecotrace-textSecondary">
                         데이터가 없습니다.
                       </td>
                     </tr>

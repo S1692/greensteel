@@ -412,15 +412,18 @@ export interface ReportConfig {
 // 새로운 데이터 업로드 스키마 타입 정의
 export interface InputDataSchema {
   id?: number;
+  주문처명?: string;
+  오더번호?: string;
   로트번호: string;
   생산품명: string;
   생산수량: number;
+  생산수량_단위: string;
   투입일: string | null;
   종료일: string | null;
   공정: string;
   투입물명: string;
   수량: number;
-  단위: string;
+  투입물_단위: string;
   AI추천답변?: string;
   created_at?: string;
   updated_at?: string;
@@ -431,12 +434,15 @@ export interface OutputDataSchema {
   로트번호: string;
   생산품명: string;
   생산수량: number;
+  생산수량_단위: string;
   투입일: string | null;
   종료일: string | null;
   공정: string;
   산출물명: string;
   수량: number;
-  단위: string;
+  산출물_단위: string;
+  주문처명?: string;
+  오더번호?: string;
   created_at?: string;
   updated_at?: string;
 }

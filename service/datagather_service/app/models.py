@@ -16,19 +16,20 @@ class InputData(Base):
     __tablename__ = "input_data"
     
     id = Column(Integer, primary_key=True, index=True)
+    주문처명 = Column(String(255))
+    오더번호 = Column(String(255))
     로트번호 = Column(String(255))
     생산품명 = Column(String(255))
     생산수량 = Column(Numeric(10, 3))
+    생산수량_단위 = Column(String(50), default='t')
     투입일 = Column(String(255))
     종료일 = Column(String(255))
     공정 = Column(String(255))
     투입물명 = Column(String(255))
     수량 = Column(Numeric(10, 3))
-    단위 = Column(String(50))
+    투입물_단위 = Column(String(50), default='t')
     ai추천답변 = Column(Text, nullable=True)
     source_file = Column(String(255))
-    주문처명 = Column(String(255))
-    오더번호 = Column(String(255))
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 
@@ -63,14 +64,23 @@ class ProcessData(Base):
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 
 class OutputData(Base):
-    """출력 데이터 테이블"""
+    """산출물 데이터 테이블"""
     __tablename__ = "output_data"
     
     id = Column(Integer, primary_key=True, index=True)
-    생산품명 = Column(String(255))
     로트번호 = Column(String(255))
+    생산품명 = Column(String(255))
     생산수량 = Column(Numeric(10, 3))
-    생산일 = Column(String(255))
+    생산수량_단위 = Column(String(50), default='t')
+    투입일 = Column(String(255))
+    종료일 = Column(String(255))
     공정 = Column(String(255))
+    산출물명 = Column(String(255))
+    수량 = Column(Numeric(10, 3))
+    산출물_단위 = Column(String(50), default='t')
+    ai추천답변 = Column(Text, nullable=True)
+    source_file = Column(String(255))
+    주문처명 = Column(String(255))
+    오더번호 = Column(String(255))
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())

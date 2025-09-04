@@ -336,20 +336,21 @@ async def save_input_data(data: Dict[str, Any]):
                 try:
                     session.execute(text("""
                         INSERT INTO input_data 
-                        (로트번호, 생산품명, 생산수량, 투입일, 종료일, 
-                         공정, 투입물명, 수량, 단위, source_file, 주문처명, 오더번호)
-                        VALUES (:로트번호, :생산품명, :생산수량, :투입일, :종료일,
-                                :공정, :투입물명, :수량, :단위, :source_file, :주문처명, :오더번호)
+                        (로트번호, 생산품명, 생산수량, 생산수량_단위, 투입일, 종료일, 
+                         공정, 투입물명, 수량, 투입물_단위, source_file, 주문처명, 오더번호)
+                        VALUES (:로트번호, :생산품명, :생산수량, :생산수량_단위, :투입일, :종료일,
+                                :공정, :투입물명, :수량, :투입물_단위, :source_file, :주문처명, :오더번호)
                     """), {
                         '로트번호': row.get('로트번호', ''),
                         '생산품명': row.get('생산품명', ''),
                         '생산수량': float(row.get('생산수량', 0)) if row.get('생산수량') else 0,
+                        '생산수량_단위': row.get('생산수량_단위', 't'),
                         '투입일': row.get('투입일'),
                         '종료일': row.get('종료일'),
                         '공정': row.get('공정', ''),
                         '투입물명': row.get('투입물명', ''),
                         '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
-                        '단위': row.get('단위', 't'),
+                        '투입물_단위': row.get('투입물_단위', 't'),
                         'source_file': data.get('filename', 'input_data'),
                         '주문처명': row.get('주문처명', ''),
                         '오더번호': row.get('오더번호', '')
@@ -579,20 +580,21 @@ async def save_output_data(
                     
                     session.execute(text("""
                         INSERT INTO output_data 
-                        (로트번호, 생산품명, 생산수량, 투입일, 종료일, 
-                         공정, 산출물명, 수량, 단위, source_file, 주문처명, 오더번호)
-                        VALUES (:로트번호, :생산품명, :생산수량, :투입일, :종료일,
-                                :공정, :산출물명, :수량, :단위, :source_file, :주문처명, :오더번호)
+                        (로트번호, 생산품명, 생산수량, 생산수량_단위, 투입일, 종료일, 
+                         공정, 산출물명, 수량, 산출물_단위, source_file, 주문처명, 오더번호)
+                        VALUES (:로트번호, :생산품명, :생산수량, :생산수량_단위, :투입일, :종료일,
+                                :공정, :산출물명, :수량, :산출물_단위, :source_file, :주문처명, :오더번호)
                     """), {
                         '로트번호': row.get('로트번호', ''),
                         '생산품명': row.get('생산품명', ''),
                         '생산수량': float(row.get('생산수량', 0)) if row.get('생산수량') else 0,
+                        '생산수량_단위': row.get('생산수량_단위', 't'),
                         '투입일': row.get('투입일'),
                         '종료일': row.get('종료일'),
                         '공정': row.get('공정', ''),
                         '산출물명': output_name,
                         '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
-                        '단위': row.get('단위', 't'),
+                        '산출물_단위': row.get('산출물_단위', 't'),
                         'source_file': data.get('filename', 'output_data'),
                         '주문처명': row.get('주문처명', ''),
                         '오더번호': row.get('오더번호', '')
@@ -876,20 +878,21 @@ async def save_processed_data(data: Dict[str, Any]):
                             if table_name == 'input_data':
                                 session.execute(text("""
                                     INSERT INTO input_data 
-                                    (로트번호, 생산품명, 생산수량, 투입일, 종료일, 
-                                     공정, 투입물명, 수량, 단위, source_file, 주문처명, 오더번호)
-                                    VALUES (:로트번호, :생산품명, :생산수량, :투입일, :종료일,
-                                            :공정, :투입물명, :수량, :단위, :source_file, :주문처명, :오더번호)
+                                    (로트번호, 생산품명, 생산수량, 생산수량_단위, 투입일, 종료일, 
+                                     공정, 투입물명, 수량, 투입물_단위, source_file, 주문처명, 오더번호)
+                                    VALUES (:로트번호, :생산품명, :생산수량, :생산수량_단위, :투입일, :종료일,
+                                            :공정, :투입물명, :수량, :투입물_단위, :source_file, :주문처명, :오더번호)
                                 """), {
                                     '로트번호': row.get('로트번호', ''),
                                     '생산품명': row.get('생산품명', ''),
                                     '생산수량': float(row.get('생산수량', 0)) if row.get('생산수량') else 0,
+                                    '생산수량_단위': row.get('생산수량_단위', 't'),
                                     '투입일': row.get('투입일'),
                                     '종료일': row.get('종료일'),
                                     '공정': row.get('공정', ''),
                                     '투입물명': row.get('투입물명', ''),
                                     '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
-                                    '단위': row.get('단위', 't'),
+                                    '투입물_단위': row.get('투입물_단위', 't'),
                                     'source_file': data.get('filename', 'processed'),
                                     '주문처명': row.get('주문처명', ''),
                                     '오더번호': row.get('오더번호', '')
@@ -897,20 +900,21 @@ async def save_processed_data(data: Dict[str, Any]):
                             elif table_name == 'output_data':
                                 session.execute(text("""
                                     INSERT INTO output_data 
-                                    (로트번호, 생산품명, 생산수량, 투입일, 종료일, 
-                                     공정, 산출물명, 수량, 단위, 주문처명, 오더번호)
-                                    VALUES (:로트번호, :생산품명, :생산수량, :투입일, :종료일,
-                                            :공정, :산출물명, :수량, :단위, :주문처명, :오더번호)
+                                    (로트번호, 생산품명, 생산수량, 생산수량_단위, 투입일, 종료일, 
+                                     공정, 산출물명, 수량, 산출물_단위, 주문처명, 오더번호)
+                                    VALUES (:로트번호, :생산품명, :생산수량, :생산수량_단위, :투입일, :종료일,
+                                            :공정, :산출물명, :수량, :산출물_단위, :주문처명, :오더번호)
                                 """), {
                                     '로트번호': row.get('로트번호', ''),
                                     '생산품명': row.get('생산품명', ''),
                                     '생산수량': float(row.get('생산수량', 0)) if row.get('생산수량') else 0,
+                                    '생산수량_단위': row.get('생산수량_단위', 't'),
                                     '투입일': row.get('투입일'),
                                     '종료일': row.get('종료일'),
                                     '공정': row.get('공정', ''),
                                     '산출물명': row.get('투입물명', ''),  # 산출물명으로 매핑
                                     '수량': float(row.get('수량', 0)) if row.get('수량') else 0,
-                                    '단위': row.get('단위', 't'),
+                                    '산출물_단위': row.get('산출물_단위', 't'),
                                     '주문처명': row.get('주문처명', ''),
                                     '오더번호': row.get('오더번호', '')
                                 })

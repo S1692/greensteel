@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import CommonShell from '@/components/common/CommonShell';
 import axiosClient, { apiEndpoints } from '@/lib/axiosClient';
 import { RefreshCw, Plus, ZoomIn, ZoomOut, Minus, Map } from 'lucide-react';
@@ -25,7 +26,9 @@ import { CalculationModal } from '@/components/cbam/modals/CalculationModal';
 // 🎯 CBAM 관리 페이지
 // ============================================================================
 
-export default function CBAMPage() {
+function CBAMPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'overview' | 'install' | 'boundary' | 'reports' | 'settings'>('overview');
 
   // 모달 상태 관리
@@ -104,6 +107,14 @@ export default function CBAMPage() {
       }
     }
   }, []);
+
+  // URL 쿼리 파라미터에서 탭 정보 읽기
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && (tabParam === 'overview' || tabParam === 'install' || tabParam === 'boundary' || tabParam === 'reports' || tabParam === 'settings')) {
+      setActiveTab(tabParam as 'overview' | 'install' | 'boundary' | 'reports' | 'settings');
+    }
+  }, [searchParams]);
 
   // 초기 데이터 로딩
   useEffect(() => {
@@ -220,7 +231,13 @@ export default function CBAMPage() {
         {/* 탭 네비게이션 */}
         <CBAMTabNavigation
           activeTab={activeTab}
-          onTabChange={setActiveTab}
+          onTabChange={(tab) => {
+            setActiveTab(tab);
+            // URL 업데이트
+            const params = new URLSearchParams(searchParams.toString());
+            params.set('tab', tab);
+            router.push(`/cbam?${params.toString()}`);
+          }}
         />
 
         {/* 탭 컨텐츠 */}
@@ -283,5 +300,13 @@ export default function CBAMPage() {
         />
       )}
     </CommonShell>
+  );
+}
+
+export default function CBAMPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CBAMPageContent />
+    </Suspense>
   );
 }

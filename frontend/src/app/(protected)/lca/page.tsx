@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import CommonShell from '@/components/common/CommonShell';
 import LcaTabsNav from '@/components/atomic/molecules/LcaTabsNav';
 import { LcaTabKey, ManageSegment } from '@/lib';
@@ -26,17 +27,18 @@ import {
 // DB 테이블의 실제 칼럼에 맞춘 인터페이스 (created_at, updated_at 제외)
 interface InputData {
   id: number;
+  주문처명?: string;
+  오더번호?: string;
   로트번호: string;
   생산품명: string;
   생산수량: number;
+  생산수량_단위: string;
   투입일: string;
   종료일: string;
   공정: string;
   투입물명: string;
   수량: number;
-  단위: string;
-  주문처명?: string;
-  오더번호?: string;
+  투입물_단위: string;
 }
 
 interface OutputData {
@@ -44,12 +46,13 @@ interface OutputData {
   로트번호: string;
   생산품명: string;
   생산수량: number;
+  생산수량_단위: string;
   투입일: string;
   종료일: string;
   공정: string;
   산출물명: string;
   수량: number;
-  단위: string;
+  산출물_단위: string;
   주문처명?: string;
   오더번호?: string;
 }
@@ -148,7 +151,9 @@ interface FuelData {
   source_id: number;
 }
 
-export default function LcaPage() {
+function LcaPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<LcaTabKey | 'manage'>('actual');
   const [activeSegment, setActiveSegment] = useState<ManageSegment>('mat');
   
@@ -418,14 +423,17 @@ export default function LcaPage() {
 
   // URL 쿼리 파라미터에서 탭 정보 읽기
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const tabParam = urlParams.get('tab');
-      if (tabParam && (tabParam === 'actual' || tabParam === 'output' || tabParam === 'transport' || tabParam === 'process' || tabParam === 'manage')) {
-        setActiveTab(tabParam as LcaTabKey | 'manage');
-      }
+    const tabParam = searchParams.get('tab');
+    const segmentParam = searchParams.get('segment');
+    
+    if (tabParam && (tabParam === 'actual' || tabParam === 'output' || tabParam === 'transport' || tabParam === 'process' || tabParam === 'manage')) {
+      setActiveTab(tabParam as LcaTabKey | 'manage');
     }
-  }, []);
+    
+    if (segmentParam && (segmentParam === 'mat' || segmentParam === 'util' || segmentParam === 'waste' || segmentParam === 'source')) {
+      setActiveSegment(segmentParam as ManageSegment);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     loadData();
@@ -435,17 +443,28 @@ export default function LcaPage() {
     setActiveTab(tab);
     if (tab !== 'manage') {
       setActiveSegment('mat');
+      // URL 업데이트
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('tab', tab);
+      params.delete('segment'); // manage가 아닌 경우 segment 제거
+      router.push(`/lca?${params.toString()}`);
+    } else {
+      // manage 탭인 경우 segment도 함께 설정
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('tab', tab);
+      params.set('segment', 'mat');
+      router.push(`/lca?${params.toString()}`);
     }
   };
 
   const handleSegmentChange = (segment: ManageSegment) => {
     setActiveSegment(segment);
+    // URL 업데이트
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('segment', segment);
+    router.push(`/lca?${params.toString()}`);
   };
 
-  const handleEditRedirect = () => {
-    // 데이터 업로드 페이지로 이동
-    window.location.href = '/data-upload';
-  };
 
   // 필터 컴포넌트 렌더링
   const renderFilters = () => {
@@ -583,13 +602,6 @@ export default function LcaPage() {
                 >
                   스키마 확인
                 </Button>
-                <Button 
-                  onClick={handleEditRedirect}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-                >
-                  <ArrowRight className="w-4 h-4" />
-                  수정하러 가기
-                </Button>
               </div>
             </div>
             
@@ -598,28 +610,35 @@ export default function LcaPage() {
                 <table className="w-full">
                   <thead className="bg-ecotrace-secondary/50">
                     <tr>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">주문처명</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">오더번호</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산품명</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산 시작일</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산 종료일</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량 단위</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입일</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">종료일</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입물명</th>
-                      <td className="px-4 py-3 text-sm text-ecotrace-textSecondary">수량</td>
-                      <td className="px-4 py-3 text-sm text-ecotrace-textSecondary">단위</td>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입물 단위</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-ecotrace-border">
                     {filteredInputData.map((row) => (
                       <tr key={row.id} className="hover:bg-ecotrace-secondary/30 transition-colors">
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.주문처명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.오더번호 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.로트번호 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산품명 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산수량 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산수량_단위 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입일 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.종료일 || '-'}</td>
                         <td className="px-4 py-4 text-ecotrace-text">{row.공정 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입물명 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.수량 || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.단위 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입물_단위 || '-'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -656,13 +675,6 @@ export default function LcaPage() {
                   <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
                   {isLoading ? '로딩 중...' : '새로고침'}
                 </Button>
-                <Button 
-                  onClick={handleEditRedirect}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-                >
-                  <ArrowRight className="w-4 h-4" />
-                  수정하러 가기
-                </Button>
               </div>
             </div>
             
@@ -671,33 +683,35 @@ export default function LcaPage() {
                 <table className="w-full">
                   <thead className="bg-ecotrace-secondary/50">
                     <tr>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">주문처명</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">오더번호</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산품명</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산 시작일</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산 종료일</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량 단위</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입일</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">종료일</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입물명</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
-                      <th className="px-4 py-3 text-sm text-ecotrace-textSecondary">단위</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">주문처명</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">오더번호</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입물 단위</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-ecotrace-border">
                     {filteredInputData.map((row) => (
                       <tr key={row.id} className="hover:bg-ecotrace-secondary/30 transition-colors">
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.주문처명 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.오더번호 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.로트번호 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산품명 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산수량 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산수량_단위 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입일 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.종료일 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입물명 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.수량 || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.단위 || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.주문처명 || '-'}</td>
-                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.오더번호 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입물_단위 || '-'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -734,13 +748,6 @@ export default function LcaPage() {
                   <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
                   {isLoading ? '로딩 중...' : '새로고침'}
                 </Button>
-                <Button 
-                  onClick={handleEditRedirect}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-                >
-                  <ArrowRight className="w-4 h-4" />
-                  수정하러 가기
-                </Button>
               </div>
             </div>
             
@@ -752,12 +759,13 @@ export default function LcaPage() {
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">로트번호</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산품명</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산 시작일</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산 종료일</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">생산수량 단위</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">투입일</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">종료일</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">공정</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">산출물명</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">수량</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">단위</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">산출물 단위</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">주문처명</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-ecotrace-textSecondary">오더번호</th>
                     </tr>
@@ -768,12 +776,13 @@ export default function LcaPage() {
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.로트번호 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산품명 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산수량 || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-ecotrace-text">{row.생산수량_단위 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.투입일 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.종료일 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.공정 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.산출물명 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.수량 || '-'}</td>
-                        <td className="px-3 text-sm text-ecotrace-text">{row.단위 || '-'}</td>
+                        <td className="px-3 text-sm text-ecotrace-text">{row.산출물_단위 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.주문처명 || '-'}</td>
                         <td className="px-4 py-3 text-sm text-ecotrace-text">{row.오더번호 || '-'}</td>
                       </tr>
@@ -814,13 +823,6 @@ export default function LcaPage() {
                 >
                   <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
                   {isLoading ? '로딩 중...' : '새로고침'}
-                </Button>
-                <Button 
-                  onClick={handleEditRedirect}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-                >
-                  <ArrowRight className="w-4 h-4" />
-                  수정하러 가기
                 </Button>
               </div>
             </div>
@@ -1023,13 +1025,6 @@ export default function LcaPage() {
                   <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
                   {isLoading ? '로딩 중...' : '새로고침'}
                 </Button>
-                <Button 
-                  onClick={handleEditRedirect}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-                >
-                  <ArrowRight className="w-4 h-4" />
-                  수정하러 가기
-                </Button>
               </div>
             </div>
             
@@ -1097,13 +1092,6 @@ export default function LcaPage() {
                 >
                   <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
                   {isLoading ? '로딩 중...' : '새로고침'}
-                </Button>
-                <Button 
-                  onClick={handleEditRedirect}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-                >
-                  <ArrowRight className="w-4 h-4" />
-                  수정하러 가기
                 </Button>
               </div>
             </div>
@@ -1191,5 +1179,13 @@ export default function LcaPage() {
         {!isLoading && !error && renderTabContent()}
       </div>
     </CommonShell>
+  );
+}
+
+export default function LcaPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LcaPageContent />
+    </Suspense>
   );
 }

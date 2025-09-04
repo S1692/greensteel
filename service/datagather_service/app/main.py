@@ -10,7 +10,7 @@ import re
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, Dict, Any
 import uvicorn
@@ -224,10 +224,8 @@ async def health_check():
 @app.get("/favicon.ico")
 async def favicon():
     """Favicon 요청 처리"""
-    return JSONResponse(
-        status_code=204,  # No Content
-        content=None
-    )
+    from fastapi.responses import Response
+    return Response(status_code=204)
 
 # AI 처리 관련 엔드포인트
 @app.post("/ai-process")

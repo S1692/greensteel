@@ -137,16 +137,24 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
       const storedData = localStorage.getItem('cbam_input_data');
       if (storedData) {
         const parsedData = JSON.parse(storedData);
+        console.log('🔍 로컬 스토리지 원본 데이터:', parsedData);
+        
         let inputDataArray = [];
         
         // 데이터 구조에 따라 배열 추출
         if (Array.isArray(parsedData)) {
           inputDataArray = parsedData;
+          console.log('📊 배열 형태 데이터:', inputDataArray.length, '개');
         } else if (parsedData && parsedData.data && Array.isArray(parsedData.data)) {
           inputDataArray = parsedData.data;
+          console.log('📊 API 응답 형태 데이터:', inputDataArray.length, '개');
+        } else {
+          console.log('⚠️ 알 수 없는 데이터 구조:', parsedData);
+          setInputMaterialNames([]);
+          setInputFuelNames([]);
+          return;
         }
         
-        console.log('📊 전체 input data:', inputDataArray.length, '개');
         console.log('📋 전체 input data 샘플:', inputDataArray.slice(0, 3));
         
         // 선택된 제품에 해당하는 투입물명만 필터링
@@ -157,8 +165,12 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
           
           // 유연한 매칭: 공백 제거, 대소문자 무시
           const selectedProductName = selectedProduct.product_name.trim();
+          console.log('🔍 검색할 제품명:', `"${selectedProductName}"`);
+          
           filteredData = inputDataArray.filter((item: any) => {
             const itemProductName = item.생산품명?.trim() || '';
+            console.log('🔍 비교 대상:', `"${itemProductName}"`);
+            
             const isMatch = itemProductName === selectedProductName || 
                            itemProductName.toLowerCase() === selectedProductName.toLowerCase() ||
                            itemProductName.includes(selectedProductName) ||
@@ -477,6 +489,13 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
         created_at: new Date().toISOString()
       };
       
+      console.log('🔍 원료직접배출량 저장 데이터:', localData);
+      console.log('🔍 selectedProcess 정보:', selectedProcess);
+      console.log('🔍 사업장 정보 확인:', {
+        install_id: selectedProcess?.install_id,
+        install_name: selectedProcess?.install_name
+      });
+      
       // 기존 로컬 스토리지 데이터 가져오기
       const existingData = localStorage.getItem('cbam_emission_calculations');
       let calculations = existingData ? JSON.parse(existingData) : [];
@@ -562,6 +581,13 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
         calculation_formula: `${fueldirForm.amount} × ${fueldirForm.factor} × ${fueldirForm.oxyfactor} = ${emission}`,
         created_at: new Date().toISOString()
       };
+      
+      console.log('🔍 연료직접배출량 저장 데이터:', localData);
+      console.log('🔍 selectedProcess 정보:', selectedProcess);
+      console.log('🔍 사업장 정보 확인:', {
+        install_id: selectedProcess?.install_id,
+        install_name: selectedProcess?.install_name
+      });
       
       // 기존 로컬 스토리지 데이터 가져오기
       const existingData = localStorage.getItem('cbam_emission_calculations');

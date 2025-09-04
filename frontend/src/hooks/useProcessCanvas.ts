@@ -161,6 +161,7 @@ export const useProcessCanvas = (selectedInstall: Install | null) => {
           product_names: relatedProducts.map(p => p.product_name).join(', ') || 'N/A',
           is_many_to_many: relatedProducts.length > 1,
           install_id: selectedInstall?.id,
+          install_name: selectedInstall?.install_name,
           current_install_id: selectedInstall?.id,
           is_readonly: false,
           // 배출량 정보 추가
@@ -175,6 +176,10 @@ export const useProcessCanvas = (selectedInstall: Install | null) => {
     };
 
     console.log('🔍 공정 노드 생성:', newNode); // 🔴 추가: 디버깅 로그
+    console.log('🔍 processData 사업장 정보:', {
+      install_id: selectedInstall?.id,
+      install_name: selectedInstall?.install_name
+    });
 
     // setNodes를 사용하여 안전하게 노드 추가
     setNodes(prev => {

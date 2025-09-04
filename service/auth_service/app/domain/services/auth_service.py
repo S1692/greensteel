@@ -277,7 +277,7 @@ class AuthService:
             
             # companies 테이블에서만 검증
             company_data = await connection.fetchrow("""
-                SELECT company_id, Installation
+                SELECT company_id, COALESCE(Installation, company_id) as Installation
                 FROM companies 
                 WHERE company_id = $1 AND password = $2
             """, username, password)
@@ -291,7 +291,7 @@ class AuthService:
                         "user": {
                             "id": company_data['company_id'],
                             "username": company_data['company_id'],
-                            "full_name": company_data['Installation'],
+                            "full_name": company_data.get('Installation', company_data['company_id']),
                             "company_id": company_data['company_id'],
                             "role": "company"
                         }

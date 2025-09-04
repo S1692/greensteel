@@ -259,23 +259,20 @@ const InputDataPage: React.FC = () => {
           columns: inputData.columns
         });
 
-        // AI 추천 답변을 투입물명 컬럼에 적용
-        const processedDataWithAppliedRecommendations = processedData.map((row: DataRow) => {
-          const aiRecommendation = row['AI추천답변'] || '';
-          return {
-            ...row,
-            // AI 추천 답변이 있으면 투입물명에 적용
-            '투입물명': aiRecommendation || row['투입물명'] || ''
-          };
+        // 기존 편집 가능한 행 데이터에 AI 추천 답변만 추가 (원본 데이터 유지)
+        const updatedEditableRows: EditableRow[] = editableInputRows.map((existingRow, index) => {
+          const aiProcessedRow = processedData[index];
+          if (aiProcessedRow) {
+            return {
+              ...existingRow,
+              modifiedData: {
+                ...existingRow.modifiedData, // 기존 데이터 유지
+                'AI추천답변': aiProcessedRow['AI추천답변'] || '' // AI 추천 답변만 추가
+              }
+            };
+          }
+          return existingRow;
         });
-
-        // AI 처리된 데이터를 편집 가능한 행 데이터로 변환 (원본 데이터 유지)
-        const updatedEditableRows: EditableRow[] = processedData.map((row: DataRow, index) => ({
-          id: `input-${index}`,
-          originalData: row,
-          modifiedData: { ...row }, // 원본 데이터 유지, AI 추천 답변은 별도 컬럼에만 표시
-          isEditing: false
-        }));
 
         setEditableInputRows(updatedEditableRows);
         console.log('AI 처리 완료: 편집 가능한 행 데이터 업데이트됨');

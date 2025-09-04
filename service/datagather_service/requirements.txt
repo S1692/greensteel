@@ -3,9 +3,8 @@ fastapi==0.104.1
 uvicorn[standard]==0.24.0
 python-multipart==0.0.6
 
-# Hugging Face Inference API
+# HTTP 클라이언트
 httpx==0.25.2
-huggingface_hub==0.19.4
 
 # 데이터베이스
 sqlalchemy==2.0.23
@@ -21,16 +20,6 @@ pandas==2.1.4
 python-dotenv==1.0.0
 pydantic==2.5.0
 pydantic-settings==2.1.0
-httpx==0.25.2
 
 # 로깅 및 설정
 structlog==23.2.0
-
-# RAG 시스템용 패키지
-sentence-transformers>=2.2.2
-numpy>=1.21.0
-
-# TF-IDF + 신경망 모델용 패키지
-torch==2.8.0
-scikit-learn==1.7.1
-joblib==1.5.2

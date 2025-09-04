@@ -6,10 +6,7 @@ import asyncio
 import logging
 import os
 import json
-import numpy as np
-import torch
-import torch.nn.functional as F
-import joblib
+import re
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,8 +15,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, Dict, Any
 import uvicorn
 import httpx
-from huggingface_hub import InferenceClient
-from sentence_transformers import SentenceTransformer
 
 from .infrastructure.database import database
 from .infrastructure.config import settings
@@ -31,281 +26,145 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Hugging Face API 설정
-HF_TOKEN = os.getenv("HF_TOKEN")
-HF_API_URL = os.getenv("HF_API_URL" )
-HF_MODEL = os.getenv("HF_MODEL", "Halftotter/flud")
+# 키워드 기반 분류 시스템
+material_keywords = {
+    "점결탄": ["점결탄", "coking coal", "코킹"],
+    "산화마그네슘": ["산화마그네슘", "magnesium oxide", "MgO"],
+    "오븐 코크스": ["오븐 코크스", "oven coke", "코크스"],
+    "콜타르": ["콜타르", "coal tar", "타르"],
+    "직접 환원철": ["직접 환원철", "direct reduced iron", "DRI"],
+    "일산화탄소": ["일산화탄소", "carbon monoxide", "CO"],
+    "천연가스": ["천연가스", "natural gas", "NG"],
+    "갈탄": ["갈탄", "lignite", "brown coal"],
+    "페트롤 및 SBP": ["페트롤", "SBP", "petrol"],
+    "역청": ["역청", "bitumen", "아스팔트"],
+    "냉각수": ["냉각수", "cooling water", "냉각"],
+    "강철": ["강철", "steel", "스틸"],
+    "석회석": ["석회석", "limestone", "CaCO3"],
+    "산업폐기물": ["산업폐기물", "industrial waste", "폐기물"],
+    "메탄": ["메탄", "methane", "CH4"],
+    "고로 슬래그": ["고로 슬래그", "blast furnace slag", "슬래그"],
+    "철 스크랩": ["철 스크랩", "iron scrap", "스크랩"],
+    "분진": ["분진", "dust", "먼지"],
+    "윤활유": ["윤활유", "lubricating oil", "오일"],
+    "액화석유가스": ["액화석유가스", "LPG", "liquefied petroleum gas"],
+    "강철 스크랩": ["강철 스크랩", "steel scrap"],
+    "탄산리튬": ["탄산리튬", "lithium carbonate", "Li2CO3"],
+    "경유": ["경유", "diesel", "디젤"],
+    "잔류 연료유": ["잔류 연료유", "residual fuel oil", "중유"],
+    "전기": ["전기", "electricity", "power"],
+    "무연탄": ["무연탄", "anthracite", "안트라사이트"],
+    "오일 셰일": ["오일 셰일", "oil shale", "셰일"],
+    "철광석": ["철광석", "iron ore", "광석"],
+    "탄산수소나트륨": ["탄산수소나트륨", "sodium bicarbonate", "NaHCO3"],
+    "탄산바륨": ["탄산바륨", "barium carbonate", "BaCO3"],
+    "포장재": ["포장재", "packaging", "포장"],
+    "액화 천연가스": ["액화 천연가스", "LNG", "liquefied natural gas"],
+    "슬러지": ["슬러지", "sludge", "침전물"],
+    "소다회": ["소다회", "soda ash", "Na2CO3"],
+    "산화바륨": ["산화바륨", "barium oxide", "BaO"],
+    "가스공장 가스": ["가스공장 가스", "gas works gas"],
+    "폐유": ["폐유", "waste oil", "사용유"],
+    "EAF 탄소 전극": ["EAF 탄소 전극", "EAF carbon electrode", "전극"],
+    "압연 스케일": ["압연 스케일", "rolling scale", "스케일"],
+    "코크스 오븐 가스": ["코크스 오븐 가스", "coke oven gas", "COG"],
+    "EAF 충전 탄소": ["EAF 충전 탄소", "EAF charging carbon"],
+    "고로가스": ["고로가스", "blast furnace gas", "BFG"],
+    "열간성형철 (HBI)": ["열간성형철", "HBI", "hot briquetted iron"],
+    "피트 (Peat)": ["피트", "peat", "이탄"],
+    "선철": ["선철", "pig iron", "생철"],
+    "원유": ["원유", "crude oil", "raw oil"],
+    "산소 제강로 가스": ["산소 제강로 가스", "BOF gas"],
+    "열유입": ["열유입", "heat input", "열"],
+    "절삭칩": ["절삭칩", "cutting chips", "칩"],
+    "아역청탄": ["아역청탄", "sub-bituminous coal"],
+    "마그네사이트": ["마그네사이트", "magnesite", "MgCO3"],
+    "석유 코크스": ["석유 코크스", "petroleum coke", "pet coke"],
+    "펠렛": ["펠렛", "pellets", "소결"],
+    "오리멀전": ["오리멀전", "ore emulsion"],
+    "액화 석유가스": ["액화 석유가스", "liquefied petroleum gas", "LPG"],
+    "등유": ["등유", "kerosene", "등화유"],
+    "소성가스": ["소성가스", "calcining gas"],
+    "에탄": ["에탄", "ethane", "C2H6"],
+    "산화칼슘": ["산화칼슘", "calcium oxide", "CaO", "생석회"],
+    "나프타": ["나프타", "naphtha", "나프타"],
+    "철": ["철", "iron", "Fe"],
+    "능철광": ["능철광", "magnetite", "Fe3O4"],
+    "소결광": ["소결광", "sinter ore", "소결"],
+    "고온 성형 환원철": ["고온 성형 환원철", "hot briquetted iron", "HBI"],
+    "휘발유": ["휘발유", "gasoline", "가솔린"],
+    "탄산스트론튬": ["탄산스트론튬", "strontium carbonate", "SrCO3"]
+}
 
-# Hugging Face InferenceClient 인스턴스
-hf_client = None
-
-# RAG 시스템 전역 변수
-rag_embedding_model = None
-rag_config_data = None
-rag_material_embeddings = None
-rag_material_labels = None
-
-# TF-IDF + 신경망 모델 전역 변수
-tfidf_model = None
-tfidf_vectorizer = None
-tfidf_id2label = None
-tfidf_label2id = None
-
-class SimpleClassifier(torch.nn.Module):
-    """간단한 분류기 모델 클래스"""
-    def __init__(self, input_size, hidden_size, intermediate_size, num_labels):
-        super(SimpleClassifier, self).__init__()
-        self.fc1 = torch.nn.Linear(input_size, hidden_size)
-        self.fc2 = torch.nn.Linear(hidden_size, intermediate_size)
-        self.fc3 = torch.nn.Linear(intermediate_size, num_labels)
-        self.dropout = torch.nn.Dropout(0.1)
-    
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = self.dropout(x)
-        x = F.relu(self.fc2(x))
-        x = self.dropout(x)
-        x = self.fc3(x)
-        return x
-
-async def initialize_huggingface_model():
-    """Hugging Face Inference API 초기화"""
-    global hf_client
+async def initialize_keyword_classifier():
+    """키워드 기반 분류기 초기화"""
     try:
-        logger.info(f"🔍 환경 변수 확인:")
-        logger.info(f"  - HF_TOKEN: {'설정됨' if HF_TOKEN else '설정되지 않음'}")
-        logger.info(f"  - HF_API_URL: {HF_API_URL}")
-        logger.info(f"  - HF_MODEL: {HF_MODEL}")
-        
-        if not HF_TOKEN:
-            logger.warning("⚠️ HF_TOKEN이 설정되지 않았습니다.")
-            return
-        
-        # Hugging Face API 클라이언트 초기화 (커스텀 엔드포인트 사용)
-        # InferenceClient는 커스텀 엔드포인트를 지원하지 않으므로 httpx를 사용
-        hf_client = "initialized"  # httpx를 사용하므로 플래그만 설정
-        logger.info(f"🤗 Hugging Face Inference API 초기화 완료")
-        logger.info(f"  - 엔드포인트: {HF_API_URL}")
-        logger.info(f"  - 모델: {HF_MODEL}")
-        
-    except Exception as e:
-        logger.error(f"❌ Hugging Face API 초기화 실패: {e}")
-
-async def initialize_rag_system():
-    """RAG 시스템 초기화"""
-    global rag_embedding_model, rag_config_data, rag_material_embeddings, rag_material_labels
-    
-    try:
-        logger.info("🔍 RAG 시스템 초기화 중...")
-        
-        # config.json 로드
-        config_path = os.path.join(os.path.dirname(__file__), '..', 'config.json')
-        with open(config_path, 'r', encoding='utf-8') as f:
-            rag_config_data = json.load(f)
-        
-        logger.info(f"📋 설정 파일 로드 완료: {rag_config_data['num_labels']}개 라벨")
-        
-        # 한국어 지원 임베딩 모델 로드
-        rag_embedding_model = SentenceTransformer('jhgan/ko-sroberta-multitask')
-        logger.info("🤖 임베딩 모델 로드 완료")
-        
-        # 재료 라벨들을 임베딩으로 변환
-        id2label = rag_config_data['id2label']
-        rag_material_labels = list(id2label.values())
-        
-        # 각 재료에 대한 설명 생성 및 임베딩
-        material_descriptions = []
-        for label in rag_material_labels:
-            description = f"{label}은(는) 강철 제조 공정에서 사용되는 중요한 재료입니다."
-            material_descriptions.append(description)
-        
-        # 임베딩 생성
-        rag_material_embeddings = rag_embedding_model.encode(material_descriptions)
-        logger.info(f"📊 재료 임베딩 생성 완료: {rag_material_embeddings.shape}")
-        
+        logger.info("🔍 키워드 기반 분류기 초기화 중...")
+        logger.info(f"📋 키워드 사전 로드 완료: {len(material_keywords)}개 재료 분류")
+        logger.info("✅ 키워드 기반 분류기 초기화 완료")
         return True
         
     except Exception as e:
-        logger.error(f"❌ RAG 시스템 초기화 실패: {str(e)}")
+        logger.error(f"❌ 키워드 분류기 초기화 실패: {str(e)}")
         return False
 
-async def initialize_tfidf_model():
-    """TF-IDF + 신경망 모델 초기화"""
-    global tfidf_model, tfidf_vectorizer, tfidf_id2label, tfidf_label2id
-    
+async def predict_material_with_keywords(input_text: str) -> tuple[str, float]:
+    """키워드 기반 재료 분류"""
     try:
-        logger.info("🔍 TF-IDF + 신경망 모델 초기화 중...")
+        logger.info(f"🔍 키워드 기반 분류 시작: '{input_text}'")
         
-        # config.json 로드
-        config_path = os.path.join(os.path.dirname(__file__), '..', 'config.json')
-        with open(config_path, 'r', encoding='utf-8') as f:
-            config = json.load(f)
+        # 입력 텍스트를 소문자로 변환하고 정규화
+        normalized_text = input_text.lower().strip()
         
-        tfidf_id2label = config['id2label']
-        tfidf_label2id = config['label2id']
-        num_labels = config['num_labels']
-        hidden_size = config['hidden_size']
-        intermediate_size = config['intermediate_size']
+        # 각 재료에 대해 키워드 매칭 점수 계산
+        best_match = None
+        best_score = 0.0
         
-        logger.info(f"📋 설정 파일 로드 완료: {num_labels}개 라벨")
+        for material, keywords in material_keywords.items():
+            score = 0.0
+            
+            # 각 키워드에 대해 매칭 점수 계산
+            for keyword in keywords:
+                keyword_lower = keyword.lower()
+                
+                # 정확한 매칭 (높은 점수)
+                if keyword_lower == normalized_text:
+                    score += 10.0
+                # 부분 매칭 (중간 점수)
+                elif keyword_lower in normalized_text:
+                    score += 5.0
+                # 단어 경계 매칭 (낮은 점수)
+                elif re.search(r'\b' + re.escape(keyword_lower) + r'\b', normalized_text):
+                    score += 3.0
+                # 포함 매칭 (가장 낮은 점수)
+                elif keyword_lower in normalized_text or normalized_text in keyword_lower:
+                    score += 1.0
+            
+            # 가장 높은 점수를 가진 재료 선택
+            if score > best_score:
+                best_score = score
+                best_match = material
         
-        # 벡터라이저 로드
-        vectorizer_path = os.path.join(os.path.dirname(__file__), '..', 'vectorizer.pkl')
-        tfidf_vectorizer = joblib.load(vectorizer_path)
-        logger.info("🔤 TF-IDF 벡터라이저 로드 완료")
+        # 신뢰도 계산 (0.0 ~ 1.0)
+        confidence = min(best_score / 10.0, 1.0) if best_score > 0 else 0.0
         
-        # 모델 로드
-        tfidf_model = SimpleClassifier(
-            input_size=3000,  # TF-IDF 벡터 크기 고정
-            hidden_size=hidden_size,
-            intermediate_size=intermediate_size,
-            num_labels=num_labels
-        )
-        
-        # 모델 가중치 로드
-        model_path = os.path.join(os.path.dirname(__file__), '..', 'pytorch_model.bin')
-        tfidf_model.load_state_dict(torch.load(model_path, map_location='cpu'))
-        tfidf_model.eval()
-        
-        logger.info("🤖 TF-IDF + 신경망 모델 로드 완료")
-        return True
-        
-    except Exception as e:
-        logger.error(f"❌ TF-IDF 모델 초기화 실패: {str(e)}")
-        return False
-
-async def predict_material_with_rag(input_text: str) -> tuple[str, float]:
-    """RAG 기반 재료 분류"""
-    global rag_embedding_model, rag_material_embeddings, rag_material_labels
-    
-    try:
-        if not rag_embedding_model or rag_material_embeddings is None:
-            logger.warning("⚠️ RAG 시스템이 초기화되지 않았습니다. 기본값을 반환합니다.")
+        # 매칭된 재료가 있으면 반환, 없으면 원본 텍스트 반환
+        if best_match and best_score > 0:
+            logger.info(f"✅ 키워드 분류 완료: '{best_match}' (신뢰도: {confidence:.4f})")
+            return best_match, confidence
+        else:
+            logger.info(f"⚠️ 매칭되는 재료를 찾을 수 없습니다. 원본 텍스트 반환: '{input_text}'")
             return input_text, 0.0
         
-        logger.info(f"🔍 RAG 기반 분류 시작: '{input_text}'")
-        
-        # 입력 텍스트 임베딩
-        text_embedding = rag_embedding_model.encode([input_text])
-        
-        # 코사인 유사도 계산
-        similarities = np.dot(rag_material_embeddings, text_embedding.T).flatten()
-        
-        # 가장 높은 유사도를 가진 재료 선택
-        best_idx = np.argmax(similarities)
-        predicted_label = rag_material_labels[best_idx]
-        confidence = float(similarities[best_idx])
-        
-        logger.info(f"✅ RAG 분류 완료: '{predicted_label}' (신뢰도: {confidence:.4f})")
-        
-        return predicted_label, confidence
-        
     except Exception as e:
-        logger.error(f"❌ RAG 분류 실패: {str(e)}")
-        return input_text, 0.0
-
-async def predict_material_with_tfidf(input_text: str) -> tuple[str, float]:
-    """TF-IDF + 신경망 모델 기반 재료 분류"""
-    global tfidf_model, tfidf_vectorizer, tfidf_id2label
-    
-    try:
-        if not tfidf_model or not tfidf_vectorizer:
-            logger.warning("⚠️ TF-IDF 모델이 초기화되지 않았습니다. 기본값을 반환합니다.")
-            return input_text, 0.0
-        
-        logger.info(f"🔍 TF-IDF 기반 분류 시작: '{input_text}'")
-        
-        # 텍스트 벡터화
-        text_vector = tfidf_vectorizer.transform([input_text]).toarray()
-        text_tensor = torch.FloatTensor(text_vector)
-        
-        # 예측
-        with torch.no_grad():
-            outputs = tfidf_model(text_tensor)
-            probabilities = F.softmax(outputs, dim=1)
-            predicted_class = torch.argmax(probabilities, dim=1).item()
-        
-        # 결과 반환
-        predicted_label = tfidf_id2label[str(predicted_class)]
-        confidence = float(probabilities[0][predicted_class].item())
-        
-        logger.info(f"✅ TF-IDF 분류 완료: '{predicted_label}' (신뢰도: {confidence:.4f})")
-        
-        return predicted_label, confidence
-        
-    except Exception as e:
-        logger.error(f"❌ TF-IDF 분류 실패: {str(e)}")
+        logger.error(f"❌ 키워드 분류 실패: {str(e)}")
         return input_text, 0.0
 
 async def generate_ai_recommendation(input_text: str) -> tuple[str, float]:
-    """AI 추천 답변 생성 (TF-IDF 모델 우선 사용)"""
+    """AI 추천 답변 생성 (키워드 기반 분류 사용)"""
     try:
-        # TF-IDF + 신경망 모델이 초기화되어 있으면 우선 사용
-        if tfidf_model and tfidf_vectorizer is not None:
-            return await predict_material_with_tfidf(input_text)
-        
-        # RAG 시스템이 초기화되어 있으면 RAG 기반 분류 사용
-        if rag_embedding_model and rag_material_embeddings is not None:
-            return await predict_material_with_rag(input_text)
-        
-        # 모든 모델이 없으면 기본값 반환
-        logger.warning("⚠️ 모든 AI 모델이 초기화되지 않았습니다. 기본 답변을 반환합니다.")
-        return input_text, 0.0  # 기본값으로 원본 텍스트와 신뢰도 0.0 반환
-        
-        # 입력 텍스트를 그대로 사용 (전처리 없이)
-        classification_text = input_text
-        
-        logger.info(f"🤗 Hugging Face API 호출: '{classification_text}'")
-        
-        # rail API 서비스 호출 (선택적)
-        try:
-            payload = {"inputs": classification_text}
-            
-            # rail 서비스 URL (환경변수에서 가져오거나 기본값 사용)
-            rail_api_url = os.getenv("RAIL_API_URL", "http://rail-service:8000")
-            
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.post(
-                    f"{rail_api_url}/data",  # Hugging Face API 호환 엔드포인트
-                    json=payload
-                )
-                
-                logger.info(f"🤗 Rail API 응답 상태: {response.status_code}")
-                
-                if response.status_code == 200:
-                    results = response.json()
-                else:
-                    logger.warning(f"⚠️ Rail API 호출 실패: {response.status_code} - 기본값 사용")
-                    return input_text, 0.0
-                    
-        except Exception as e:
-            logger.warning(f"⚠️ Rail API 서비스 연결 실패: {str(e)} - 기본값 사용")
-            return input_text, 0.0
-        
-        logger.info(f"🤗 API 응답 결과: {results}")
-        
-        if results and len(results) > 0:
-            # Hugging Face API 형식: [{"label": "...", "score": 0.95}]
-            if isinstance(results, list) and len(results) > 0:
-                best_result = results[0]  # 첫 번째 결과 사용
-                predicted_class = best_result['label']
-                confidence = best_result['score']
-            else:
-                # 기존 형식 처리
-                best_result = max(results, key=lambda x: x['score'])
-                predicted_class = best_result['label']
-                confidence = best_result['score']
-            
-            # 분류 결과를 그대로 반환 (원본 텍스트가 아닌 분류된 클래스)
-            ai_recommendation = predicted_class
-            
-            logger.info(f"🤗 AI 분류 결과: 클래스='{predicted_class}', 신뢰도={confidence:.3f}")
-            logger.info(f"🤗 최종 추천 답변: '{ai_recommendation}'")
-            
-            return ai_recommendation, confidence
-        else:
-            logger.warning("⚠️ 분류 결과가 없습니다. 원본 텍스트를 반환합니다.")
-            return input_text, 0.0
+        # 키워드 기반 분류 사용
+        return await predict_material_with_keywords(input_text)
         
     except Exception as e:
         logger.error(f"❌ AI 추천 생성 중 오류: {e}")
@@ -324,14 +183,8 @@ async def lifespan(app: FastAPI):
     # 데이터베이스 초기화
     await database.init_db()
     
-    # Hugging Face 모델 초기화
-    await initialize_huggingface_model()
-    
-    # RAG 시스템 초기화
-    await initialize_rag_system()
-    
-    # TF-IDF + 신경망 모델 초기화
-    await initialize_tfidf_model()
+    # 키워드 기반 분류기 초기화
+    await initialize_keyword_classifier()
     
     logger.info("✅ DataGather Service가 성공적으로 시작되었습니다.")
     
@@ -374,9 +227,9 @@ async def root():
         "version": "1.0.0",
         "description": "Data Collection & Processing Service - DDD Structure",
         "ai_config": {
-            "model": HF_MODEL,
-            "endpoint": HF_API_URL,
-            "token_configured": bool(HF_TOKEN)
+            "model": "keyword_based_classifier",
+            "description": "키워드 기반 재료 분류기",
+            "materials_count": len(material_keywords)
         },
         "endpoints": {
             "health": "/health",
@@ -443,10 +296,10 @@ async def ai_process_data(data: Dict[str, Any]):
             공정 = item.get('공정', '')
             logger.info(f"   - 투입물명: '{투입물명}', 공정: '{공정}'")
             
-            # Hugging Face 분류 모델을 사용하여 AI 추천 답변 생성
+            # 키워드 기반 분류 모델을 사용하여 AI 추천 답변 생성
             try:
                 ai_추천답변, actual_confidence = await generate_ai_recommendation(투입물명)
-                logger.info(f"   - Hugging Face AI 분류 결과: '{ai_추천답변}', 신뢰도: {actual_confidence:.3f}")
+                logger.info(f"   - 키워드 기반 AI 분류 결과: '{ai_추천답변}', 신뢰도: {actual_confidence:.3f}")
                 
             except Exception as e:
                 logger.error(f"   - AI 분류 실패, 기본값 사용: {e}")
@@ -458,7 +311,7 @@ async def ai_process_data(data: Dict[str, Any]):
                 **item,
                 "AI추천답변": ai_추천답변,
                 "ai_processed": True,
-                "ai_model": HF_MODEL,
+                "ai_model": "keyword_based_classifier",
                 "ai_task": "text-classification",
                 "classification": "processed",
                 "confidence": actual_confidence,
@@ -484,9 +337,9 @@ async def ai_process_data(data: Dict[str, Any]):
         
         response_data = {
             "success": True,
-            "message": f"Hugging Face Inference API ({HF_MODEL}) AI 분류가 완료되었습니다.",
-            "ai_model": HF_MODEL,
-            "ai_endpoint": HF_API_URL,
+            "message": f"키워드 기반 분류기 AI 분류가 완료되었습니다.",
+            "ai_model": "keyword_based_classifier",
+            "ai_description": "키워드 기반 재료 분류기",
             "ai_task": "text-classification",
             "total_classified": len(ai_classification_results),
             "ai_results": ai_classification_results  # AI 분류 결과만

@@ -484,24 +484,22 @@ function LcaPageContent() {
           <Filter className="w-5 h-5 text-ecotrace-primary" />
           <h3 className="text-lg font-semibold text-ecotrace-text">필터</h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {activeTab === 'actual' || activeTab === 'base' ? (
-            <div>
-              <label className="block text-sm font-medium text-ecotrace-textSecondary mb-2">
-                주문처명
-              </label>
-              <select
-                value={filters.주문처명}
-                onChange={(e) => setFilters(prev => ({ ...prev, 주문처명: e.target.value }))}
-                className="w-full px-3 py-2 border border-ecotrace-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ecotrace-primary"
-              >
-                <option value="">전체</option>
-                {unique주문처명.map((name, index) => (
-                  <option key={index} value={name}>{name}</option>
-                ))}
-              </select>
-            </div>
-          ) : null}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-ecotrace-textSecondary mb-2">
+              주문처명
+            </label>
+            <select
+              value={filters.주문처명}
+              onChange={(e) => setFilters(prev => ({ ...prev, 주문처명: e.target.value }))}
+              className="w-full px-3 py-2 border border-ecotrace-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ecotrace-primary"
+            >
+              <option value="">전체</option>
+              {unique주문처명.map((name, index) => (
+                <option key={index} value={name}>{name}</option>
+              ))}
+            </select>
+          </div>
           <div>
             <label className="block text-sm font-medium text-ecotrace-textSecondary mb-2">
               제품명

@@ -7,6 +7,7 @@ from app.domain.schemas.auth import (
     CheckUsernameRequest,
     CheckCompanyIdRequest,
     CheckCompanyIdAvailabilityRequest,
+    GetUserInfoRequest,
     GetCompanyInfoRequest,
     UpdateCompanyInfoRequest
 )
@@ -85,6 +86,12 @@ async def login(request: LoginRequest):
         username=request.username,
         password=request.password
     )
+    return StandardResponse(**result)
+
+@router.post("/user/info", response_model=StandardResponse)
+async def get_user_info(request: GetUserInfoRequest):
+    """사용자 정보 조회"""
+    result = await auth_service.get_user_info(request.username)
     return StandardResponse(**result)
 
 @router.post("/company/info", response_model=StandardResponse)

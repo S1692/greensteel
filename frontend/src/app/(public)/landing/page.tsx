@@ -82,6 +82,19 @@ export default function LandingPage() {
       });
 
       const result = await response.json();
+      
+      if (result.success) {
+        // 로그인 성공 시 사용자 정보를 localStorage에 저장
+        localStorage.setItem('user_id', id);
+        localStorage.setItem('user_email', id); // 기존 호환성을 위해
+        localStorage.setItem('auth_token', 'logged_in'); // 간단한 토큰
+        
+        // 사용자 정보가 있으면 추가로 저장
+        if (result.data && result.data.user) {
+          localStorage.setItem('user_info', JSON.stringify(result.data.user));
+        }
+      }
+      
       return result.success;
     } catch (error) {
       console.error('로그인 API 호출 실패:', error);

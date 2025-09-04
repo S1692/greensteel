@@ -54,6 +54,10 @@ class LoginRequest(BaseModel):
     username: str
     password: str
 
+class GetUserInfoRequest(BaseModel):
+    """사용자 정보 조회 요청"""
+    username: str
+
 class GetCompanyInfoRequest(BaseModel):
     """기업 정보 조회 요청"""
     company_id: str

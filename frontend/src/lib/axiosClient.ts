@@ -398,6 +398,12 @@ export const authUtils = {
     return !!token;
   },
 
+  // 사용자 ID 가져오기
+  getUserId: (): string | null => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('user_id') || localStorage.getItem('user_email');
+  },
+
   // 사용자 이메일 가져오기
   getUserEmail: (): string | null => {
     if (typeof window === 'undefined') return null;

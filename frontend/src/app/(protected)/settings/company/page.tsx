@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
 import CommonShell from '@/components/common/CommonShell';
 import { Button } from '@/components/atomic/atoms';
 import { Input } from '@/components/atomic/atoms';
+import { authUtils } from '@/lib/axiosClient';
 import { 
   Building2, 
   Edit
@@ -40,7 +40,6 @@ const CompanySettingsContent: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const searchParams = useSearchParams();
 
   // 기업 정보 상태
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({
@@ -70,36 +69,49 @@ const CompanySettingsContent: React.FC = () => {
 
   const [tempCompanyInfo, setTempCompanyInfo] = useState<CompanyInfo>(companyInfo);
 
-  // URL에서 companyId 가져오기
-  const companyId = searchParams.get('companyId');
+  // 로그인한 사용자 정보 가져오기
+  const getCurrentUser = () => {
+    return authUtils.getUserId();
+  };
 
   // 기업 정보 로드
   const loadCompanyInfo = async () => {
-    if (!companyId) {
-      setError('기업 ID가 없습니다.');
+    const currentUser = getCurrentUser();
+    
+    if (!currentUser) {
+      setError('로그인 정보가 없습니다. 다시 로그인해주세요.');
       setIsLoading(false);
       return;
     }
+
+    console.log('현재 로그인한 사용자 ID:', currentUser);
 
     try {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch('/api/v1/auth/company/info', {
+      // 로그인한 사용자의 정보를 가져와서 기업 정보 조회
+      const requestBody = {
+        username: currentUser
+      };
+      
+      console.log('사용자 정보 조회 요청:', requestBody);
+
+      const response = await fetch('/api/v1/auth/user/info', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          company_id: companyId
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const result = await response.json();
+      console.log('사용자 정보 조회 응답:', result);
 
       if (result.success) {
         setCompanyInfo(result.data);
         setTempCompanyInfo(result.data);
+        console.log('기업 정보 로드 성공:', result.data);
       } else {
         setError(result.message || '기업 정보를 불러오는데 실패했습니다.');
       }
@@ -114,50 +126,59 @@ const CompanySettingsContent: React.FC = () => {
   // 컴포넌트 마운트 시 기업 정보 로드
   useEffect(() => {
     loadCompanyInfo();
-  }, [companyId]);
+  }, []);
 
   // 기업 정보 편집 처리
   const handleCompanyInfoSave = async () => {
-    if (!companyId) {
-      setError('기업 ID가 없습니다.');
+    const currentUser = getCurrentUser();
+    
+    if (!currentUser) {
+      setError('로그인 정보가 없습니다. 다시 로그인해주세요.');
       return;
     }
+
+    console.log('기업 정보 업데이트 - 사용자 ID:', currentUser);
 
     try {
       setIsLoading(true);
       setError(null);
+
+      const requestBody = {
+        company_id: currentUser,
+        Installation: tempCompanyInfo.Installation,
+        Installation_en: tempCompanyInfo.Installation_en,
+        economic_activity: tempCompanyInfo.economic_activity,
+        economic_activity_en: tempCompanyInfo.economic_activity_en,
+        representative: tempCompanyInfo.representative,
+        representative_en: tempCompanyInfo.representative_en,
+        email: tempCompanyInfo.email,
+        telephone: tempCompanyInfo.telephone,
+        street: tempCompanyInfo.street,
+        street_en: tempCompanyInfo.street_en,
+        number: tempCompanyInfo.number,
+        number_en: tempCompanyInfo.number_en,
+        postcode: tempCompanyInfo.postcode,
+        city: tempCompanyInfo.city,
+        city_en: tempCompanyInfo.city_en,
+        country: tempCompanyInfo.country,
+        country_en: tempCompanyInfo.country_en,
+        unlocode: tempCompanyInfo.unlocode,
+        source_latitude: tempCompanyInfo.source_latitude,
+        source_longitude: tempCompanyInfo.source_longitude
+      };
+
+      console.log('기업 정보 업데이트 요청:', requestBody);
 
       const response = await fetch('/api/v1/auth/company/info', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          company_id: companyId,
-          Installation: tempCompanyInfo.Installation,
-          Installation_en: tempCompanyInfo.Installation_en,
-          economic_activity: tempCompanyInfo.economic_activity,
-          economic_activity_en: tempCompanyInfo.economic_activity_en,
-          representative: tempCompanyInfo.representative,
-          representative_en: tempCompanyInfo.representative_en,
-          email: tempCompanyInfo.email,
-          telephone: tempCompanyInfo.telephone,
-          street: tempCompanyInfo.street,
-          street_en: tempCompanyInfo.street_en,
-          number: tempCompanyInfo.number,
-          number_en: tempCompanyInfo.number_en,
-          postcode: tempCompanyInfo.postcode,
-          city: tempCompanyInfo.city,
-          city_en: tempCompanyInfo.city_en,
-          country: tempCompanyInfo.country,
-          country_en: tempCompanyInfo.country_en,
-          unlocode: tempCompanyInfo.unlocode,
-          source_latitude: tempCompanyInfo.source_latitude,
-          source_longitude: tempCompanyInfo.source_longitude
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const result = await response.json();
+      console.log('기업 정보 업데이트 응답:', result);
 
       if (result.success) {
         setCompanyInfo(tempCompanyInfo);

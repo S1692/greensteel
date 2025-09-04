@@ -317,6 +317,49 @@ class AuthService:
             if connection:
                 await close_database_connection(connection)
 
+    async def get_user_info(self, username: str) -> Dict[str, Any]:
+        """사용자 정보 조회"""
+        connection = None
+        try:
+            connection = await get_database_connection()
+            
+            # 사용자 정보 조회 (companies 테이블에서)
+            user_data = await connection.fetchrow("""
+                SELECT 
+                    company_id, Installation, Installation_en, economic_activity, economic_activity_en,
+                    representative, representative_en, email, telephone, street, street_en, number, number_en,
+                    postcode, city, city_en, country, country_en, unlocode, source_latitude, source_longitude
+                FROM companies 
+                WHERE company_id = $1
+            """, username)
+            
+            if not user_data:
+                return {
+                    "success": False,
+                    "message": "사용자 정보를 찾을 수 없습니다.",
+                    "data": {}
+                }
+            
+            # 딕셔너리로 변환
+            user_info = dict(user_data)
+            
+            auth_logger.info(f"User info retrieved successfully: {username}")
+            return {
+                "success": True,
+                "message": "사용자 정보 조회 성공",
+                "data": user_info
+            }
+        except Exception as e:
+            auth_logger.error(f"Get user info failed: {str(e)}")
+            return {
+                "success": False,
+                "message": f"사용자 정보 조회에 실패했습니다: {str(e)}",
+                "data": {}
+            }
+        finally:
+            if connection:
+                await close_database_connection(connection)
+
     async def get_company_info(self, company_id: str) -> Dict[str, Any]:
         """기업 정보 조회"""
         connection = None

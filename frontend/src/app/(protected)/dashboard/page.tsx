@@ -346,7 +346,7 @@ const DashboardPage: React.FC = () => {
               </div>
               <span className='text-xs lg:text-sm font-medium text-blue-300'>LCA 분석</span>
             </a>
-            <a href='/cbam' className='flex items-center space-x-2 p-3 lg:p-4 bg-green-500/20 rounded-lg hover:bg-green-500/30 transition-colors border border-green-400/30'>
+            <a href='https://final2-mu-seven.vercel.app/cbam' target='_blank' rel='noopener noreferrer' className='flex items-center space-x-2 p-3 lg:p-4 bg-green-500/20 rounded-lg hover:bg-green-500/30 transition-colors border border-green-400/30'>
               <div className='w-8 h-8 bg-green-500/30 rounded-lg flex items-center justify-center'>
                 <span className='text-green-300 text-sm font-bold'>C</span>
               </div>

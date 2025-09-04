@@ -44,10 +44,11 @@ const CommonShell: React.FC<CommonShellProps> = ({ children }) => {
     },
     {
       name: 'CBAM',
-      href: '/cbam',
+      href: 'https://final2-mu-seven.vercel.app/cbam',
       icon: FileText,
-      current: pathname.startsWith('/cbam'),
+      current: false,
       description: 'CBAM 보고서 및 계산',
+      external: true,
     },
     {
       name: 'LCA',
@@ -110,8 +111,12 @@ const CommonShell: React.FC<CommonShellProps> = ({ children }) => {
 
   const currentSubPages = getCurrentSubPages();
 
-  const handleNavigation = (href: string) => {
-    router.push(href);
+  const handleNavigation = (href: string, isExternal?: boolean) => {
+    if (isExternal) {
+      window.open(href, '_blank');
+    } else {
+      router.push(href);
+    }
     setIsSidebarOpen(false);
     setIsMobileMenuOpen(false);
   };
@@ -161,7 +166,7 @@ const CommonShell: React.FC<CommonShellProps> = ({ children }) => {
             {navigation.map(item => (
               <button
                 key={item.name}
-                onClick={() => handleNavigation(item.href)}
+                onClick={() => handleNavigation(item.href, item.external)}
                 className={cn(
                   'w-full text-left p-3 rounded-lg transition-all duration-200 flex items-center gap-3 group',
                   item.current
@@ -316,7 +321,7 @@ const CommonShell: React.FC<CommonShellProps> = ({ children }) => {
             {navigation.map(item => (
               <button
                 key={item.name}
-                onClick={() => handleNavigation(item.href)}
+                onClick={() => handleNavigation(item.href, item.external)}
                 className={cn(
                   'w-full text-left p-3 rounded-lg transition-all duration-200 flex items-center gap-3 group',
                   item.current

@@ -26,145 +26,91 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# 키워드 기반 분류 시스템
-material_keywords = {
-    "점결탄": ["점결탄", "coking coal", "코킹"],
-    "산화마그네슘": ["산화마그네슘", "magnesium oxide", "MgO"],
-    "오븐 코크스": ["오븐 코크스", "oven coke", "코크스"],
-    "콜타르": ["콜타르", "coal tar", "타르"],
-    "직접 환원철": ["직접 환원철", "direct reduced iron", "DRI"],
-    "일산화탄소": ["일산화탄소", "carbon monoxide", "CO"],
-    "천연가스": ["천연가스", "natural gas", "NG"],
-    "갈탄": ["갈탄", "lignite", "brown coal"],
-    "페트롤 및 SBP": ["페트롤", "SBP", "petrol"],
-    "역청": ["역청", "bitumen", "아스팔트"],
-    "냉각수": ["냉각수", "cooling water", "냉각"],
-    "강철": ["강철", "steel", "스틸"],
-    "석회석": ["석회석", "limestone", "CaCO3"],
-    "산업폐기물": ["산업폐기물", "industrial waste", "폐기물"],
-    "메탄": ["메탄", "methane", "CH4"],
-    "고로 슬래그": ["고로 슬래그", "blast furnace slag", "슬래그"],
-    "철 스크랩": ["철 스크랩", "iron scrap", "스크랩"],
-    "분진": ["분진", "dust", "먼지"],
-    "윤활유": ["윤활유", "lubricating oil", "오일"],
-    "액화석유가스": ["액화석유가스", "LPG", "liquefied petroleum gas"],
-    "강철 스크랩": ["강철 스크랩", "steel scrap"],
-    "탄산리튬": ["탄산리튬", "lithium carbonate", "Li2CO3"],
-    "경유": ["경유", "diesel", "디젤"],
-    "잔류 연료유": ["잔류 연료유", "residual fuel oil", "중유"],
-    "전기": ["전기", "electricity", "power"],
-    "무연탄": ["무연탄", "anthracite", "안트라사이트"],
-    "오일 셰일": ["오일 셰일", "oil shale", "셰일"],
-    "철광석": ["철광석", "iron ore", "광석"],
-    "탄산수소나트륨": ["탄산수소나트륨", "sodium bicarbonate", "NaHCO3"],
-    "탄산바륨": ["탄산바륨", "barium carbonate", "BaCO3"],
-    "포장재": ["포장재", "packaging", "포장"],
-    "액화 천연가스": ["액화 천연가스", "LNG", "liquefied natural gas"],
-    "슬러지": ["슬러지", "sludge", "침전물"],
-    "소다회": ["소다회", "soda ash", "Na2CO3"],
-    "산화바륨": ["산화바륨", "barium oxide", "BaO"],
-    "가스공장 가스": ["가스공장 가스", "gas works gas"],
-    "폐유": ["폐유", "waste oil", "사용유"],
-    "EAF 탄소 전극": ["EAF 탄소 전극", "EAF carbon electrode", "전극"],
-    "압연 스케일": ["압연 스케일", "rolling scale", "스케일"],
-    "코크스 오븐 가스": ["코크스 오븐 가스", "coke oven gas", "COG"],
-    "EAF 충전 탄소": ["EAF 충전 탄소", "EAF charging carbon"],
-    "고로가스": ["고로가스", "blast furnace gas", "BFG"],
-    "열간성형철 (HBI)": ["열간성형철", "HBI", "hot briquetted iron"],
-    "피트 (Peat)": ["피트", "peat", "이탄"],
-    "선철": ["선철", "pig iron", "생철"],
-    "원유": ["원유", "crude oil", "raw oil"],
-    "산소 제강로 가스": ["산소 제강로 가스", "BOF gas"],
-    "열유입": ["열유입", "heat input", "열"],
-    "절삭칩": ["절삭칩", "cutting chips", "칩"],
-    "아역청탄": ["아역청탄", "sub-bituminous coal"],
-    "마그네사이트": ["마그네사이트", "magnesite", "MgCO3"],
-    "석유 코크스": ["석유 코크스", "petroleum coke", "pet coke"],
-    "펠렛": ["펠렛", "pellets", "소결"],
-    "오리멀전": ["오리멀전", "ore emulsion"],
-    "액화 석유가스": ["액화 석유가스", "liquefied petroleum gas", "LPG"],
-    "등유": ["등유", "kerosene", "등화유"],
-    "소성가스": ["소성가스", "calcining gas"],
-    "에탄": ["에탄", "ethane", "C2H6"],
-    "산화칼슘": ["산화칼슘", "calcium oxide", "CaO", "생석회"],
-    "나프타": ["나프타", "naphtha", "나프타"],
-    "철": ["철", "iron", "Fe"],
-    "능철광": ["능철광", "magnetite", "Fe3O4"],
-    "소결광": ["소결광", "sinter ore", "소결"],
-    "고온 성형 환원철": ["고온 성형 환원철", "hot briquetted iron", "HBI"],
-    "휘발유": ["휘발유", "gasoline", "가솔린"],
-    "탄산스트론튬": ["탄산스트론튬", "strontium carbonate", "SrCO3"]
-}
+# Hugging Face API 설정
+HF_TOKEN = os.getenv("HF_TOKEN")
+HF_API_URL = os.getenv("HF_API_URL", "https://api-inference.huggingface.co")
+HF_MODEL = os.getenv("HF_MODEL", "Halftotter/flud")
 
-async def initialize_keyword_classifier():
-    """키워드 기반 분류기 초기화"""
+async def initialize_huggingface_model():
+    """Hugging Face Inference API 초기화"""
     try:
-        logger.info("🔍 키워드 기반 분류기 초기화 중...")
-        logger.info(f"📋 키워드 사전 로드 완료: {len(material_keywords)}개 재료 분류")
-        logger.info("✅ 키워드 기반 분류기 초기화 완료")
+        logger.info(f"🔍 Hugging Face API 설정 확인:")
+        logger.info(f"  - HF_TOKEN: {'설정됨' if HF_TOKEN else '설정되지 않음'}")
+        logger.info(f"  - HF_API_URL: {HF_API_URL}")
+        logger.info(f"  - HF_MODEL: {HF_MODEL}")
+        
+        if not HF_TOKEN:
+            logger.warning("⚠️ HF_TOKEN이 설정되지 않았습니다.")
+            return False
+        
+        logger.info(f"🤗 Hugging Face Inference API 초기화 완료")
+        logger.info(f"  - 엔드포인트: {HF_API_URL}")
+        logger.info(f"  - 모델: {HF_MODEL}")
         return True
         
     except Exception as e:
-        logger.error(f"❌ 키워드 분류기 초기화 실패: {str(e)}")
+        logger.error(f"❌ Hugging Face API 초기화 실패: {e}")
         return False
 
-async def predict_material_with_keywords(input_text: str) -> tuple[str, float]:
-    """키워드 기반 재료 분류"""
+async def predict_material_with_huggingface(input_text: str) -> tuple[str, float]:
+    """Hugging Face API 기반 재료 분류"""
     try:
-        logger.info(f"🔍 키워드 기반 분류 시작: '{input_text}'")
+        logger.info(f"🔍 Hugging Face API 분류 시작: '{input_text}'")
         
-        # 입력 텍스트를 소문자로 변환하고 정규화
-        normalized_text = input_text.lower().strip()
-        
-        # 각 재료에 대해 키워드 매칭 점수 계산
-        best_match = None
-        best_score = 0.0
-        
-        for material, keywords in material_keywords.items():
-            score = 0.0
-            
-            # 각 키워드에 대해 매칭 점수 계산
-            for keyword in keywords:
-                keyword_lower = keyword.lower()
-                
-                # 정확한 매칭 (높은 점수)
-                if keyword_lower == normalized_text:
-                    score += 10.0
-                # 부분 매칭 (중간 점수)
-                elif keyword_lower in normalized_text:
-                    score += 5.0
-                # 단어 경계 매칭 (낮은 점수)
-                elif re.search(r'\b' + re.escape(keyword_lower) + r'\b', normalized_text):
-                    score += 3.0
-                # 포함 매칭 (가장 낮은 점수)
-                elif keyword_lower in normalized_text or normalized_text in keyword_lower:
-                    score += 1.0
-            
-            # 가장 높은 점수를 가진 재료 선택
-            if score > best_score:
-                best_score = score
-                best_match = material
-        
-        # 신뢰도 계산 (0.0 ~ 1.0)
-        confidence = min(best_score / 10.0, 1.0) if best_score > 0 else 0.0
-        
-        # 매칭된 재료가 있으면 반환, 없으면 원본 텍스트 반환
-        if best_match and best_score > 0:
-            logger.info(f"✅ 키워드 분류 완료: '{best_match}' (신뢰도: {confidence:.4f})")
-            return best_match, confidence
-        else:
-            logger.info(f"⚠️ 매칭되는 재료를 찾을 수 없습니다. 원본 텍스트 반환: '{input_text}'")
+        if not HF_TOKEN:
+            logger.warning("⚠️ HF_TOKEN이 설정되지 않았습니다. 원본 텍스트를 반환합니다.")
             return input_text, 0.0
         
+        # Hugging Face API 호출
+        payload = {"inputs": input_text}
+        headers = {
+            "Authorization": f"Bearer {HF_TOKEN}",
+            "Content-Type": "application/json"
+        }
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                f"{HF_API_URL}/models/{HF_MODEL}",
+                json=payload,
+                headers=headers
+            )
+            
+            logger.info(f"🤗 Hugging Face API 응답 상태: {response.status_code}")
+            
+            if response.status_code == 200:
+                results = response.json()
+                logger.info(f"🤗 API 응답 결과: {results}")
+                
+                if results and len(results) > 0:
+                    # Hugging Face API 형식: [{"label": "...", "score": 0.95}]
+                    if isinstance(results, list) and len(results) > 0:
+                        best_result = results[0]  # 첫 번째 결과 사용
+                        predicted_class = best_result['label']
+                        confidence = best_result['score']
+                    else:
+                        # 기존 형식 처리
+                        best_result = max(results, key=lambda x: x['score'])
+                        predicted_class = best_result['label']
+                        confidence = best_result['score']
+                    
+                    logger.info(f"✅ Hugging Face 분류 완료: '{predicted_class}' (신뢰도: {confidence:.4f})")
+                    return predicted_class, confidence
+                else:
+                    logger.warning("⚠️ 분류 결과가 없습니다. 원본 텍스트를 반환합니다.")
+                    return input_text, 0.0
+            else:
+                logger.warning(f"⚠️ Hugging Face API 호출 실패: {response.status_code} - 원본 텍스트 반환")
+                return input_text, 0.0
+                    
     except Exception as e:
-        logger.error(f"❌ 키워드 분류 실패: {str(e)}")
+        logger.error(f"❌ Hugging Face 분류 실패: {str(e)}")
         return input_text, 0.0
 
 async def generate_ai_recommendation(input_text: str) -> tuple[str, float]:
-    """AI 추천 답변 생성 (키워드 기반 분류 사용)"""
+    """AI 추천 답변 생성 (Hugging Face API 사용)"""
     try:
-        # 키워드 기반 분류 사용
-        return await predict_material_with_keywords(input_text)
+        # Hugging Face API 기반 분류 사용
+        return await predict_material_with_huggingface(input_text)
         
     except Exception as e:
         logger.error(f"❌ AI 추천 생성 중 오류: {e}")
@@ -183,8 +129,8 @@ async def lifespan(app: FastAPI):
     # 데이터베이스 초기화
     await database.init_db()
     
-    # 키워드 기반 분류기 초기화
-    await initialize_keyword_classifier()
+    # Hugging Face 모델 초기화
+    await initialize_huggingface_model()
     
     logger.info("✅ DataGather Service가 성공적으로 시작되었습니다.")
     
@@ -227,9 +173,9 @@ async def root():
         "version": "1.0.0",
         "description": "Data Collection & Processing Service - DDD Structure",
         "ai_config": {
-            "model": "keyword_based_classifier",
-            "description": "키워드 기반 재료 분류기",
-            "materials_count": len(material_keywords)
+            "model": HF_MODEL,
+            "endpoint": HF_API_URL,
+            "token_configured": bool(HF_TOKEN)
         },
         "endpoints": {
             "health": "/health",
@@ -296,10 +242,10 @@ async def ai_process_data(data: Dict[str, Any]):
             공정 = item.get('공정', '')
             logger.info(f"   - 투입물명: '{투입물명}', 공정: '{공정}'")
             
-            # 키워드 기반 분류 모델을 사용하여 AI 추천 답변 생성
+            # Hugging Face API를 사용하여 AI 추천 답변 생성
             try:
                 ai_추천답변, actual_confidence = await generate_ai_recommendation(투입물명)
-                logger.info(f"   - 키워드 기반 AI 분류 결과: '{ai_추천답변}', 신뢰도: {actual_confidence:.3f}")
+                logger.info(f"   - Hugging Face AI 분류 결과: '{ai_추천답변}', 신뢰도: {actual_confidence:.3f}")
                 
             except Exception as e:
                 logger.error(f"   - AI 분류 실패, 기본값 사용: {e}")
@@ -311,7 +257,7 @@ async def ai_process_data(data: Dict[str, Any]):
                 **item,
                 "AI추천답변": ai_추천답변,
                 "ai_processed": True,
-                "ai_model": "keyword_based_classifier",
+                "ai_model": HF_MODEL,
                 "ai_task": "text-classification",
                 "classification": "processed",
                 "confidence": actual_confidence,
@@ -337,9 +283,9 @@ async def ai_process_data(data: Dict[str, Any]):
         
         response_data = {
             "success": True,
-            "message": f"키워드 기반 분류기 AI 분류가 완료되었습니다.",
-            "ai_model": "keyword_based_classifier",
-            "ai_description": "키워드 기반 재료 분류기",
+            "message": f"Hugging Face Inference API ({HF_MODEL}) AI 분류가 완료되었습니다.",
+            "ai_model": HF_MODEL,
+            "ai_endpoint": HF_API_URL,
             "ai_task": "text-classification",
             "total_classified": len(ai_classification_results),
             "ai_results": ai_classification_results  # AI 분류 결과만

@@ -237,6 +237,35 @@ export const ProductProcessModal: React.FC<{
     try {
       setLoading(true);
       
+      // 디버깅: selectedInstall 정보 확인
+      console.log('🔍 selectedInstall 정보:', selectedInstall);
+      console.log('🔍 processData 정보:', processData);
+      console.log('🔍 installs 목록:', installs);
+      
+      // 사업장 정보를 더 안전하게 가져오기
+      let finalInstallId = 0;
+      let finalInstallName = '';
+      
+      if (selectedInstall?.id && selectedInstall?.install_name) {
+        // selectedInstall이 유효한 경우
+        finalInstallId = selectedInstall.id;
+        finalInstallName = selectedInstall.install_name;
+        console.log('✅ selectedInstall 사용:', { id: finalInstallId, name: finalInstallName });
+      } else if (processData.install_id && processData.install_name) {
+        // processData에 사업장 정보가 있는 경우
+        finalInstallId = processData.install_id;
+        finalInstallName = processData.install_name;
+        console.log('✅ processData의 사업장 정보 사용:', { id: finalInstallId, name: finalInstallName });
+      } else if (processData.install_id) {
+        // install_id만 있는 경우 installs에서 찾기
+        const foundInstall = installs.find(install => install.id === processData.install_id);
+        if (foundInstall) {
+          finalInstallId = foundInstall.id;
+          finalInstallName = foundInstall.install_name;
+          console.log('✅ installs에서 찾은 사업장 정보:', { id: finalInstallId, name: finalInstallName });
+        }
+      }
+      
       // 제품-공정 관계 생성 요청 (CBAM 서비스 API 사용)
       const response = await axiosClient.post(apiEndpoints.cbam.productProcess.create, {
         product_id: selectedProduct.id,
@@ -250,8 +279,8 @@ export const ProductProcessModal: React.FC<{
       const processForFlow: Process = {
         id: processData.process_id,
         process_name: processData.process_name,
-        install_id: selectedInstall?.id || processData.install_id || 0,
-        install_name: selectedInstall?.install_name || processData.install_name || '',
+        install_id: finalInstallId,
+        install_name: finalInstallName,
         start_period: processData.start_period || null,
         end_period: processData.end_period || null,
         created_at: processData.created_at || new Date().toISOString(),
@@ -266,8 +295,8 @@ export const ProductProcessModal: React.FC<{
         process_name: processData.process_name,
         product_id: selectedProduct.id,
         product_name: selectedProduct.product_name,
-        install_id: selectedInstall?.id || processData.install_id || 0,
-        install_name: selectedInstall?.install_name || processData.install_name || '',
+        install_id: finalInstallId,
+        install_name: finalInstallName,
         consumption_amount: 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -468,6 +497,7 @@ export const ProductProcessModal: React.FC<{
                                     install_id: item.install_id,
                                     install_name: displayInstallName
                                   });
+                                  console.log('📍 selectedInstall 정보:', selectedInstall);
                                   onProcessSelect(processData);
                                 }}
                                 title="클릭하여 ReactFlow에 공정 추가"
@@ -528,6 +558,7 @@ export const ProductProcessModal: React.FC<{
                                 install_id: selectedInstall?.id || 0,
                                 install_name: selectedInstall?.install_name || ''
                               });
+                              console.log('📍 selectedInstall 정보:', selectedInstall);
                               onProcessSelect(processData);
                             }}
                             title="클릭하여 ReactFlow에 공정 추가"

@@ -651,9 +651,8 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
     if (selectedProcess?.id) {
       console.log('🚀 InputManager 초기화 시작...');
       loadAllExistingData(); // 기존 계산 데이터 로드
-      // TODO: API 422 오류 해결 후 활성화
-      // loadAllMaterials(); // 마스터 테이블 로드 (배출계수 계산용)
-      // loadAllFuels(); // 마스터 테이블 로드 (배출계수 계산용)
+      loadAllMaterials(); // 마스터 테이블 로드 (배출계수 계산용)
+      loadAllFuels(); // 마스터 테이블 로드 (배출계수 계산용)
       loadInputDataNames(); // 로컬 스토리지에서 투입물명 추출
     } else {
       console.log('⚠️ selectedProcess.id가 없어서 초기화를 건너뜁니다.');

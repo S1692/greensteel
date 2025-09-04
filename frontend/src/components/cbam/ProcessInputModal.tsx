@@ -129,7 +129,7 @@ export const ProcessInputModal: React.FC<ProcessInputModalProps> = ({
     if (!selectedProcess?.id) return;
     
     try {
-      const response = await axiosClient.get(`/api/v1/cbam/process/${selectedProcess.id}/materials`);
+      const response = await axiosClient.get(`/api/v1/cbam/matdir/process/${selectedProcess.id}`);
       setMaterialList(response.data || []);
     } catch (error) {
       console.error('재료 목록 조회 실패:', error);
@@ -142,7 +142,7 @@ export const ProcessInputModal: React.FC<ProcessInputModalProps> = ({
     if (!selectedProcess?.id) return;
     
     try {
-      const response = await axiosClient.get(`/api/v1/cbam/process/${selectedProcess.id}/fuels`);
+      const response = await axiosClient.get(`/api/v1/cbam/fueldir/process/${selectedProcess.id}`);
       setFuelList(response.data || []);
     } catch (error) {
       console.error('연료 목록 조회 실패:', error);

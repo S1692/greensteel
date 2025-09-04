@@ -80,7 +80,7 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
       const response = await getMaterialMasterList();
       console.log('✅ 원료 마스터 테이블 로드 성공:', response);
       setAllMaterials(response || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ 원료 마스터 테이블 로드 실패:', error);
       console.error('❌ 오류 상세:', {
         message: error?.message || 'Unknown error',
@@ -101,7 +101,7 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
       } else if (Array.isArray(response)) {
         setAllFuels(response);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ 연료 마스터 테이블 로드 실패:', error);
       console.error('❌ 오류 상세:', {
         message: error?.message || 'Unknown error',

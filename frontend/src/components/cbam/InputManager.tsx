@@ -36,7 +36,7 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
   
   // 탭 상태
   const [activeTab, setActiveTab] = useState<'matdir' | 'fueldir'>('matdir');
-  
+
   // 폼 상태
   const [matdirForm, setMatdirForm] = useState<InputForm>({
     name: '',
@@ -44,14 +44,14 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
     amount: 0,
     oxyfactor: 1.0000
   });
-  
+
   const [fueldirForm, setFueldirForm] = useState<InputForm>({
     name: '',
     factor: 0,
     amount: 0,
     oxyfactor: 1.0000
   });
-  
+
   // 결과 목록
   const [inputResults, setInputResults] = useState<InputResult[]>([]);
   
@@ -110,9 +110,12 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
     try {
       console.log('🔍 로컬 스토리지에서 투입물명 추출 시작...');
       console.log('선택된 제품:', selectedProduct);
+      console.log('선택된 제품명:', selectedProduct?.product_name);
       
       // 로컬 스토리지에서 input data 가져오기
       const storedData = localStorage.getItem('cbam_input_data');
+      console.log('🔍 로컬 스토리지 원본 데이터 (문자열):', storedData);
+      
       if (!storedData) {
         console.log('⚠️ 로컬 스토리지에 input data가 없습니다.');
         setInputMaterialNames([]);
@@ -121,7 +124,7 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
       }
 
       const parsedData = JSON.parse(storedData);
-      console.log('🔍 로컬 스토리지 원본 데이터:', parsedData);
+      console.log('🔍 로컬 스토리지 파싱된 데이터:', parsedData);
       
       // 데이터 구조 파악 및 배열 추출
       let inputDataArray = [];
@@ -140,7 +143,7 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
       
       console.log('📋 전체 input data 샘플:', inputDataArray.slice(0, 3));
       
-      // 제품명으로 필터링
+      // 제품명으로 필터링 (더 유연한 매칭)
       let filteredData = inputDataArray;
       if (selectedProduct && selectedProduct.product_name) {
         const selectedProductName = selectedProduct.product_name.trim();
@@ -148,8 +151,14 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
         
         filteredData = inputDataArray.filter((item: any) => {
           const itemProductName = (item.생산품명 || '').trim();
-          const isMatch = itemProductName === selectedProductName || 
-                         itemProductName.toLowerCase() === selectedProductName.toLowerCase();
+          
+          // 더 유연한 매칭: 정확한 매칭, 대소문자 무시, 포함 관계
+          const isExactMatch = itemProductName === selectedProductName;
+          const isCaseInsensitiveMatch = itemProductName.toLowerCase() === selectedProductName.toLowerCase();
+          const isContainsMatch = itemProductName.toLowerCase().includes(selectedProductName.toLowerCase()) || 
+                                 selectedProductName.toLowerCase().includes(itemProductName.toLowerCase());
+          
+          const isMatch = isExactMatch || isCaseInsensitiveMatch || isContainsMatch;
           
           if (isMatch) {
             console.log('✅ 매칭된 항목:', item.생산품명, '→', item.투입물명);
@@ -158,6 +167,12 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
         });
         
         console.log(`🎯 제품 "${selectedProduct.product_name}"에 해당하는 데이터:`, filteredData.length, '개');
+        
+        // 매칭된 데이터가 없으면 전체 데이터 사용
+        if (filteredData.length === 0) {
+          console.log('⚠️ 매칭된 데이터가 없어서 전체 데이터를 사용합니다.');
+          filteredData = inputDataArray;
+        }
       } else {
         console.log('⚠️ 선택된 제품이 없어서 전체 데이터를 사용합니다.');
       }
@@ -393,33 +408,33 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
       localStorage.setItem('cbam_emission_calculations', JSON.stringify(calculations));
       
       // 화면에 표시용 결과 추가
-      const newResult: InputResult = {
+        const newResult: InputResult = {
         id: Date.now(),
-        name: matdirForm.name,
-        factor: matdirForm.factor,
-        amount: matdirForm.amount,
-        oxyfactor: matdirForm.oxyfactor,
-        emission: emission,
+          name: matdirForm.name,
+          factor: matdirForm.factor,
+          amount: matdirForm.amount,
+          oxyfactor: matdirForm.oxyfactor,
+          emission: emission,
         calculation_formula: localData.calculation_formula,
-        type: 'matdir',
+          type: 'matdir',
         created_at: new Date().toISOString()
-      };
+        };
 
-      setInputResults(prev => [...prev, newResult]);
-      
-      // 폼 초기화
-      setMatdirForm({
-        name: '',
-        factor: 0,
-        amount: 0,
-        oxyfactor: 1.0000
-      });
+        setInputResults(prev => [...prev, newResult]);
+        
+        // 폼 초기화
+        setMatdirForm({
+          name: '',
+          factor: 0,
+          amount: 0,
+          oxyfactor: 1.0000
+        });
 
       console.log('✅ 원료직접배출량 계산 완료:', newResult);
-      
-      // 콜백 호출
-      if (onDataSaved) {
-        onDataSaved();
+        
+        // 콜백 호출
+        if (onDataSaved) {
+          onDataSaved();
       }
     } catch (error) {
       console.error('❌ 원료직접배출량 계산 실패:', error);
@@ -480,33 +495,33 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
       localStorage.setItem('cbam_emission_calculations', JSON.stringify(calculations));
       
       // 화면에 표시용 결과 추가
-      const newResult: InputResult = {
+        const newResult: InputResult = {
         id: Date.now(),
-        name: fueldirForm.name,
-        factor: fueldirForm.factor,
-        amount: fueldirForm.amount,
-        oxyfactor: fueldirForm.oxyfactor,
-        emission: emission,
+          name: fueldirForm.name,
+          factor: fueldirForm.factor,
+          amount: fueldirForm.amount,
+          oxyfactor: fueldirForm.oxyfactor,
+          emission: emission,
         calculation_formula: localData.calculation_formula,
-        type: 'fueldir',
+          type: 'fueldir',
         created_at: new Date().toISOString()
-      };
+        };
 
-      setInputResults(prev => [...prev, newResult]);
-      
-      // 폼 초기화
-      setFueldirForm({
-        name: '',
-        factor: 0,
-        amount: 0,
-        oxyfactor: 1.0000
-      });
+        setInputResults(prev => [...prev, newResult]);
+        
+        // 폼 초기화
+        setFueldirForm({
+          name: '',
+          factor: 0,
+          amount: 0,
+          oxyfactor: 1.0000
+        });
 
       console.log('✅ 연료직접배출량 계산 완료:', newResult);
-      
-      // 콜백 호출
-      if (onDataSaved) {
-        onDataSaved();
+        
+        // 콜백 호출
+        if (onDataSaved) {
+          onDataSaved();
       }
     } catch (error) {
       console.error('❌ 연료직접배출량 계산 실패:', error);
@@ -534,10 +549,10 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
       setInputResults(prev => prev.filter(result => result.id !== id));
       
       console.log('✅ 데이터 삭제 완료:', id);
-      
-      // 콜백 호출
-      if (onDataSaved) {
-        onDataSaved();
+        
+        // 콜백 호출
+        if (onDataSaved) {
+          onDataSaved();
       }
     } catch (error) {
       console.error('❌ 데이터 삭제 실패:', error);
@@ -563,14 +578,20 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
   // ============================================================================
 
   useEffect(() => {
+    console.log('🔍 InputManager useEffect 실행됨');
+    console.log('🔍 selectedProcess:', selectedProcess);
+    console.log('🔍 selectedProduct:', selectedProduct);
+    
     if (selectedProcess?.id) {
       console.log('🚀 InputManager 초기화 시작...');
       loadAllExistingData(); // 기존 계산 데이터 로드
       loadAllMaterials(); // 마스터 테이블 로드 (배출계수 계산용)
       loadAllFuels(); // 마스터 테이블 로드 (배출계수 계산용)
       loadInputDataNames(); // 로컬 스토리지에서 투입물명 추출
+    } else {
+      console.log('⚠️ selectedProcess.id가 없어서 초기화를 건너뜁니다.');
     }
-  }, [selectedProcess?.id, loadAllExistingData, loadAllMaterials, loadAllFuels, loadInputDataNames]);
+  }, [selectedProcess?.id, selectedProduct, loadAllExistingData, loadAllMaterials, loadAllFuels, loadInputDataNames]);
 
   // 외부 클릭 시 드롭다운 닫기
   useEffect(() => {
@@ -661,37 +682,44 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
                 {/* 원료명 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    투입된 원료명 (선택) *
+                    투입된 원료명 (드롭다운 선택) *
                   </label>
                   <div className="relative dropdown-container">
-                    <input
-                      type="text"
-                      value={matdirForm.name}
+                    <div
                       onClick={() => setShowMaterialDropdown(true)}
-                      className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white cursor-pointer"
-                      placeholder="드롭다운에서 선택하세요"
-                      readOnly
-                    />
+                      className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white cursor-pointer min-h-[42px] flex items-center"
+                    >
+                      {matdirForm.name || (
+                        <span className="text-gray-400">드롭다운에서 선택하세요</span>
+                      )}
+                    </div>
                     {showMaterialDropdown && (
                       <div className="absolute top-full left-0 right-0 bg-gray-600 border border-gray-500 rounded-md mt-1 max-h-60 overflow-y-auto z-10">
-                        {inputMaterialNames
-                          .filter(name =>
-                            name.toLowerCase().includes(matdirForm.name.toLowerCase())
-                          )
-                          .map((name, index) => (
-                            <div
-                              key={index}
-                              onClick={() => handleMaterialSelect(name)}
-                              className="px-3 py-2 hover:bg-gray-500 cursor-pointer text-white text-sm"
-                            >
-                              <div className="font-medium">{name}</div>
-                              <div className="text-xs text-gray-300">
-                                로컬 스토리지 투입물명
+                        {inputMaterialNames.length > 0 ? (
+                          inputMaterialNames
+                            .filter(name => {
+                              if (!matdirForm.name) return true; // 입력이 없으면 모든 항목 표시
+                              return name.toLowerCase().includes(matdirForm.name.toLowerCase());
+                            })
+                            .map((name, index) => (
+                              <div
+                                key={index}
+                                onClick={() => handleMaterialSelect(name)}
+                            className="px-3 py-2 hover:bg-gray-500 cursor-pointer text-white text-sm"
+                          >
+                                <div className="font-medium">{name}</div>
+                                <div className="text-xs text-gray-300">
+                                  로컬 스토리지 투입물명
+                          </div>
                               </div>
-                            </div>
-                          ))}
+                            ))
+                        ) : (
+                          <div className="px-3 py-2 text-gray-400 text-sm">
+                            사용 가능한 투입물명이 없습니다.
                       </div>
                     )}
+                  </div>
+                  )}
                   </div>
                 </div>
 
@@ -758,35 +786,42 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
                 {/* 연료명 */}
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    투입된 연료명 (선택) *
+                    투입된 연료명 (드롭다운 선택) *
                   </label>
                   <div className="relative dropdown-container">
-                    <input
-                      type="text"
-                      value={fueldirForm.name}
+                    <div
                       onClick={() => setShowFuelDropdown(true)}
-                      className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white cursor-pointer"
-                      placeholder="드롭다운에서 선택하세요"
-                      readOnly
-                    />
-                    {showFuelDropdown && (
+                      className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white cursor-pointer min-h-[42px] flex items-center"
+                    >
+                      {fueldirForm.name || (
+                        <span className="text-gray-400">드롭다운에서 선택하세요</span>
+                      )}
+                    </div>
+                                        {showFuelDropdown && (
                       <div className="absolute top-full left-0 right-0 bg-gray-600 border border-gray-500 rounded-md mt-1 max-h-60 overflow-y-auto z-10">
-                        {inputFuelNames
-                          .filter(name =>
-                            name.toLowerCase().includes(fueldirForm.name.toLowerCase())
-                          )
-                          .map((name, index) => (
-                            <div
-                              key={index}
-                              onClick={() => handleFuelSelect(name)}
-                              className="px-3 py-2 hover:bg-gray-500 cursor-pointer text-white text-sm"
-                            >
-                              <div className="font-medium">{name}</div>
-                              <div className="text-xs text-gray-300">
-                                로컬 스토리지 투입물명
+                        {inputFuelNames.length > 0 ? (
+                          inputFuelNames
+                            .filter(name => {
+                              if (!fueldirForm.name) return true; // 입력이 없으면 모든 항목 표시
+                              return name.toLowerCase().includes(fueldirForm.name.toLowerCase());
+                            })
+                            .map((name, index) => (
+                              <div
+                                key={index}
+                                onClick={() => handleFuelSelect(name)}
+                                className="px-3 py-2 hover:bg-gray-500 cursor-pointer text-white text-sm"
+                              >
+                                <div className="font-medium">{name}</div>
+                                <div className="text-xs text-gray-300">
+                                  로컬 스토리지 투입물명
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ))
+                        ) : (
+                          <div className="px-3 py-2 text-gray-400 text-sm">
+                            사용 가능한 투입물명이 없습니다.
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -874,13 +909,13 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
               {inputResults.length === 0 ? (
                 <div className="text-center text-gray-400 py-8">
                   입력된 데이터가 없습니다.
-                </div>
-              ) : (
+              </div>
+            ) : (
                 inputResults.map((result) => (
-                  <div
-                    key={result.id}
-                    className="bg-gray-600 p-3 rounded-md border border-gray-500"
-                  >
+                    <div
+                      key={result.id}
+                      className="bg-gray-600 p-3 rounded-md border border-gray-500"
+                    >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
@@ -894,7 +929,7 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
                           }`}>
                             {result.type === 'matdir' ? '원료' : '연료'}
                           </span>
-                        </div>
+                          </div>
                         <div className="text-xs text-gray-300 space-y-1">
                           <div>배출계수: {result.factor}</div>
                           <div>투입량: {result.amount}</div>
@@ -904,21 +939,21 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
                           </div>
                           <div className="text-gray-400">
                             {result.calculation_formula}
-                          </div>
+                        </div>
                         </div>
                       </div>
-                      <button
+                              <button
                         onClick={() => handleDelete(result.id)}
                         className="text-red-400 hover:text-red-300 ml-2"
                       >
                         🗑️
-                      </button>
-                    </div>
-                  </div>
+                              </button>
+                            </div>
+                          </div>
                 ))
-              )}
-            </div>
-          </div>
+                      )}
+                    </div>
+              </div>
         </div>
       </div>
     </div>

@@ -124,21 +124,22 @@ export const useProcessCanvas = (selectedInstall: Install | null) => {
     // 해당 공정이 사용되는 모든 제품 정보 찾기 (Process 타입에 products 속성이 없으므로 빈 배열로 처리)
     const relatedProducts: Product[] = [];
 
-    // 공정별 직접귀속배출량 정보 가져오기
+    // 공정별 직접귀속배출량 정보 가져오기 (현재 API가 없으므로 임시로 비활성화)
     let emissionData = null;
-    try {
-      const response = await axiosClient.get(apiEndpoints.cbam.calculation.process.attrdir(process.id));
-      if (response.data) {
-        emissionData = {
-          attr_em: response.data.attrdir_em || 0,
-          total_matdir_emission: response.data.total_matdir_emission || 0,
-          total_fueldir_emission: response.data.total_fueldir_emission || 0,
-          calculation_date: response.data.calculation_date
-        };
-      }
-    } catch (error) {
-      console.log(`⚠️ 공정 ${process.id}의 배출량 정보가 아직 없습니다.`);
-    }
+    // TODO: API가 구현되면 활성화
+    // try {
+    //   const response = await axiosClient.get(apiEndpoints.cbam.calculation.process.attrdir(process.id));
+    //   if (response.data) {
+    //     emissionData = {
+    //       attr_em: response.data.attrdir_em || 0,
+    //       total_matdir_emission: response.data.total_matdir_emission || 0,
+    //       total_fueldir_emission: response.data.total_fueldir_emission || 0,
+    //       calculation_date: response.data.calculation_date
+    //     };
+    //   }
+    // } catch (error) {
+    //   console.log(`⚠️ 공정 ${process.id}의 배출량 정보가 아직 없습니다.`);
+    // }
 
     // 🔴 수정: 더 작은 ID 생성 (int32 범위 내)
     const nodeId = Math.floor(Math.random() * 1000000) + 1; // 1 ~ 1,000,000
@@ -165,7 +166,7 @@ export const useProcessCanvas = (selectedInstall: Install | null) => {
           current_install_id: selectedInstall?.id,
           is_readonly: false,
           // 배출량 정보 추가
-          ...emissionData
+          ...(emissionData || {})
         },
         onMatDirClick: (processData: any) => openInputModal(processData),
         onDoubleClick: onDoubleClick,
@@ -180,6 +181,7 @@ export const useProcessCanvas = (selectedInstall: Install | null) => {
       install_id: selectedInstall?.id,
       install_name: selectedInstall?.install_name
     });
+    console.log('🔍 selectedInstall 전체 정보:', selectedInstall);
 
     // setNodes를 사용하여 안전하게 노드 추가
     setNodes(prev => {

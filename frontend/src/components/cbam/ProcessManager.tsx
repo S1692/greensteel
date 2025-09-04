@@ -115,21 +115,27 @@ function ProcessManagerInner() {
     fetchInstallProducts();
   }, [selectedInstall?.id, fetchProductsByInstall]);
 
-  // 공정별 직접귀속배출량 정보 가져오기
-  const fetchProcessEmissionData = useCallback(async (processId: number) => {
-    try {
-      const response = await axiosClient.get(apiEndpoints.cbam.calculation.process.attrdir(processId));
-      if (response.data) {
-        return {
-          attr_em: response.data.attrdir_em || 0,
-          total_matdir_emission: response.data.total_matdir_emission || 0,
-          total_fueldir_emission: response.data.total_fueldir_emission || 0,
-          calculation_date: response.data.calculation_date
-        };
-      }
-    } catch (error) {
-      console.log(`⚠️ 공정 ${processId}의 배출량 정보가 아직 없습니다.`);
-    }
+  // 공정별 직접귀속배출량 정보 가져오기 (현재 API가 없으므로 임시로 비활성화)
+  const fetchProcessEmissionData = useCallback(async (processId: number): Promise<{
+    attr_em: number;
+    total_matdir_emission: number;
+    total_fueldir_emission: number;
+    calculation_date: string;
+  } | null> => {
+    // TODO: API가 구현되면 활성화
+    // try {
+    //   const response = await axiosClient.get(apiEndpoints.cbam.calculation.process.attrdir(processId));
+    //   if (response.data) {
+    //     return {
+    //       attr_em: response.data.attrdir_em || 0,
+    //       total_matdir_emission: response.data.total_matdir_emission || 0,
+    //       total_fueldir_emission: response.data.total_fueldir_emission || 0,
+    //       calculation_date: response.data.calculation_date
+    //     };
+    //   }
+    // } catch (error) {
+    //   console.log(`⚠️ 공정 ${processId}의 배출량 정보가 아직 없습니다.`);
+    // }
     return null;
   }, []);
 
@@ -157,7 +163,7 @@ function ProcessManagerInner() {
           updateNodeData(node.id, {
             processData: {
               ...node.data.processData,
-              ...emissionData
+              ...(emissionData || {})
             }
           });
         }

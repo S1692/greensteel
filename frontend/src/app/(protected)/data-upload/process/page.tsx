@@ -472,12 +472,10 @@ const ProcessDataPage: React.FC = () => {
       const processedData = jsonData.map((row: any[]) => {
         const dataRow: any = {};
         columns.forEach((col, index) => {
-          // 공정 설명 컬럼 특별 처리
+          // 공정 설명 컬럼은 그대로 유지 (백엔드에서 처리)
+          dataRow[col] = row[index] || '';
           if (col === '공정 설명') {
-            dataRow['공정설명'] = row[index] || '';
             console.log(`공정 설명 컬럼 처리: "${col}" -> "${row[index]}"`);
-          } else {
-            dataRow[col] = row[index] || '';
           }
         });
         return dataRow;
@@ -489,11 +487,21 @@ const ProcessDataPage: React.FC = () => {
       
       // 공정 설명 관련 특별 디버깅
       console.log('=== 공정 설명 디버깅 ===');
+      console.log('전체 컬럼명들:', columns);
       console.log('컬럼명에 "공정 설명" 포함 여부:', columns.includes('공정 설명'));
       console.log('컬럼명에 "공정설명" 포함 여부:', columns.includes('공정설명'));
+      console.log('컬럼명에 "설명" 포함 여부:', columns.includes('설명'));
+      
       if (jsonData.length > 0) {
         console.log('원본 데이터의 공정 설명 인덱스:', columns.indexOf('공정 설명'));
         console.log('원본 데이터의 공정 설명 값:', jsonData[0][columns.indexOf('공정 설명')]);
+        
+        // 모든 컬럼의 값 확인
+        console.log('=== 첫 번째 행의 모든 데이터 ===');
+        columns.forEach((col, index) => {
+          console.log(`컬럼 "${col}" (인덱스 ${index}): "${jsonData[0][index]}"`);
+        });
+        console.log('=== 모든 데이터 확인 완료 ===');
       }
       console.log('=== 공정 설명 디버깅 완료 ===');
       

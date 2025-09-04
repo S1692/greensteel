@@ -751,18 +751,24 @@ async def save_process_data(
                     logger.info(f"공정설명 값: '{row.get('공정설명', '')}'")
                     logger.info(f"공정 설명 값: '{row.get('공정 설명', '')}'")
                     
-                    # 모든 필드의 값 확인
+                    # 모든 필드의 값 확인 (디버깅용)
+                    logger.info("=== Excel 데이터 모든 필드 ===")
                     for key, value in row.items():
-                        if '설명' in key or '공정' in key:
-                            logger.info(f"관련 필드 {key}: '{value}'")
+                        logger.info(f"필드 '{key}': '{value}' (타입: {type(value)})")
+                    logger.info("=== 필드 확인 완료 ===")
                     
-                    # 공정설명 필드 매핑 (공정 설명 필드 우선 사용)
+                    # 공정설명 필드 매핑 (다양한 필드명 지원)
                     process_description = (
                         row.get('공정 설명', '') or 
                         row.get('공정설명', '') or 
                         row.get('설명', '') or 
                         row.get('공정내용', '') or
                         row.get('세부설명', '') or
+                        row.get('공정_설명', '') or
+                        row.get('공정 내용', '') or
+                        row.get('세부 설명', '') or
+                        row.get('process_description', '') or
+                        row.get('description', '') or
                         # 강제로 상세한 설명 생성
                         f"{row.get('공정명', '')} 공정: {row.get('생산제품', '')} 생산을 위한 {row.get('세부공정', '')} 공정입니다."
                     )

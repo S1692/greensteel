@@ -93,22 +93,28 @@ export default function InputManager({ selectedProcess, onClose, onDataSaved }: 
 
   const loadAllMaterials = useCallback(async () => {
     try {
+      console.log('🔍 원료 목록 로드 시작...');
       const response = await getMaterialMasterList();
+      console.log('✅ 원료 목록 로드 성공:', response);
       setAllMaterials(response || []);
     } catch (error) {
-      console.error('원료 목록 로드 실패:', error);
+      console.error('❌ 원료 목록 로드 실패:', error);
       setAllMaterials([]);
     }
   }, [getMaterialMasterList]);
 
   const loadAllFuels = useCallback(async () => {
     try {
+      console.log('🔍 연료 목록 로드 시작...');
       const response = await getAllFuels();
+      console.log('✅ 연료 목록 로드 성공:', response);
       if (response && response.fuels) {
         setAllFuels(response.fuels);
+      } else if (Array.isArray(response)) {
+        setAllFuels(response);
       }
     } catch (error) {
-      console.error('연료 목록 로드 실패:', error);
+      console.error('❌ 연료 목록 로드 실패:', error);
       setAllFuels([]);
     }
   }, [getAllFuels]);
@@ -285,16 +291,20 @@ export default function InputManager({ selectedProcess, onClose, onDataSaved }: 
   const handleMaterialSelect = useCallback(async (material: any) => {
     try {
       // 배출계수 자동 계산: carbon_content × mat_factor
-      const emissionFactor = (material.carbon_content || 0) * (material.mat_factor || 0);
+      const carbonContent = material.carbon_content || material.carbon_factor || 0;
+      const matFactor = material.mat_factor || material.em_factor || 0;
+      const emissionFactor = carbonContent * matFactor;
+      
+      const materialName = material.mat_name || material.item_name || material.name;
       
       setMatdirForm(prev => ({
         ...prev,
-        name: material.mat_name || material.name,
+        name: materialName,
         factor: emissionFactor
       }));
       setShowMaterialSuggestions(false);
       setShowMaterialDropdown(false);
-      setMaterialAutoFactorStatus(`✅ ${material.mat_name || material.name} 자동 배출계수 적용: ${emissionFactor.toFixed(4)}`);
+      setMaterialAutoFactorStatus(`✅ ${materialName} 자동 배출계수 적용: ${emissionFactor.toFixed(4)}`);
       
       // 3초 후 상태 메시지 제거
       setTimeout(() => setMaterialAutoFactorStatus(''), 3000);
@@ -307,16 +317,20 @@ export default function InputManager({ selectedProcess, onClose, onDataSaved }: 
   const handleFuelSelect = useCallback(async (fuel: any) => {
     try {
       // 배출계수 자동 계산: fuel_factor × net_calory
-      const emissionFactor = (fuel.fuel_factor || 0) * (fuel.net_calory || 0);
+      const fuelFactor = fuel.fuel_factor || 0;
+      const netCalory = fuel.net_calory || 0;
+      const emissionFactor = fuelFactor * netCalory;
+      
+      const fuelName = fuel.fuel_name || fuel.name;
       
       setFueldirForm(prev => ({
         ...prev,
-        name: fuel.fuel_name || fuel.name,
+        name: fuelName,
         factor: emissionFactor
       }));
       setShowSuggestions(false);
       setShowFuelDropdown(false);
-      setAutoFactorStatus(`✅ ${fuel.fuel_name || fuel.name} 자동 배출계수 적용: ${emissionFactor.toFixed(4)}`);
+      setAutoFactorStatus(`✅ ${fuelName} 자동 배출계수 적용: ${emissionFactor.toFixed(4)}`);
       
       // 3초 후 상태 메시지 제거
       setTimeout(() => setAutoFactorStatus(''), 3000);
@@ -341,7 +355,9 @@ export default function InputManager({ selectedProcess, onClose, onDataSaved }: 
       const emission = calculateEmission(matdirForm);
       
       // 선택된 원료 정보 찾기
-      const selectedMaterial = allMaterials.find(m => m.mat_name === matdirForm.name);
+      const selectedMaterial = allMaterials.find(m => 
+        (m.mat_name || m.item_name) === matdirForm.name
+      );
       
       const payload = {
         process_id: selectedProcess.id,
@@ -375,9 +391,9 @@ export default function InputManager({ selectedProcess, onClose, onDataSaved }: 
           id: Date.now(),
           type: 'material',
           mat_name: matdirForm.name,
-          mat_engname: selectedMaterial?.mat_engname || '',
-          carbon_content: selectedMaterial?.carbon_content || 0,
-          mat_factor: selectedMaterial?.mat_factor || 0,
+          mat_engname: selectedMaterial?.mat_engname || selectedMaterial?.item_eng || '',
+          carbon_content: selectedMaterial?.carbon_content || selectedMaterial?.carbon_factor || 0,
+          mat_factor: selectedMaterial?.mat_factor || selectedMaterial?.em_factor || 0,
           emission_factor: matdirForm.factor,
           amount: matdirForm.amount,
           oxyfactor: matdirForm.oxyfactor,
@@ -700,7 +716,7 @@ export default function InputManager({ selectedProcess, onClose, onDataSaved }: 
                       <div className="absolute top-full left-0 right-0 bg-gray-600 border border-gray-500 rounded-md mt-1 max-h-40 overflow-y-auto z-10">
                         {allMaterials
                           .filter(material => 
-                            material.mat_name.toLowerCase().includes(matdirForm.name.toLowerCase())
+                            (material.mat_name || material.item_name || '').toLowerCase().includes(matdirForm.name.toLowerCase())
                           )
                           .map((material) => (
                             <div
@@ -708,9 +724,9 @@ export default function InputManager({ selectedProcess, onClose, onDataSaved }: 
                               onClick={() => handleMaterialSelect(material)}
                               className="px-3 py-2 hover:bg-gray-500 cursor-pointer text-white text-sm"
                             >
-                              <div className="font-medium">{material.mat_name}</div>
+                              <div className="font-medium">{material.mat_name || material.item_name}</div>
                               <div className="text-xs text-gray-300">
-                                {material.mat_engname} | C: {material.carbon_content || 0} | Factor: {material.mat_factor || 0}
+                                {material.mat_engname || material.item_eng} | C: {material.carbon_content || material.carbon_factor || 0} | Factor: {material.mat_factor || material.em_factor || 0}
                               </div>
                             </div>
                           ))}
@@ -815,7 +831,7 @@ export default function InputManager({ selectedProcess, onClose, onDataSaved }: 
                       <div className="absolute top-full left-0 right-0 bg-gray-600 border border-gray-500 rounded-md mt-1 max-h-40 overflow-y-auto z-10">
                         {allFuels
                           .filter(fuel => 
-                            fuel.fuel_name.toLowerCase().includes(fueldirForm.name.toLowerCase())
+                            (fuel.fuel_name || '').toLowerCase().includes(fueldirForm.name.toLowerCase())
                           )
                           .map((fuel) => (
                             <div

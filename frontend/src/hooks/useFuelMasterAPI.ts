@@ -13,6 +13,7 @@ export const useFuelMasterAPI = () => {
 
     try {
       const response = await axiosClient.get(apiEndpoints.cbam.fuelMaster.list);
+      console.log('Fuel Master API 응답:', response.data);
       return response.data;
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail || err.message || '연료 마스터 데이터 조회 중 오류가 발생했습니다.';

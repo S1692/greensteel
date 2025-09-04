@@ -71,14 +71,14 @@ export const useMaterialMasterAPI = () => {
   // 📋 기본 CRUD 작업
   // ============================================================================
 
-  const getMaterialMasterList = useCallback(async (skip = 0, limit = 100): Promise<MaterialMappingFull[]> => {
+  const getMaterialMasterList = useCallback(async (skip = 0, limit = 100): Promise<any[]> => {
     setLoading(true);
     setError(null);
     
     try {
-      const response = await axiosClient.get(apiEndpoints.materialMaster.list, {
-        params: { skip, limit }
-      });
+      const response = await axiosClient.get(apiEndpoints.materialMaster.list);
+      console.log('Material Master API 응답:', response.data);
+      
       // API 응답이 { materials: [], total_count: number } 형식인지 확인
       if (response.data && response.data.materials) {
         return response.data.materials;
@@ -88,6 +88,7 @@ export const useMaterialMasterAPI = () => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail || err.message || '원료 마스터 목록 조회 중 오류가 발생했습니다.';
       setError(errorMessage);
+      console.error('Material Master API 에러:', err);
       throw new Error(errorMessage);
     } finally {
       setLoading(false);

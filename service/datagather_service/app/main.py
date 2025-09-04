@@ -5,6 +5,8 @@
 import asyncio
 import logging
 import os
+import json
+import numpy as np
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,6 +16,7 @@ from typing import Optional, Dict, Any
 import uvicorn
 import httpx
 from huggingface_hub import InferenceClient
+from sentence_transformers import SentenceTransformer
 
 from .infrastructure.database import database
 from .infrastructure.config import settings
@@ -32,6 +35,12 @@ HF_MODEL = os.getenv("HF_MODEL", "Halftotter/flud")
 
 # Hugging Face InferenceClient 인스턴스
 hf_client = None
+
+# RAG 시스템 전역 변수
+rag_embedding_model = None
+rag_config_data = None
+rag_material_embeddings = None
+rag_material_labels = None
 
 async def initialize_huggingface_model():
     """Hugging Face Inference API 초기화"""
@@ -56,11 +65,84 @@ async def initialize_huggingface_model():
     except Exception as e:
         logger.error(f"❌ Hugging Face API 초기화 실패: {e}")
 
-async def generate_ai_recommendation(input_text: str) -> tuple[str, float]:
-    """Hugging Face Inference API를 사용하여 AI 추천 답변 생성"""
+async def initialize_rag_system():
+    """RAG 시스템 초기화"""
+    global rag_embedding_model, rag_config_data, rag_material_embeddings, rag_material_labels
+    
     try:
+        logger.info("🔍 RAG 시스템 초기화 중...")
+        
+        # config.json 로드
+        config_path = os.path.join(os.path.dirname(__file__), '..', 'config.json')
+        with open(config_path, 'r', encoding='utf-8') as f:
+            rag_config_data = json.load(f)
+        
+        logger.info(f"📋 설정 파일 로드 완료: {rag_config_data['num_labels']}개 라벨")
+        
+        # 한국어 지원 임베딩 모델 로드
+        rag_embedding_model = SentenceTransformer('jhgan/ko-sroberta-multitask')
+        logger.info("🤖 임베딩 모델 로드 완료")
+        
+        # 재료 라벨들을 임베딩으로 변환
+        id2label = rag_config_data['id2label']
+        rag_material_labels = list(id2label.values())
+        
+        # 각 재료에 대한 설명 생성 및 임베딩
+        material_descriptions = []
+        for label in rag_material_labels:
+            description = f"{label}은(는) 강철 제조 공정에서 사용되는 중요한 재료입니다."
+            material_descriptions.append(description)
+        
+        # 임베딩 생성
+        rag_material_embeddings = rag_embedding_model.encode(material_descriptions)
+        logger.info(f"📊 재료 임베딩 생성 완료: {rag_material_embeddings.shape}")
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"❌ RAG 시스템 초기화 실패: {str(e)}")
+        return False
+
+async def predict_material_with_rag(input_text: str) -> tuple[str, float]:
+    """RAG 기반 재료 분류"""
+    global rag_embedding_model, rag_material_embeddings, rag_material_labels
+    
+    try:
+        if not rag_embedding_model or rag_material_embeddings is None:
+            logger.warning("⚠️ RAG 시스템이 초기화되지 않았습니다. 기본값을 반환합니다.")
+            return input_text, 0.0
+        
+        logger.info(f"🔍 RAG 기반 분류 시작: '{input_text}'")
+        
+        # 입력 텍스트 임베딩
+        text_embedding = rag_embedding_model.encode([input_text])
+        
+        # 코사인 유사도 계산
+        similarities = np.dot(rag_material_embeddings, text_embedding.T).flatten()
+        
+        # 가장 높은 유사도를 가진 재료 선택
+        best_idx = np.argmax(similarities)
+        predicted_label = rag_material_labels[best_idx]
+        confidence = float(similarities[best_idx])
+        
+        logger.info(f"✅ RAG 분류 완료: '{predicted_label}' (신뢰도: {confidence:.4f})")
+        
+        return predicted_label, confidence
+        
+    except Exception as e:
+        logger.error(f"❌ RAG 분류 실패: {str(e)}")
+        return input_text, 0.0
+
+async def generate_ai_recommendation(input_text: str) -> tuple[str, float]:
+    """RAG 기반 AI 추천 답변 생성"""
+    try:
+        # RAG 시스템이 초기화되어 있으면 RAG 기반 분류 사용
+        if rag_embedding_model and rag_material_embeddings is not None:
+            return await predict_material_with_rag(input_text)
+        
+        # RAG 시스템이 없으면 기존 방식 사용 (fallback)
         if not hf_client:
-            logger.warning("⚠️ Hugging Face API 클라이언트가 초기화되지 않았습니다. 기본 답변을 반환합니다.")
+            logger.warning("⚠️ RAG 시스템과 Hugging Face API 클라이언트가 모두 초기화되지 않았습니다. 기본 답변을 반환합니다.")
             return input_text, 0.0  # 기본값으로 원본 텍스트와 신뢰도 0.0 반환
         
         # 입력 텍스트를 그대로 사용 (전처리 없이)
@@ -68,25 +150,30 @@ async def generate_ai_recommendation(input_text: str) -> tuple[str, float]:
         
         logger.info(f"🤗 Hugging Face API 호출: '{classification_text}'")
         
-        # rail API 서비스 호출
-        payload = {"text": classification_text}
-        
-        # rail 서비스 URL (환경변수에서 가져오거나 기본값 사용)
-        rail_api_url = os.getenv("RAIL_API_URL", "http://rail-service:8000")
-        
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                f"{rail_api_url}/predict",  # rail API 서비스
-                json=payload
-            )
+        # rail API 서비스 호출 (선택적)
+        try:
+            payload = {"text": classification_text}
             
-            logger.info(f"🤗 API 응답 상태: {response.status_code}")
+            # rail 서비스 URL (환경변수에서 가져오거나 기본값 사용)
+            rail_api_url = os.getenv("RAIL_API_URL", "http://rail-service:8000")
             
-            if response.status_code == 200:
-                results = response.json()
-            else:
-                logger.error(f"⚠️ Hugging Face API 호출 실패: {response.status_code} - {response.text}")
-                return input_text, 0.0
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.post(
+                    f"{rail_api_url}/predict",  # rail API 서비스
+                    json=payload
+                )
+                
+                logger.info(f"🤗 Rail API 응답 상태: {response.status_code}")
+                
+                if response.status_code == 200:
+                    results = response.json()
+                else:
+                    logger.warning(f"⚠️ Rail API 호출 실패: {response.status_code} - 기본값 사용")
+                    return input_text, 0.0
+                    
+        except Exception as e:
+            logger.warning(f"⚠️ Rail API 서비스 연결 실패: {str(e)} - 기본값 사용")
+            return input_text, 0.0
         
         logger.info(f"🤗 API 응답 결과: {results}")
         
@@ -126,6 +213,9 @@ async def lifespan(app: FastAPI):
     
     # Hugging Face 모델 초기화
     await initialize_huggingface_model()
+    
+    # RAG 시스템 초기화
+    await initialize_rag_system()
     
     logger.info("✅ DataGather Service가 성공적으로 시작되었습니다.")
     

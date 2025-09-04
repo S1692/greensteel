@@ -25,3 +25,7 @@ httpx==0.25.2
 
 # 로깅 및 설정
 structlog==23.2.0
+
+# RAG 시스템용 패키지
+sentence-transformers>=2.2.2
+numpy>=1.21.0

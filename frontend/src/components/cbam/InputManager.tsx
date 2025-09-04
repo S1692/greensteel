@@ -147,13 +147,29 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
         }
         
         console.log('📊 전체 input data:', inputDataArray.length, '개');
+        console.log('📋 전체 input data 샘플:', inputDataArray.slice(0, 3));
         
         // 선택된 제품에 해당하는 투입물명만 필터링
         let filteredData = inputDataArray;
         if (selectedProduct && selectedProduct.product_name) {
-          filteredData = inputDataArray.filter((item: any) => 
-            item.생산품명 === selectedProduct.product_name
-          );
+          console.log('🔍 선택된 제품 정보:', selectedProduct);
+          console.log('🔍 제품명:', selectedProduct.product_name);
+          
+          // 유연한 매칭: 공백 제거, 대소문자 무시
+          const selectedProductName = selectedProduct.product_name.trim();
+          filteredData = inputDataArray.filter((item: any) => {
+            const itemProductName = item.생산품명?.trim() || '';
+            const isMatch = itemProductName === selectedProductName || 
+                           itemProductName.toLowerCase() === selectedProductName.toLowerCase() ||
+                           itemProductName.includes(selectedProductName) ||
+                           selectedProductName.includes(itemProductName);
+            
+            if (isMatch) {
+              console.log('✅ 매칭된 항목:', item.생산품명, '→', item.투입물명);
+            }
+            return isMatch;
+          });
+          
           console.log(`🎯 제품 "${selectedProduct.product_name}"에 해당하는 데이터:`, filteredData.length, '개');
           console.log('필터링된 데이터:', filteredData);
         } else {
@@ -782,16 +798,12 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
                     <input
                       type="text"
                       value={matdirForm.name}
-                      onChange={(e) => {
-                        handleMatdirInputChange('name', e.target.value);
-                        setShowMaterialDropdown(true);
-                      }}
-                      onFocus={() => setShowMaterialDropdown(true)}
-                      className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white"
+                      onClick={() => setShowMaterialDropdown(true)}
+                      className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white cursor-pointer"
                       placeholder="드롭다운에서 선택하세요"
                       readOnly
                     />
-                    {inputMaterialNames.length > 0 && (
+                    {showMaterialDropdown && inputMaterialNames.length > 0 && (
                       <div className="absolute top-full left-0 right-0 bg-gray-600 border border-gray-500 rounded-md mt-1 max-h-40 overflow-y-auto z-10">
                         {inputMaterialNames
                           .filter(name => 
@@ -898,16 +910,12 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
                     <input
                       type="text"
                       value={fueldirForm.name}
-                      onChange={(e) => {
-                        handleFueldirInputChange('name', e.target.value);
-                        setShowFuelDropdown(true);
-                      }}
-                      onFocus={() => setShowFuelDropdown(true)}
-                      className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white"
+                      onClick={() => setShowFuelDropdown(true)}
+                      className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white cursor-pointer"
                       placeholder="드롭다운에서 선택하세요"
                       readOnly
                     />
-                    {inputFuelNames.length > 0 && (
+                    {showFuelDropdown && inputFuelNames.length > 0 && (
                       <div className="absolute top-full left-0 right-0 bg-gray-600 border border-gray-500 rounded-md mt-1 max-h-40 overflow-y-auto z-10">
                         {inputFuelNames
                           .filter(name => 

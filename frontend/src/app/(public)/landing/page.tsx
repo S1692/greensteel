@@ -9,6 +9,11 @@ export default function LandingPage() {
   const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
   const [isPWAInstalled, setIsPWAInstalled] = useState(false);
+  const [loginData, setLoginData] = useState({
+    username: '',
+    password: '',
+    companyId: ''
+  });
 
   useEffect(() => {
     // 모바일 디바이스 감지
@@ -32,8 +37,23 @@ export default function LandingPage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  const handleLogin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    
+    // 로그인 검증 로직
+    if (!loginData.username || !loginData.password || !loginData.companyId) {
+      alert('모든 필드를 입력해주세요.');
+      return;
+    }
+    
+    // 로그인 성공 시 기업아이디와 유저아이디를 포함하여 리다이렉트
+    const redirectUrl = `/dashboard?companyId=${encodeURIComponent(loginData.companyId)}&userId=${encodeURIComponent(loginData.username)}`;
+    router.push(redirectUrl);
+  };
+
   const handleEnter = () => {
-    router.push('/dashboard');
+    // 들어가기 버튼도 로그인과 동일한 로직 사용
+    handleLogin();
   };
 
   const handleRegister = () => {
@@ -59,13 +79,29 @@ export default function LandingPage() {
           {/* 로그인 카드 */}
           <div className='bg-ecotrace-card rounded-2xl p-6 shadow-lg border border-white/10'>
             <div className='space-y-4'>
-              {/* ID 입력 필드 */}
+              {/* 기업 ID 입력 필드 */}
               <div className='text-left'>
                 <label className='block text-white text-sm font-medium mb-2'>
-                  ID *
+                  기업 ID *
                 </label>
                 <Input
                   type='text'
+                  value={loginData.companyId}
+                  onChange={(e) => setLoginData(prev => ({ ...prev, companyId: e.target.value }))}
+                  placeholder='예: company123'
+                  className='w-full bg-ecotrace-input border-white/20 text-white placeholder:text-white/50'
+                />
+              </div>
+
+              {/* 사용자 ID 입력 필드 */}
+              <div className='text-left'>
+                <label className='block text-white text-sm font-medium mb-2'>
+                  사용자 ID *
+                </label>
+                <Input
+                  type='text'
+                  value={loginData.username}
+                  onChange={(e) => setLoginData(prev => ({ ...prev, username: e.target.value }))}
                   placeholder='예: smartuser'
                   className='w-full bg-ecotrace-input border-white/20 text-white placeholder:text-white/50'
                 />
@@ -78,6 +114,8 @@ export default function LandingPage() {
                 </label>
                 <Input
                   type='password'
+                  value={loginData.password}
+                  onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
                   placeholder='비밀번호를 입력하세요'
                   className='w-full bg-ecotrace-input border-white/20 text-white placeholder:text-white/50'
                 />
@@ -85,7 +123,7 @@ export default function LandingPage() {
 
               {/* 로그인 버튼 */}
               <Button
-                onClick={handleEnter}
+                onClick={handleLogin}
                 className='w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-lg py-3 mt-6'
               >
                 로그인
@@ -143,18 +181,38 @@ export default function LandingPage() {
 
         {/* 로그인 폼 */}
         <div className='bg-white/5 backdrop-blur-sm rounded-xl p-8 border border-white/10'>
-          <form className='space-y-6'>
-            {/* ID 입력 */}
+          <form onSubmit={handleLogin} className='space-y-6'>
+            {/* 기업 ID 입력 */}
+            <div>
+              <label
+                htmlFor='companyId'
+                className='block text-sm font-medium text-white mb-2'
+              >
+                기업 ID *
+              </label>
+              <Input
+                id='companyId'
+                type='text'
+                value={loginData.companyId}
+                onChange={(e) => setLoginData(prev => ({ ...prev, companyId: e.target.value }))}
+                placeholder='예: company123'
+                className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
+              />
+            </div>
+
+            {/* 사용자 ID 입력 */}
             <div>
               <label
                 htmlFor='username'
                 className='block text-sm font-medium text-white mb-2'
               >
-                ID *
+                사용자 ID *
               </label>
               <Input
                 id='username'
                 type='text'
+                value={loginData.username}
+                onChange={(e) => setLoginData(prev => ({ ...prev, username: e.target.value }))}
                 placeholder='예: smartuser'
                 className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
               />
@@ -171,6 +229,8 @@ export default function LandingPage() {
               <Input
                 id='password'
                 type='password'
+                value={loginData.password}
+                onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
                 placeholder='********'
                 className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
               />

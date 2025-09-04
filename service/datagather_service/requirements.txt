@@ -25,11 +25,3 @@ httpx==0.25.2
 
 # 로깅 및 설정
 structlog==23.2.0
-
-# rail 서비스용 패키지
-torch==2.8.0
-scikit-learn==1.7.1
-joblib==1.5.2
-numpy==2.2.6
-flask>=2.0.0
-flask-cors>=3.0.0

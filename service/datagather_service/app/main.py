@@ -68,12 +68,15 @@ async def generate_ai_recommendation(input_text: str) -> tuple[str, float]:
         
         logger.info(f"🤗 Hugging Face API 호출: '{classification_text}'")
         
-        # 로컬 rail 서비스 호출
+        # rail API 서비스 호출
         payload = {"text": classification_text}
+        
+        # rail 서비스 URL (환경변수에서 가져오거나 기본값 사용)
+        rail_api_url = os.getenv("RAIL_API_URL", "http://rail-service:8000")
         
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
-                "http://localhost:8000/predict",  # 로컬 rail 서비스
+                f"{rail_api_url}/predict",  # rail API 서비스
                 json=payload
             )
             

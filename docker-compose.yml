@@ -174,16 +174,34 @@ services:
     environment:
       - DATABASE_URL=postgresql://greensteel:greensteel123@postgres:5432/greensteel
       - REDIS_URL=redis://redis:6379
+      - RAIL_API_URL=http://rail-service:8000
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      rail-service:
+        condition: service_healthy
     volumes:
       - ./service/datagather_service:/app
-      - rail_data:/app/rail
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8085/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Rail AI Service
+  rail-service:
+    build:
+      context: ./service/datagather_service/rail
+      dockerfile: Dockerfile
+    container_name: greensteel-rail
+    ports:
+      - "8000:8000"
+    volumes:
+      - rail_data:/app/rail
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -270,35 +270,12 @@ class AuthService:
                 await close_database_connection(connection)
 
     async def login(self, username: str, password: str) -> Dict[str, Any]:
-        """로그인 (실제 DB 검증)"""
+        """로그인 (companies 테이블만 검증)"""
         connection = None
         try:
             connection = await get_database_connection()
             
-            # 사용자 테이블에서 검증
-            user_data = await connection.fetchrow("""
-                SELECT id, username, full_name, company_id, role
-                FROM users 
-                WHERE username = $1 AND password = $2
-            """, username, password)
-            
-            if user_data:
-                auth_logger.info(f"User login successful: {username}")
-                return {
-                    "success": True,
-                    "message": "로그인 성공",
-                    "data": {
-                        "user": {
-                            "id": user_data['id'],
-                            "username": user_data['username'],
-                            "full_name": user_data['full_name'],
-                            "company_id": user_data['company_id'],
-                            "role": user_data['role']
-                        }
-                    }
-                }
-            
-            # 기업 테이블에서 검증
+            # companies 테이블에서만 검증
             company_data = await connection.fetchrow("""
                 SELECT company_id, Installation
                 FROM companies 
@@ -322,7 +299,7 @@ class AuthService:
                 }
             
             # 로그인 실패
-            auth_logger.warning(f"Login failed for user: {username}")
+            auth_logger.warning(f"Login failed for company: {username}")
             return {
                 "success": False,
                 "message": "ID 또는 비밀번호가 올바르지 않습니다.",

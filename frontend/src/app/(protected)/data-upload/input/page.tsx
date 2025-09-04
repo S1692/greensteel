@@ -2,66 +2,29 @@
 
 import React, { useState, useRef } from 'react';
 import CommonShell from '@/components/common/CommonShell';
-import {
-  Download, 
-  Upload,
-  FileSpreadsheet,
-  CheckCircle,
-  X,
-  Plus,
-  Trash2,
-  Edit3, 
-  Save, 
-  Table, 
-  Brain, 
-  AlertCircle,
-  ArrowLeft
-} from 'lucide-react';
+import { Save, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/atomic/atoms';
-import { Input } from '@/components/atomic/atoms';
 import Link from 'next/link';
 
-// 타입 정의 - 이미지의 모든 칼럼 포함 (AI추천답변은 frontend에서만 표시, DB에는 저장하지 않음)
-type DataRow = {
-  주문처명?: string;
-  오더번호?: string;
-  로트번호?: string;
-  생산품명?: string;
-  생산수량?: string;
-  투입일?: string;
-  종료일?: string;
-  공정?: string;
-  투입물명?: string;
-  수량?: string;
-  단위?: string;
-  AI추천답변?: string; // frontend에서만 표시, DB 저장 시 투입물명으로 대체
-  [key: string]: any;
-};
+// 컴포넌트 imports
+import TemplateDownload from '@/components/data-upload/TemplateDownload';
+import FileUpload from '@/components/data-upload/FileUpload';
+import DataPreviewTable from '@/components/data-upload/DataPreviewTable';
+import InputFieldRenderer from '@/components/data-upload/InputFieldRenderer';
+import AIProcessingResult from '@/components/data-upload/AIProcessingResult';
 
-interface DataPreview {
-  filename: string;
-  fileSize: string;
-  data: Array<DataRow>;
-  columns: string[];
-}
+// 타입 imports
+import { DataRow, DataPreview, AIProcessedData, EditableRow } from '@/types/inputData';
 
-interface AIProcessedData {
-  status: string;
-  message: string;
-  filename: string;
-  total_rows: number;
-  processed_rows: number;
-  data: Array<DataRow>;
-  columns: string[];
-}
-
-interface EditableRow {
-  id: string;
-  originalData: DataRow;
-  modifiedData: DataRow;
-  isEditing: boolean;
-  isNewlyAdded?: boolean;
-}
+// 유틸리티 imports
+import {
+  validateTemplateFormat,
+  validateInput,
+  isNewRow,
+  convertExcelDate,
+  handleNumericInput,
+  validateDateComparison
+} from '@/utils/inputDataUtils';
 
 const InputDataPage: React.FC = () => {
   // 상태 관리
@@ -128,14 +91,12 @@ const InputDataPage: React.FC = () => {
     setError(null);
   };
 
-  // 템플릿 다운로드
-  const handleTemplateDownload = () => {
-    const link = document.createElement('a');
-    link.href = '/templates/실적_데이터_인풋.xlsx';
-    link.download = '실적_데이터_인풋.xlsx';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  // 파일 변경 핸들러
+  const handleFileChange = () => {
+    setInputFile(null);
+    setInputData(null);
+    setEditableInputRows([]);
+    setAiProcessedData(null);
   };
 
   // 파일 선택 핸들러
@@ -185,7 +146,9 @@ const InputDataPage: React.FC = () => {
       }
 
       // 컬럼 형식 검증
-      if (!validateTemplateFormat(columns)) {
+      const validation = validateTemplateFormat(columns);
+      if (!validation.isValid) {
+        setError(validation.errorMessage || '템플릿 형식이 올바르지 않습니다.');
         setIsInputUploading(false);
         return;
       }
@@ -233,42 +196,6 @@ const InputDataPage: React.FC = () => {
     }
   };
 
-  // 템플릿 형식 검증 - 이미지의 모든 칼럼과 정확히 일치해야 함
-  const validateTemplateFormat = (columns: string[]): boolean => {
-    const requiredColumns = [
-      '주문처명', '오더번호', '로트번호', '생산품명', '생산수량', '생산수량_단위', '투입일', '종료일', '공정', '투입물명', '수량', '투입물_단위'
-    ];
-    
-    // 정확한 칼럼명 매칭 (공백, 언더스코어 무시)
-    const hasAllRequiredColumns = requiredColumns.every(requiredCol => {
-      const found = columns.some(uploadedCol => {
-        const cleanRequired = requiredCol.trim().toLowerCase().replace(/[\s_]/g, '');
-        const cleanUploaded = uploadedCol.trim().toLowerCase().replace(/[\s_]/g, '');
-        return cleanRequired === cleanUploaded;
-      });
-      return found;
-    });
-    
-    if (!hasAllRequiredColumns) {
-      const missingColumns = requiredColumns.filter(requiredCol => {
-        return !columns.some(uploadedCol => {
-          const cleanRequired = requiredCol.trim().toLowerCase().replace(/[\s_]/g, '');
-          const cleanUploaded = uploadedCol.trim().toLowerCase().replace(/[\s_]/g, '');
-          return cleanRequired === cleanUploaded;
-        });
-      });
-      setError(`템플릿을 확인해 주세요. 누락된 컬럼: ${missingColumns.join(', ')}`);
-      return false;
-    }
-    
-    // 추가 칼럼이 있는지 확인 (정확히 12개 칼럼만 허용)
-    if (columns.length !== 12) {
-      setError(`템플릿을 확인해 주세요. 정확히 12개 칼럼이어야 합니다. 현재: ${columns.length}개`);
-      return false;
-    }
-    
-    return true;
-  };
 
   // AI 처리 즉시 시작
   const handleAIProcessImmediate = async (inputData: DataPreview) => {
@@ -409,25 +336,6 @@ const InputDataPage: React.FC = () => {
     );
   };
 
-  // 숫자 입력 필드에서 문자 입력 방지
-  const handleNumericInput = (e: React.KeyboardEvent<HTMLInputElement>, column: string) => {
-    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
-    const isNumericColumn = ['로트번호', '생산수량', '수량'].includes(column);
-    
-    if (isNumericColumn) {
-      // 숫자, 소수점, 허용된 키만 입력 가능
-      if (!/[\d.]/.test(e.key) && !allowedKeys.includes(e.key)) {
-        e.preventDefault();
-        return;
-      }
-      
-      // 소수점은 한 번만 입력 가능
-      if (e.key === '.' && (e.currentTarget.value.includes('.') || e.currentTarget.value === '')) {
-        e.preventDefault();
-        return;
-      }
-    }
-  };
 
   // 행 편집 토글 (Excel 데이터는 AI 추천 답변만, 새로 추가된 데이터는 모든 필드 편집 가능)
   const toggleRowEdit = (rowId: string) => {
@@ -557,429 +465,25 @@ const InputDataPage: React.FC = () => {
   };
 
   // 날짜 비교 검증 함수
-  const validateDateComparison = (rowId: string, column: string, value: string): void => {
-    const row = editableInputRows.find(r => r.id === rowId);
-    if (!row) return;
-    
-    if (column === '투입일' && row.modifiedData['종료일']) {
-      const inputDate = new Date(value);
-      const endDate = new Date(row.modifiedData['종료일']);
-      if (inputDate > endDate) {
-        updateRowError(rowId, column, '투입일은 종료일보다 늦을 수 없습니다.');
-      } else {
-        clearRowError(rowId, column);
-      }
-    } else if (column === '종료일' && row.modifiedData['투입일']) {
-      const startDate = new Date(row.modifiedData['투입일']);
-      const endDate = new Date(value);
-      if (startDate > endDate) {
-        updateRowError(rowId, column, '종료일은 투입일보다 빠를 수 없습니다.');
-      } else {
-        clearRowError(rowId, column);
-      }
-    }
+  const handleDateComparison = (rowId: string, column: string, value: string): void => {
+    validateDateComparison(rowId, column, value, editableInputRows, updateRowError, clearRowError);
   };
 
-  // 입력 유효성 검사 - 새로운 스키마 기반
-  const validateInput = (column: string, value: string): { isValid: boolean; errorMessage: string } => {
-    if (value.length > 50) {
-      console.log(`글자 수 초과: ${column} - ${value.length}글자`);
-      return { isValid: false, errorMessage: '50자 이하로 입력해주세요.' };
-    }
-    
-    switch (column) {
-      case '로트번호':
-        // 로트번호는 문자열로 처리
-        if (!value || value.trim() === '') {
-          return { isValid: false, errorMessage: '로트번호는 필수 입력 항목입니다.' };
-        }
-        return { isValid: true, errorMessage: '' };
-      case '생산수량':
-      case '수량':
-        // 수량은 숫자만 입력 가능
-        const isNumberValid = /^\d+(\.\d+)?$/.test(value);
-        if (!isNumberValid) {
-          console.log(`숫자만 입력 가능: ${column} - ${value}`);
-          return { isValid: false, errorMessage: '숫자만 입력 가능합니다.' };
-        }
-        // 0보다 큰 값인지 확인
-        const numValue = parseFloat(value);
-        if (numValue <= 0) {
-          return { isValid: false, errorMessage: '0보다 큰 값을 입력해주세요.' };
-        }
-        return { isValid: true, errorMessage: '' };
-      case '투입일':
-      case '종료일':
-        if (!value || value === '') {
-          return { isValid: true, errorMessage: '' };
-        }
-        
-        // YYYY-MM-DD 형식 검증
-        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-        if (!dateRegex.test(value)) {
-          console.log(`날짜 형식 오류: ${column} - ${value}`);
-          return { isValid: false, errorMessage: 'YYYY-MM-DD 형식으로 입력해주세요.' };
-        }
-        
-        // 유효한 날짜인지 검증
-        const date = new Date(value);
-        if (isNaN(date.getTime())) {
-          console.log(`유효하지 않은 날짜: ${column} - ${value}`);
-          return { isValid: false, errorMessage: '유효한 날짜를 입력해주세요.' };
-        }
-        
-        // 미래 날짜 제한 (선택사항)
-        const today = new Date();
-        today.setHours(23, 59, 59, 999); // 오늘의 마지막 시간
-        if (date > today) {
-          console.log(`미래 날짜 입력: ${column} - ${value}`);
-          return { isValid: false, errorMessage: '미래 날짜는 입력할 수 없습니다.' };
-        }
-        
-        return { isValid: true, errorMessage: '' };
-      case '생산품명':
-      case '투입물명':
-      case '공정':
-        // 한글, 영문, 숫자, 공백, 특수문자 허용
-        const isNameValid = /^[가-힣a-zA-Z0-9\s\-_()]*$/.test(value);
-        if (!isNameValid) {
-          console.log(`텍스트 입력 오류: ${column} - ${value}`);
-          return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자만 입력 가능합니다.' };
-        }
-        return { isValid: true, errorMessage: '' };
-      case '투입물_단위':
-        const isUnitValid = /^[가-힣a-zA-Z0-9\s\-_()\/]*$/.test(value);
-        if (!isUnitValid) {
-          console.log(`텍스트 입력 오류: ${column} - ${value}`);
-          return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자, /만 입력 가능합니다.' };
-        }
-        return { isValid: true, errorMessage: '' };
-      default:
-        return { isValid: true, errorMessage: '' };
-    }
-  };
 
-           // 입력 필드 렌더링
-    const renderInputField = (row: EditableRow, column: string) => {
-      const value = row.modifiedData[column] || '';
-      const isNewRowData = isNewRow(row);
-      const isRequired = ['주문처명', '오더번호', '로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '투입물명', '수량', '단위'].includes(column);
-      
-      // 편집 모드가 아닌 경우 읽기 전용으로 표시
-      if (!row.isEditing) {
-        return <span className='text-white/60'>{value || '-'}</span>;
-      }
-      
-      // Excel 데이터는 AI 추천 답변만 편집 가능, 새로 추가된 데이터는 모든 필드 편집 가능
-      if (!isNewRowData && column !== 'AI추천답변') {
-        // Excel 데이터의 다른 필드는 읽기 전용
-        return <span className='text-white/60'>{value || '-'}</span>;
-      }
-      
-      const getInputClassName = () => {
-        let baseClass = 'w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
-        
-        if (isNewRowData) {
-          baseClass += ' border-green-300 bg-green-50 text-black';
-        } else if (row.isEditing) {
-          baseClass += ' border-blue-300 bg-blue-50 text-black';
-        } else {
-          baseClass += ' border-gray-300 bg-white text-black';
-        }
-        
-        return baseClass;
-      };
-
-         switch (column) {
-       case '주문처명':
-         return (
-           <div className='relative'>
-             <input
-               type='text'
-               value={value}
-               maxLength={50}
-               onChange={(e) => {
-                 const newValue = e.target.value;
-                 const { isValid, errorMessage } = validateInput(column, newValue);
-                 if (isValid) {
-                   handleInputChange(row.id, column, newValue);
-                   clearRowError(row.id, column);
-                 } else {
-                   handleInputChange(row.id, column, newValue);
-                   updateRowError(row.id, column, errorMessage);
-                 }
-               }}
-               placeholder={isRequired ? '주문처명을 입력하세요 *' : '주문처명을 입력하세요'}
-               className={getInputClassName()}
-             />
-             {isRequired && (
-               <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
-             )}
-             {rowErrors[row.id]?.[column] && (
-               <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
-             )}
-           </div>
-         );
-       
-       case '오더번호':
-         return (
-           <div className='relative'>
-             <input
-               type='text'
-               value={value}
-               maxLength={20}
-               onChange={(e) => {
-                 const newValue = e.target.value;
-                 const { isValid, errorMessage } = validateInput(column, newValue);
-                 if (isValid) {
-                   handleInputChange(row.id, column, newValue);
-                   clearRowError(row.id, column);
-                 } else {
-                   handleInputChange(row.id, column, newValue);
-                   updateRowError(row.id, column, errorMessage);
-                 }
-               }}
-               placeholder={isRequired ? '오더번호를 입력하세요 *' : '오더번호를 입력하세요'}
-               className={getInputClassName()}
-             />
-             {isRequired && (
-               <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
-             )}
-             {rowErrors[row.id]?.[column] && (
-               <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
-             )}
-           </div>
-         );
-       
-       case '로트번호':
-       case '생산수량':
-       case '수량':
-        return (
-          <div className='relative'>
-            <input
-              type='text'
-              value={value}
-              maxLength={20}
-              onChange={(e) => {
-                const newValue = e.target.value;
-                const { isValid, errorMessage } = validateInput(column, newValue);
-                if (isValid) {
-                  handleInputChange(row.id, column, newValue);
-                  clearRowError(row.id, column);
-                } else {
-                  handleInputChange(row.id, column, newValue);
-                  updateRowError(row.id, column, errorMessage);
-                }
-              }}
-              onKeyDown={(e) => handleNumericInput(e, column)}
-              placeholder={isRequired ? '숫자만 입력 *' : '숫자만 입력'}
-              className={getInputClassName()}
-            />
-            {isRequired && (
-              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
-            )}
-            {rowErrors[row.id]?.[column] && (
-              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
-            )}
-          </div>
-        );
-      
-      case '투입일':
-      case '종료일':
-        return (
-          <div className='relative'>
-            <input
-              type='date'
-              value={value}
-              onChange={(e) => {
-                const newValue = e.target.value;
-                const { isValid, errorMessage } = validateInput(column, newValue);
-                
-                handleInputChange(row.id, column, newValue);
-                
-                if (isValid) {
-                  clearRowError(row.id, column);
-                  // 날짜 비교 검증 실행
-                  validateDateComparison(row.id, column, newValue);
-                } else {
-                  updateRowError(row.id, column, errorMessage);
-                }
-              }}
-              className={getInputClassName()}
-            />
-            {isRequired && (
-              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
-            )}
-            {rowErrors[row.id]?.[column] && (
-              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
-            )}
-          </div>
-        );
-      
-      case '생산품명':
-        return (
-          <div className='relative'>
-            <input
-              type='text'
-              value={value}
-              maxLength={50}
-              onChange={(e) => {
-                const newValue = e.target.value;
-                const { isValid, errorMessage } = validateInput(column, newValue);
-                if (isValid) {
-                  handleInputChange(row.id, column, newValue);
-                  clearRowError(row.id, column);
-                } else {
-                  handleInputChange(row.id, column, newValue);
-                  updateRowError(row.id, column, errorMessage);
-                }
-              }}
-              placeholder={isRequired ? '생산품명을 입력하세요 *' : '생산품명을 입력하세요'}
-              className={getInputClassName()}
-            />
-            {isRequired && (
-              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
-            )}
-            {rowErrors[row.id]?.[column] && (
-              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
-            )}
-          </div>
-        );
-      
-      case '공정':
-        return (
-          <div className='relative'>
-            <input
-              type='text'
-              value={value}
-              maxLength={50}
-              onChange={(e) => {
-                const newValue = e.target.value;
-                const { isValid, errorMessage } = validateInput(column, newValue);
-                if (isValid) {
-                  handleInputChange(row.id, column, newValue);
-                  clearRowError(row.id, column);
-                } else {
-                  handleInputChange(row.id, column, newValue);
-                  updateRowError(row.id, column, errorMessage);
-                }
-              }}
-              placeholder={isRequired ? '공정명을 입력하세요 *' : '공정명을 입력하세요'}
-              className={getInputClassName()}
-            />
-            {isRequired && (
-              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
-            )}
-            {rowErrors[row.id]?.[column] && (
-              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
-            )}
-          </div>
-        );
-      
-      case '투입물명':
-        return (
-          <div className='relative'>
-            <input
-              type='text'
-              value={value}
-              maxLength={20}
-              onChange={(e) => {
-                const newValue = e.target.value;
-                const { isValid, errorMessage } = validateInput(column, newValue);
-                if (isValid) {
-                  handleInputChange(row.id, column, newValue);
-                  clearRowError(row.id, column);
-                } else {
-                  handleInputChange(row.id, column, newValue);
-                  updateRowError(row.id, column, errorMessage);
-                }
-              }}
-              onKeyDown={(e) => handleNumericInput(e, column)}
-              placeholder={isRequired ? '한글/영문/숫자 입력 *' : '한글/영문/숫자 입력'}
-              className={getInputClassName()}
-            />
-            {isRequired && (
-              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
-            )}
-            {rowErrors[row.id]?.[column] && (
-              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
-            )}
-          </div>
-        );
-      
-             case '투입물_단위':
-         return (
-           <div className='relative'>
-             <select
-               value={value}
-               onChange={(e) => {
-                 const newValue = e.target.value;
-                 handleInputChange(row.id, column, newValue);
-                 clearRowError(row.id, column);
-               }}
-               className={getInputClassName()}
-             >
-               <option value=''>투입물 단위를 선택하세요</option>
-               <option value='t'>톤</option>
-               <option value='kg'>킬로그램</option>
-               <option value='개수'>개수</option>
-               <option value='kg/h'>킬로그램/시간</option>
-               <option value='kg/m'>킬로그램/미터</option>
-               <option value='kg/m2'>킬로그램/제곱미터</option>
-               <option value='kg/m3'>킬로그램/세제곱미터</option>
-               <option value='kg/L'>킬로그램/리터</option>
-               <option value='kg/m2/h'>킬로그램/제곱미터/시간</option>
-               <option value='kg/m3/h'>킬로그램/세제곱미터/시간</option>
-               <option value='kg/L/h'>킬로그램/리터/시간</option>
-               <option value='kg/m2/m'>킬로그램/제곱미터/미터</option>
-               <option value='kg/m3/m'>킬로그램/세제곱미터/미터</option>
-               <option value='kg/L/m'>킬로그램/리터/미터</option>
-               <option value='kg/m2/m2'>킬로그램/제곱미터/제곱미터</option>
-               <option value='kg/m3/m2'>킬로그램/세제곱미터/제곱미터</option>
-               <option value='kg/L/m2'>킬로그램/리터/제곱미터</option>
-               <option value='kg/m3/m3'>킬로그램/세제곱미터/세제곱미터</option>
-               <option value='kg/L/m3'>킬로그램/리터/세제곱미터</option>
-               <option value='kg/m2/m3'>킬로그램/제곱미터/세제곱미터</option>
-             </select>
-            {isRequired && (
-              <span className='absolute -top-2 -right-2 text-red-500 text-xs'>*</span>
-            )}
-            {rowErrors[row.id]?.[column] && (
-              <p className='text-xs text-red-400 mt-1'>{rowErrors[row.id][column]}</p>
-            )}
-          </div>
-        );
-      
-             case 'AI추천답변':
-         return (
-           <div className='relative'>
-             <input
-               type='text'
-               value={value}
-               maxLength={20}
-               onChange={(e) => {
-                 const newValue = e.target.value;
-                 // AI 추천 답변만 변경, 투입물명은 자동으로 변경하지 않음
-                 handleInputChange(row.id, column, newValue);
-               }}
-               placeholder={isNewRowData ? 'AI 추천 답변을 입력하세요' : 'AI 추천 답변을 수정하거나 입력하세요'}
-               className={`w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                 isNewRowData ? 'border-green-300 bg-green-50 text-black' : 'border-blue-300 bg-blue-50 text-black'
-               }`}
-             />
-             <span className={`absolute -top-2 -right-2 text-xs ${
-               isNewRowData ? 'text-green-500' : 'text-blue-500'
-             }`}>
-               {isNewRowData ? '✏️' : '✏️'}
-             </span>
-           </div>
-         );
-      
-      default:
-        return (
-          <span>{value || '-'}</span>
-        );
-    }
+  // 입력 필드 렌더링
+  const renderInputField = (row: EditableRow, column: string) => {
+    return (
+      <InputFieldRenderer
+        row={row}
+        column={column}
+        rowErrors={rowErrors}
+        onInputChange={handleInputChange}
+        onNumericInput={handleNumericInput}
+        onDateComparison={handleDateComparison}
+        validateInput={validateInput}
+        isNewRow={isNewRow}
+      />
+    );
   };
 
   // 드래그 앤 드롭 핸들러
@@ -1143,11 +647,6 @@ const InputDataPage: React.FC = () => {
      }
   };
 
-     // 새로운 행인지 확인하는 함수
-   const isNewRow = (row: EditableRow): boolean => {
-     return !row.originalData || Object.keys(row.originalData).length === 0 || 
-            Object.values(row.originalData).every(val => val === '' || val === null || val === undefined);
-   };
 
        // 새로운 행 추가 핸들러
     const addNewRow = () => {
@@ -1360,307 +859,43 @@ const InputDataPage: React.FC = () => {
         {/* 메인 콘텐츠 */}
         <div className='flex-1 min-h-0 space-y-6'>
           {/* 1. 템플릿 다운로드 섹션 */}
-          <div className='stitch-card p-6'>
-            <div className='flex items-center gap-3 mb-4'>
-              <div className='w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center'>
-                <Download className='w-5 h-5 text-blue-600' />
-              </div>
-              <div>
-                <h2 className='text-lg font-semibold text-white'>템플릿 다운로드</h2>
-                <p className='text-sm text-white/60'>표준 형식의 템플릿을 다운로드하여 데이터 입력에 활용하세요</p>
-              </div>
-            </div>
-            <Button
-              onClick={handleTemplateDownload}
-              className='bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors'
-            >
-              <Download className='w-4 h-4 mr-2' />
-              템플릿 다운로드
-            </Button>
-          </div>
+          <TemplateDownload />
           
           {/* 2. Excel 업로드 섹션 */}
-          <div className='stitch-card p-6'>
-            <div className='flex items-center gap-3 mb-4'>
-              <div className='w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center'>
-                <Upload className='w-5 h-5 text-green-600' />
-              </div>
-              <div>
-                <h2 className='text-lg font-semibold text-white'>Excel 업로드</h2>
-                <p className='text-sm text-white/60'>템플릿 형식에 맞는 Excel 파일을 업로드하면 AI가 자동으로 투입물명을 표준화합니다</p>
-              </div>
-            </div>
-            
-            <div
-              className={`border-2 border-dashed rounded-xl p-12 text-center transition-all duration-200 ${
-                inputFile
-                  ? 'border-green-400 bg-green-50'
-                  : 'border-white/20 hover:border-primary hover:bg-white/5'
-              }`}
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-            >
-              <input
-                ref={inputFileRef}
-                type='file'
-                accept='.xlsx,.xls'
-                onChange={handleInputFileSelect}
-                className='hidden'
-              />
-              
-              {!inputFile ? (
-                <div className='space-y-4'>
-                  <div className='w-16 h-16 mx-auto bg-white/10 rounded-full flex items-center justify-center'>
-                    <Upload className='w-8 h-8 text-white/60' />
-                  </div>
-                  <div>
-                    <p className='text-lg font-medium text-white mb-2'>
-                      파일을 드래그하여 업로드하거나 클릭하여 선택하세요
-                    </p>
-                    <p className='text-sm text-white/60 mb-4'>
-                      지원 형식: .xlsx, .xls
-                    </p>
-                    <Button
-                      onClick={() => inputFileRef.current?.click()}
-                      className='bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg transition-colors'
-                    >
-                      파일 선택
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className='space-y-4'>
-                  <div className='w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center'>
-                    <FileSpreadsheet className='w-8 h-8 text-green-600' />
-                  </div>
-                  <div>
-                    <p className='text-lg font-medium text-white mb-2'>
-                      선택된 파일: {inputFile.name}
-                    </p>
-                    <p className='text-sm text-white/60 mb-4'>
-                      파일 크기: {(inputFile.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                    <div className='flex gap-3 justify-center'>
-                      <Button
-                        onClick={handleInputUpload}
-                        disabled={isInputUploading}
-                        className='bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg transition-colors disabled:opacity-50'
-                      >
-                        {isInputUploading ? '업로드 중...' : '업로드 시작'}
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          setInputFile(null);
-                          setInputData(null);
-                          setEditableInputRows([]);
-                          setAiProcessedData(null);
-                        }}
-                        className='bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg transition-colors'
-                      >
-                        파일 변경
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          <FileUpload
+            inputFile={inputFile}
+            isInputUploading={isInputUploading}
+            onFileSelect={handleInputFileSelect}
+            onUpload={handleInputUpload}
+            onFileChange={handleFileChange}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+          />
 
-          {/* 3. AI 처리 상태 표시 */}
-          {isAiProcessing && (
-            <div className='stitch-card p-6'>
-              <div className='flex items-center gap-3'>
-                <div className='w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center'>
-                  <Brain className='w-5 h-5 text-blue-600' />
-                </div>
-                <div>
-                  <h3 className='text-lg font-semibold text-white'>AI 처리 중...</h3>
-                  <p className='text-sm text-white/60'>데이터를 분석하고 표준화하는 중입니다. 잠시만 기다려주세요.</p>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* 3. AI 처리 상태 표시 및 결과 */}
+          <AIProcessingResult
+            isAiProcessing={isAiProcessing}
+            aiProcessedData={aiProcessedData}
+          />
 
           {/* 4. 데이터 미리보기 및 편집 */}
-          {inputData && (
-            <div className='stitch-card p-6'>
-              <div className='flex items-center justify-between mb-4'>
-                <div>
-                  <h3 className='text-lg font-semibold text-white'>데이터 미리보기</h3>
-                  <p className='text-sm text-white/60'>
-                    파일: {inputData.filename} | 
-                    크기: {inputData.fileSize} MB | 
-                    행 수: {inputData.data.length}
-                  </p>
-                </div>
-              </div>
+          <DataPreviewTable
+            inputData={inputData}
+            editableInputRows={editableInputRows}
+            editReasons={editReasons}
+            rowErrors={rowErrors}
+            onInputChange={handleInputChange}
+            onToggleRowEdit={toggleRowEdit}
+            onConfirmRow={confirmRow}
+            onCancelRowEdit={cancelRowEdit}
+            onDeleteRow={deleteRow}
+            onAddNewRow={addNewRow}
+            onEditReasonChange={(rowId, reason) => setEditReasons(prev => ({ ...prev, [rowId]: reason }))}
+            onNumericInput={handleNumericInput}
+            onDateComparison={handleDateComparison}
+            renderInputField={renderInputField}
+          />
 
-              {/* 데이터 테이블 */}
-              <div className='overflow-x-auto'>
-                <table className='w-full border-collapse border border-white/20'>
-                                     <thead>
-                     <tr className='bg-white/10'>
-                       {inputData.columns.map((column) => (
-                         <th key={column} className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>
-                           {column}
-                         </th>
-                       ))}
-                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>작업</th>
-                     </tr>
-                   </thead>
-                  <tbody>
-                    {editableInputRows.map((row) => (
-                      <React.Fragment key={row.id}>
-                        <tr className='border-b border-white/10 hover:bg-white/5'>
-                          {inputData.columns.map((column) => (
-                            <td key={column} className='border border-white/20 px-3 py-2 text-sm text-white'>
-                              {row.isEditing ? (
-                                renderInputField(row, column)
-                              ) : (
-                                <span className={column === 'AI추천답변' ? 'text-blue-300' : ''}>
-                                  {row.modifiedData[column] || '-'}
-                                </span>
-                              )}
-                            </td>
-                          ))}
-                          <td className='border border-white/20 px-3 py-2 text-sm'>
-                            {row.isEditing ? (
-                              <div className='flex gap-2'>
-                                <Button
-                                  onClick={() => confirmRow(row.id)}
-                                  className='bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs'
-                                >
-                                  <CheckCircle className='w-3 h-3 mr-1' />
-                                  확인
-                                </Button>
-                                <Button
-                                  onClick={() => cancelRowEdit(row.id)}
-                                  className='bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-xs'
-                                >
-                                  <X className='w-3 h-3 mr-1' />
-                                  취소
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className='flex gap-2'>
-                                {/* 사용자가 직접 입력한 데이터인지 확인 */}
-                                {row.isNewlyAdded ? (
-                                  // 사용자가 직접 입력한 데이터는 편집/삭제 모두 가능
-                                  <>
-                                    <Button
-                                      onClick={() => toggleRowEdit(row.id)}
-                                      className='bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs'
-                                    >
-                                      <Edit3 className='w-3 h-3 mr-1' />
-                                      편집
-                                    </Button>
-                                    <Button
-                                      onClick={() => deleteRow(row.id)}
-                                      className='bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs'
-                                    >
-                                      <Trash2 className='w-3 h-3 mr-1' />
-                                      삭제
-                                    </Button>
-                                  </>
-                                ) : (
-                                  // 모든 데이터는 편집 가능
-                                  <>
-                                    <Button
-                                      onClick={() => toggleRowEdit(row.id)}
-                                      className='bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs'
-                                    >
-                                      <Edit3 className='w-3 h-3 mr-1' />
-                                      편집
-                                    </Button>
-                                    <Button
-                                      onClick={() => deleteRow(row.id)}
-                                      className='bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs'
-                                    >
-                                      <Trash2 className='w-3 h-3 mr-1' />
-                                      삭제
-                                    </Button>
-                                  </>
-                                )}
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                        
-                        {/* 수정 사유 입력 행 (Excel 데이터 편집 시에만) */}
-                        {row.isEditing && !row.isNewlyAdded && (
-                          <tr className='bg-white/5 border-b border-white/10'>
-                            <td colSpan={inputData.columns.length + 1} className='px-3 py-3'>
-                              <div className='flex items-center gap-3'>
-                                <div className='flex-shrink-0'>
-                                  <span className='text-xs text-white/60 font-medium'>수정 사유 (Excel 데이터 편집 시):</span>
-                                </div>
-                                <div className='flex-1'>
-                                  <Input
-                                    type='text'
-                                    value={editReasons[row.id] || ''}
-                                    onChange={(e) => setEditReasons(prev => ({
-                                      ...prev,
-                                      [row.id]: e.target.value
-                                    }))}
-                                    placeholder='AI 추천 답변 수정 사유를 입력하세요'
-                                    className='w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary'
-                                  />
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-                             {/* 데이터 추가 버튼 */}
-               <div className='mt-4 flex justify-center'>
-                 <Button
-                   onClick={addNewRow}
-                   className='bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center gap-2'
-                 >
-                   <Plus className='w-4 h-4' />
-                   데이터 추가
-                 </Button>
-               </div>
-
-                                           
-            </div>
-          )}
-
-                     {/* 5. AI 처리 결과 */}
-           {aiProcessedData && (
-             <div className={`stitch-card p-6 ${aiProcessedData.status === 'failed' ? 'bg-yellow-500/10 border border-yellow-500/20' : ''}`}>
-               <div className='flex items-center gap-3 mb-4'>
-                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                   aiProcessedData.status === 'failed' 
-                     ? 'bg-yellow-100' 
-                     : 'bg-green-100'
-                 }`}>
-                   {aiProcessedData.status === 'failed' ? (
-                     <AlertCircle className='w-5 h-5 text-yellow-600' />
-                   ) : (
-                     <CheckCircle className='w-5 h-5 text-green-600' />
-                   )}
-                 </div>
-                 <div>
-                   <h3 className={`text-lg font-semibold ${
-                     aiProcessedData.status === 'failed' ? 'text-yellow-400' : 'text-white'
-                   }`}>
-                     {aiProcessedData.status === 'failed' ? 'AI 처리 실패' : 'AI 처리 완료'}
-                   </h3>
-                   <p className={`text-sm ${
-                     aiProcessedData.status === 'failed' ? 'text-yellow-300' : 'text-white/60'
-                   }`}>
-                     {aiProcessedData.message}
-                   </p>
-                 </div>
-               </div>
-             </div>
-           )}
 
           {/* 6. 오류 메시지 */}
           {error && (

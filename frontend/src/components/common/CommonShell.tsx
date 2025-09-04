@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
   Home,
@@ -20,12 +20,16 @@ interface CommonShellProps {
   children: React.ReactNode;
 }
 
-const CommonShell: React.FC<CommonShellProps> = ({ children }) => {
+const CommonShellContent: React.FC<CommonShellProps> = ({ children }) => {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+
+  // URL에서 companyId 가져오기
+  const companyId = searchParams.get('companyId');
 
   const navigation = [
     {
@@ -58,7 +62,7 @@ const CommonShell: React.FC<CommonShellProps> = ({ children }) => {
     },
     {
       name: '설정',
-      href: '/settings',
+      href: companyId ? `/settings?companyId=${encodeURIComponent(companyId)}` : '/settings',
       icon: Settings,
       current: pathname === '/settings',
       description: '계정 및 환경설정',
@@ -378,6 +382,21 @@ const CommonShell: React.FC<CommonShellProps> = ({ children }) => {
         </div>
       </div>
     </div>
+  );
+};
+
+const CommonShell: React.FC<CommonShellProps> = ({ children }) => {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">로딩 중...</p>
+        </div>
+      </div>
+    }>
+      <CommonShellContent>{children}</CommonShellContent>
+    </Suspense>
   );
 };
 

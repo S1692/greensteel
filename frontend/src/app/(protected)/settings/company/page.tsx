@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import CommonShell from '@/components/common/CommonShell';
 import { Button } from '@/components/atomic/atoms';
 import { Input } from '@/components/atomic/atoms';
@@ -35,41 +36,143 @@ interface CompanyInfo {
 }
 
 
-const CompanySettingsPage: React.FC = () => {
+const CompanySettingsContent: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
 
   // 기업 정보 상태
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({
-    company_id: 'greensteel',
-    Installation: 'GreenSteel Corporation',
-    Installation_en: 'GreenSteel Corporation',
-    economic_activity: '철강 및 금속 제조업',
-    economic_activity_en: 'Steel and Metal Manufacturing',
-    representative: '김대표',
-    representative_en: 'Kim CEO',
-    email: 'contact@greensteel.com',
-    telephone: '02-1234-5678',
-    street: '테헤란로',
-    street_en: 'Teheran-ro',
-    number: '123',
-    number_en: '123',
-    postcode: '06142',
-    city: '강남구',
-    city_en: 'Gangnam-gu',
-    country: '대한민국',
-    country_en: 'South Korea',
-    country_code: 'KR',
-    unlocode: 'KR',
-    source_latitude: 37.5665,
-    source_longitude: 126.9780
+    company_id: '',
+    Installation: '',
+    Installation_en: '',
+    economic_activity: '',
+    economic_activity_en: '',
+    representative: '',
+    representative_en: '',
+    email: '',
+    telephone: '',
+    street: '',
+    street_en: '',
+    number: '',
+    number_en: '',
+    postcode: '',
+    city: '',
+    city_en: '',
+    country: '',
+    country_en: '',
+    country_code: '',
+    unlocode: '',
+    source_latitude: null,
+    source_longitude: null
   });
 
   const [tempCompanyInfo, setTempCompanyInfo] = useState<CompanyInfo>(companyInfo);
 
+  // URL에서 companyId 가져오기
+  const companyId = searchParams.get('companyId');
+
+  // 기업 정보 로드
+  const loadCompanyInfo = async () => {
+    if (!companyId) {
+      setError('기업 ID가 없습니다.');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await fetch('/api/v1/auth/company/info', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          company_id: companyId
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setCompanyInfo(result.data);
+        setTempCompanyInfo(result.data);
+      } else {
+        setError(result.message || '기업 정보를 불러오는데 실패했습니다.');
+      }
+    } catch (err) {
+      console.error('기업 정보 로드 실패:', err);
+      setError('기업 정보를 불러오는데 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 컴포넌트 마운트 시 기업 정보 로드
+  useEffect(() => {
+    loadCompanyInfo();
+  }, [companyId]);
+
   // 기업 정보 편집 처리
-  const handleCompanyInfoSave = () => {
-    setCompanyInfo(tempCompanyInfo);
-    setIsEditing(false);
+  const handleCompanyInfoSave = async () => {
+    if (!companyId) {
+      setError('기업 ID가 없습니다.');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await fetch('/api/v1/auth/company/info', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          company_id: companyId,
+          Installation: tempCompanyInfo.Installation,
+          Installation_en: tempCompanyInfo.Installation_en,
+          economic_activity: tempCompanyInfo.economic_activity,
+          economic_activity_en: tempCompanyInfo.economic_activity_en,
+          representative: tempCompanyInfo.representative,
+          representative_en: tempCompanyInfo.representative_en,
+          email: tempCompanyInfo.email,
+          telephone: tempCompanyInfo.telephone,
+          street: tempCompanyInfo.street,
+          street_en: tempCompanyInfo.street_en,
+          number: tempCompanyInfo.number,
+          number_en: tempCompanyInfo.number_en,
+          postcode: tempCompanyInfo.postcode,
+          city: tempCompanyInfo.city,
+          city_en: tempCompanyInfo.city_en,
+          country: tempCompanyInfo.country,
+          country_en: tempCompanyInfo.country_en,
+          unlocode: tempCompanyInfo.unlocode,
+          source_latitude: tempCompanyInfo.source_latitude,
+          source_longitude: tempCompanyInfo.source_longitude
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setCompanyInfo(tempCompanyInfo);
+        setIsEditing(false);
+        // 성공 메시지 표시 (선택사항)
+        alert('기업 정보가 성공적으로 업데이트되었습니다.');
+      } else {
+        setError(result.message || '기업 정보 업데이트에 실패했습니다.');
+      }
+    } catch (err) {
+      console.error('기업 정보 업데이트 실패:', err);
+      setError('기업 정보 업데이트에 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCompanyInfoCancel = () => {
@@ -444,11 +547,48 @@ const CompanySettingsPage: React.FC = () => {
 
         {/* 기업 정보 콘텐츠 */}
         <div className='flex-1 min-h-0'>
-          {renderCompanyInfoTab()}
+          {isLoading ? (
+            <div className="flex items-center justify-center min-h-96">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">기업 정보를 불러오는 중...</p>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center min-h-96">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-red-600 text-2xl">⚠️</span>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">오류 발생</h3>
+                <p className="text-gray-600 mb-4">{error}</p>
+                <Button onClick={loadCompanyInfo} className="bg-blue-600 hover:bg-blue-700 text-white">
+                  다시 시도
+                </Button>
+              </div>
+            </div>
+          ) : (
+            renderCompanyInfoTab()
+          )}
         </div>
       </div>
 
     </CommonShell>
+  );
+};
+
+const CompanySettingsPage: React.FC = () => {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">로딩 중...</p>
+        </div>
+      </div>
+    }>
+      <CompanySettingsContent />
+    </Suspense>
   );
 };
 

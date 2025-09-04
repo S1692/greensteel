@@ -305,3 +305,118 @@ class AuthService:
                 "message": f"Login failed: {str(e)}",
                 "data": {}
             }
+
+    async def get_company_info(self, company_id: str) -> Dict[str, Any]:
+        """기업 정보 조회"""
+        connection = None
+        try:
+            connection = await get_database_connection()
+            
+            # 기업 정보 조회
+            company_data = await connection.fetchrow("""
+                SELECT 
+                    company_id, Installation, Installation_en, economic_activity, economic_activity_en,
+                    representative, representative_en, email, telephone, street, street_en, number, number_en,
+                    postcode, city, city_en, country, country_en, unlocode, source_latitude, source_longitude
+                FROM companies 
+                WHERE company_id = $1
+            """, company_id)
+            
+            if not company_data:
+                return {
+                    "success": False,
+                    "message": "기업 정보를 찾을 수 없습니다.",
+                    "data": {}
+                }
+            
+            # 딕셔너리로 변환
+            company_info = dict(company_data)
+            
+            auth_logger.info(f"Company info retrieved successfully: {company_id}")
+            return {
+                "success": True,
+                "message": "기업 정보 조회 성공",
+                "data": company_info
+            }
+        except Exception as e:
+            auth_logger.error(f"Get company info failed: {str(e)}")
+            return {
+                "success": False,
+                "message": f"기업 정보 조회에 실패했습니다: {str(e)}",
+                "data": {}
+            }
+        finally:
+            if connection:
+                await close_database_connection(connection)
+
+    async def update_company_info(self, company_id: str, **kwargs) -> Dict[str, Any]:
+        """기업 정보 업데이트"""
+        connection = None
+        try:
+            connection = await get_database_connection()
+            
+            # 기업 존재 확인
+            company_exists = await connection.fetchval(
+                "SELECT 1 FROM companies WHERE company_id = $1",
+                company_id
+            )
+            
+            if not company_exists:
+                return {
+                    "success": False,
+                    "message": "기업 정보를 찾을 수 없습니다.",
+                    "data": {}
+                }
+            
+            # 업데이트할 필드들만 추출 (None이 아닌 값들만)
+            update_fields = {k: v for k, v in kwargs.items() if v is not None}
+            
+            if not update_fields:
+                return {
+                    "success": False,
+                    "message": "업데이트할 정보가 없습니다.",
+                    "data": {}
+                }
+            
+            # 동적으로 UPDATE 쿼리 생성
+            set_clauses = []
+            values = []
+            param_count = 1
+            
+            for field, value in update_fields.items():
+                set_clauses.append(f"{field} = ${param_count}")
+                values.append(value)
+                param_count += 1
+            
+            # company_id를 마지막 파라미터로 추가
+            values.append(company_id)
+            
+            update_query = f"""
+                UPDATE companies 
+                SET {', '.join(set_clauses)}
+                WHERE company_id = ${param_count}
+                RETURNING company_id
+            """
+            
+            # 업데이트 실행
+            updated_company_id = await connection.fetchval(update_query, *values)
+            
+            auth_logger.info(f"Company info updated successfully: {company_id}")
+            return {
+                "success": True,
+                "message": "기업 정보가 성공적으로 업데이트되었습니다.",
+                "data": {
+                    "company_id": updated_company_id,
+                    "updated_fields": list(update_fields.keys())
+                }
+            }
+        except Exception as e:
+            auth_logger.error(f"Update company info failed: {str(e)}")
+            return {
+                "success": False,
+                "message": f"기업 정보 업데이트에 실패했습니다: {str(e)}",
+                "data": {}
+            }
+        finally:
+            if connection:
+                await close_database_connection(connection)

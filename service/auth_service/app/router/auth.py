@@ -6,7 +6,9 @@ from app.domain.schemas.auth import (
     StandardResponse,
     CheckUsernameRequest,
     CheckCompanyIdRequest,
-    CheckCompanyIdAvailabilityRequest
+    CheckCompanyIdAvailabilityRequest,
+    GetCompanyInfoRequest,
+    UpdateCompanyInfoRequest
 )
 from app.domain.services.auth_service import AuthService
 
@@ -82,5 +84,39 @@ async def login(request: LoginRequest):
     result = await auth_service.login(
         username=request.username,
         password=request.password
+    )
+    return StandardResponse(**result)
+
+@router.post("/company/info", response_model=StandardResponse)
+async def get_company_info(request: GetCompanyInfoRequest):
+    """기업 정보 조회"""
+    result = await auth_service.get_company_info(request.company_id)
+    return StandardResponse(**result)
+
+@router.put("/company/info", response_model=StandardResponse)
+async def update_company_info(request: UpdateCompanyInfoRequest):
+    """기업 정보 업데이트"""
+    result = await auth_service.update_company_info(
+        company_id=request.company_id,
+        Installation=request.Installation,
+        Installation_en=request.Installation_en,
+        economic_activity=request.economic_activity,
+        economic_activity_en=request.economic_activity_en,
+        representative=request.representative,
+        representative_en=request.representative_en,
+        email=request.email,
+        telephone=request.telephone,
+        street=request.street,
+        street_en=request.street_en,
+        number=request.number,
+        number_en=request.number_en,
+        postcode=request.postcode,
+        city=request.city,
+        city_en=request.city_en,
+        country=request.country,
+        country_en=request.country_en,
+        unlocode=request.unlocode,
+        source_latitude=request.source_latitude,
+        source_longitude=request.source_longitude
     )
     return StandardResponse(**result)

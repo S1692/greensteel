@@ -12,7 +12,8 @@ import {
   Download,
   FileSpreadsheet,
   Brain,
-  CheckCircle
+  CheckCircle,
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/atomic/atoms';
 import Link from 'next/link';
@@ -169,6 +170,50 @@ const DataUploadPage: React.FC = () => {
               </div>
             );
           })}
+        </div>
+
+        {/* 데이터 삭제 관리 섹션 */}
+        <div className='stitch-card p-6'>
+          <div className='flex items-center gap-4 mb-6'>
+            <div className='w-12 h-12 bg-gradient-to-r from-red-500 to-red-600 rounded-lg flex items-center justify-center'>
+              <Trash2 className='w-6 h-6 text-white' />
+            </div>
+            <div>
+              <h2 className='text-xl font-semibold text-white'>데이터 삭제 관리</h2>
+              <p className='text-sm text-white/60'>
+                업로드된 데이터를 삭제하고 삭제 로그를 관리합니다.
+              </p>
+            </div>
+          </div>
+          
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6'>
+            <div className='p-4 bg-white/5 rounded-lg text-center'>
+              <div className='text-2xl font-bold text-red-400'>4</div>
+              <div className='text-xs text-white/60'>데이터 유형</div>
+            </div>
+            <div className='p-4 bg-white/5 rounded-lg text-center'>
+              <div className='text-2xl font-bold text-orange-400'>실시간</div>
+              <div className='text-xs text-white/60'>삭제 처리</div>
+            </div>
+            <div className='p-4 bg-white/5 rounded-lg text-center'>
+              <div className='text-2xl font-bold text-yellow-400'>로그</div>
+              <div className='text-xs text-white/60'>삭제 기록</div>
+            </div>
+            <div className='p-4 bg-white/5 rounded-lg text-center'>
+              <div className='text-2xl font-bold text-purple-400'>복구</div>
+              <div className='text-xs text-white/60'>데이터 추적</div>
+            </div>
+          </div>
+
+          <div className='flex items-center gap-3'>
+            <Link href='/data-upload/delete'>
+              <Button className='bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-6 py-3 rounded-lg transition-all duration-200 flex items-center gap-2'>
+                <Trash2 className='w-5 h-5' />
+                <span>데이터 삭제 관리</span>
+                <ArrowRight className='w-4 h-4' />
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* 추가 정보 */}

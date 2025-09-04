@@ -152,14 +152,14 @@ async def generate_ai_recommendation(input_text: str) -> tuple[str, float]:
         
         # rail API 서비스 호출 (선택적)
         try:
-            payload = {"text": classification_text}
+            payload = {"inputs": classification_text}
             
             # rail 서비스 URL (환경변수에서 가져오거나 기본값 사용)
             rail_api_url = os.getenv("RAIL_API_URL", "http://rail-service:8000")
             
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.post(
-                    f"{rail_api_url}/predict",  # rail API 서비스
+                    f"{rail_api_url}/data",  # Hugging Face API 호환 엔드포인트
                     json=payload
                 )
                 
@@ -178,10 +178,16 @@ async def generate_ai_recommendation(input_text: str) -> tuple[str, float]:
         logger.info(f"🤗 API 응답 결과: {results}")
         
         if results and len(results) > 0:
-            # 분류 결과에서 가장 높은 신뢰도를 가진 클래스 선택
-            best_result = max(results, key=lambda x: x['score'])
-            predicted_class = best_result['label']
-            confidence = best_result['score']
+            # Hugging Face API 형식: [{"label": "...", "score": 0.95}]
+            if isinstance(results, list) and len(results) > 0:
+                best_result = results[0]  # 첫 번째 결과 사용
+                predicted_class = best_result['label']
+                confidence = best_result['score']
+            else:
+                # 기존 형식 처리
+                best_result = max(results, key=lambda x: x['score'])
+                predicted_class = best_result['label']
+                confidence = best_result['score']
             
             # 분류 결과를 그대로 반환 (원본 텍스트가 아닌 분류된 클래스)
             ai_recommendation = predicted_class

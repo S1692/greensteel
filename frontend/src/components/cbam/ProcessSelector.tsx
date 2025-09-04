@@ -246,12 +246,12 @@ export const ProductProcessModal: React.FC<{
 
       console.log('✅ 제품-공정 관계 생성 성공:', response.data);
       
-      // ReactFlow에 공정 추가
+      // ReactFlow에 공정 추가 (현재 선택된 사업장 정보 사용)
       const processForFlow: Process = {
         id: processData.process_id,
         process_name: processData.process_name,
-        install_id: processData.install_id || selectedInstallForProcess?.id || 0,
-        install_name: processData.install_name || selectedInstallForProcess?.install_name || '',
+        install_id: selectedInstall?.id || processData.install_id || 0,
+        install_name: selectedInstall?.install_name || processData.install_name || '',
         start_period: processData.start_period || null,
         end_period: processData.end_period || null,
         created_at: processData.created_at || new Date().toISOString(),

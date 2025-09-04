@@ -328,10 +328,9 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
       });
       
       if (matchedMaterial) {
-        // 배출계수 자동 계산: carbon_content × mat_factor
-        const carbonContent = matchedMaterial.carbon_content || matchedMaterial.carbon_factor || 0;
+        // 배출계수 자동 계산: mat_factor만 사용
         const matFactor = matchedMaterial.mat_factor || matchedMaterial.em_factor || 0;
-        const emissionFactor = carbonContent * matFactor;
+        const emissionFactor = matFactor;
         
         setMatdirForm(prev => ({
           ...prev,
@@ -376,10 +375,9 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
       });
       
       if (matchedFuel) {
-        // 배출계수 자동 계산: fuel_factor × net_calory
+        // 배출계수 자동 계산: fuel_factor만 사용
         const fuelFactor = matchedFuel.fuel_factor || 0;
-        const netCalory = matchedFuel.net_calory || 0;
-        const emissionFactor = fuelFactor * netCalory;
+        const emissionFactor = fuelFactor;
         
         setFueldirForm(prev => ({
           ...prev,
@@ -442,6 +440,10 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
       const localData = {
         id: Date.now(),
         type: 'material',
+        process_id: selectedProcess?.id,
+        process_name: selectedProcess?.process_name,
+        install_id: selectedProcess?.install_id,
+        install_name: selectedProcess?.install_name,
         mat_name: matdirForm.name,
         mat_engname: matchedMaterial.mat_engname || matchedMaterial.item_eng || '',
         carbon_content: matchedMaterial.carbon_content || matchedMaterial.carbon_factor || 0,
@@ -524,6 +526,10 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
       const localData = {
         id: Date.now(),
         type: 'fuel',
+        process_id: selectedProcess?.id,
+        process_name: selectedProcess?.process_name,
+        install_id: selectedProcess?.install_id,
+        install_name: selectedProcess?.install_name,
         fuel_name: fueldirForm.name,
         fuel_engname: matchedFuel.fuel_engname || '',
         fuel_factor: matchedFuel.fuel_factor || 0,

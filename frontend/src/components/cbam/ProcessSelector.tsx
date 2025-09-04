@@ -259,6 +259,43 @@ export const ProductProcessModal: React.FC<{
       };
       
       console.log('🔄 ReactFlow에 공정 추가:', processForFlow);
+      
+      // 로컬 스토리지에 공정 데이터 저장 (사업장 정보 포함)
+      const processDataForStorage = {
+        id: processData.process_id,
+        process_name: processData.process_name,
+        product_id: selectedProduct.id,
+        product_name: selectedProduct.product_name,
+        install_id: selectedInstall?.id || processData.install_id || 0,
+        install_name: selectedInstall?.install_name || processData.install_name || '',
+        consumption_amount: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      // 기존 로컬 스토리지 데이터 가져오기
+      const existingData = localStorage.getItem('cbam_process_data');
+      let processDataArray = [];
+      
+      if (existingData) {
+        try {
+          processDataArray = JSON.parse(existingData);
+        } catch (error) {
+          console.error('로컬 스토리지 데이터 파싱 실패:', error);
+          processDataArray = [];
+        }
+      }
+      
+      // 중복 제거 (같은 process_id가 있으면 제거)
+      processDataArray = processDataArray.filter((item: any) => item.id !== processData.process_id);
+      
+      // 새 데이터 추가
+      processDataArray.push(processDataForStorage);
+      
+      // 로컬 스토리지에 저장
+      localStorage.setItem('cbam_process_data', JSON.stringify(processDataArray));
+      console.log('💾 로컬 스토리지에 공정 데이터 저장 완료:', processDataForStorage);
+      
       onProcessSelect(processForFlow);
       
       // 성공 시 공정 목록 새로고침
@@ -266,6 +303,9 @@ export const ProductProcessModal: React.FC<{
       const data = productResponse.data.processes || productResponse.data || [];
       const filteredData = data.filter((item: any) => item.product_id === selectedProduct.id);
       setProductProcesses(filteredData);
+      
+      // 로컬 스토리지 데이터도 새로고침
+      loadStoredProcessData();
       
       alert('공정이 성공적으로 연결되었습니다.');
     } catch (error) {
@@ -424,6 +464,10 @@ export const ProductProcessModal: React.FC<{
                                   };
                                   
                                   console.log('🔄 저장된 공정을 ReactFlow에 추가:', processData);
+                                  console.log('📍 사업장 정보:', {
+                                    install_id: item.install_id,
+                                    install_name: displayInstallName
+                                  });
                                   onProcessSelect(processData);
                                 }}
                                 title="클릭하여 ReactFlow에 공정 추가"
@@ -480,6 +524,10 @@ export const ProductProcessModal: React.FC<{
                               };
                               
                               console.log('🔄 현재 사업장 공정을 ReactFlow에 추가:', processData);
+                              console.log('📍 사업장 정보:', {
+                                install_id: selectedInstall?.id || 0,
+                                install_name: selectedInstall?.install_name || ''
+                              });
                               onProcessSelect(processData);
                             }}
                             title="클릭하여 ReactFlow에 공정 추가"

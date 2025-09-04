@@ -68,18 +68,12 @@ async def generate_ai_recommendation(input_text: str) -> tuple[str, float]:
         
         logger.info(f"🤗 Hugging Face API 호출: '{classification_text}'")
         
-        # httpx를 사용한 직접 API 호출 (커스텀 엔드포인트)
-        payload = {"inputs": classification_text}
+        # 로컬 rail 서비스 호출
+        payload = {"text": classification_text}
         
-        async with httpx.AsyncClient(
-            headers={
-                "Authorization": f"Bearer {HF_TOKEN}",
-                "Content-Type": "application/json"
-            },
-            timeout=30.0
-        ) as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
-                HF_API_URL,  # 커스텀 엔드포인트 직접 사용
+                "http://localhost:8000/predict",  # 로컬 rail 서비스
                 json=payload
             )
             

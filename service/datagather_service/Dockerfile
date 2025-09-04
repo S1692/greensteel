@@ -30,5 +30,9 @@ EXPOSE 8083
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8083/health || exit 1
 
+# rail 서비스와 datagather 서비스를 함께 실행하는 스크립트 복사
+COPY start_services.sh /app/start_services.sh
+RUN chmod +x /app/start_services.sh
+
 # 애플리케이션 실행
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8083", "--reload"]
+CMD ["/app/start_services.sh"]

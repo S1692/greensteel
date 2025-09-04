@@ -278,28 +278,52 @@ const InputDataPage: React.FC = () => {
         let updatedEditableRows: EditableRow[];
         
         if (aiResults.length > 0) {
-          // AI 처리된 데이터가 있는 경우: 기존 편집 가능한 행 데이터에 AI 추천 답변만 추가
-          updatedEditableRows = editableInputRows.map((existingRow, index) => {
-            const aiResult = aiResults[index];
-            console.log(`AI 결과 처리 중 - 행 ${index}:`, {
-              existingRow: existingRow.modifiedData,
-              aiResult: aiResult,
-              aiRecommendation: aiResult?.['AI분류결과']
-            });
-            
-            if (aiResult) {
-              const updatedRow = {
-                ...existingRow,
+          // AI 처리된 데이터가 있는 경우
+          console.log('기존 editableInputRows:', editableInputRows);
+          console.log('AI 결과 개수:', aiResults.length);
+          
+          // editableInputRows가 비어있으면 inputData에서 새로 생성
+          if (editableInputRows.length === 0) {
+            console.log('editableInputRows가 비어있음. inputData에서 새로 생성');
+            updatedEditableRows = inputData.data.map((row: DataRow, index) => {
+              const aiResult = aiResults[index];
+              return {
+                id: `input-${index}`,
+                originalData: row,
                 modifiedData: {
-                  ...existingRow.modifiedData, // 기존 데이터 유지
-                  'AI추천답변': aiResult['AI분류결과'] || '' // AI 분류 결과를 AI 추천 답변으로 사용
-                }
+                  ...row,
+                  'AI추천답변': aiResult?.['AI분류결과'] || ''
+                },
+                isEditing: false,
+                isNewlyAdded: false
               };
-              console.log(`업데이트된 행 ${index}:`, updatedRow.modifiedData);
-              return updatedRow;
-            }
-            return existingRow;
-          });
+            });
+          } else {
+            // 기존 편집 가능한 행 데이터에 AI 추천 답변만 추가
+            updatedEditableRows = editableInputRows.map((existingRow, index) => {
+              const aiResult = aiResults[index];
+              console.log(`AI 결과 처리 중 - 행 ${index}:`, {
+                existingRow: existingRow.modifiedData,
+                aiResult: aiResult,
+                aiRecommendation: aiResult?.['AI분류결과']
+              });
+              
+              if (aiResult) {
+                const updatedRow = {
+                  ...existingRow,
+                  modifiedData: {
+                    ...existingRow.modifiedData, // 기존 데이터 유지
+                    'AI추천답변': aiResult['AI분류결과'] || '' // AI 분류 결과를 AI 추천 답변으로 사용
+                  }
+                };
+                console.log(`업데이트된 행 ${index}:`, updatedRow.modifiedData);
+                return updatedRow;
+              }
+              return existingRow;
+            });
+          }
+          
+          console.log('최종 업데이트된 행들:', updatedEditableRows);
         } else {
           // AI 처리된 데이터가 없는 경우: 기존 엑셀 데이터를 그대로 유지
           updatedEditableRows = inputData.data.map((row: DataRow, index) => ({

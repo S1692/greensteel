@@ -232,6 +232,7 @@ const OutputDataPage: React.FC = () => {
           return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자만 입력 가능합니다.' };
         }
         return { isValid: true, errorMessage: '' };
+      case '생산수량_단위':
       case '산출물_단위':
         const isUnitValid = /^[가-힣a-zA-Z0-9\s\-_()\/]*$/.test(value);
         if (!isUnitValid) {
@@ -481,6 +482,7 @@ const OutputDataPage: React.FC = () => {
           </div>
         );
       
+      case '생산수량_단위':
       case '산출물_단위':
         return (
           <div className='relative'>
@@ -493,7 +495,7 @@ const OutputDataPage: React.FC = () => {
               }}
               className={getInputClassName()}
             >
-              <option value=''>산출물 단위를 선택하세요</option>
+              <option value=''>{column === '생산수량_단위' ? '생산수량 단위를 선택하세요' : '산출물 단위를 선택하세요'}</option>
               <option value='t'>톤</option>
               <option value='kg'>킬로그램</option>
               <option value='g'>그램</option>

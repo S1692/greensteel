@@ -24,7 +24,7 @@ const InputFieldRenderer: React.FC<InputFieldRendererProps> = ({
 }) => {
   const value = row.modifiedData[column] || '';
   const isNewRowData = isNewRow(row);
-  const isRequired = ['주문처명', '오더번호', '로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '투입물명', '수량', '단위'].includes(column);
+  const isRequired = ['주문처명', '오더번호', '로트번호', '생산품명', '생산수량', '생산수량_단위', '투입일', '종료일', '공정', '투입물명', '수량', '투입물_단위'].includes(column);
   
   // 편집 모드가 아닌 경우 읽기 전용으로 표시
   if (!row.isEditing) {
@@ -204,6 +204,7 @@ const InputFieldRenderer: React.FC<InputFieldRendererProps> = ({
         </div>
       );
     
+    case '생산수량_단위':
     case '투입물_단위':
       return (
         <div className='relative'>
@@ -212,7 +213,7 @@ const InputFieldRenderer: React.FC<InputFieldRendererProps> = ({
             onChange={(e) => onInputChange(row.id, column, e.target.value)}
             className={getInputClassName()}
           >
-            <option value=''>투입물 단위를 선택하세요</option>
+            <option value=''>{column === '생산수량_단위' ? '생산수량 단위를 선택하세요' : '투입물 단위를 선택하세요'}</option>
             <option value='t'>톤</option>
             <option value='kg'>킬로그램</option>
             <option value='개수'>개수</option>
@@ -272,3 +273,8 @@ const InputFieldRenderer: React.FC<InputFieldRendererProps> = ({
 };
 
 export default InputFieldRenderer;
+
+
+
+
+

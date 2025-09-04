@@ -8,6 +8,7 @@ import numpy as np
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import logging
+from huggingface_hub import hf_hub_download
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -40,12 +41,23 @@ class SimpleClassifier(torch.nn.Module):
         return x
 
 def load_model():
-    """모델과 관련 데이터를 로드하는 함수"""
+    """모델과 관련 데이터를 로드하는 함수 - 올바른 로드 방식"""
     global model, vectorizer, id2label, label2id
     
     try:
-        # 설정 파일 로드
-        with open('config.json', 'r', encoding='utf-8') as f:
+        logger.info("Hugging Face Hub에서 모델 파일들을 다운로드 중...")
+        
+        # Download model files
+        model_path = hf_hub_download(repo_id="Halftotter/flud", filename="pytorch_model.bin")
+        vectorizer_path = hf_hub_download(repo_id="Halftotter/flud", filename="vectorizer.pkl")
+        config_path = hf_hub_download(repo_id="Halftotter/flud", filename="config.json")
+        
+        logger.info(f"모델 파일 다운로드 완료: {model_path}")
+        logger.info(f"벡터라이저 파일 다운로드 완료: {vectorizer_path}")
+        logger.info(f"설정 파일 다운로드 완료: {config_path}")
+        
+        # Load configuration
+        with open(config_path, 'r', encoding='utf-8') as f:
             config = json.load(f)
         
         id2label = config['id2label']
@@ -54,20 +66,17 @@ def load_model():
         hidden_size = config['hidden_size']
         intermediate_size = config['intermediate_size']
         
-        # 벡터라이저 로드
-        with open('vectorizer.pkl', 'rb') as f:
-            vectorizer = joblib.load(f)
+        # Load vectorizer
+        vectorizer = joblib.load(vectorizer_path)
         
-        # 모델 로드
+        # Load model
         model = SimpleClassifier(
-            input_size=vectorizer.vocabulary_.__len__() if hasattr(vectorizer, 'vocabulary_') else 10000,
+            input_size=3000,  # 고정된 input_size 사용
             hidden_size=hidden_size,
             intermediate_size=intermediate_size,
             num_labels=num_labels
         )
-        
-        # 모델 가중치 로드
-        model.load_state_dict(torch.load('pytorch_model.bin', map_location='cpu'))
+        model.load_state_dict(torch.load(model_path, map_location='cpu'))
         model.eval()
         
         logger.info("모델 로드 완료")

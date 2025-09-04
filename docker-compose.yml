@@ -170,7 +170,7 @@ services:
       dockerfile: Dockerfile
     container_name: greensteel-datagather
     ports:
-      - "8085:8085"
+      - "8083:8083"
     environment:
       - DATABASE_URL=postgresql://greensteel:greensteel123@postgres:5432/greensteel
       - REDIS_URL=redis://redis:6379
@@ -183,7 +183,7 @@ services:
     volumes:
       - ./service/datagather_service:/app
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8085/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8083/health"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -167,11 +167,15 @@ export default function LcaPage() {
   const [filters, setFilters] = useState({
     주문처명: '',
     제품명: '',
-    투입일시작: '',
-    투입일종료: '',
-    종료일시작: '',
-    종료일종료: ''
+    생산시작일: '',
+    생산종료일: ''
   });
+
+  // 기간 겹침 검사 함수
+  const isDateRangeOverlap = (start1: string, end1: string, start2: string, end2: string) => {
+    if (!start1 || !end1 || !start2 || !end2) return true; // 필터가 설정되지 않은 경우 모든 데이터 포함
+    return start1 <= end2 && end1 >= start2;
+  };
 
   // 필터링된 데이터 계산
   const filteredInputData = useMemo(() => {
@@ -179,11 +183,13 @@ export default function LcaPage() {
       return inputData.filter(item => {
         const 주문처명Match = !filters.주문처명 || (item.주문처명 && item.주문처명.includes(filters.주문처명));
         const 제품명Match = !filters.제품명 || item.생산품명.includes(filters.제품명);
-        const 투입일Match = !filters.투입일시작 || !filters.투입일종료 || 
-          (item.투입일 >= filters.투입일시작 && item.투입일 <= filters.투입일종료);
-        const 종료일Match = !filters.종료일시작 || !filters.종료일종료 || 
-          (item.종료일 >= filters.종료일시작 && item.종료일 <= filters.종료일종료);
-        return 주문처명Match && 제품명Match && 투입일Match && 종료일Match;
+        const 기간겹침Match = isDateRangeOverlap(
+          filters.생산시작일, 
+          filters.생산종료일, 
+          item.투입일, 
+          item.종료일
+        );
+        return 주문처명Match && 제품명Match && 기간겹침Match;
       });
     }
     return inputData;
@@ -193,11 +199,13 @@ export default function LcaPage() {
     if (activeTab === 'output') {
       return outputData.filter(item => {
         const 제품명Match = !filters.제품명 || item.생산품명.includes(filters.제품명);
-        const 투입일Match = !filters.투입일시작 || !filters.투입일종료 || 
-          (item.투입일 >= filters.투입일시작 && item.투입일 <= filters.투입일종료);
-        const 종료일Match = !filters.종료일시작 || !filters.종료일종료 || 
-          (item.종료일 >= filters.종료일시작 && item.종료일 <= filters.종료일종료);
-        return 제품명Match && 투입일Match && 종료일Match;
+        const 기간겹침Match = isDateRangeOverlap(
+          filters.생산시작일, 
+          filters.생산종료일, 
+          item.투입일, 
+          item.종료일
+        );
+        return 제품명Match && 기간겹침Match;
       });
     }
     return outputData;
@@ -207,11 +215,10 @@ export default function LcaPage() {
     if (activeTab === 'transport') {
       return transportData.filter(item => {
         const 제품명Match = !filters.제품명 || item.생산품명.includes(filters.제품명);
-        const 투입일Match = !filters.투입일시작 || !filters.투입일종료 || 
-          (item.운송일자 >= filters.투입일시작 && item.운송일자 <= filters.투입일종료);
-        const 종료일Match = !filters.종료일시작 || !filters.종료일종료 || 
-          (item.운송일자 >= filters.종료일시작 && item.운송일자 <= filters.종료일종료);
-        return 제품명Match && 투입일Match && 종료일Match;
+        // 운송 데이터는 운송일자 하나만 있으므로 생산기간과 겹치는지 확인
+        const 기간겹침Match = !filters.생산시작일 || !filters.생산종료일 || 
+          (item.운송일자 >= filters.생산시작일 && item.운송일자 <= filters.생산종료일);
+        return 제품명Match && 기간겹침Match;
       });
     }
     return transportData;
@@ -223,11 +230,13 @@ export default function LcaPage() {
       return processProductData.filter(item => {
         const 주문처명Match = !filters.주문처명 || (item.주문처명 && item.주문처명.includes(filters.주문처명));
         const 제품명Match = !filters.제품명 || item.투입물명.includes(filters.제품명);
-        const 투입일Match = !filters.투입일시작 || !filters.투입일종료 || 
-          (item.투입일 >= filters.투입일시작 && item.투입일 <= filters.투입일종료);
-        const 종료일Match = !filters.종료일시작 || !filters.종료일종료 || 
-          (item.종료일 >= filters.종료일시작 && item.종료일 <= filters.종료일종료);
-        return 주문처명Match && 제품명Match && 투입일Match && 종료일Match;
+        const 기간겹침Match = isDateRangeOverlap(
+          filters.생산시작일, 
+          filters.생산종료일, 
+          item.투입일, 
+          item.종료일
+        );
+        return 주문처명Match && 제품명Match && 기간겹침Match;
       });
     }
     return processProductData;
@@ -238,11 +247,13 @@ export default function LcaPage() {
       return wasteData.filter(item => {
         const 주문처명Match = !filters.주문처명 || (item.주문처명 && item.주문처명.includes(filters.주문처명));
         const 제품명Match = !filters.제품명 || item.투입물명.includes(filters.제품명);
-        const 투입일Match = !filters.투입일시작 || !filters.투입일종료 || 
-          (item.투입일 >= filters.투입일시작 && item.투입일 <= filters.투입일종료);
-        const 종료일Match = !filters.종료일시작 || !filters.종료일종료 || 
-          (item.종료일 >= filters.종료일시작 && item.종료일 <= filters.종료일종료);
-        return 주문처명Match && 제품명Match && 투입일Match && 종료일Match;
+        const 기간겹침Match = isDateRangeOverlap(
+          filters.생산시작일, 
+          filters.생산종료일, 
+          item.투입일, 
+          item.종료일
+        );
+        return 주문처명Match && 제품명Match && 기간겹침Match;
       });
     }
     return wasteData;
@@ -253,11 +264,13 @@ export default function LcaPage() {
       return utilityData.filter(item => {
         const 주문처명Match = !filters.주문처명 || (item.주문처명 && item.주문처명.includes(filters.주문처명));
         const 제품명Match = !filters.제품명 || item.투입물명.includes(filters.제품명);
-        const 투입일Match = !filters.투입일시작 || !filters.투입일종료 || 
-          (item.투입일 >= filters.투입일시작 && item.투입일 <= filters.투입일종료);
-        const 종료일Match = !filters.종료일시작 || !filters.종료일종료 || 
-          (item.종료일 >= filters.종료일시작 && item.종료일 <= filters.종료일종료);
-        return 주문처명Match && 제품명Match && 투입일Match && 종료일Match;
+        const 기간겹침Match = isDateRangeOverlap(
+          filters.생산시작일, 
+          filters.생산종료일, 
+          item.투입일, 
+          item.종료일
+        );
+        return 주문처명Match && 제품명Match && 기간겹침Match;
       });
     }
     return utilityData;
@@ -268,11 +281,13 @@ export default function LcaPage() {
       return fuelData.filter(item => {
         const 주문처명Match = !filters.주문처명 || (item.주문처명 && item.주문처명.includes(filters.주문처명));
         const 제품명Match = !filters.제품명 || item.투입물명.includes(filters.제품명);
-        const 투입일Match = !filters.투입일시작 || !filters.투입일종료 || 
-          (item.투입일 >= filters.투입일시작 && item.투입일 <= filters.투입일종료);
-        const 종료일Match = !filters.종료일시작 || !filters.종료일종료 || 
-          (item.종료일 >= filters.종료일시작 && item.종료일 <= filters.종료일종료);
-        return 주문처명Match && 제품명Match && 투입일Match && 종료일Match;
+        const 기간겹침Match = isDateRangeOverlap(
+          filters.생산시작일, 
+          filters.생산종료일, 
+          item.투입일, 
+          item.종료일
+        );
+        return 주문처명Match && 제품명Match && 기간겹침Match;
       });
     }
     return fuelData;
@@ -485,48 +500,26 @@ export default function LcaPage() {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <div>
             <label className="block text-sm font-medium text-ecotrace-textSecondary mb-2">
-              투입일 시작
+              생산 시작일
             </label>
             <input
               type="date"
-              value={filters.투입일시작}
-              onChange={(e) => setFilters(prev => ({ ...prev, 투입일시작: e.target.value }))}
+              value={filters.생산시작일}
+              onChange={(e) => setFilters(prev => ({ ...prev, 생산시작일: e.target.value }))}
               className="w-full px-3 py-2 border border-ecotrace-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ecotrace-primary"
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-ecotrace-textSecondary mb-2">
-              투입일 종료
+              생산 종료일
             </label>
             <input
               type="date"
-              value={filters.투입일종료}
-              onChange={(e) => setFilters(prev => ({ ...prev, 투입일종료: e.target.value }))}
-              className="w-full px-3 py-2 border border-ecotrace-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ecotrace-primary"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ecotrace-textSecondary mb-2">
-              종료일 시작
-            </label>
-            <input
-              type="date"
-              value={filters.종료일시작}
-              onChange={(e) => setFilters(prev => ({ ...prev, 종료일시작: e.target.value }))}
-              className="w-full px-3 py-2 border border-ecotrace-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ecotrace-primary"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ecotrace-textSecondary mb-2">
-              종료일 종료
-            </label>
-            <input
-              type="date"
-              value={filters.종료일종료}
-              onChange={(e) => setFilters(prev => ({ ...prev, 종료일종료: e.target.value }))}
+              value={filters.생산종료일}
+              onChange={(e) => setFilters(prev => ({ ...prev, 생산종료일: e.target.value }))}
               className="w-full px-3 py-2 border border-ecotrace-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ecotrace-primary"
             />
           </div>
@@ -537,10 +530,8 @@ export default function LcaPage() {
             onClick={() => setFilters({ 
               주문처명: '', 
               제품명: '', 
-              투입일시작: '', 
-              투입일종료: '', 
-              종료일시작: '', 
-              종료일종료: '' 
+              생산시작일: '', 
+              생산종료일: '' 
             })}
             className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
           >

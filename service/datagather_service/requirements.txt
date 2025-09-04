@@ -21,7 +21,6 @@ pandas==2.1.4
 python-dotenv==1.0.0
 pydantic==2.5.0
 pydantic-settings==2.1.0
-httpx==0.25.2
 
 # 로깅 및 설정
 structlog==23.2.0

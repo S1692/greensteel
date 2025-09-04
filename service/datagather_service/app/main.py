@@ -12,7 +12,6 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, Dict, Any
 import uvicorn
-import httpx
 from huggingface_hub import InferenceClient
 
 from .infrastructure.database import database
@@ -46,8 +45,8 @@ async def initialize_huggingface_model():
             logger.warning("⚠️ HF_TOKEN이 설정되지 않았습니다.")
             return
         
-        # Hugging Face InferenceClient 초기화 (endpoint 파라미터 사용)
-        hf_client = InferenceClient(endpoint=HF_API_URL, token=HF_TOKEN)
+        # Hugging Face InferenceClient 초기화 (model과 token 파라미터 사용)
+        hf_client = InferenceClient(model=HF_MODEL, token=HF_TOKEN)
         logger.info(f"🤗 Hugging Face Inference API 초기화 완료")
         logger.info(f"  - 엔드포인트: {HF_API_URL}")
         logger.info(f"  - 모델: {HF_MODEL}")
@@ -67,28 +66,8 @@ async def generate_ai_recommendation(input_text: str) -> tuple[str, float]:
         
         logger.info(f"🤗 Hugging Face API 호출: '{classification_text}'")
         
-        # httpx를 사용한 직접 JSON API 호출
-        payload = {"inputs": classification_text}
-        
-        async with httpx.AsyncClient(
-            headers={
-                "Authorization": f"Bearer {HF_TOKEN}",
-                "Content-Type": "application/json"
-            },
-            timeout=30.0
-        ) as client:
-            response = await client.post(
-                f"{HF_API_URL}/models/{HF_MODEL}",
-                json=payload
-            )
-            
-            logger.info(f"🤗 API 응답 상태: {response.status_code}")
-            
-            if response.status_code == 200:
-                results = response.json()
-            else:
-                logger.error(f"⚠️ Hugging Face API 호출 실패: {response.status_code} - {response.text}")
-                return input_text, 0.0
+        # InferenceClient를 사용한 분류 호출
+        results = hf_client.text_classification(classification_text)
         
         logger.info(f"🤗 API 응답 결과: {results}")
         

@@ -14,6 +14,7 @@ interface CompanyInfo {
   email?: string;
   phone?: string;
   representative_name?: string;
+  unlocode?: string;
 }
 
 interface EmissionData {

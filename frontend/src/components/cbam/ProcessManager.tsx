@@ -59,7 +59,6 @@ const edgeTypes: EdgeTypes = { custom: CustomEdge };
 function ProcessManagerInner() {
   // 로컬 모드 상태 (항상 활성화)
   const [localGraphState, setLocalGraphState] = useState<GraphState | null>(null);
-  const [selectedNodeInfo, setSelectedNodeInfo] = useState<any>(null);
 
   // 커스텀 훅 사용
   const {
@@ -118,36 +117,6 @@ function ProcessManagerInner() {
     return 'continue'; // 기본값
   }, []);
 
-  // 노드 클릭 핸들러
-  const handleNodeClick = useCallback((event: React.MouseEvent, node: any) => {
-    console.log('🔍 노드 클릭:', node);
-    
-    if (localGraphState) {
-      if (node.type === 'process') {
-        const processId = parseInt(node.id);
-        const processData = localGraphState.processesById[processId];
-        if (processData) {
-          setSelectedNodeInfo({
-            type: 'process',
-            id: processId,
-            data: processData,
-            nodeInfo: node
-          });
-        }
-      } else if (node.type === 'product') {
-        const productId = parseInt(node.id);
-        const productData = localGraphState.productsById[productId];
-        if (productData) {
-          setSelectedNodeInfo({
-            type: 'product',
-            id: productId,
-            data: productData,
-            nodeInfo: node
-          });
-        }
-      }
-    }
-  }, [localGraphState]);
 
   // 로컬 스토리지 변경 이벤트 리스너
   useEffect(() => {
@@ -535,7 +504,6 @@ function ProcessManagerInner() {
           deleteKeyCode="Delete"
           className="bg-gray-900"
           fitView
-          onNodeClick={handleNodeClick}
           onConnectStart={(event, params) => {
             console.log('🔗 4방향 연결 시작:', params);
             handleConnectStart(event, params);
@@ -599,134 +567,6 @@ function ProcessManagerInner() {
             position="bottom-right"
           />
         </ReactFlow>
-        </div>
-
-        {/* 노드 정보 사이드바 */}
-        <div className="w-80 bg-gray-800 border-l border-gray-700 p-4 overflow-y-auto">
-          <h3 className="text-lg font-semibold text-white mb-4">노드 정보</h3>
-          
-          {selectedNodeInfo ? (
-            <div className="space-y-4">
-              {/* 노드 타입 표시 */}
-              <div className="bg-gray-700 p-3 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={`w-3 h-3 rounded-full ${
-                    selectedNodeInfo.type === 'process' ? 'bg-blue-500' : 'bg-green-500'
-                  }`}></div>
-                  <span className="text-white font-medium">
-                    {selectedNodeInfo.type === 'process' ? '공정 노드' : '제품 노드'}
-                  </span>
-                </div>
-                <div className="text-gray-300 text-sm">
-                  ID: {selectedNodeInfo.id}
-                </div>
-              </div>
-
-              {/* 공정 노드 정보 */}
-              {selectedNodeInfo.type === 'process' && (
-                <div className="space-y-3">
-                  <div className="bg-gray-700 p-3 rounded-lg">
-                    <h4 className="text-white font-medium mb-2">공정 정보</h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">공정명:</span>
-                        <span className="text-white">{selectedNodeInfo.data.process_name || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">직접 배출량:</span>
-                        <span className="text-white">{selectedNodeInfo.data.attrdir_em?.toFixed(2) || '0.00'} tCO2e</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">누적 배출량:</span>
-                        <span className="text-white">{selectedNodeInfo.data.cumulative_emission?.toFixed(2) || '0.00'} tCO2e</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">원료 배출량:</span>
-                        <span className="text-white">{selectedNodeInfo.data.total_matdir_emission?.toFixed(2) || '0.00'} tCO2e</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">연료 배출량:</span>
-                        <span className="text-white">{selectedNodeInfo.data.total_fueldir_emission?.toFixed(2) || '0.00'} tCO2e</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* 제품 노드 정보 */}
-              {selectedNodeInfo.type === 'product' && (
-                <div className="space-y-3">
-                  <div className="bg-gray-700 p-3 rounded-lg">
-                    <h4 className="text-white font-medium mb-2">제품 정보</h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">제품명:</span>
-                        <span className="text-white">{selectedNodeInfo.data.product_name || 'N/A'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">생산량:</span>
-                        <span className="text-white">{selectedNodeInfo.data.product_amount || '0'} t</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">국내 판매:</span>
-                        <span className="text-white">{selectedNodeInfo.data.product_sell || '0'} t</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">EU 판매:</span>
-                        <span className="text-white">{selectedNodeInfo.data.product_eusell || '0'} t</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">저장된 배출량:</span>
-                        <span className="text-white">{selectedNodeInfo.data.attr_em?.toFixed(2) || '0.00'} tCO2e</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">프리뷰 배출량:</span>
-                        <span className="text-white">{selectedNodeInfo.data.preview_attr_em?.toFixed(2) || '0.00'} tCO2e</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* 연결된 엣지 정보 */}
-              <div className="bg-gray-700 p-3 rounded-lg">
-                <h4 className="text-white font-medium mb-2">연결 정보</h4>
-                <div className="space-y-2 text-sm">
-                  {localGraphState && (
-                    <>
-                      {localGraphState.edges
-                        .filter(edge => 
-                          edge.source_id === selectedNodeInfo.id || edge.target_id === selectedNodeInfo.id
-                        )
-                        .map(edge => (
-                          <div key={edge.id} className="flex justify-between items-center">
-                            <span className="text-gray-400">
-                              {edge.edge_kind === 'continue' ? '연속' : 
-                               edge.edge_kind === 'produce' ? '생산' : '소비'}
-                            </span>
-                            <span className="text-white">
-                              {edge.source_id === selectedNodeInfo.id ? 
-                                `→ ${edge.target_id}` : 
-                                `${edge.source_id} →`}
-                            </span>
-                          </div>
-                        ))}
-                      {localGraphState.edges.filter(edge => 
-                        edge.source_id === selectedNodeInfo.id || edge.target_id === selectedNodeInfo.id
-                      ).length === 0 && (
-                        <div className="text-gray-400">연결된 엣지 없음</div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="text-gray-400 text-center py-8">
-              노드를 클릭하면<br />
-              상세 정보를 확인할 수 있습니다
-            </div>
-          )}
         </div>
       </div>
 

@@ -477,3 +477,94 @@ export function debugGraphState(): void {
     lastUpdated: state.meta.updated_at
   });
 }
+
+// ============================================================================
+// 제품 보고서 정보 관리
+// ============================================================================
+
+export interface ProductReportInfo {
+  id: number;
+  product_name: string;
+  product_amount: number;
+  product_sell: number;
+  product_eusell: number;
+  attr_em: number;
+  preview_attr_em: number;
+  install_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+const LS_PRODUCT_REPORT_KEY = 'cbam:product_reports:v1';
+
+/**
+ * 제품 보고서 정보 저장
+ */
+export function saveProductReportInfo(productInfo: ProductReportInfo): void {
+  try {
+    const existingReports = getProductReportInfos();
+    const existingIndex = existingReports.findIndex(report => report.id === productInfo.id);
+    
+    if (existingIndex >= 0) {
+      // 기존 제품 정보 업데이트
+      existingReports[existingIndex] = {
+        ...productInfo,
+        updated_at: new Date().toISOString()
+      };
+    } else {
+      // 새 제품 정보 추가
+      existingReports.push({
+        ...productInfo,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+    }
+    
+    localStorage.setItem(LS_PRODUCT_REPORT_KEY, JSON.stringify(existingReports));
+    console.log('✅ 제품 보고서 정보 저장 완료:', productInfo.product_name);
+  } catch (error) {
+    console.error('❌ 제품 보고서 정보 저장 실패:', error);
+  }
+}
+
+/**
+ * 제품 보고서 정보 목록 조회
+ */
+export function getProductReportInfos(): ProductReportInfo[] {
+  try {
+    const data = localStorage.getItem(LS_PRODUCT_REPORT_KEY);
+    if (data) {
+      return JSON.parse(data);
+    }
+    return [];
+  } catch (error) {
+    console.error('❌ 제품 보고서 정보 조회 실패:', error);
+    return [];
+  }
+}
+
+/**
+ * 특정 제품 보고서 정보 삭제
+ */
+export function deleteProductReportInfo(productId: number): void {
+  try {
+    const existingReports = getProductReportInfos();
+    const filteredReports = existingReports.filter(report => report.id !== productId);
+    localStorage.setItem(LS_PRODUCT_REPORT_KEY, JSON.stringify(filteredReports));
+    console.log('✅ 제품 보고서 정보 삭제 완료:', productId);
+  } catch (error) {
+    console.error('❌ 제품 보고서 정보 삭제 실패:', error);
+  }
+}
+
+/**
+ * 모든 제품 보고서 정보 삭제
+ */
+export function clearAllProductReportInfos(): void {
+  try {
+    localStorage.removeItem(LS_PRODUCT_REPORT_KEY);
+    console.log('✅ 모든 제품 보고서 정보 삭제 완료');
+  } catch (error) {
+    console.error('❌ 제품 보고서 정보 삭제 실패:', error);
+  }
+}

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import axiosClient, { apiEndpoints } from '@/lib/axiosClient';
+import { getProductReportInfos, ProductReportInfo } from '@/lib/localGraph';
 
 interface CompanyInfo {
   id: number;
@@ -57,6 +58,7 @@ const GasEmissionReport: React.FC = () => {
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const [emissionData, setEmissionData] = useState<EmissionData[]>([]);
   const [productData, setProductData] = useState<ProductData[]>([]);
+  const [productReports, setProductReports] = useState<ProductReportInfo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
   // 현재 날짜 설정
@@ -79,6 +81,17 @@ const GasEmissionReport: React.FC = () => {
       }
     } catch (error) {
       console.error('❌ 회사 정보 로드 실패:', error);
+    }
+  }, []);
+
+  // 제품 보고서 정보 로드
+  const loadProductReports = useCallback(() => {
+    try {
+      const reports = getProductReportInfos();
+      setProductReports(reports);
+      console.log('✅ 제품 보고서 정보 로드 완료:', reports.length, '개');
+    } catch (error) {
+      console.error('❌ 제품 보고서 정보 로드 실패:', error);
     }
   }, []);
 
@@ -165,7 +178,8 @@ const GasEmissionReport: React.FC = () => {
   // 데이터 로드
   useEffect(() => {
     loadCompanyInfo();
-  }, [loadCompanyInfo]);
+    loadProductReports();
+  }, [loadCompanyInfo, loadProductReports]);
 
   useEffect(() => {
     if (startDate && endDate) {
@@ -201,11 +215,17 @@ const GasEmissionReport: React.FC = () => {
       fuel2: '연료 2',
       emission: '배출량',
       acquiredGoods: '취득 상품?',
+      productName: '제품명',
+      productionAmount: '생산량',
+      domesticSales: '국내 판매',
+      eusales: 'EU 판매',
+      totalEmission: '총 배출량',
+      previewEmission: '예상 배출량',
+      workplace: '사업장',
       contact: '3. 연락처',
       email: '이메일',
       phone: '연락처',
       officialStamp: '공식 회사 인장',
-      totalEmission: '총 배출량',
       noData: '선택된 기간에 데이터가 없습니다.'
     },
     en: {
@@ -234,11 +254,17 @@ const GasEmissionReport: React.FC = () => {
       fuel2: 'fuel 2',
       emission: 'Emission',
       acquiredGoods: 'Acquired goods?',
+      productName: 'Product Name',
+      productionAmount: 'Production Amount',
+      domesticSales: 'Domestic Sales',
+      eusales: 'EU Sales',
+      totalEmission: 'Total Emission',
+      previewEmission: 'Preview Emission',
+      workplace: 'Workplace',
       contact: '3. Contact',
       email: 'EMAIL',
       phone: 'CONTACT',
       officialStamp: 'Official Company Stamp',
-      totalEmission: 'Total Emission',
       noData: 'No data available for the selected period.'
     }
   };
@@ -375,11 +401,54 @@ const GasEmissionReport: React.FC = () => {
       <div className="mb-8">
         <h2 className="text-lg font-semibold mb-4">{t.productInfo}</h2>
         
-        {productData.length === 0 ? (
+        {/* 저장된 제품 보고서 정보 */}
+        {productReports.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-md font-medium mb-3 text-blue-400">저장된 제품 정보</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {productReports.map((report, index) => (
+                <div key={index} className="border border-gray-600 rounded-lg p-4 bg-gray-800">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{t.productName}:</span>
+                      <span className="text-white font-semibold">{report.product_name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{t.workplace}:</span>
+                      <span className="text-white">{report.install_name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{t.productionAmount}:</span>
+                      <span className="text-white">{report.product_amount} t</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{t.domesticSales}:</span>
+                      <span className="text-white">{report.product_sell} t</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{t.eusales}:</span>
+                      <span className="text-white">{report.product_eusell} t</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{t.totalEmission}:</span>
+                      <span className="text-red-400 font-semibold">{report.attr_em.toFixed(2)} tCO2e</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{t.previewEmission}:</span>
+                      <span className="text-yellow-400 font-semibold">{report.preview_attr_em.toFixed(2)} tCO2e</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {productData.length === 0 && productReports.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             {t.noData}
           </div>
-        ) : (
+        ) : productData.length > 0 && (
           productData.map((product, productIndex) => (
             <div key={productIndex} className="mb-6 border border-gray-600 rounded-lg p-4 bg-gray-800">
               <div className="flex items-center gap-2 mb-4">

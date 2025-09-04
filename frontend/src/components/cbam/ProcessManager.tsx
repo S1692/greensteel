@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import Button from '@/components/atomic/atoms/Button';
-import { Plus } from 'lucide-react';
+import { Plus, Save } from 'lucide-react';
 import axiosClient, { apiEndpoints } from '@/lib/axiosClient';
 
 import ProductNode from '@/components/atomic/atoms/ProductNode';
@@ -27,10 +27,12 @@ import {
   loadReactFlowData,
   isLocalGraphMode,
   getNextId,
+  saveProductReportInfo,
   type GraphState,
   type Process as LocalProcess,
   type Product as LocalProduct,
-  type Edge
+  type Edge,
+  type ProductReportInfo
 } from '@/lib/localGraph';
 
 import {
@@ -310,6 +312,45 @@ function ProcessManagerInner() {
     setShowProductModal(true);
   }, [selectedInstall]);
 
+  // 제품 정보를 보고서용으로 저장
+  const handleSaveProductReports = useCallback(() => {
+    if (!selectedInstall) {
+      alert('먼저 사업장을 선택해주세요.');
+      return;
+    }
+
+    const productNodes = nodes.filter(node => node.type === 'product');
+    if (productNodes.length === 0) {
+      alert('저장할 제품 노드가 없습니다.');
+      return;
+    }
+
+    let savedCount = 0;
+    productNodes.forEach(node => {
+      const productData = node.data;
+      if (productData && productData.id) {
+        const reportInfo: ProductReportInfo = {
+          id: Number(productData.id) || 0,
+          product_name: String(productData.name || productData.label || '제품명 없음'),
+          product_amount: Number(productData.quantity || productData.product_amount || 0),
+          product_sell: Number(productData.product_sell || 0),
+          product_eusell: Number(productData.product_eusell || 0),
+          attr_em: Number(productData.attr_em || 0),
+          preview_attr_em: Number(productData.preview_attr_em || 0),
+          install_name: selectedInstall.install_name || '사업장명 없음',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        saveProductReportInfo(reportInfo);
+        savedCount++;
+      }
+    });
+
+    alert(`${savedCount}개의 제품 정보가 보고서용으로 저장되었습니다.`);
+    console.log('✅ 제품 보고서 정보 저장 완료:', savedCount, '개');
+  }, [selectedInstall, nodes]);
+
   // Edge 연결 처리
   const handleConnect = useCallback(async (params: Connection) => {
     try {
@@ -437,6 +478,13 @@ function ProcessManagerInner() {
           className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
         >
           초기화
+        </Button>
+        <Button 
+          onClick={handleSaveProductReports} 
+          disabled={!selectedInstall || nodes.filter(n => n.type === 'product').length === 0}
+          className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg flex items-center gap-2"
+        >
+          <Save className="h-4 w-4" /> 제품 정보 저장
         </Button>
 
       </div>

@@ -60,8 +60,8 @@ const ProductNode: React.FC<NodeProps> = memo(({ data, selected }) => {
   return (
     <>
       <div 
-        className={`bg-blue-600 text-white p-4 rounded-lg border-2 min-w-[150px] cursor-pointer ${
-          selected ? 'border-yellow-400 shadow-lg' : 'border-blue-700'
+        className={`bg-white text-gray-800 p-4 rounded-lg border-2 min-w-[280px] cursor-pointer shadow-lg ${
+          selected ? 'border-yellow-400 shadow-lg' : 'border-green-500'
         }`}
         onContextMenu={handleContextMenu}
         onDoubleClick={handleAddProcess}
@@ -103,24 +103,28 @@ const ProductNode: React.FC<NodeProps> = memo(({ data, selected }) => {
         )}
         
         {/* 노드 내용 */}
-        <div className="flex items-center space-x-2 mb-2">
-          <Package className="h-5 w-5" />
-          <h3 className="font-semibold text-sm">제품</h3>
+        <div className="flex items-center space-x-2 mb-3">
+          <Package className="h-5 w-5 text-green-600" />
+          <h3 className="font-semibold text-sm text-green-800">제품: {nodeData.name || nodeData.label || '제품명 없음'}</h3>
         </div>
         
-        <div className="space-y-1 text-xs">
-          <div className="font-medium">{nodeData.name || nodeData.label || '제품명 없음'}</div>
-          {nodeData.category && (
-            <div className="text-blue-200">카테고리: {nodeData.category}</div>
-          )}
-          {nodeData.quantity !== undefined && (
-            <div className="text-blue-200">수량: {nodeData.quantity}</div>
-          )}
-        </div>
-
-        {/* 더블클릭 안내 */}
-        <div className="text-xs text-blue-200 mt-2 opacity-60">
-          더블클릭: 공정 추가
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-gray-600">생산량:</span>
+            <span className="font-medium">{nodeData.quantity || nodeData.product_amount || 0} ton</span>
+          </div>
+          
+          <div className="flex justify-between">
+            <span className="text-gray-600">수출량:</span>
+            <span className="font-medium">{nodeData.product_eusell || 0}</span>
+          </div>
+          
+          <div className="flex justify-between">
+            <span className="text-gray-600">배출량:</span>
+            <span className="font-medium text-red-600">
+              {(nodeData.attr_em || nodeData.preview_attr_em || 0).toFixed(2)} tCO2e
+            </span>
+          </div>
         </div>
       </div>
 

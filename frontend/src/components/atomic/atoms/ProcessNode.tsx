@@ -29,8 +29,8 @@ const ProcessNode: React.FC<NodeProps> = memo(({ data, selected }) => {
   
   return (
     <div 
-      className={`bg-green-600 text-white p-4 rounded-lg border-2 min-w-[180px] cursor-pointer ${
-        selected ? 'border-yellow-400 shadow-lg' : 'border-green-700'
+      className={`bg-white text-gray-800 p-4 rounded-lg border-2 min-w-[280px] cursor-pointer shadow-lg ${
+        selected ? 'border-yellow-400 shadow-lg' : 'border-blue-500'
       }`}
       onDoubleClick={handleDoubleClick}
     >
@@ -70,26 +70,60 @@ const ProcessNode: React.FC<NodeProps> = memo(({ data, selected }) => {
         </>
       )}
       
-              {/* 노드 내용 */}
-        <div className="flex items-center space-x-2 mb-2">
-          <Settings className="h-5 w-5" />
-          <h3 className="font-semibold text-sm">공정</h3>
+        {/* 노드 내용 */}
+        <div className="flex items-center space-x-2 mb-3">
+          <Settings className="h-5 w-5 text-blue-600" />
+          <h3 className="font-semibold text-sm text-blue-800">공정: {nodeData.name}</h3>
         </div>
         
-        <div className="space-y-1 text-xs">
-          <div className="font-medium">{nodeData.name}</div>
-          {nodeData.description && (
-            <div className="text-green-200">{nodeData.description}</div>
-          )}
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-gray-600">시작일:</span>
+            <span className="font-medium">N/A</span>
+          </div>
           
-          {/* 배출량 정보 */}
-          {nodeData.processData && (
-            <div className="mt-2 pt-2 border-t border-green-500">
-              <div className="text-green-200">직접귀속: {nodeData.processData.attr_em || 0}</div>
-              <div className="text-green-200">투입물: {nodeData.processData.total_matdir_emission || 0}</div>
-              <div className="text-green-200">연료: {nodeData.processData.total_fueldir_emission || 0}</div>
-            </div>
-          )}
+          <div className="flex justify-between">
+            <span className="text-gray-600">종료일:</span>
+            <span className="font-medium">N/A</span>
+          </div>
+          
+          <div className="flex justify-between">
+            <span className="text-gray-600">직접귀속배출량:</span>
+            <span className="font-medium text-red-600">
+              {(nodeData.processData?.attr_em || nodeData.attrdir_em || 0).toFixed(2)} tCO2e
+            </span>
+          </div>
+          
+          <div className="flex justify-between">
+            <span className="text-gray-600">누적 직접귀속배출량:</span>
+            <span className="font-medium text-red-600">
+              {(nodeData.processData?.cumulative_emission || nodeData.cumulative_emission || 0).toFixed(2)} tCO2e
+            </span>
+          </div>
+          
+          <div className="flex justify-between">
+            <span className="text-gray-600">원료직접:</span>
+            <span className="font-medium text-red-600">
+              {(nodeData.processData?.total_matdir_emission || nodeData.total_matdir_emission || 0).toFixed(2)} tCO2e
+            </span>
+          </div>
+          
+          <div className="flex justify-between">
+            <span className="text-gray-600">연료직접:</span>
+            <span className="font-medium text-red-600">
+              {(nodeData.processData?.total_fueldir_emission || nodeData.total_fueldir_emission || 0).toFixed(2)} tCO2e
+            </span>
+          </div>
+        </div>
+        
+        {/* 투입량 입력 버튼 */}
+        <div className="mt-3 pt-2 border-t border-gray-300">
+          <button 
+            className="w-full bg-blue-600 text-white py-1 px-2 rounded text-xs hover:bg-blue-700 transition-colors"
+            onClick={handleDoubleClick}
+          >
+            투입량 입력
+          </button>
         </div>
     </div>
   );

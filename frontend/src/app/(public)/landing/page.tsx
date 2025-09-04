@@ -92,10 +92,6 @@ export default function LandingPage() {
     );
   };
 
-  const handleEnter = () => {
-    // 들어가기 버튼도 로그인과 동일한 로직 사용
-    handleLogin();
-  };
 
   const handleRegister = () => {
     router.push('/register');
@@ -183,24 +179,6 @@ export default function LandingPage() {
                 {isLoading ? '로그인 중...' : '로그인'}
               </Button>
 
-              {/* 구분선 */}
-              <div className='relative my-6'>
-                <div className='absolute inset-0 flex items-center'>
-                  <div className='w-full border-t border-white/20'></div>
-                </div>
-                <div className='relative flex justify-center text-sm'>
-                  <span className='px-2 bg-ecotrace-card text-white/50'>또는</span>
-                </div>
-              </div>
-
-              {/* 들어가기 버튼 */}
-              <Button
-                onClick={handleEnter}
-                disabled={isLoading}
-                className='w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-lg py-3 disabled:opacity-50'
-              >
-                {isLoading ? '로그인 중...' : '들어가기'}
-              </Button>
 
               {/* 회원가입 버튼 */}
               <Button
@@ -310,37 +288,15 @@ export default function LandingPage() {
               </Button>
             </div>
 
-            {/* 구분선 */}
-            <div className='relative'>
-              <div className='absolute inset-0 flex items-center'>
-                <div className='w-full border-t border-white/20' />
-              </div>
-              <div className='relative flex justify-center text-sm'>
-                <span className='px-2 bg-ecotrace-background text-white/60'>
-                  또는
-                </span>
-              </div>
-            </div>
-
-            {/* 추가 버튼들 - 위아래로 세로 배치 */}
-            <div className='space-y-3'>
-              <Button
-                type='button'
-                onClick={handleEnter}
-                disabled={isLoading}
-                className='w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50'
-              >
-                {isLoading ? '로그인 중...' : '들어가기'}
-              </Button>
-              <Button
-                type='button'
-                onClick={handleRegister}
-                variant='outline'
-                className='w-full border-white/30 text-white hover:bg-white/10 transition-colors'
-              >
-                회원가입
-              </Button>
-            </div>
+            {/* 회원가입 버튼 */}
+            <Button
+              type='button'
+              onClick={handleRegister}
+              variant='outline'
+              className='w-full border-white/30 text-white hover:bg-white/10 transition-colors'
+            >
+              회원가입
+            </Button>
           </form>
         </div>
 

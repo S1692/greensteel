@@ -259,20 +259,34 @@ const InputDataPage: React.FC = () => {
           columns: inputData.columns
         });
 
-        // 기존 편집 가능한 행 데이터에 AI 추천 답변만 추가 (원본 데이터 유지)
-        const updatedEditableRows: EditableRow[] = editableInputRows.map((existingRow, index) => {
-          const aiProcessedRow = processedData[index];
-          if (aiProcessedRow) {
-            return {
-              ...existingRow,
-              modifiedData: {
-                ...existingRow.modifiedData, // 기존 데이터 유지
-                'AI추천답변': aiProcessedRow['AI추천답변'] || '' // AI 추천 답변만 추가
-              }
-            };
-          }
-          return existingRow;
-        });
+        // AI 처리된 데이터가 있으면 기존 데이터에 AI 추천 답변 추가, 없으면 기존 엑셀 데이터 유지
+        let updatedEditableRows: EditableRow[];
+        
+        if (processedData.length > 0) {
+          // AI 처리된 데이터가 있는 경우: 기존 편집 가능한 행 데이터에 AI 추천 답변만 추가
+          updatedEditableRows = editableInputRows.map((existingRow, index) => {
+            const aiProcessedRow = processedData[index];
+            if (aiProcessedRow) {
+              return {
+                ...existingRow,
+                modifiedData: {
+                  ...existingRow.modifiedData, // 기존 데이터 유지
+                  'AI추천답변': aiProcessedRow['AI추천답변'] || '' // AI 추천 답변만 추가
+                }
+              };
+            }
+            return existingRow;
+          });
+        } else {
+          // AI 처리된 데이터가 없는 경우: 기존 엑셀 데이터를 그대로 유지
+          updatedEditableRows = inputData.data.map((row: DataRow, index) => ({
+            id: `input-${index}`,
+            originalData: row,
+            modifiedData: { ...row },
+            isEditing: false,
+            isNewlyAdded: false
+          }));
+        }
 
         setEditableInputRows(updatedEditableRows);
         console.log('AI 처리 완료: 편집 가능한 행 데이터 업데이트됨');

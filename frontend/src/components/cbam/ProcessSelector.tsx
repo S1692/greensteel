@@ -351,7 +351,7 @@ export const ProductProcessModal: React.FC<{
           <div>
             <div className="flex justify-between items-center mb-4">
               <h4 className="text-lg font-medium text-white">
-                {selectedProduct?.product_name}에 연결된 공정 목록
+                {selectedProduct?.product_name}공정 목록
               </h4>
               <button
                 onClick={loadStoredProcessData}

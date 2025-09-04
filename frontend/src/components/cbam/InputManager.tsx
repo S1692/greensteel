@@ -120,69 +120,38 @@ export default function InputManager({ selectedProcess, onClose, onDataSaved }: 
   }, [getAllFuels]);
 
   // ============================================================================
-  // 🔍 기존 데이터 로드
+  // 🔍 기존 데이터 로드 (공정별 데이터는 제거하고 마스터 테이블만 사용)
   // ============================================================================
 
   const loadAllExistingData = useCallback(async () => {
-    if (!selectedProcess?.id) return;
-    
-    setIsLoadingData(true);
+    // 로컬 스토리지에서 기존 계산 데이터 로드
     try {
-      console.log('🔍 기존 데이터 로드 시작:', selectedProcess.id);
-      
-      // 원료직접배출량과 연료직접배출량 데이터를 병렬로 로드
-      const [matdirResponse, fueldirResponse] = await Promise.all([
-        axiosClient.get(apiEndpoints.cbam.matdir.byProcess(selectedProcess.id)),
-        axiosClient.get(apiEndpoints.cbam.fueldir.byProcess(selectedProcess.id))
-      ]);
-      
-      const allResults: InputResult[] = [];
-      
-      // 원료직접배출량 데이터 처리
-      if (matdirResponse.data && Array.isArray(matdirResponse.data)) {
-        matdirResponse.data.forEach((item: any) => {
-          allResults.push({
-            id: item.id,
-            name: item.material_name || item.name,
-            factor: item.emission_factor || 0,
-            amount: item.amount || 0,
-            oxyfactor: item.oxyfactor || 1.0000,
-            emission: item.emission || 0,
-            calculation_formula: item.calculation_formula || '',
-            type: 'matdir',
-            created_at: item.created_at,
-            updated_at: item.updated_at
-          });
-        });
+      const existingData = localStorage.getItem('cbam_emission_calculations');
+      if (existingData) {
+        const calculations = JSON.parse(existingData);
+        const results: InputResult[] = calculations.map((item: any) => ({
+          id: item.id,
+          name: item.mat_name || item.fuel_name || item.name,
+          factor: item.emission_factor || item.factor || 0,
+          amount: item.amount || 0,
+          oxyfactor: item.oxyfactor || 1.0000,
+          emission: item.emission || 0,
+          calculation_formula: item.calculation_formula || '',
+          type: item.type === 'material' ? 'matdir' : 'fueldir',
+          created_at: item.created_at,
+          updated_at: item.updated_at
+        }));
+        setInputResults(results);
+        console.log('✅ 로컬 스토리지에서 기존 데이터 로드 완료:', results.length, '개 항목');
+      } else {
+        setInputResults([]);
+        console.log('✅ 로컬 스토리지에 기존 데이터 없음');
       }
-      
-      // 연료직접배출량 데이터 처리
-      if (fueldirResponse.data && Array.isArray(fueldirResponse.data)) {
-        fueldirResponse.data.forEach((item: any) => {
-          allResults.push({
-            id: item.id,
-            name: item.fuel_name || item.name,
-            factor: item.emission_factor || 0,
-            amount: item.amount || 0,
-            oxyfactor: item.oxyfactor || 1.0000,
-            emission: item.emission || 0,
-            calculation_formula: item.calculation_formula || '',
-            type: 'fueldir',
-            created_at: item.created_at,
-            updated_at: item.updated_at
-          });
-        });
-      }
-      
-      setInputResults(allResults);
-      console.log('✅ 기존 데이터 로드 완료:', allResults.length, '개 항목');
-      
     } catch (error) {
-      console.error('❌ 기존 데이터 로드 실패:', error);
-    } finally {
-      setIsLoadingData(false);
+      console.error('❌ 로컬 스토리지 데이터 로드 실패:', error);
+      setInputResults([]);
     }
-  }, [selectedProcess?.id]);
+  }, []);
 
   // 컴포넌트 마운트 시 기존 데이터 로드
   useEffect(() => {
@@ -345,7 +314,7 @@ export default function InputManager({ selectedProcess, onClose, onDataSaved }: 
   // ============================================================================
 
   const saveMatdirData = useCallback(async () => {
-    if (!selectedProcess?.id || !matdirForm.name || matdirForm.amount <= 0) {
+    if (!matdirForm.name || matdirForm.amount <= 0) {
       alert('필수 정보를 입력해주세요.');
       return;
     }
@@ -359,81 +328,68 @@ export default function InputManager({ selectedProcess, onClose, onDataSaved }: 
         (m.mat_name || m.item_name) === matdirForm.name
       );
       
-      const payload = {
-        process_id: selectedProcess.id,
-        material_name: matdirForm.name,
+      // 로컬 스토리지에 저장 (이미지 요구사항에 따라)
+      const localData = {
+        id: Date.now(),
+        type: 'material',
+        mat_name: matdirForm.name,
+        mat_engname: selectedMaterial?.mat_engname || selectedMaterial?.item_eng || '',
+        carbon_content: selectedMaterial?.carbon_content || selectedMaterial?.carbon_factor || 0,
+        mat_factor: selectedMaterial?.mat_factor || selectedMaterial?.em_factor || 0,
         emission_factor: matdirForm.factor,
         amount: matdirForm.amount,
         oxyfactor: matdirForm.oxyfactor,
         emission: emission,
-        calculation_formula: `${matdirForm.amount} × ${matdirForm.factor} × ${matdirForm.oxyfactor} = ${emission}`
+        calculation_formula: `${matdirForm.amount} × ${matdirForm.factor} × ${matdirForm.oxyfactor} = ${emission}`,
+        created_at: new Date().toISOString()
+      };
+      
+      // 기존 로컬 스토리지 데이터 가져오기
+      const existingData = localStorage.getItem('cbam_emission_calculations');
+      let calculations = existingData ? JSON.parse(existingData) : [];
+      calculations.push(localData);
+      localStorage.setItem('cbam_emission_calculations', JSON.stringify(calculations));
+      
+      // 화면에 표시용 결과 추가
+      const newResult: InputResult = {
+        id: Date.now(),
+        name: matdirForm.name,
+        factor: matdirForm.factor,
+        amount: matdirForm.amount,
+        oxyfactor: matdirForm.oxyfactor,
+        emission: emission,
+        calculation_formula: localData.calculation_formula,
+        type: 'matdir',
+        created_at: new Date().toISOString()
       };
 
-      const response = await axiosClient.post(apiEndpoints.cbam.matdir.create, payload);
+      setInputResults(prev => [...prev, newResult]);
       
-      if (response.data) {
-        const newResult: InputResult = {
-          id: response.data.id,
-          name: matdirForm.name,
-          factor: matdirForm.factor,
-          amount: matdirForm.amount,
-          oxyfactor: matdirForm.oxyfactor,
-          emission: emission,
-          calculation_formula: payload.calculation_formula,
-          type: 'matdir',
-          created_at: response.data.created_at
-        };
+      // 폼 초기화
+      setMatdirForm({
+        name: '',
+        factor: 0,
+        amount: 0,
+        oxyfactor: 1.0000
+      });
 
-        setInputResults(prev => [...prev, newResult]);
-        
-        // 로컬 스토리지에 저장
-        const localData = {
-          id: Date.now(),
-          type: 'material',
-          mat_name: matdirForm.name,
-          mat_engname: selectedMaterial?.mat_engname || selectedMaterial?.item_eng || '',
-          carbon_content: selectedMaterial?.carbon_content || selectedMaterial?.carbon_factor || 0,
-          mat_factor: selectedMaterial?.mat_factor || selectedMaterial?.em_factor || 0,
-          emission_factor: matdirForm.factor,
-          amount: matdirForm.amount,
-          oxyfactor: matdirForm.oxyfactor,
-          emission: emission,
-          calculation_formula: payload.calculation_formula,
-          created_at: new Date().toISOString()
-        };
-        
-        // 기존 로컬 스토리지 데이터 가져오기
-        const existingData = localStorage.getItem('cbam_emission_calculations');
-        let calculations = existingData ? JSON.parse(existingData) : [];
-        calculations.push(localData);
-        localStorage.setItem('cbam_emission_calculations', JSON.stringify(calculations));
-        
-        // 폼 초기화
-        setMatdirForm({
-          name: '',
-          factor: 0,
-          amount: 0,
-          oxyfactor: 1.0000
-        });
-
-        console.log('✅ 원료직접배출량 저장 완료:', newResult);
-        console.log('✅ 로컬 스토리지 저장 완료:', localData);
-        
-        // 콜백 호출
-        if (onDataSaved) {
-          onDataSaved();
-        }
+      console.log('✅ 원료직접배출량 계산 완료:', newResult);
+      console.log('✅ 로컬 스토리지 저장 완료:', localData);
+      
+      // 콜백 호출
+      if (onDataSaved) {
+        onDataSaved();
       }
     } catch (error) {
-      console.error('❌ 원료직접배출량 저장 실패:', error);
-      alert('저장에 실패했습니다.');
+      console.error('❌ 원료직접배출량 계산 실패:', error);
+      alert('계산에 실패했습니다.');
     } finally {
       setIsCalculating(false);
     }
-  }, [selectedProcess?.id, matdirForm, calculateEmission, onDataSaved, allMaterials]);
+  }, [matdirForm, calculateEmission, onDataSaved, allMaterials]);
 
   const saveFueldirData = useCallback(async () => {
-    if (!selectedProcess?.id || !fueldirForm.name || fueldirForm.amount <= 0) {
+    if (!fueldirForm.name || fueldirForm.amount <= 0) {
       alert('필수 정보를 입력해주세요.');
       return;
     }
@@ -445,78 +401,65 @@ export default function InputManager({ selectedProcess, onClose, onDataSaved }: 
       // 선택된 연료 정보 찾기
       const selectedFuel = allFuels.find(f => f.fuel_name === fueldirForm.name);
       
-      const payload = {
-        process_id: selectedProcess.id,
+      // 로컬 스토리지에 저장 (이미지 요구사항에 따라)
+      const localData = {
+        id: Date.now(),
+        type: 'fuel',
         fuel_name: fueldirForm.name,
+        fuel_engname: selectedFuel?.fuel_engname || '',
+        fuel_factor: selectedFuel?.fuel_factor || 0,
+        net_calory: selectedFuel?.net_calory || 0,
         emission_factor: fueldirForm.factor,
         amount: fueldirForm.amount,
         oxyfactor: fueldirForm.oxyfactor,
         emission: emission,
-        calculation_formula: `${fueldirForm.amount} × ${fueldirForm.factor} × ${fueldirForm.oxyfactor} = ${emission}`
+        calculation_formula: `${fueldirForm.amount} × ${fueldirForm.factor} × ${fueldirForm.oxyfactor} = ${emission}`,
+        created_at: new Date().toISOString()
+      };
+      
+      // 기존 로컬 스토리지 데이터 가져오기
+      const existingData = localStorage.getItem('cbam_emission_calculations');
+      let calculations = existingData ? JSON.parse(existingData) : [];
+      calculations.push(localData);
+      localStorage.setItem('cbam_emission_calculations', JSON.stringify(calculations));
+      
+      // 화면에 표시용 결과 추가
+      const newResult: InputResult = {
+        id: Date.now(),
+        name: fueldirForm.name,
+        factor: fueldirForm.factor,
+        amount: fueldirForm.amount,
+        oxyfactor: fueldirForm.oxyfactor,
+        emission: emission,
+        calculation_formula: localData.calculation_formula,
+        type: 'fueldir',
+        created_at: new Date().toISOString()
       };
 
-      const response = await axiosClient.post(apiEndpoints.cbam.fueldir.create, payload);
+      setInputResults(prev => [...prev, newResult]);
       
-      if (response.data) {
-        const newResult: InputResult = {
-          id: response.data.id,
-          name: fueldirForm.name,
-          factor: fueldirForm.factor,
-          amount: fueldirForm.amount,
-          oxyfactor: fueldirForm.oxyfactor,
-          emission: emission,
-          calculation_formula: payload.calculation_formula,
-          type: 'fueldir',
-          created_at: response.data.created_at
-        };
+      // 폼 초기화
+      setFueldirForm({
+        name: '',
+        factor: 0,
+        amount: 0,
+        oxyfactor: 1.0000
+      });
 
-        setInputResults(prev => [...prev, newResult]);
-        
-        // 로컬 스토리지에 저장
-        const localData = {
-          id: Date.now(),
-          type: 'fuel',
-          fuel_name: fueldirForm.name,
-          fuel_engname: selectedFuel?.fuel_engname || '',
-          fuel_factor: selectedFuel?.fuel_factor || 0,
-          net_calory: selectedFuel?.net_calory || 0,
-          emission_factor: fueldirForm.factor,
-          amount: fueldirForm.amount,
-          oxyfactor: fueldirForm.oxyfactor,
-          emission: emission,
-          calculation_formula: payload.calculation_formula,
-          created_at: new Date().toISOString()
-        };
-        
-        // 기존 로컬 스토리지 데이터 가져오기
-        const existingData = localStorage.getItem('cbam_emission_calculations');
-        let calculations = existingData ? JSON.parse(existingData) : [];
-        calculations.push(localData);
-        localStorage.setItem('cbam_emission_calculations', JSON.stringify(calculations));
-        
-        // 폼 초기화
-        setFueldirForm({
-          name: '',
-          factor: 0,
-          amount: 0,
-          oxyfactor: 1.0000
-        });
-
-        console.log('✅ 연료직접배출량 저장 완료:', newResult);
-        console.log('✅ 로컬 스토리지 저장 완료:', localData);
-        
-        // 콜백 호출
-        if (onDataSaved) {
-          onDataSaved();
-        }
+      console.log('✅ 연료직접배출량 계산 완료:', newResult);
+      console.log('✅ 로컬 스토리지 저장 완료:', localData);
+      
+      // 콜백 호출
+      if (onDataSaved) {
+        onDataSaved();
       }
     } catch (error) {
-      console.error('❌ 연료직접배출량 저장 실패:', error);
-      alert('저장에 실패했습니다.');
+      console.error('❌ 연료직접배출량 계산 실패:', error);
+      alert('계산에 실패했습니다.');
     } finally {
       setIsCalculating(false);
     }
-  }, [selectedProcess?.id, fueldirForm, calculateEmission, onDataSaved, allFuels]);
+  }, [fueldirForm, calculateEmission, onDataSaved, allFuels]);
 
   // ============================================================================
   // ✏️ 수정 모드
@@ -538,35 +481,37 @@ export default function InputManager({ selectedProcess, onClose, onDataSaved }: 
     try {
       const emission = calculateEmission(editForm);
       
-      const payload = {
-        name: editForm.name,
-        emission_factor: editForm.factor,
-        amount: editForm.amount,
-        oxyfactor: editForm.oxyfactor,
-        emission: emission,
-        calculation_formula: `${editForm.amount} × ${editForm.factor} × ${editForm.oxyfactor} = ${emission}`
-      };
-
-      const endpoint = editingResult.type === 'matdir' 
-        ? apiEndpoints.cbam.matdir.update(editingResult.id as number)
-        : apiEndpoints.cbam.fueldir.update(editingResult.id as number);
-
-      const response = await axiosClient.put(endpoint, payload);
-      
-      if (response.data) {
-        setInputResults(prev => prev.map(item => 
-          item.id === editingResult.id 
-            ? { ...item, ...editForm, emission, calculation_formula: payload.calculation_formula }
-            : item
-        ));
+      // 로컬 스토리지에서 해당 항목 찾아서 업데이트
+      const existingData = localStorage.getItem('cbam_emission_calculations');
+      if (existingData) {
+        let calculations = JSON.parse(existingData);
+        const index = calculations.findIndex((item: any) => item.id === editingResult.id);
         
-        setEditingResult(null);
-        console.log('✅ 수정 완료:', editingResult.id);
-        
-        // 콜백 호출
-        if (onDataSaved) {
-          onDataSaved();
+        if (index !== -1) {
+          calculations[index] = {
+            ...calculations[index],
+            ...editForm,
+            emission: emission,
+            calculation_formula: `${editForm.amount} × ${editForm.factor} × ${editForm.oxyfactor} = ${emission}`,
+            updated_at: new Date().toISOString()
+          };
+          localStorage.setItem('cbam_emission_calculations', JSON.stringify(calculations));
         }
+      }
+      
+      // 화면 상태 업데이트
+      setInputResults(prev => prev.map(item => 
+        item.id === editingResult.id 
+          ? { ...item, ...editForm, emission, calculation_formula: `${editForm.amount} × ${editForm.factor} × ${editForm.oxyfactor} = ${emission}` }
+          : item
+      ));
+      
+      setEditingResult(null);
+      console.log('✅ 수정 완료:', editingResult.id);
+      
+      // 콜백 호출
+      if (onDataSaved) {
+        onDataSaved();
       }
     } catch (error) {
       console.error('❌ 수정 실패:', error);
@@ -592,12 +537,15 @@ export default function InputManager({ selectedProcess, onClose, onDataSaved }: 
     if (!confirm('정말 삭제하시겠습니까?')) return;
 
     try {
-      const endpoint = result.type === 'matdir' 
-        ? apiEndpoints.cbam.matdir.delete(result.id as number)
-        : apiEndpoints.cbam.fueldir.delete(result.id as number);
-
-      await axiosClient.delete(endpoint);
+      // 로컬 스토리지에서 해당 항목 삭제
+      const existingData = localStorage.getItem('cbam_emission_calculations');
+      if (existingData) {
+        let calculations = JSON.parse(existingData);
+        calculations = calculations.filter((item: any) => item.id !== result.id);
+        localStorage.setItem('cbam_emission_calculations', JSON.stringify(calculations));
+      }
       
+      // 화면 상태에서도 삭제
       setInputResults(prev => prev.filter(item => item.id !== result.id));
       console.log('✅ 삭제 완료:', result.id);
       

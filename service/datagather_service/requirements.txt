@@ -29,3 +29,8 @@ structlog==23.2.0
 # RAG 시스템용 패키지
 sentence-transformers>=2.2.2
 numpy>=1.21.0
+
+# TF-IDF + 신경망 모델용 패키지
+torch==2.8.0
+scikit-learn==1.7.1
+joblib==1.5.2

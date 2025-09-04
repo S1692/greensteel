@@ -7,6 +7,9 @@ import logging
 import os
 import json
 import numpy as np
+import torch
+import torch.nn.functional as F
+import joblib
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -41,6 +44,29 @@ rag_embedding_model = None
 rag_config_data = None
 rag_material_embeddings = None
 rag_material_labels = None
+
+# TF-IDF + 신경망 모델 전역 변수
+tfidf_model = None
+tfidf_vectorizer = None
+tfidf_id2label = None
+tfidf_label2id = None
+
+class SimpleClassifier(torch.nn.Module):
+    """간단한 분류기 모델 클래스"""
+    def __init__(self, input_size, hidden_size, intermediate_size, num_labels):
+        super(SimpleClassifier, self).__init__()
+        self.fc1 = torch.nn.Linear(input_size, hidden_size)
+        self.fc2 = torch.nn.Linear(hidden_size, intermediate_size)
+        self.fc3 = torch.nn.Linear(intermediate_size, num_labels)
+        self.dropout = torch.nn.Dropout(0.1)
+    
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = F.relu(self.fc2(x))
+        x = self.dropout(x)
+        x = self.fc3(x)
+        return x
 
 async def initialize_huggingface_model():
     """Hugging Face Inference API 초기화"""
@@ -103,6 +129,51 @@ async def initialize_rag_system():
         logger.error(f"❌ RAG 시스템 초기화 실패: {str(e)}")
         return False
 
+async def initialize_tfidf_model():
+    """TF-IDF + 신경망 모델 초기화"""
+    global tfidf_model, tfidf_vectorizer, tfidf_id2label, tfidf_label2id
+    
+    try:
+        logger.info("🔍 TF-IDF + 신경망 모델 초기화 중...")
+        
+        # config.json 로드
+        config_path = os.path.join(os.path.dirname(__file__), '..', 'config.json')
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+        
+        tfidf_id2label = config['id2label']
+        tfidf_label2id = config['label2id']
+        num_labels = config['num_labels']
+        hidden_size = config['hidden_size']
+        intermediate_size = config['intermediate_size']
+        
+        logger.info(f"📋 설정 파일 로드 완료: {num_labels}개 라벨")
+        
+        # 벡터라이저 로드
+        vectorizer_path = os.path.join(os.path.dirname(__file__), '..', 'vectorizer.pkl')
+        tfidf_vectorizer = joblib.load(vectorizer_path)
+        logger.info("🔤 TF-IDF 벡터라이저 로드 완료")
+        
+        # 모델 로드
+        tfidf_model = SimpleClassifier(
+            input_size=3000,  # TF-IDF 벡터 크기 고정
+            hidden_size=hidden_size,
+            intermediate_size=intermediate_size,
+            num_labels=num_labels
+        )
+        
+        # 모델 가중치 로드
+        model_path = os.path.join(os.path.dirname(__file__), '..', 'pytorch_model.bin')
+        tfidf_model.load_state_dict(torch.load(model_path, map_location='cpu'))
+        tfidf_model.eval()
+        
+        logger.info("🤖 TF-IDF + 신경망 모델 로드 완료")
+        return True
+        
+    except Exception as e:
+        logger.error(f"❌ TF-IDF 모델 초기화 실패: {str(e)}")
+        return False
+
 async def predict_material_with_rag(input_text: str) -> tuple[str, float]:
     """RAG 기반 재료 분류"""
     global rag_embedding_model, rag_material_embeddings, rag_material_labels
@@ -133,17 +204,53 @@ async def predict_material_with_rag(input_text: str) -> tuple[str, float]:
         logger.error(f"❌ RAG 분류 실패: {str(e)}")
         return input_text, 0.0
 
-async def generate_ai_recommendation(input_text: str) -> tuple[str, float]:
-    """RAG 기반 AI 추천 답변 생성"""
+async def predict_material_with_tfidf(input_text: str) -> tuple[str, float]:
+    """TF-IDF + 신경망 모델 기반 재료 분류"""
+    global tfidf_model, tfidf_vectorizer, tfidf_id2label
+    
     try:
+        if not tfidf_model or not tfidf_vectorizer:
+            logger.warning("⚠️ TF-IDF 모델이 초기화되지 않았습니다. 기본값을 반환합니다.")
+            return input_text, 0.0
+        
+        logger.info(f"🔍 TF-IDF 기반 분류 시작: '{input_text}'")
+        
+        # 텍스트 벡터화
+        text_vector = tfidf_vectorizer.transform([input_text]).toarray()
+        text_tensor = torch.FloatTensor(text_vector)
+        
+        # 예측
+        with torch.no_grad():
+            outputs = tfidf_model(text_tensor)
+            probabilities = F.softmax(outputs, dim=1)
+            predicted_class = torch.argmax(probabilities, dim=1).item()
+        
+        # 결과 반환
+        predicted_label = tfidf_id2label[str(predicted_class)]
+        confidence = float(probabilities[0][predicted_class].item())
+        
+        logger.info(f"✅ TF-IDF 분류 완료: '{predicted_label}' (신뢰도: {confidence:.4f})")
+        
+        return predicted_label, confidence
+        
+    except Exception as e:
+        logger.error(f"❌ TF-IDF 분류 실패: {str(e)}")
+        return input_text, 0.0
+
+async def generate_ai_recommendation(input_text: str) -> tuple[str, float]:
+    """AI 추천 답변 생성 (TF-IDF 모델 우선 사용)"""
+    try:
+        # TF-IDF + 신경망 모델이 초기화되어 있으면 우선 사용
+        if tfidf_model and tfidf_vectorizer is not None:
+            return await predict_material_with_tfidf(input_text)
+        
         # RAG 시스템이 초기화되어 있으면 RAG 기반 분류 사용
         if rag_embedding_model and rag_material_embeddings is not None:
             return await predict_material_with_rag(input_text)
         
-        # RAG 시스템이 없으면 기존 방식 사용 (fallback)
-        if not hf_client:
-            logger.warning("⚠️ RAG 시스템과 Hugging Face API 클라이언트가 모두 초기화되지 않았습니다. 기본 답변을 반환합니다.")
-            return input_text, 0.0  # 기본값으로 원본 텍스트와 신뢰도 0.0 반환
+        # 모든 모델이 없으면 기본값 반환
+        logger.warning("⚠️ 모든 AI 모델이 초기화되지 않았습니다. 기본 답변을 반환합니다.")
+        return input_text, 0.0  # 기본값으로 원본 텍스트와 신뢰도 0.0 반환
         
         # 입력 텍스트를 그대로 사용 (전처리 없이)
         classification_text = input_text
@@ -222,6 +329,9 @@ async def lifespan(app: FastAPI):
     
     # RAG 시스템 초기화
     await initialize_rag_system()
+    
+    # TF-IDF + 신경망 모델 초기화
+    await initialize_tfidf_model()
     
     logger.info("✅ DataGather Service가 성공적으로 시작되었습니다.")
     

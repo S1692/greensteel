@@ -188,28 +188,12 @@ services:
       timeout: 10s
       retries: 3
 
-  # Rail AI Service
-  rail-service:
-    build:
-      context: ./service/datagather_service/rail
-      dockerfile: Dockerfile
-    container_name: greensteel-rail
-    ports:
-      - "8000:8000"
-    volumes:
-      - rail_data:/app/rail
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
 
 
 volumes:
   postgres_data:
   redis_data:
-  rail_data:
 
 networks:
   default:

@@ -68,22 +68,7 @@ async def get_fueldirs_by_process(process_id: int):
         logger.error(f"❌ 공정별 연료직접배출량 조회 실패: {str(e)}")
         raise HTTPException(status_code=500, detail=f"공정별 연료직접배출량 조회 중 오류가 발생했습니다: {str(e)}")
 
-@router.get("/{fueldir_id}", response_model=FuelDirResponse)
-async def get_fueldir(fueldir_id: int):
-    """특정 연료직접배출량 데이터 조회"""
-    try:
-        logger.info(f"📋 연료직접배출량 조회 요청: ID {fueldir_id}")
-        fueldir = await fueldir_service.get_fueldir(fueldir_id)
-        if not fueldir:
-            raise HTTPException(status_code=404, detail="연료직접배출량 데이터를 찾을 수 없습니다")
-        
-        logger.info(f"✅ 연료직접배출량 조회 성공: ID {fueldir_id}")
-        return fueldir
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"❌ 연료직접배출량 조회 실패: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"연료직접배출량 조회 중 오류가 발생했습니다: {str(e)}")
+# 이 엔드포인트는 fuel-master 엔드포인트들 뒤로 이동됨
 
 @router.put("/{fueldir_id}", response_model=FuelDirResponse)
 async def update_fueldir(fueldir_id: int, fueldir_data: FuelDirUpdateRequest):
@@ -264,3 +249,20 @@ async def create_fueldirs_bulk(fueldirs_data: List[FuelDirCreateRequest]):
     except Exception as e:
         logger.error(f"❌ 연료직접배출량 일괄 생성 실패: {str(e)}")
         raise HTTPException(status_code=500, detail=f"연료직접배출량 일괄 생성 중 오류가 발생했습니다: {str(e)}")
+
+@router.get("/{fueldir_id}", response_model=FuelDirResponse)
+async def get_fueldir(fueldir_id: int):
+    """특정 연료직접배출량 데이터 조회"""
+    try:
+        logger.info(f"📋 연료직접배출량 조회 요청: ID {fueldir_id}")
+        fueldir = await fueldir_service.get_fueldir(fueldir_id)
+        if not fueldir:
+            raise HTTPException(status_code=404, detail="연료직접배출량 데이터를 찾을 수 없습니다")
+        
+        logger.info(f"✅ 연료직접배출량 조회 성공: ID {fueldir_id}")
+        return fueldir
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ 연료직접배출량 조회 실패: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"연료직접배출량 조회 중 오류가 발생했습니다: {str(e)}")

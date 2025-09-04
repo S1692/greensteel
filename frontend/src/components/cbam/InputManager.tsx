@@ -82,6 +82,11 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
       setAllMaterials(response || []);
     } catch (error) {
       console.error('❌ 원료 마스터 테이블 로드 실패:', error);
+      console.error('❌ 오류 상세:', {
+        message: error?.message || 'Unknown error',
+        status: error?.response?.status,
+        data: error?.response?.data
+      });
       setAllMaterials([]);
     }
   }, [getMaterialMasterList]);
@@ -98,6 +103,11 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
       }
     } catch (error) {
       console.error('❌ 연료 마스터 테이블 로드 실패:', error);
+      console.error('❌ 오류 상세:', {
+        message: error?.message || 'Unknown error',
+        status: error?.response?.status,
+        data: error?.response?.data
+      });
       setAllFuels([]);
     }
   }, [getAllFuels]);
@@ -157,26 +167,15 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
           const itemProductName = (item.생산품명 || '').trim();
           const itemProcessName = (item.공정 || '').trim();
           
-          // 유연한 문자열 매칭: 정확한 매칭, 대소문자 무시, 부분 문자열 포함
-          const isProductExactMatch = itemProductName === selectedProductName;
-          const isProductCaseInsensitiveMatch = itemProductName.toLowerCase() === selectedProductName.toLowerCase();
-          const isProductContainsMatch = itemProductName.toLowerCase().includes(selectedProductName.toLowerCase()) || 
-                                        selectedProductName.toLowerCase().includes(itemProductName.toLowerCase());
-          const isProductMatch = isProductExactMatch || isProductCaseInsensitiveMatch || isProductContainsMatch;
+          // 엄격한 매칭: 제품명과 공정명이 정확히 일치해야 함
+          const isProductMatch = itemProductName === selectedProductName;
+          const isProcessMatch = itemProcessName === selectedProcessName;
           
-          const isProcessExactMatch = itemProcessName === selectedProcessName;
-          const isProcessCaseInsensitiveMatch = itemProcessName.toLowerCase() === selectedProcessName.toLowerCase();
-          const isProcessContainsMatch = itemProcessName.toLowerCase().includes(selectedProcessName.toLowerCase()) || 
-                                        selectedProcessName.toLowerCase().includes(itemProcessName.toLowerCase());
-          const isProcessMatch = isProcessExactMatch || isProcessCaseInsensitiveMatch || isProcessContainsMatch;
-          
-          // 제품명과 공정명이 모두 일치하는 경우만 필터링
+          // 제품명과 공정명이 모두 정확히 일치하는 경우만 필터링
           const isMatch = isProductMatch && isProcessMatch;
           
           if (isMatch) {
-            console.log('✅ 매칭된 항목:', item.생산품명, '|', item.공정, '→', item.투입물명);
-            console.log('   제품 매칭:', isProductMatch, '(정확:', isProductExactMatch, '대소문자:', isProductCaseInsensitiveMatch, '포함:', isProductContainsMatch, ')');
-            console.log('   공정 매칭:', isProcessMatch, '(정확:', isProcessExactMatch, '대소문자:', isProcessCaseInsensitiveMatch, '포함:', isProcessContainsMatch, ')');
+            console.log('✅ 정확히 매칭된 항목:', item.생산품명, '|', item.공정, '→', item.투입물명);
           }
           return isMatch;
         });
@@ -268,20 +267,12 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
           const itemProcessName = (item.공정 || '').trim();
           const itemInputName = (item.투입물명 || '').trim();
           
-          // 투입물명 정확한 매칭
+          // 엄격한 매칭: 모든 조건이 정확히 일치해야 함
           const isInputNameMatch = itemInputName === selectedName;
-          
-          // 제품명 유연한 매칭
           const isProductMatch = selectedProduct && selectedProduct.product_name ? 
-            itemProductName.toLowerCase() === selectedProduct.product_name.trim().toLowerCase() ||
-            itemProductName.toLowerCase().includes(selectedProduct.product_name.trim().toLowerCase()) ||
-            selectedProduct.product_name.trim().toLowerCase().includes(itemProductName.toLowerCase()) : false;
-          
-          // 공정명 유연한 매칭
+            itemProductName === selectedProduct.product_name.trim() : false;
           const isProcessMatch = selectedProcess && selectedProcess.process_name ?
-            itemProcessName.toLowerCase() === selectedProcess.process_name.trim().toLowerCase() ||
-            itemProcessName.toLowerCase().includes(selectedProcess.process_name.trim().toLowerCase()) ||
-            selectedProcess.process_name.trim().toLowerCase().includes(itemProcessName.toLowerCase()) : false;
+            itemProcessName === selectedProcess.process_name.trim() : false;
           
           const isMatch = isInputNameMatch && isProductMatch && isProcessMatch;
           
@@ -355,20 +346,12 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
           const itemProcessName = (item.공정 || '').trim();
           const itemInputName = (item.투입물명 || '').trim();
           
-          // 투입물명 정확한 매칭
+          // 엄격한 매칭: 모든 조건이 정확히 일치해야 함
           const isInputNameMatch = itemInputName === selectedName;
-          
-          // 제품명 유연한 매칭
           const isProductMatch = selectedProduct && selectedProduct.product_name ? 
-            itemProductName.toLowerCase() === selectedProduct.product_name.trim().toLowerCase() ||
-            itemProductName.toLowerCase().includes(selectedProduct.product_name.trim().toLowerCase()) ||
-            selectedProduct.product_name.trim().toLowerCase().includes(itemProductName.toLowerCase()) : false;
-          
-          // 공정명 유연한 매칭
+            itemProductName === selectedProduct.product_name.trim() : false;
           const isProcessMatch = selectedProcess && selectedProcess.process_name ?
-            itemProcessName.toLowerCase() === selectedProcess.process_name.trim().toLowerCase() ||
-            itemProcessName.toLowerCase().includes(selectedProcess.process_name.trim().toLowerCase()) ||
-            selectedProcess.process_name.trim().toLowerCase().includes(itemProcessName.toLowerCase()) : false;
+            itemProcessName === selectedProcess.process_name.trim() : false;
           
           const isMatch = isInputNameMatch && isProductMatch && isProcessMatch;
           
@@ -668,8 +651,9 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
     if (selectedProcess?.id) {
       console.log('🚀 InputManager 초기화 시작...');
       loadAllExistingData(); // 기존 계산 데이터 로드
-      loadAllMaterials(); // 마스터 테이블 로드 (배출계수 계산용)
-      loadAllFuels(); // 마스터 테이블 로드 (배출계수 계산용)
+      // TODO: API 422 오류 해결 후 활성화
+      // loadAllMaterials(); // 마스터 테이블 로드 (배출계수 계산용)
+      // loadAllFuels(); // 마스터 테이블 로드 (배출계수 계산용)
       loadInputDataNames(); // 로컬 스토리지에서 투입물명 추출
     } else {
       console.log('⚠️ selectedProcess.id가 없어서 초기화를 건너뜁니다.');
@@ -814,8 +798,8 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
                   <input
                     type="number"
                     value={matdirForm.factor}
-                    onChange={(e) => setMatdirForm(prev => ({ ...prev, factor: parseFloat(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white"
+                    readOnly
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-500 rounded-md text-white cursor-not-allowed"
                     placeholder="0"
                   />
                   <div className="flex items-center gap-2 mt-1">
@@ -918,8 +902,8 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
                   <input
                     type="number"
                     value={fueldirForm.factor}
-                    onChange={(e) => setFueldirForm(prev => ({ ...prev, factor: parseFloat(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white"
+                    readOnly
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-500 rounded-md text-white cursor-not-allowed"
                     placeholder="0"
                   />
                   <div className="flex items-center gap-2 mt-1">

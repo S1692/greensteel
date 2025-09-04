@@ -64,22 +64,7 @@ async def get_matdirs_by_process(process_id: int):
         logger.error(f"❌ 공정별 원료직접배출량 조회 실패: {str(e)}")
         raise HTTPException(status_code=500, detail=f"공정별 원료직접배출량 조회 중 오류가 발생했습니다: {str(e)}")
 
-@router.get("/{matdir_id}", response_model=MatDirResponse)
-async def get_matdir(matdir_id: int):
-    """특정 원료직접배출량 데이터 조회"""
-    try:
-        logger.info(f"📋 원료직접배출량 조회 요청: ID {matdir_id}")
-        matdir = await matdir_service.get_matdir(matdir_id)
-        if not matdir:
-            raise HTTPException(status_code=404, detail="원료직접배출량 데이터를 찾을 수 없습니다")
-        
-        logger.info(f"✅ 원료직접배출량 조회 성공: ID {matdir_id}")
-        return matdir
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"❌ 원료직접배출량 조회 실패: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"원료직접배출량 조회 중 오류가 발생했습니다: {str(e)}")
+# 이 엔드포인트는 material-master 엔드포인트들 뒤로 이동됨
 
 @router.put("/{matdir_id}", response_model=MatDirResponse)
 async def update_matdir(matdir_id: int, matdir_data: MatDirUpdateRequest):
@@ -197,3 +182,20 @@ async def create_matdir_with_auto_factor(matdir_data: MatDirCreateRequest):
     except Exception as e:
         logger.error(f"❌ 원료직접배출량 생성 실패 (자동 배출계수): {str(e)}")
         raise HTTPException(status_code=500, detail=f"원료직접배출량 생성 중 오류가 발생했습니다: {str(e)}")
+
+@router.get("/{matdir_id}", response_model=MatDirResponse)
+async def get_matdir(matdir_id: int):
+    """특정 원료직접배출량 데이터 조회"""
+    try:
+        logger.info(f"📋 원료직접배출량 조회 요청: ID {matdir_id}")
+        matdir = await matdir_service.get_matdir(matdir_id)
+        if not matdir:
+            raise HTTPException(status_code=404, detail="원료직접배출량 데이터를 찾을 수 없습니다")
+        
+        logger.info(f"✅ 원료직접배출량 조회 성공: ID {matdir_id}")
+        return matdir
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ 원료직접배출량 조회 실패: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"원료직접배출량 조회 중 오류가 발생했습니다: {str(e)}")

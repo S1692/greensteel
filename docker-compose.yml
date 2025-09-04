@@ -181,7 +181,7 @@ services:
         condition: service_healthy
     volumes:
       - ./service/datagather_service:/app
-      - ./service/datagather_service/rail:/app/rail
+      - rail_data:/app/rail
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8085/health"]
       interval: 30s
@@ -193,7 +193,9 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  rail_data:
 
 networks:
   default:
     name: greensteel-network
+

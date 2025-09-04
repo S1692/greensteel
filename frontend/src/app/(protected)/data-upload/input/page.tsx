@@ -1500,199 +1500,118 @@ const InputDataPage: React.FC = () => {
                 <table className='w-full border-collapse border border-white/20'>
                                      <thead>
                      <tr className='bg-white/10'>
-                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>주문처명</th>
-                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>오더번호</th>
-                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>로트번호</th>
-                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>생산품명</th>
-                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>생산수량</th>
-                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>투입일</th>
-                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>종료일</th>
-                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>공정</th>
-                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>투입물명</th>
-                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>AI추천답변</th>
-                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>수량</th>
-                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>단위</th>
+                       {inputData.columns.map((column) => (
+                         <th key={column} className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>
+                           {column}
+                         </th>
+                       ))}
                        <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>작업</th>
                      </tr>
                    </thead>
                   <tbody>
-                                         {editableInputRows.map((row) => (
-                                               <React.Fragment key={row.id}>
-                          <tr className='border-b border-white/10 hover:bg-white/5'>
-                            <td className='border border-white/20 px-3 py-2 text-sm text-white'>
+                    {editableInputRows.map((row) => (
+                      <React.Fragment key={row.id}>
+                        <tr className='border-b border-white/10 hover:bg-white/5'>
+                          {inputData.columns.map((column) => (
+                            <td key={column} className='border border-white/20 px-3 py-2 text-sm text-white'>
                               {row.isEditing ? (
-                                renderInputField(row, '주문처명')
+                                renderInputField(row, column)
                               ) : (
-                                <span>{row.modifiedData['주문처명'] || '-'}</span>
+                                <span className={column === 'AI추천답변' ? 'text-blue-300' : ''}>
+                                  {row.modifiedData[column] || '-'}
+                                </span>
                               )}
                             </td>
-                            <td className='border border-white/20 px-3 py-2 text-sm text-white'>
-                              {row.isEditing ? (
-                                renderInputField(row, '오더번호')
-                              ) : (
-                                <span>{row.modifiedData['오더번호'] || '-'}</span>
-                              )}
+                          ))}
+                          <td className='border border-white/20 px-3 py-2 text-sm'>
+                            {row.isEditing ? (
+                              <div className='flex gap-2'>
+                                <Button
+                                  onClick={() => confirmRow(row.id)}
+                                  className='bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs'
+                                >
+                                  <CheckCircle className='w-3 h-3 mr-1' />
+                                  확인
+                                </Button>
+                                <Button
+                                  onClick={() => cancelRowEdit(row.id)}
+                                  className='bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-xs'
+                                >
+                                  <X className='w-3 h-3 mr-1' />
+                                  취소
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className='flex gap-2'>
+                                {/* 사용자가 직접 입력한 데이터인지 확인 */}
+                                {row.isNewlyAdded ? (
+                                  // 사용자가 직접 입력한 데이터는 편집/삭제 모두 가능
+                                  <>
+                                    <Button
+                                      onClick={() => toggleRowEdit(row.id)}
+                                      className='bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs'
+                                    >
+                                      <Edit3 className='w-3 h-3 mr-1' />
+                                      편집
+                                    </Button>
+                                    <Button
+                                      onClick={() => deleteRow(row.id)}
+                                      className='bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs'
+                                    >
+                                      <Trash2 className='w-3 h-3 mr-1' />
+                                      삭제
+                                    </Button>
+                                  </>
+                                ) : (
+                                  // 모든 데이터는 편집 가능
+                                  <>
+                                    <Button
+                                      onClick={() => toggleRowEdit(row.id)}
+                                      className='bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs'
+                                    >
+                                      <Edit3 className='w-3 h-3 mr-1' />
+                                      편집
+                                    </Button>
+                                    <Button
+                                      onClick={() => deleteRow(row.id)}
+                                      className='bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs'
+                                    >
+                                      <Trash2 className='w-3 h-3 mr-1' />
+                                      삭제
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                        
+                        {/* 수정 사유 입력 행 (Excel 데이터 편집 시에만) */}
+                        {row.isEditing && !row.isNewlyAdded && (
+                          <tr className='bg-white/5 border-b border-white/10'>
+                            <td colSpan={inputData.columns.length + 1} className='px-3 py-3'>
+                              <div className='flex items-center gap-3'>
+                                <div className='flex-shrink-0'>
+                                  <span className='text-xs text-white/60 font-medium'>수정 사유 (Excel 데이터 편집 시):</span>
+                                </div>
+                                <div className='flex-1'>
+                                  <Input
+                                    type='text'
+                                    value={editReasons[row.id] || ''}
+                                    onChange={(e) => setEditReasons(prev => ({
+                                      ...prev,
+                                      [row.id]: e.target.value
+                                    }))}
+                                    placeholder='AI 추천 답변 수정 사유를 입력하세요'
+                                    className='w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary'
+                                  />
+                                </div>
+                              </div>
                             </td>
-                            <td className='border border-white/20 px-3 py-2 text-sm text-white'>
-                              {row.isEditing ? (
-                                renderInputField(row, '로트번호')
-                              ) : (
-                                <span>{row.modifiedData['로트번호'] || '-'}</span>
-                              )}
-                            </td>
-                            <td className='border border-white/20 px-3 py-2 text-sm text-white'>
-                              {row.isEditing ? (
-                                renderInputField(row, '생산품명')
-                              ) : (
-                                <span>{row.modifiedData['생산품명'] || '-'}</span>
-                              )}
-                            </td>
-                            <td className='border border-white/20 px-3 py-2 text-sm text-white'>
-                              {row.isEditing ? (
-                                renderInputField(row, '생산수량')
-                              ) : (
-                                <span>{row.modifiedData['생산수량'] || '-'}</span>
-                              )}
-                            </td>
-                            <td className='border border-white/20 px-3 py-2 text-sm text-white'>
-                              {row.isEditing ? (
-                                renderInputField(row, '투입일')
-                              ) : (
-                                <span>{row.modifiedData['투입일'] || '-'}</span>
-                              )}
-                            </td>
-                            <td className='border border-white/20 px-3 py-2 text-sm text-white'>
-                              {row.isEditing ? (
-                                renderInputField(row, '종료일')
-                              ) : (
-                                <span>{row.modifiedData['종료일'] || '-'}</span>
-                              )}
-                            </td>
-                            <td className='border border-white/20 px-3 py-2 text-sm text-white'>
-                              {row.isEditing ? (
-                                renderInputField(row, '공정')
-                              ) : (
-                                <span>{row.modifiedData['공정'] || '-'}</span>
-                              )}
-                            </td>
-                            <td className='border border-white/20 px-3 py-2 text-sm text-white'>
-                              {row.isEditing ? (
-                                renderInputField(row, '투입물명')
-                              ) : (
-                                <span>{row.modifiedData['투입물명'] || '-'}</span>
-                              )}
-                            </td>
-                            <td className='border border-white/20 px-3 py-2 text-sm text-white'>
-                              {row.isEditing ? (
-                                renderInputField(row, 'AI추천답변')
-                              ) : (
-                                <span className='text-blue-300'>{row.modifiedData['AI추천답변'] || '-'}</span>
-                              )}
-                            </td>
-                            <td className='border border-white/20 px-3 py-2 text-sm text-white'>
-                              {row.isEditing ? (
-                                renderInputField(row, '수량')
-                              ) : (
-                                <span>{row.modifiedData['수량'] || '-'}</span>
-                              )}
-                            </td>
-                            <td className='border border-white/20 px-3 py-2 text-sm text-white'>
-                              {row.isEditing ? (
-                                renderInputField(row, '단위')
-                              ) : (
-                                <span>{row.modifiedData['단위'] || '-'}</span>
-                              )}
-                            </td>
-
-                           <td className='border border-white/20 px-3 py-2 text-sm'>
-                             {row.isEditing ? (
-                               <div className='flex gap-2'>
-                                 <Button
-                                   onClick={() => confirmRow(row.id)}
-                                   className='bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs'
-                                 >
-                                   <CheckCircle className='w-3 h-3 mr-1' />
-                                   확인
-                                 </Button>
-                                 <Button
-                                   onClick={() => cancelRowEdit(row.id)}
-                                   className='bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-xs'
-                                 >
-                                   <X className='w-3 h-3 mr-1' />
-                                   취소
-                                 </Button>
-                               </div>
-                             ) : (
-                               <div className='flex gap-2'>
-                                 {/* 사용자가 직접 입력한 데이터인지 확인 */}
-                                 {row.isNewlyAdded ? (
-                                   // 사용자가 직접 입력한 데이터는 편집/삭제 모두 가능
-                                   <>
-                                     <Button
-                                       onClick={() => toggleRowEdit(row.id)}
-                                       className='bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs'
-                                     >
-                                       <Edit3 className='w-3 h-3 mr-1' />
-                                       편집
-                                     </Button>
-                                     <Button
-                                       onClick={() => deleteRow(row.id)}
-                                       className='bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs'
-                                     >
-                                       <Trash2 className='w-3 h-3 mr-1' />
-                                       삭제
-                                     </Button>
-                                   </>
-                                 ) : (
-                                   // 모든 데이터는 편집 가능
-                                   <>
-                                     <Button
-                                       onClick={() => toggleRowEdit(row.id)}
-                                       className='bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs'
-                                     >
-                                       <Edit3 className='w-3 h-3 mr-1' />
-                                       편집
-                                     </Button>
-                                     <Button
-                                       onClick={() => deleteRow(row.id)}
-                                       className='bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs'
-                                     >
-                                       <Trash2 className='w-3 h-3 mr-1' />
-                                       삭제
-                                     </Button>
-                                   </>
-                                 )}
-                               </div>
-                             )}
-                           </td>
-                         </tr>
-                         
-                                                   {/* 수정 사유 입력 행 (Excel 데이터 편집 시에만) */}
-                          {row.isEditing && !row.isNewlyAdded && (
-                            <tr className='bg-white/5 border-b border-white/10'>
-                              <td colSpan={13} className='px-3 py-3'>
-                               <div className='flex items-center gap-3'>
-                                 <div className='flex-shrink-0'>
-                                   <span className='text-xs text-white/60 font-medium'>수정 사유 (Excel 데이터 편집 시):</span>
-                                 </div>
-                                 <div className='flex-1'>
-                                   <Input
-                                     type='text'
-                                     value={editReasons[row.id] || ''}
-                                     onChange={(e) => setEditReasons(prev => ({
-                                       ...prev,
-                                       [row.id]: e.target.value
-                                     }))}
-                                     placeholder='AI 추천 답변 수정 사유를 입력하세요'
-                                     className='w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary'
-                                   />
-                                 </div>
-                               </div>
-                             </td>
-                           </tr>
-                         )}
-                       </React.Fragment>
-                     ))}
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))}
                   </tbody>
                 </table>
               </div>

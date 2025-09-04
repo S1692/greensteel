@@ -188,6 +188,10 @@ async def root():
             "get_output_data": "/api/datagather/output-data",
             "get_transport_data": "/api/datagather/transport-data",
             "get_process_data": "/api/datagather/process-data",
+            "delete_input_data": "/api/datagather/input-data/{id}",
+            "delete_output_data": "/api/datagather/output-data/{id}",
+            "delete_transport_data": "/api/datagather/transport-data/{id}",
+            "delete_process_data": "/api/datagather/process-data/{id}",
             "classify_data": "/api/datagather/classify-data",
             "get_classified_data": "/api/datagather/classified-data",
             "documentation": "/docs"
@@ -1211,6 +1215,211 @@ async def get_classified_data(classification: str):
                 "success": False,
                 "error": str(e),
                 "message": f"{classification} 분류 데이터 조회 중 오류가 발생했습니다."
+            }
+        )
+
+# 데이터 삭제 API 엔드포인트들
+@app.delete("/api/datagather/input-data/{data_id}")
+async def delete_input_data(data_id: int):
+    """투입물 데이터 삭제"""
+    try:
+        logger.info(f"투입물 데이터 삭제 요청: ID {data_id}")
+        
+        # 데이터베이스 연결
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.orm import sessionmaker
+        
+        engine = create_engine(settings.database_url.replace("postgresql+asyncpg://", "postgresql://"))
+        Session = sessionmaker(bind=engine)
+        
+        with Session() as session:
+            # 데이터 존재 여부 확인
+            check_query = "SELECT id FROM input_data WHERE id = :data_id"
+            result = session.execute(text(check_query), {"data_id": data_id})
+            if not result.fetchone():
+                return JSONResponse(
+                    status_code=404,
+                    content={
+                        "success": False,
+                        "error": "Data not found",
+                        "message": f"ID {data_id}에 해당하는 투입물 데이터를 찾을 수 없습니다."
+                    }
+                )
+            
+            # 데이터 삭제
+            delete_query = "DELETE FROM input_data WHERE id = :data_id"
+            session.execute(text(delete_query), {"data_id": data_id})
+            session.commit()
+            
+            logger.info(f"투입물 데이터 삭제 완료: ID {data_id}")
+            
+            return {
+                "success": True,
+                "message": f"투입물 데이터 (ID: {data_id})가 성공적으로 삭제되었습니다.",
+                "deleted_id": data_id
+            }
+            
+    except Exception as e:
+        logger.error(f"투입물 데이터 삭제 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": f"투입물 데이터 삭제 중 오류가 발생했습니다."
+            }
+        )
+
+@app.delete("/api/datagather/output-data/{data_id}")
+async def delete_output_data(data_id: int):
+    """산출물 데이터 삭제"""
+    try:
+        logger.info(f"산출물 데이터 삭제 요청: ID {data_id}")
+        
+        # 데이터베이스 연결
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.orm import sessionmaker
+        
+        engine = create_engine(settings.database_url.replace("postgresql+asyncpg://", "postgresql://"))
+        Session = sessionmaker(bind=engine)
+        
+        with Session() as session:
+            # 데이터 존재 여부 확인
+            check_query = "SELECT id FROM output_data WHERE id = :data_id"
+            result = session.execute(text(check_query), {"data_id": data_id})
+            if not result.fetchone():
+                return JSONResponse(
+                    status_code=404,
+                    content={
+                        "success": False,
+                        "error": "Data not found",
+                        "message": f"ID {data_id}에 해당하는 산출물 데이터를 찾을 수 없습니다."
+                    }
+                )
+            
+            # 데이터 삭제
+            delete_query = "DELETE FROM output_data WHERE id = :data_id"
+            session.execute(text(delete_query), {"data_id": data_id})
+            session.commit()
+            
+            logger.info(f"산출물 데이터 삭제 완료: ID {data_id}")
+            
+            return {
+                "success": True,
+                "message": f"산출물 데이터 (ID: {data_id})가 성공적으로 삭제되었습니다.",
+                "deleted_id": data_id
+            }
+            
+    except Exception as e:
+        logger.error(f"산출물 데이터 삭제 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": f"산출물 데이터 삭제 중 오류가 발생했습니다."
+            }
+        )
+
+@app.delete("/api/datagather/transport-data/{data_id}")
+async def delete_transport_data(data_id: int):
+    """운송 데이터 삭제"""
+    try:
+        logger.info(f"운송 데이터 삭제 요청: ID {data_id}")
+        
+        # 데이터베이스 연결
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.orm import sessionmaker
+        
+        engine = create_engine(settings.database_url.replace("postgresql+asyncpg://", "postgresql://"))
+        Session = sessionmaker(bind=engine)
+        
+        with Session() as session:
+            # 데이터 존재 여부 확인
+            check_query = "SELECT id FROM transport_data WHERE id = :data_id"
+            result = session.execute(text(check_query), {"data_id": data_id})
+            if not result.fetchone():
+                return JSONResponse(
+                    status_code=404,
+                    content={
+                        "success": False,
+                        "error": "Data not found",
+                        "message": f"ID {data_id}에 해당하는 운송 데이터를 찾을 수 없습니다."
+                    }
+                )
+            
+            # 데이터 삭제
+            delete_query = "DELETE FROM transport_data WHERE id = :data_id"
+            session.execute(text(delete_query), {"data_id": data_id})
+            session.commit()
+            
+            logger.info(f"운송 데이터 삭제 완료: ID {data_id}")
+            
+            return {
+                "success": True,
+                "message": f"운송 데이터 (ID: {data_id})가 성공적으로 삭제되었습니다.",
+                "deleted_id": data_id
+            }
+            
+    except Exception as e:
+        logger.error(f"운송 데이터 삭제 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": f"운송 데이터 삭제 중 오류가 발생했습니다."
+            }
+        )
+
+@app.delete("/api/datagather/process-data/{data_id}")
+async def delete_process_data(data_id: int):
+    """공정 데이터 삭제"""
+    try:
+        logger.info(f"공정 데이터 삭제 요청: ID {data_id}")
+        
+        # 데이터베이스 연결
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.orm import sessionmaker
+        
+        engine = create_engine(settings.database_url.replace("postgresql+asyncpg://", "postgresql://"))
+        Session = sessionmaker(bind=engine)
+        
+        with Session() as session:
+            # 데이터 존재 여부 확인
+            check_query = "SELECT id FROM process_data WHERE id = :data_id"
+            result = session.execute(text(check_query), {"data_id": data_id})
+            if not result.fetchone():
+                return JSONResponse(
+                    status_code=404,
+                    content={
+                        "success": False,
+                        "error": "Data not found",
+                        "message": f"ID {data_id}에 해당하는 공정 데이터를 찾을 수 없습니다."
+                    }
+                )
+            
+            # 데이터 삭제
+            delete_query = "DELETE FROM process_data WHERE id = :data_id"
+            session.execute(text(delete_query), {"data_id": data_id})
+            session.commit()
+            
+            logger.info(f"공정 데이터 삭제 완료: ID {data_id}")
+            
+            return {
+                "success": True,
+                "message": f"공정 데이터 (ID: {data_id})가 성공적으로 삭제되었습니다.",
+                "deleted_id": data_id
+            }
+            
+    except Exception as e:
+        logger.error(f"공정 데이터 삭제 실패: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": f"공정 데이터 삭제 중 오류가 발생했습니다."
             }
         )
 

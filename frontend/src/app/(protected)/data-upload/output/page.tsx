@@ -232,7 +232,7 @@ const OutputDataPage: React.FC = () => {
           return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자만 입력 가능합니다.' };
         }
         return { isValid: true, errorMessage: '' };
-      case '단위':
+      case '산출물_단위':
         const isUnitValid = /^[가-힣a-zA-Z0-9\s\-_()\/]*$/.test(value);
         if (!isUnitValid) {
           console.log(`텍스트 입력 오류: ${column} - ${value}`);
@@ -481,7 +481,7 @@ const OutputDataPage: React.FC = () => {
           </div>
         );
       
-      case '단위':
+      case '산출물_단위':
         return (
           <div className='relative'>
             <select
@@ -493,7 +493,7 @@ const OutputDataPage: React.FC = () => {
               }}
               className={getInputClassName()}
             >
-              <option value=''>단위를 선택하세요</option>
+              <option value=''>산출물 단위를 선택하세요</option>
               <option value='t'>톤</option>
               <option value='kg'>킬로그램</option>
               <option value='g'>그램</option>
@@ -613,7 +613,7 @@ const OutputDataPage: React.FC = () => {
       }
       
       // 기본 컬럼이 없는 경우 추가
-      const requiredColumns = ['로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '산출물명', '수량', '단위', '주문처명', '오더번호'];
+      const requiredColumns = ['로트번호', '생산품명', '생산수량', '생산수량_단위', '투입일', '종료일', '공정', '산출물명', '수량', '산출물_단위', '주문처명', '오더번호'];
       requiredColumns.forEach(col => {
         if (!columns.includes(col)) {
           columns.push(col);
@@ -807,7 +807,7 @@ const OutputDataPage: React.FC = () => {
 
     // 수동으로 추가된 데이터인 경우 모든 필수 필드 검증
     if (row.isNewlyAdded) {
-      const requiredFields = ['로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '산출물명', '수량', '단위'];
+      const requiredFields = ['로트번호', '생산품명', '생산수량', '생산수량_단위', '투입일', '종료일', '공정', '산출물명', '수량', '산출물_단위'];
       const missingFields = [];
       const invalidFields = [];
 

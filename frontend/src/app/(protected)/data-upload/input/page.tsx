@@ -236,7 +236,7 @@ const InputDataPage: React.FC = () => {
   // 템플릿 형식 검증 - 이미지의 모든 칼럼과 정확히 일치해야 함
   const validateTemplateFormat = (columns: string[]): boolean => {
     const requiredColumns = [
-      '주문처명', '오더번호', '로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '투입물명', '수량', '단위'
+      '주문처명', '오더번호', '로트번호', '생산품명', '생산수량', '생산수량_단위', '투입일', '종료일', '공정', '투입물명', '수량', '투입물_단위'
     ];
     
     // 정확한 칼럼명 매칭 (공백, 언더스코어 무시)
@@ -261,9 +261,9 @@ const InputDataPage: React.FC = () => {
       return false;
     }
     
-    // 추가 칼럼이 있는지 확인 (정확히 11개 칼럼만 허용)
-    if (columns.length !== 11) {
-      setError(`템플릿을 확인해 주세요. 정확히 11개 칼럼이어야 합니다. 현재: ${columns.length}개`);
+    // 추가 칼럼이 있는지 확인 (정확히 12개 칼럼만 허용)
+    if (columns.length !== 12) {
+      setError(`템플릿을 확인해 주세요. 정확히 12개 칼럼이어야 합니다. 현재: ${columns.length}개`);
       return false;
     }
     
@@ -486,7 +486,7 @@ const InputDataPage: React.FC = () => {
     if (!row) return;
 
     // 모든 데이터에 대해 필수 필드 검증
-    const requiredFields = ['주문처명', '오더번호', '로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '투입물명', '수량', '단위'];
+    const requiredFields = ['주문처명', '오더번호', '로트번호', '생산품명', '생산수량', '생산수량_단위', '투입일', '종료일', '공정', '투입물명', '수량', '투입물_단위'];
     const missingFields = [];
     const invalidFields = [];
 
@@ -647,7 +647,7 @@ const InputDataPage: React.FC = () => {
           return { isValid: false, errorMessage: '한글, 영문, 숫자, 특수문자만 입력 가능합니다.' };
         }
         return { isValid: true, errorMessage: '' };
-      case '단위':
+      case '투입물_단위':
         const isUnitValid = /^[가-힣a-zA-Z0-9\s\-_()\/]*$/.test(value);
         if (!isUnitValid) {
           console.log(`텍스트 입력 오류: ${column} - ${value}`);
@@ -907,7 +907,7 @@ const InputDataPage: React.FC = () => {
           </div>
         );
       
-             case '단위':
+             case '투입물_단위':
          return (
            <div className='relative'>
              <select
@@ -919,7 +919,7 @@ const InputDataPage: React.FC = () => {
                }}
                className={getInputClassName()}
              >
-               <option value=''>단위를 선택하세요</option>
+               <option value=''>투입물 단위를 선택하세요</option>
                <option value='t'>톤</option>
                <option value='kg'>킬로그램</option>
                <option value='개수'>개수</option>

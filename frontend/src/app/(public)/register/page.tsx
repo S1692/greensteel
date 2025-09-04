@@ -36,12 +36,6 @@ interface CompanyData {
   source_longitude: number | null;
 }
 
-interface UserData {
-  username: string;
-  password: string;
-  fullName: string;
-  companyId: string;
-}
 
 interface AddressData {
   roadAddress: string;
@@ -66,13 +60,8 @@ interface Country {
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'company' | 'user'>('company');
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
-  const [checkingUsername, setCheckingUsername] = useState(false);
-  const [checkingCompanyId, setCheckingCompanyId] = useState(false);
   const [checkingCompanyIdAvailability, setCheckingCompanyIdAvailability] = useState(false);
-  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
-  const [companyIdAvailable, setCompanyIdAvailable] = useState<boolean | null>(null);
   const [companyIdAvailability, setCompanyIdAvailability] = useState<boolean | null>(null);
 
   const [loading, setLoading] = useState(false);
@@ -107,12 +96,6 @@ export default function RegisterPage() {
     // fullAddress_en은 DB로 전송하지 않음 (정규식 파싱 결과만 전송)
   });
 
-  const [userFormData, setUserFormData] = useState<UserData>({
-    username: '',
-    password: '',
-    fullName: '',
-    companyId: '',
-  });
 
   const handleInputChange = (field: keyof CompanyData, value: string) => {
     setFormData(prev => ({
@@ -134,22 +117,6 @@ export default function RegisterPage() {
     }
   };
 
-  const handleUserInputChange = (field: keyof UserData, value: string) => {
-    setUserFormData(prev => ({
-      ...prev,
-      [field]: value,
-    }));
-    
-    // 사용자명이 변경되면 중복 체크 상태 초기화
-    if (field === 'username') {
-      setUsernameAvailable(null);
-    }
-    
-    // 기업 ID가 변경되면 존재 확인 상태 초기화
-    if (field === 'companyId') {
-      setCompanyIdAvailable(null);
-    }
-  };
 
   // 영문 전체 주소를 정규식으로 파싱하는 함수
   const parseEnglishAddressFromFull = (fullAddressEn: string) => {
@@ -251,59 +218,6 @@ export default function RegisterPage() {
     }
   };
 
-  const checkUsernameAvailability = async (username: string) => {
-    if (!username) return;
-    
-    setCheckingUsername(true);
-    try {
-      const response = await fetch('/api/v1/auth/check-username', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username }),
-      });
-      
-      const result = await response.json();
-      console.log('Username check response:', result); // 디버깅용
-      
-      if (result.success) {
-        setUsernameAvailable(result.data?.available);
-        
-        // 사용자명이 기업 ID로 사용되고 있는 경우 추가 안내
-        if (result.data?.available === false && result.message?.includes('기업 ID로 사용')) {
-          setError('사용자명이 이미 기업 ID로 사용되고 있습니다. 다른 사용자명을 사용해주세요.');
-        }
-      } else {
-        setUsernameAvailable(false);
-        setError(result.message || '사용자명 중복 확인에 실패했습니다.');
-      }
-    } catch (error) {
-      setUsernameAvailable(null);
-      setError('사용자명 중복 확인 중 오류가 발생했습니다.');
-    } finally {
-      setCheckingUsername(false);
-    }
-  };
-
-  const checkCompanyIdAvailability = async (companyId: string) => {
-    if (!companyId) return;
-    
-    setCheckingCompanyId(true);
-    try {
-      const response = await fetch('/api/v1/auth/check-company-id', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ company_id: companyId }),
-      });
-      
-      const result = await response.json();
-      console.log('Company ID existence check response:', result); // 디버깅용
-      setCompanyIdAvailable(result.data?.available);
-    } catch (error) {
-      setCompanyIdAvailable(null);
-    } finally {
-      setCheckingCompanyId(false);
-    }
-  };
 
   const checkCompanyIdDuplicate = async (companyId: string) => {
     if (!companyId) return;
@@ -343,183 +257,108 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (activeTab === 'company') {
-      // 기업 회원가입 로직
-      setLoading(true);
-      setError(null);
-      setSuccess(null);
+    // 기업 회원가입 로직
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
 
-      // 기업 ID 중복 체크 확인
-      if (companyIdAvailability === null) {
-        setError('기업 ID 중복 확인을 먼저 해주세요.');
-        setLoading(false);
-        return;
+    // 기업 ID 중복 체크 확인
+    if (companyIdAvailability === null) {
+      setError('기업 ID 중복 확인을 먼저 해주세요.');
+      setLoading(false);
+      return;
+    }
+
+    if (companyIdAvailability === false) {
+      setError('이미 사용 중인 기업 ID입니다. 다른 기업 ID를 사용해주세요.');
+      setLoading(false);
+      return;
+    }
+
+    // 비밀번호 확인
+    if (formData.password !== formData.confirm_password) {
+      setError('비밀번호가 일치하지 않습니다.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/v1/auth/register/company', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          company_id: formData.company_id,
+          password: formData.password,
+          Installation: formData.Installation,
+          Installation_en: formData.Installation_en,
+          economic_activity: formData.economic_activity,
+          economic_activity_en: formData.economic_activity_en,
+          representative: formData.representative,
+          representative_en: formData.representative_en,
+          email: formData.email,
+          telephone: formData.telephone,
+          street: formData.street,
+          street_en: formData.street_en, // 정규식 파싱 결과 (영문 도로명)
+          number: formData.number,
+          number_en: formData.number_en, // 정규식 파싱 결과 (영문 건물번호)
+          postcode: formData.postcode,
+          city: formData.city,
+          city_en: formData.city_en, // 정규식 파싱 결과 (영문 도시명)
+          country: formData.country,
+          country_en: formData.country_en,
+          country_code: formData.country_code,
+          unlocode: formData.unlocode,
+          source_latitude: formData.source_latitude,
+          source_longitude: formData.source_longitude,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || '회원가입에 실패했습니다.');
       }
 
-      if (companyIdAvailability === false) {
-        setError('이미 사용 중인 기업 ID입니다. 다른 기업 ID를 사용해주세요.');
-        setLoading(false);
-        return;
-      }
-
-      // 비밀번호 확인
-      if (formData.password !== formData.confirm_password) {
-        setError('비밀번호가 일치하지 않습니다.');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const response = await fetch('/api/v1/auth/register/company', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            company_id: formData.company_id,
-            password: formData.password,
-            Installation: formData.Installation,
-            Installation_en: formData.Installation_en,
-            economic_activity: formData.economic_activity,
-            economic_activity_en: formData.economic_activity_en,
-            representative: formData.representative,
-            representative_en: formData.representative_en,
-            email: formData.email,
-            telephone: formData.telephone,
-            street: formData.street,
-            street_en: formData.street_en, // 정규식 파싱 결과 (영문 도로명)
-            number: formData.number,
-            number_en: formData.number_en, // 정규식 파싱 결과 (영문 건물번호)
-            postcode: formData.postcode,
-            city: formData.city,
-            city_en: formData.city_en, // 정규식 파싱 결과 (영문 도시명)
-            country: formData.country,
-            country_en: formData.country_en,
-            country_code: formData.country_code,
-            unlocode: formData.unlocode,
-            source_latitude: formData.source_latitude,
-            source_longitude: formData.source_longitude,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.detail || '회원가입에 실패했습니다.');
-        }
-
-        setSuccess('기업 회원가입이 완료되었습니다! 3초 후 메인 페이지로 이동합니다.');
-        
-        // 3초 후 프로덕션 메인 페이지로 이동
-        setTimeout(() => {
-          window.location.href = 'https://greensteel-pwdneh4wh-123s-projects-eed55fc0.vercel.app/';
-        }, 3000);
-        
-        setFormData({
-          company_id: '',
-          password: '',
-          confirm_password: '',
-          Installation: '',
-          Installation_en: '',
-          economic_activity: '',
-          economic_activity_en: '',
-          representative: '',
-          representative_en: '',
-          email: '',
-          telephone: '',
-          street: '',
-          street_en: '',
-          number: '',
-          number_en: '',
-          postcode: '',
-          city: '',
-          city_en: '',
-          country: '',
-          country_en: '',
-          country_code: '',
-          unlocode: '',
-          source_latitude: null,
-          source_longitude: null,
-        });
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.'
-        );
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      // 개인 사용자 회원가입 로직
-      setLoading(true);
-      setError(null);
-      setSuccess(null);
-
-      // 사용자명 중복 체크 확인
-      if (usernameAvailable === null) {
-        setError('사용자명 중복 확인을 먼저 해주세요.');
-        setLoading(false);
-        return;
-      }
-
-      if (usernameAvailable === false) {
-        setError('이미 사용 중인 사용자명입니다. 다른 사용자명을 사용해주세요.');
-        setLoading(false);
-        return;
-      }
-
-      // 기업 ID 존재 확인
-      if (companyIdAvailable === null) {
-        setError('기업 ID 확인을 먼저 해주세요.');
-        setLoading(false);
-        return;
-      }
-
-      if (companyIdAvailable === false) {
-        setError('존재하지 않는 기업 ID입니다. 올바른 기업 ID를 입력해주세요.');
-        setLoading(false);
-        return;
-      }
-
-
-
-      try {
-        const response = await fetch('/api/v1/auth/register/user', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            username: userFormData.username,
-            password: userFormData.password,
-            full_name: userFormData.fullName,
-            company_id: userFormData.companyId,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.detail || '회원가입에 실패했습니다.');
-        }
-
-        setSuccess('개인 사용자 회원가입이 완료되었습니다! 3초 후 메인 페이지로 이동합니다.');
-        
-        // 3초 후 프로덕션 메인 페이지로 이동
-        setTimeout(() => {
-          window.location.href = 'https://greensteel-pwdneh4wh-123s-projects-eed55fc0.vercel.app/';
-        }, 3000);
-        
-        setUserFormData({
-          username: '',
-          password: '',
-          fullName: '',
-          companyId: '',
-        });
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.'
-        );
-      } finally {
-        setLoading(false);
-      }
+      setSuccess('회원가입이 완료되었습니다! 3초 후 메인 페이지로 이동합니다.');
+      
+      // 3초 후 프로덕션 메인 페이지로 이동
+      setTimeout(() => {
+        window.location.href = 'https://greensteel-pwdneh4wh-123s-projects-eed55fc0.vercel.app/';
+      }, 3000);
+      
+      setFormData({
+        company_id: '',
+        password: '',
+        confirm_password: '',
+        Installation: '',
+        Installation_en: '',
+        economic_activity: '',
+        economic_activity_en: '',
+        representative: '',
+        representative_en: '',
+        email: '',
+        telephone: '',
+        street: '',
+        street_en: '',
+        number: '',
+        number_en: '',
+        postcode: '',
+        city: '',
+        city_en: '',
+        country: '',
+        country_en: '',
+        country_code: '',
+        unlocode: '',
+        source_latitude: null,
+        source_longitude: null,
+      });
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.'
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -528,41 +367,15 @@ export default function RegisterPage() {
   return (
     <div className='min-h-screen bg-ecotrace-background flex items-center justify-center p-4'>
       <div className='w-full max-w-4xl'>
-        {/* 탭 네비게이션 */}
-        <div className='flex mb-8 bg-white/5 rounded-lg p-1'>
-          <button
-            onClick={() => setActiveTab('company')}
-            className={`flex-1 py-3 px-6 rounded-md text-sm font-medium transition-colors ${
-              activeTab === 'company'
-                ? 'bg-white/10 text-white'
-                : 'text-white/60 hover:text-white/80'
-            }`}
-          >
-            기업 회원가입
-          </button>
-          <button
-            onClick={() => setActiveTab('user')}
-            className={`flex-1 py-3 px-6 rounded-md text-sm font-medium transition-colors ${
-              activeTab === 'user'
-                ? 'bg-primary text-white'
-                : 'text-white/60 hover:text-white/80'
-            }`}
-          >
-            개인 사용자 회원가입
-          </button>
-        </div>
-
         {/* 회원가입 폼 */}
         <div className='bg-white/5 backdrop-blur-sm rounded-xl p-8 border border-white/10'>
-          {activeTab === 'company' ? (
-            // 기업 회원가입 폼
-            <form onSubmit={handleSubmit} className='space-y-6'>
-              <h2 className='text-2xl font-bold text-white text-center mb-6'>
-                기업 회원가입
-              </h2>
-              <p className='text-white/60 text-center mb-8'>
-                기업 정보를 입력하여 회원가입을 완료하세요.
-              </p>
+          <form onSubmit={handleSubmit} className='space-y-6'>
+            <h2 className='text-2xl font-bold text-white text-center mb-6'>
+              회원가입
+            </h2>
+            <p className='text-white/60 text-center mb-8'>
+              기업 정보를 입력하여 회원가입을 완료하세요.
+            </p>
               <div className='bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-lg p-4 mb-6'>
                 <p className='text-sm'>
                   <strong>중요:</strong> 기업 ID는 사용자명과 겹칠 수 없습니다. 
@@ -988,159 +801,17 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* 제출 버튼 */}
-              <div className='flex justify-center pt-4'>
-                <Button
-                  type='submit'
-                  disabled={loading}
-                  className='w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors'
-                >
-                  {loading ? '처리 중...' : '기업 회원가입'}
-                </Button>
-              </div>
-            </form>
-          ) : (
-            // 개인 사용자 회원가입 폼
-            <form onSubmit={handleSubmit} className='space-y-6'>
-              <h2 className='text-2xl font-bold text-white text-center mb-6'>
-                개인 사용자 회원가입
-              </h2>
-              <p className='text-white/60 text-center mb-8'>
-                개인 정보를 입력하여 회원가입을 완료하세요.
-              </p>
-              <div className='bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-lg p-4 mb-6'>
-                <p className='text-sm'>
-                  <strong>중요:</strong> 사용자명은 기업 ID와 겹칠 수 없습니다. 
-                  사용자명을 입력하기 전에 반드시 중복 확인을 해주세요.
-                </p>
-              </div>
-
-              {error && (
-                <div className='p-4 bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg'>
-                  {error}
-                </div>
-              )}
-
-              {success && (
-                <div className='p-4 bg-green-500/20 border border-green-500/30 text-green-400 rounded-lg'>
-                  {success}
-                </div>
-              )}
-
-              {/* 계정 정보 */}
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                <div>
-                  <label className='block text-sm font-medium text-white mb-2'>
-                    사용자명 *
-                  </label>
-                  <div className='flex gap-2'>
-                    <Input
-                      type='text'
-                      value={userFormData.username}
-                      onChange={e =>
-                        handleUserInputChange('username', e.target.value)
-                      }
-                      className='flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
-                      placeholder='사용자명을 입력하세요'
-                      required
-                    />
-                    <Button
-                      type='button'
-                      onClick={() => checkUsernameAvailability(userFormData.username)}
-                      disabled={checkingUsername || !userFormData.username}
-                      className='px-4 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors'
-                    >
-                      {checkingUsername ? '확인중...' : '중복확인'}
-                    </Button>
-                  </div>
-                  {usernameAvailable !== null && (
-                    <p className={`text-sm mt-1 ${usernameAvailable ? 'text-green-400' : 'text-red-400'}`}>
-                      {usernameAvailable ? '사용 가능한 사용자명입니다.' : '이미 사용 중인 사용자명입니다.'}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className='block text-sm font-medium text-white mb-2'>
-                    성명 *
-                  </label>
-                  <Input
-                    type='text'
-                    value={userFormData.fullName}
-                    onChange={e =>
-                      handleUserInputChange('fullName', e.target.value)
-                    }
-                    className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
-                    placeholder='성명을 입력하세요'
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* 비밀번호 */}
-              <div>
-                <label className='block text-sm font-medium text-white mb-2'>
-                  비밀번호 *
-                </label>
-                <Input
-                  type='password'
-                  value={userFormData.password}
-                  onChange={e =>
-                    handleUserInputChange('password', e.target.value)
-                  }
-                  className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
-                  placeholder='비밀번호를 입력하세요'
-                  required
-                />
-              </div>
-
-
-
-              {/* 기업 정보 */}
-              <div>
-                <label className='block text-sm font-medium text-white mb-2'>
-                  소속 기업 ID *
-                </label>
-                <div className='flex gap-2'>
-                  <Input
-                    type='text'
-                    value={userFormData.companyId}
-                    onChange={e =>
-                      handleUserInputChange('companyId', e.target.value)
-                    }
-                    className='flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
-                    placeholder='소속 기업 ID를 입력하세요'
-                    required
-                  />
-                  <Button
-                    type='button'
-                    onClick={() => checkCompanyIdAvailability(userFormData.companyId)}
-                    disabled={checkingCompanyId || !userFormData.companyId}
-                    className='px-4 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors'
-                  >
-                    {checkingCompanyId ? '확인중...' : '기업확인'}
-                  </Button>
-                </div>
-                {companyIdAvailable !== null && (
-                  <p className={`text-sm mt-1 ${companyIdAvailable ? 'text-green-400' : 'text-red-400'}`}>
-                    {companyIdAvailable ? '존재하는 기업입니다.' : '존재하지 않는 기업입니다.'}
-                  </p>
-                )}
-              </div>
-
-
-
-              {/* 제출 버튼 */}
-              <div className='flex justify-center pt-4'>
-                <Button
-                  type='submit'
-                  className='w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors'
-                >
-                  개인 사용자 회원가입
-                </Button>
-              </div>
-            </form>
-          )}
+            {/* 제출 버튼 */}
+            <div className='flex justify-center pt-4'>
+              <Button
+                type='submit'
+                disabled={loading}
+                className='w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors'
+              >
+                {loading ? '처리 중...' : '회원가입'}
+              </Button>
+            </div>
+          </form>
         </div>
       </div>
 

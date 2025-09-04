@@ -13,7 +13,6 @@ export default function LandingPage() {
     id: '',
     password: ''
   });
-  const [loginType, setLoginType] = useState<'user' | 'company'>('user');
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -51,11 +50,11 @@ export default function LandingPage() {
       }
       
       // 임시 로그인 검증 (실제로는 API 호출)
-      const isValidLogin = await validateLogin(loginData.id, loginData.password, loginType);
+      const isValidLogin = await validateLogin(loginData.id, loginData.password);
       
       if (isValidLogin) {
         // 로그인 성공 시 리다이렉트
-        const redirectUrl = `/dashboard?${loginType}Id=${encodeURIComponent(loginData.id)}`;
+        const redirectUrl = `/dashboard?companyId=${encodeURIComponent(loginData.id)}`;
         router.push(redirectUrl);
       } else {
         alert('ID 또는 비밀번호가 올바르지 않습니다.');
@@ -69,25 +68,18 @@ export default function LandingPage() {
   };
 
   // 로그인 검증 함수 (임시 - 실제로는 API 호출)
-  const validateLogin = async (id: string, password: string, type: 'user' | 'company'): Promise<boolean> => {
+  const validateLogin = async (id: string, password: string): Promise<boolean> => {
     // 임시 검증 로직 (실제로는 서버 API 호출)
     await new Promise(resolve => setTimeout(resolve, 1000)); // 로딩 시뮬레이션
     
     // 임시 유효한 계정들
-    const validAccounts = {
-      user: [
-        { id: 'user1', password: 'password1' },
-        { id: 'user2', password: 'password2' },
-        { id: 'admin', password: 'admin123' }
-      ],
-      company: [
-        { id: 'company1', password: 'company123' },
-        { id: 'company2', password: 'company456' },
-        { id: 'greensteel', password: 'greensteel123' }
-      ]
-    };
+    const validAccounts = [
+      { id: 'company1', password: 'company123' },
+      { id: 'company2', password: 'company456' },
+      { id: 'greensteel', password: 'greensteel123' }
+    ];
     
-    return validAccounts[type].some(account => 
+    return validAccounts.some(account => 
       account.id === id && account.password === password
     );
   };
@@ -116,42 +108,17 @@ export default function LandingPage() {
           {/* 로그인 카드 */}
           <div className='bg-ecotrace-card rounded-2xl p-6 shadow-lg border border-white/10'>
             <div className='space-y-4'>
-              {/* 로그인 타입 탭 */}
-              <div className='flex bg-white/10 rounded-lg p-1'>
-                <button
-                  type='button'
-                  onClick={() => setLoginType('user')}
-                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                    loginType === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-white/70 hover:text-white'
-                  }`}
-                >
-                  사용자
-                </button>
-                <button
-                  type='button'
-                  onClick={() => setLoginType('company')}
-                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                    loginType === 'company'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-white/70 hover:text-white'
-                  }`}
-                >
-                  기업
-                </button>
-              </div>
 
               {/* ID 입력 필드 */}
               <div className='text-left'>
                 <label className='block text-white text-sm font-medium mb-2'>
-                  {loginType === 'user' ? '사용자 ID' : '기업 ID'} *
+                  ID *
                 </label>
                 <Input
                   type='text'
                   value={loginData.id}
                   onChange={(e) => setLoginData(prev => ({ ...prev, id: e.target.value }))}
-                  placeholder={loginType === 'user' ? '예: user1, admin' : '예: company1, greensteel'}
+                  placeholder='예: company1, greensteel'
                   className='w-full bg-ecotrace-input border-white/20 text-white placeholder:text-white/50'
                 />
               </div>
@@ -215,31 +182,6 @@ export default function LandingPage() {
         {/* 로그인 폼 */}
         <div className='bg-white/5 backdrop-blur-sm rounded-xl p-8 border border-white/10'>
           <form onSubmit={handleLogin} className='space-y-6'>
-            {/* 로그인 타입 탭 */}
-            <div className='flex bg-white/10 rounded-lg p-1'>
-              <button
-                type='button'
-                onClick={() => setLoginType('user')}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                  loginType === 'user'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-white/70 hover:text-white'
-                }`}
-              >
-                사용자
-              </button>
-              <button
-                type='button'
-                onClick={() => setLoginType('company')}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                  loginType === 'company'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-white/70 hover:text-white'
-                }`}
-              >
-                기업
-              </button>
-            </div>
 
             {/* ID 입력 */}
             <div>
@@ -247,14 +189,14 @@ export default function LandingPage() {
                 htmlFor='id'
                 className='block text-sm font-medium text-white mb-2'
               >
-                {loginType === 'user' ? '사용자 ID' : '기업 ID'} *
+                ID *
               </label>
               <Input
                 id='id'
                 type='text'
                 value={loginData.id}
                 onChange={(e) => setLoginData(prev => ({ ...prev, id: e.target.value }))}
-                placeholder={loginType === 'user' ? '예: user1, admin' : '예: company1, greensteel'}
+                placeholder='예: company1, greensteel'
                 className='w-full bg-white/10 border-white/20 text-white placeholder:text-white/40 focus:border-primary focus:bg-white/20'
               />
             </div>

@@ -1,6 +1,5 @@
 from typing import Dict, Any
 import uuid
-import hashlib
 from app.common.logger import auth_logger
 from app.common.database import get_database_connection, close_database_connection
 from app.domain.entities.user import User
@@ -9,9 +8,6 @@ from app.domain.entities.company import Company
 class AuthService:
     """인증 도메인 서비스"""
     
-    def _hash_password(self, password: str) -> str:
-        """비밀번호를 SHA-256으로 해싱"""
-        return hashlib.sha256(password.encode()).hexdigest()
     
     async def register_user(self, username: str, full_name: str, company_id: str, password: str, role: str = "승인 전") -> Dict[str, Any]:
         """사용자 등록 (실제 DB 연동)"""
@@ -58,15 +54,12 @@ class AuthService:
                     "data": {}
                 }
             
-            # 비밀번호 해싱
-            hashed_password = self._hash_password(password)
-            
             # 사용자 등록
             user_id = await connection.fetchval("""
                 INSERT INTO users (username, password, full_name, company_id, role)
                 VALUES ($1, $2, $3, $4, $5)
                 RETURNING id
-            """, username, hashed_password, full_name, company_id, role)
+            """, username, password, full_name, company_id, role)
             
             auth_logger.info(f"User registered successfully: {username} with role: {role}")
             return {
@@ -126,9 +119,6 @@ class AuthService:
                     "data": {}
                 }
             
-            # 비밀번호 해싱
-            hashed_password = self._hash_password(password)
-            
             # 기업 등록
             company_id_result = await connection.fetchval("""
                 INSERT INTO companies (
@@ -138,7 +128,7 @@ class AuthService:
                 )
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
                 RETURNING company_id
-            """, company_id, hashed_password, Installation, Installation_en, economic_activity, economic_activity_en,
+            """, company_id, password, Installation, Installation_en, economic_activity, economic_activity_en,
                  representative, representative_en, email, telephone, street, street_en, number, number_en,
                  postcode, city, city_en, country, country_en, unlocode, source_latitude, source_longitude)
             
@@ -285,15 +275,12 @@ class AuthService:
         try:
             connection = await get_database_connection()
             
-            # 비밀번호 해싱
-            hashed_password = self._hash_password(password)
-            
             # 사용자 테이블에서 검증
             user_data = await connection.fetchrow("""
                 SELECT id, username, full_name, company_id, role
                 FROM users 
                 WHERE username = $1 AND password = $2
-            """, username, hashed_password)
+            """, username, password)
             
             if user_data:
                 auth_logger.info(f"User login successful: {username}")
@@ -316,7 +303,7 @@ class AuthService:
                 SELECT company_id, Installation
                 FROM companies 
                 WHERE company_id = $1 AND password = $2
-            """, username, hashed_password)
+            """, username, password)
             
             if company_data:
                 auth_logger.info(f"Company login successful: {username}")

@@ -11,7 +11,6 @@ import InputManager from '@/components/cbam/InputManager';
 import { InstallSelector } from '@/components/cbam/InstallSelector';
 import { ProductSelector } from '@/components/cbam/ProductSelector';
 import { ProcessSelector, ProductProcessModal } from '@/components/cbam/ProcessSelector';
-import { ProcessInputModal } from '@/components/cbam/ProcessInputModal';
 import { InstallModal } from '@/components/cbam/modals/InstallModal';
 
 import { useProcessManager, Process, Install, Product } from '@/hooks/useProcessManager';
@@ -148,8 +147,6 @@ function ProcessManagerInner() {
   const [showProcessModal, setShowProcessModal] = useState(false);
   const [showInputModal, setShowInputModal] = useState(false);
   const [selectedProcessForInput, setSelectedProcessForInput] = useState<Process | null>(null);
-  const [showProcessInputModal, setShowProcessInputModal] = useState(false);
-  const [selectedProcessForInputModal, setSelectedProcessForInputModal] = useState<Process | null>(null);
 
   // 모든 공정 노드의 배출량 정보 새로고침
   const refreshAllProcessEmissions = useCallback(async () => {
@@ -190,16 +187,56 @@ function ProcessManagerInner() {
   }, [addProductNode, handleProductNodeAddProcess]);
 
   // 투입량 입력 모달 열기
-  const openInputModal = useCallback((process: Process) => {
+  const openInputModal = useCallback((process: any) => {
+    console.log('🔍 openInputModal 호출됨:', process);
+    
+    // 공정과 관련된 제품 정보 찾기
+    // processData에서 product_names를 통해 관련 제품 찾기
+    let relatedProduct = null;
+    if (process.product_names && process.product_names !== 'N/A') {
+      const productNames = process.product_names.split(', ');
+      relatedProduct = products.find(p => productNames.includes(p.product_name));
+    }
+    
+    // 관련 제품이 없으면 현재 선택된 제품 사용
+    if (!relatedProduct && selectedProduct) {
+      relatedProduct = selectedProduct;
+    }
+    
+    console.log('🔍 관련 제품 정보:', relatedProduct);
+    console.log('🔍 현재 선택된 제품:', selectedProduct);
+    
     setSelectedProcessForInput(process);
+    if (relatedProduct) {
+      setSelectedProduct(relatedProduct);
+    }
     setShowInputModal(true);
-  }, []);
+  }, [products, selectedProduct]);
 
   // 공정 노드 더블클릭 핸들러
   const handleProcessNodeDoubleClick = useCallback((processData: any) => {
-    setSelectedProcessForInputModal(processData);
-    setShowProcessInputModal(true);
-  }, []);
+    console.log('🔍 공정 노드 더블클릭:', processData);
+    
+    // 공정과 관련된 제품 정보 찾기
+    let relatedProduct = null;
+    if (processData.product_names && processData.product_names !== 'N/A') {
+      const productNames = processData.product_names.split(', ');
+      relatedProduct = products.find(p => productNames.includes(p.product_name));
+    }
+    
+    // 관련 제품이 없으면 현재 선택된 제품 사용
+    if (!relatedProduct && selectedProduct) {
+      relatedProduct = selectedProduct;
+    }
+    
+    console.log('🔍 더블클릭 관련 제품 정보:', relatedProduct);
+    
+    setSelectedProcessForInput(processData);
+    if (relatedProduct) {
+      setSelectedProduct(relatedProduct);
+    }
+    setShowInputModal(true);
+  }, [products, selectedProduct]);
 
   // 공정 선택 처리
   const handleProcessSelect = useCallback(async (process: Process) => {
@@ -464,16 +501,7 @@ function ProcessManagerInner() {
         />
       )}
 
-      {/* 공정 노드 더블클릭 시 투입량 입력 모달 */}
-      {showProcessInputModal && selectedProcessForInputModal && (
-        <ProcessInputModal
-          selectedProcess={selectedProcessForInputModal}
-          onClose={() => {
-            setShowProcessInputModal(false);
-            setSelectedProcessForInputModal(null);
-          }}
-        />
-      )}
+      {/* 공정 노드 더블클릭 시에도 InputManager 사용 */}
 
       {showInstallModal && (
         <InstallModal

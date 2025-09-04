@@ -111,6 +111,8 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
       console.log('🔍 로컬 스토리지에서 투입물명 추출 시작...');
       console.log('선택된 제품:', selectedProduct);
       console.log('선택된 제품명:', selectedProduct?.product_name);
+      console.log('선택된 공정:', selectedProcess);
+      console.log('선택된 공정명:', selectedProcess?.process_name);
       
       // 로컬 스토리지에서 input data 가져오기
       const storedData = localStorage.getItem('cbam_input_data');
@@ -143,30 +145,43 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
       
       console.log('📋 전체 input data 샘플:', inputDataArray.slice(0, 3));
       
-      // 제품명으로 필터링 (더 유연한 매칭)
+      // 제품명과 공정명으로 필터링 (더 유연한 매칭)
       let filteredData = inputDataArray;
-      if (selectedProduct && selectedProduct.product_name) {
+      if (selectedProduct && selectedProcess && selectedProduct.product_name && selectedProcess.process_name) {
         const selectedProductName = selectedProduct.product_name.trim();
-        console.log('🔍 검색할 제품명:', `"${selectedProductName}"`);
+        const selectedProcessName = selectedProcess.process_name.trim();
+        
+        console.log('🔍 검색할 제품명:', `"${selectedProductName}"`, '🔍 검색할 공정명:', `"${selectedProcessName}"`);
         
         filteredData = inputDataArray.filter((item: any) => {
           const itemProductName = (item.생산품명 || '').trim();
+          const itemProcessName = (item.공정 || '').trim();
           
-          // 더 유연한 매칭: 정확한 매칭, 대소문자 무시, 포함 관계
-          const isExactMatch = itemProductName === selectedProductName;
-          const isCaseInsensitiveMatch = itemProductName.toLowerCase() === selectedProductName.toLowerCase();
-          const isContainsMatch = itemProductName.toLowerCase().includes(selectedProductName.toLowerCase()) || 
-                                 selectedProductName.toLowerCase().includes(itemProductName.toLowerCase());
+          // 유연한 문자열 매칭: 정확한 매칭, 대소문자 무시, 부분 문자열 포함
+          const isProductExactMatch = itemProductName === selectedProductName;
+          const isProductCaseInsensitiveMatch = itemProductName.toLowerCase() === selectedProductName.toLowerCase();
+          const isProductContainsMatch = itemProductName.toLowerCase().includes(selectedProductName.toLowerCase()) || 
+                                        selectedProductName.toLowerCase().includes(itemProductName.toLowerCase());
+          const isProductMatch = isProductExactMatch || isProductCaseInsensitiveMatch || isProductContainsMatch;
           
-          const isMatch = isExactMatch || isCaseInsensitiveMatch || isContainsMatch;
+          const isProcessExactMatch = itemProcessName === selectedProcessName;
+          const isProcessCaseInsensitiveMatch = itemProcessName.toLowerCase() === selectedProcessName.toLowerCase();
+          const isProcessContainsMatch = itemProcessName.toLowerCase().includes(selectedProcessName.toLowerCase()) || 
+                                        selectedProcessName.toLowerCase().includes(itemProcessName.toLowerCase());
+          const isProcessMatch = isProcessExactMatch || isProcessCaseInsensitiveMatch || isProcessContainsMatch;
+          
+          // 제품명과 공정명이 모두 일치하는 경우만 필터링
+          const isMatch = isProductMatch && isProcessMatch;
           
           if (isMatch) {
-            console.log('✅ 매칭된 항목:', item.생산품명, '→', item.투입물명);
+            console.log('✅ 매칭된 항목:', item.생산품명, '|', item.공정, '→', item.투입물명);
+            console.log('   제품 매칭:', isProductMatch, '(정확:', isProductExactMatch, '대소문자:', isProductCaseInsensitiveMatch, '포함:', isProductContainsMatch, ')');
+            console.log('   공정 매칭:', isProcessMatch, '(정확:', isProcessExactMatch, '대소문자:', isProcessCaseInsensitiveMatch, '포함:', isProcessContainsMatch, ')');
           }
           return isMatch;
         });
         
-        console.log(`🎯 제품 "${selectedProduct.product_name}"에 해당하는 데이터:`, filteredData.length, '개');
+        console.log(`🎯 제품 "${selectedProduct.product_name}"의 공정 "${selectedProcess.process_name}"에 해당하는 데이터:`, filteredData.length, '개');
         
         // 매칭된 데이터가 없으면 전체 데이터 사용
         if (filteredData.length === 0) {
@@ -174,7 +189,7 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
           filteredData = inputDataArray;
         }
       } else {
-        console.log('⚠️ 선택된 제품이 없어서 전체 데이터를 사용합니다.');
+        console.log('⚠️ 선택된 제품 또는 공정이 없어서 전체 데이터를 사용합니다.');
       }
       
       // 투입물명 추출 및 중복 제거
@@ -193,7 +208,7 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
       setInputMaterialNames([]);
       setInputFuelNames([]);
     }
-  }, [selectedProduct]);
+  }, [selectedProduct, selectedProcess]);
 
   // ============================================================================
   // 🔍 기존 데이터 로드
@@ -248,11 +263,39 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
       if (storedData) {
         const parsedData = JSON.parse(storedData);
         const inputDataArray = Array.isArray(parsedData) ? parsedData : (parsedData?.data || []);
-        const matchedItem = inputDataArray.find((item: any) => 
-          item.투입물명 === selectedName && 
-          selectedProduct && 
-          item.생산품명 === selectedProduct.product_name
-        );
+        const matchedItem = inputDataArray.find((item: any) => {
+          const itemProductName = (item.생산품명 || '').trim();
+          const itemProcessName = (item.공정 || '').trim();
+          const itemInputName = (item.투입물명 || '').trim();
+          
+          // 투입물명 정확한 매칭
+          const isInputNameMatch = itemInputName === selectedName;
+          
+          // 제품명 유연한 매칭
+          const isProductMatch = selectedProduct && selectedProduct.product_name ? 
+            itemProductName.toLowerCase() === selectedProduct.product_name.trim().toLowerCase() ||
+            itemProductName.toLowerCase().includes(selectedProduct.product_name.trim().toLowerCase()) ||
+            selectedProduct.product_name.trim().toLowerCase().includes(itemProductName.toLowerCase()) : false;
+          
+          // 공정명 유연한 매칭
+          const isProcessMatch = selectedProcess && selectedProcess.process_name ?
+            itemProcessName.toLowerCase() === selectedProcess.process_name.trim().toLowerCase() ||
+            itemProcessName.toLowerCase().includes(selectedProcess.process_name.trim().toLowerCase()) ||
+            selectedProcess.process_name.trim().toLowerCase().includes(itemProcessName.toLowerCase()) : false;
+          
+          const isMatch = isInputNameMatch && isProductMatch && isProcessMatch;
+          
+          if (isMatch) {
+            console.log('🎯 정확한 투입량 매칭:', {
+              투입물명: itemInputName,
+              제품명: itemProductName,
+              공정명: itemProcessName,
+              수량: item.수량
+            });
+          }
+          
+          return isMatch;
+        });
         if (matchedItem) {
           inputAmount = matchedItem.수량 || 0;
         }
@@ -288,7 +331,7 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
     } catch (error) {
       console.error('원료 선택 처리 실패:', error);
     }
-  }, [allMaterials, selectedProduct]);
+  }, [allMaterials, selectedProduct, selectedProcess]);
 
   const handleFuelSelect = useCallback((selectedName: string) => {
     try {
@@ -307,11 +350,39 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
       if (storedData) {
         const parsedData = JSON.parse(storedData);
         const inputDataArray = Array.isArray(parsedData) ? parsedData : (parsedData?.data || []);
-        const matchedItem = inputDataArray.find((item: any) => 
-          item.투입물명 === selectedName && 
-          selectedProduct && 
-          item.생산품명 === selectedProduct.product_name
-        );
+        const matchedItem = inputDataArray.find((item: any) => {
+          const itemProductName = (item.생산품명 || '').trim();
+          const itemProcessName = (item.공정 || '').trim();
+          const itemInputName = (item.투입물명 || '').trim();
+          
+          // 투입물명 정확한 매칭
+          const isInputNameMatch = itemInputName === selectedName;
+          
+          // 제품명 유연한 매칭
+          const isProductMatch = selectedProduct && selectedProduct.product_name ? 
+            itemProductName.toLowerCase() === selectedProduct.product_name.trim().toLowerCase() ||
+            itemProductName.toLowerCase().includes(selectedProduct.product_name.trim().toLowerCase()) ||
+            selectedProduct.product_name.trim().toLowerCase().includes(itemProductName.toLowerCase()) : false;
+          
+          // 공정명 유연한 매칭
+          const isProcessMatch = selectedProcess && selectedProcess.process_name ?
+            itemProcessName.toLowerCase() === selectedProcess.process_name.trim().toLowerCase() ||
+            itemProcessName.toLowerCase().includes(selectedProcess.process_name.trim().toLowerCase()) ||
+            selectedProcess.process_name.trim().toLowerCase().includes(itemProcessName.toLowerCase()) : false;
+          
+          const isMatch = isInputNameMatch && isProductMatch && isProcessMatch;
+          
+          if (isMatch) {
+            console.log('🎯 정확한 투입량 매칭:', {
+              투입물명: itemInputName,
+              제품명: itemProductName,
+              공정명: itemProcessName,
+              수량: item.수량
+            });
+          }
+          
+          return isMatch;
+        });
         if (matchedItem) {
           inputAmount = matchedItem.수량 || 0;
         }
@@ -347,7 +418,7 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
     } catch (error) {
       console.error('연료 선택 처리 실패:', error);
     }
-  }, [allFuels, selectedProduct]);
+  }, [allFuels, selectedProduct, selectedProcess]);
 
   // ============================================================================
   // 💾 데이터 저장
@@ -580,7 +651,19 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
   useEffect(() => {
     console.log('🔍 InputManager useEffect 실행됨');
     console.log('🔍 selectedProcess:', selectedProcess);
+    console.log('🔍 selectedProcess 상세 정보:', {
+      id: selectedProcess?.id,
+      process_name: selectedProcess?.process_name,
+      install_id: selectedProcess?.install_id,
+      install_name: selectedProcess?.install_name,
+      product_names: selectedProcess?.product_names
+    });
     console.log('🔍 selectedProduct:', selectedProduct);
+    console.log('🔍 selectedProduct 상세 정보:', {
+      id: selectedProduct?.id,
+      product_name: selectedProduct?.product_name,
+      install_id: selectedProduct?.install_id
+    });
     
     if (selectedProcess?.id) {
       console.log('🚀 InputManager 초기화 시작...');
@@ -591,7 +674,7 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
     } else {
       console.log('⚠️ selectedProcess.id가 없어서 초기화를 건너뜁니다.');
     }
-  }, [selectedProcess?.id, selectedProduct, loadAllExistingData, loadAllMaterials, loadAllFuels, loadInputDataNames]);
+  }, [selectedProcess?.id, selectedProcess, selectedProduct, loadAllExistingData, loadAllMaterials, loadAllFuels, loadInputDataNames]);
 
   // 외부 클릭 시 드롭다운 닫기
   useEffect(() => {
@@ -809,21 +892,21 @@ export default function InputManager({ selectedProcess, selectedProduct, onClose
                               <div
                                 key={index}
                                 onClick={() => handleFuelSelect(name)}
-                                className="px-3 py-2 hover:bg-gray-500 cursor-pointer text-white text-sm"
-                              >
+                            className="px-3 py-2 hover:bg-gray-500 cursor-pointer text-white text-sm"
+                          >
                                 <div className="font-medium">{name}</div>
                                 <div className="text-xs text-gray-300">
                                   로컬 스토리지 투입물명
-                                </div>
+                          </div>
                               </div>
                             ))
                         ) : (
                           <div className="px-3 py-2 text-gray-400 text-sm">
                             사용 가능한 투입물명이 없습니다.
-                          </div>
-                        )}
                       </div>
                     )}
+                  </div>
+                  )}
                   </div>
                 </div>
 

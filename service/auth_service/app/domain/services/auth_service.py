@@ -280,31 +280,78 @@ class AuthService:
                 await close_database_connection(connection)
 
     async def login(self, username: str, password: str) -> Dict[str, Any]:
-        """로그인 (더미 구현)"""
+        """로그인 (실제 DB 검증)"""
+        connection = None
         try:
-            # 더미 토큰 생성
-            token = f"dummy_token_{uuid.uuid4().hex[:16]}"
+            connection = await get_database_connection()
             
-            auth_logger.info(f"Login successful for user: {username}")
-            return {
-                "success": True,
-                "message": "Login successful (dummy response)",
-                "data": {
-                    "token": token,
-                    "user": {
-                        "id": f"user_{uuid.uuid4().hex[:8]}",
-                        "username": username,
-                        "role": "user"
+            # 비밀번호 해싱
+            hashed_password = self._hash_password(password)
+            
+            # 사용자 테이블에서 검증
+            user_data = await connection.fetchrow("""
+                SELECT id, username, full_name, company_id, role
+                FROM users 
+                WHERE username = $1 AND password = $2
+            """, username, hashed_password)
+            
+            if user_data:
+                auth_logger.info(f"User login successful: {username}")
+                return {
+                    "success": True,
+                    "message": "로그인 성공",
+                    "data": {
+                        "user": {
+                            "id": user_data['id'],
+                            "username": user_data['username'],
+                            "full_name": user_data['full_name'],
+                            "company_id": user_data['company_id'],
+                            "role": user_data['role']
+                        }
                     }
                 }
+            
+            # 기업 테이블에서 검증
+            company_data = await connection.fetchrow("""
+                SELECT company_id, Installation
+                FROM companies 
+                WHERE company_id = $1 AND password = $2
+            """, username, hashed_password)
+            
+            if company_data:
+                auth_logger.info(f"Company login successful: {username}")
+                return {
+                    "success": True,
+                    "message": "로그인 성공",
+                    "data": {
+                        "user": {
+                            "id": company_data['company_id'],
+                            "username": company_data['company_id'],
+                            "full_name": company_data['Installation'],
+                            "company_id": company_data['company_id'],
+                            "role": "company"
+                        }
+                    }
+                }
+            
+            # 로그인 실패
+            auth_logger.warning(f"Login failed for user: {username}")
+            return {
+                "success": False,
+                "message": "ID 또는 비밀번호가 올바르지 않습니다.",
+                "data": {}
             }
+            
         except Exception as e:
             auth_logger.error(f"Login failed: {str(e)}")
             return {
                 "success": False,
-                "message": f"Login failed: {str(e)}",
+                "message": f"로그인 중 오류가 발생했습니다: {str(e)}",
                 "data": {}
             }
+        finally:
+            if connection:
+                await close_database_connection(connection)
 
     async def get_company_info(self, company_id: str) -> Dict[str, Any]:
         """기업 정보 조회"""

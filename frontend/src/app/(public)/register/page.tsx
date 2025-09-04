@@ -322,9 +322,9 @@ export default function RegisterPage() {
 
       setSuccess('회원가입이 완료되었습니다! 3초 후 메인 페이지로 이동합니다.');
       
-      // 3초 후 프로덕션 메인 페이지로 이동
+      // 3초 후 루트 페이지로 이동
       setTimeout(() => {
-        window.location.href = 'https://greensteel-pwdneh4wh-123s-projects-eed55fc0.vercel.app/';
+        router.push('/');
       }, 3000);
       
       setFormData({

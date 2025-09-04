@@ -67,21 +67,26 @@ export default function LandingPage() {
     }
   };
 
-  // 로그인 검증 함수 (임시 - 실제로는 API 호출)
+  // 로그인 검증 함수 (실제 API 호출)
   const validateLogin = async (id: string, password: string): Promise<boolean> => {
-    // 임시 검증 로직 (실제로는 서버 API 호출)
-    await new Promise(resolve => setTimeout(resolve, 1000)); // 로딩 시뮬레이션
-    
-    // 임시 유효한 계정들
-    const validAccounts = [
-      { id: 'company1', password: 'company123' },
-      { id: 'company2', password: 'company456' },
-      { id: 'greensteel', password: 'greensteel123' }
-    ];
-    
-    return validAccounts.some(account => 
-      account.id === id && account.password === password
-    );
+    try {
+      const response = await fetch('/api/v1/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: id,
+          password: password
+        }),
+      });
+
+      const result = await response.json();
+      return result.success;
+    } catch (error) {
+      console.error('로그인 API 호출 실패:', error);
+      return false;
+    }
   };
 
 

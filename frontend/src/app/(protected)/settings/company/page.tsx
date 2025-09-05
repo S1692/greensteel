@@ -506,7 +506,7 @@ const CompanySettingsContent: React.FC = () => {
               주소 검색
             </Button>
             <div className="mt-2 text-sm text-blue-600">
-              📍 주소 검색 시 행정안전부 API를 통해 영문 주소가 자동으로 변환되고, 카카오 지도 API를 통해 위도/경도가 자동으로 설정됩니다.
+              📍 주소 검색을 통해 도로명, 건물번호, 우편번호, 도시명이 자동으로 입력됩니다. 행정안전부 API를 통해 영문 주소가 자동으로 변환되고, 카카오 지도 API를 통해 위도/경도가 자동으로 설정됩니다.
             </div>
           </div>
         )}
@@ -520,9 +520,9 @@ const CompanySettingsContent: React.FC = () => {
             {isEditing ? (
               <Input
                 value={tempCompanyInfo.street}
-                onChange={(e) => handleCompanyInfoChange('street', e.target.value)}
-                placeholder="도로명을 입력하세요"
+                placeholder="도로명 (주소 검색으로 자동 입력)"
                 className="p-3 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
+                readOnly
               />
             ) : (
               <div className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200">
@@ -539,9 +539,9 @@ const CompanySettingsContent: React.FC = () => {
             {isEditing ? (
               <Input
                 value={tempCompanyInfo.number}
-                onChange={(e) => handleCompanyInfoChange('number', e.target.value)}
-                placeholder="건물 번호를 입력하세요"
+                placeholder="건물 번호 (주소 검색으로 자동 입력)"
                 className="p-3 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
+                readOnly
               />
             ) : (
               <div className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200">
@@ -558,9 +558,9 @@ const CompanySettingsContent: React.FC = () => {
             {isEditing ? (
               <Input
                 value={tempCompanyInfo.postcode}
-                onChange={(e) => handleCompanyInfoChange('postcode', e.target.value)}
-                placeholder="우편번호를 입력하세요"
+                placeholder="우편번호 (주소 검색으로 자동 입력)"
                 className="p-3 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
+                readOnly
               />
             ) : (
               <div className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200">
@@ -577,9 +577,9 @@ const CompanySettingsContent: React.FC = () => {
             {isEditing ? (
               <Input
                 value={tempCompanyInfo.city}
-                onChange={(e) => handleCompanyInfoChange('city', e.target.value)}
-                placeholder="도시명을 입력하세요"
+                placeholder="도시명 (주소 검색으로 자동 입력)"
                 className="p-3 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
+                readOnly
               />
             ) : (
               <div className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200">

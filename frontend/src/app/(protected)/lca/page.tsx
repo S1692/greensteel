@@ -470,13 +470,38 @@ function LcaPageContent() {
   const renderFilters = () => {
     if (activeTab === 'process') return null; // 공정 탭은 제외
     
-    // 고유한 값들을 추출하여 드롭다운 옵션 생성
-    const unique주문처명 = [...new Set(inputData.map(item => item.주문처명).filter(Boolean))];
-    const unique제품명 = [...new Set([
-      ...inputData.map(item => item.생산품명),
-      ...outputData.map(item => item.생산품명),
-      ...transportData.map(item => item.생산품명)
-    ].filter(Boolean))];
+    // 현재 활성 탭에 따라 적절한 데이터 소스에서 고유한 값들을 추출
+    let unique주문처명: string[] = [];
+    let unique제품명: string[] = [];
+    
+    if (activeTab === 'base' || activeTab === 'actual') {
+      // input 데이터 사용
+      unique주문처명 = [...new Set(inputData.map(item => item.주문처명).filter(Boolean) as string[])];
+      unique제품명 = [...new Set(inputData.map(item => item.생산품명).filter(Boolean) as string[])];
+    } else if (activeTab === 'output') {
+      // output 데이터 사용
+      unique주문처명 = [...new Set(outputData.map(item => item.주문처명).filter(Boolean) as string[])];
+      unique제품명 = [...new Set(outputData.map(item => item.생산품명).filter(Boolean) as string[])];
+    } else if (activeTab === 'transport') {
+      // transport 데이터 사용
+      unique주문처명 = [...new Set(transportData.map(item => item.주문처명).filter(Boolean) as string[])];
+      unique제품명 = [...new Set(transportData.map(item => item.생산품명).filter(Boolean) as string[])];
+    } else if (activeTab === 'manage') {
+      // manage 탭의 경우 세그먼트에 따라 다른 데이터 사용
+      if (activeSegment === 'mat') {
+        unique주문처명 = [...new Set(processProductData.map(item => item.주문처명).filter(Boolean) as string[])];
+        unique제품명 = [...new Set(processProductData.map(item => item.투입물명).filter(Boolean) as string[])];
+      } else if (activeSegment === 'waste') {
+        unique주문처명 = [...new Set(wasteData.map(item => item.주문처명).filter(Boolean) as string[])];
+        unique제품명 = [...new Set(wasteData.map(item => item.투입물명).filter(Boolean) as string[])];
+      } else if (activeSegment === 'util') {
+        unique주문처명 = [...new Set(utilityData.map(item => item.주문처명).filter(Boolean) as string[])];
+        unique제품명 = [...new Set(utilityData.map(item => item.투입물명).filter(Boolean) as string[])];
+      } else if (activeSegment === 'source') {
+        unique주문처명 = [...new Set(fuelData.map(item => item.주문처명).filter(Boolean) as string[])];
+        unique제품명 = [...new Set(fuelData.map(item => item.투입물명).filter(Boolean) as string[])];
+      }
+    }
     
     return (
       <div className="bg-ecotrace-surface border border-ecotrace-border rounded-lg p-4 mb-6">
@@ -502,7 +527,7 @@ function LcaPageContent() {
           </div>
           <div>
             <label className="block text-sm font-medium text-ecotrace-textSecondary mb-2">
-              제품명
+              {activeTab === 'manage' ? '투입물명' : '제품명'}
             </label>
             <select
               value={filters.제품명}

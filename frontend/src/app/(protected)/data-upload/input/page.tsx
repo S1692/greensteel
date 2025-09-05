@@ -430,14 +430,24 @@ const InputDataPage: React.FC = () => {
     if (!row) return;
 
          if (row.isNewlyAdded) {
-       // 새로 추가된 행인 경우 완전히 제거
-       setEditableInputRows(prev => prev.filter(r => r.id !== rowId));
-     } else {
+      // 새로 추가된 행인 경우 완전히 제거
+      setEditableInputRows(prev => prev.filter(r => r.id !== rowId));
+    } else {
       // 기존 행 편집 취소인 경우 원본 데이터로 복원
+      // 단, AI추천답변은 편집 전 상태를 유지
+      const currentAI추천답변 = row.modifiedData['AI추천답변'];
       setEditableInputRows(prev => 
         prev.map(r => 
           r.id === rowId 
-            ? { ...r, isEditing: false, modifiedData: { ...r.originalData } }
+            ? { 
+                ...r, 
+                isEditing: false, 
+                modifiedData: { 
+                  ...r.originalData,
+                  // AI추천답변은 편집 전 상태 유지
+                  'AI추천답변': currentAI추천답변
+                } 
+              }
             : r
         )
       );

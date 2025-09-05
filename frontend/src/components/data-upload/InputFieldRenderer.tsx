@@ -37,6 +37,8 @@ const InputFieldRenderer: React.FC<InputFieldRendererProps> = ({
     return <span className='text-white/60'>{value || '-'}</span>;
   }
   
+  // 새로 추가된 데이터는 모든 필드 편집 가능 (위의 조건을 통과한 경우)
+  
   const getInputClassName = () => {
     let baseClass = 'w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
     
@@ -188,10 +190,9 @@ const InputFieldRenderer: React.FC<InputFieldRendererProps> = ({
           <input
             type='text'
             value={value}
-            maxLength={20}
+            maxLength={100}
             onChange={(e) => handleInputChange(e.target.value)}
-            onKeyDown={(e) => onNumericInput(e, column)}
-            placeholder={isRequired ? '한글/영문/숫자 입력 *' : '한글/영문/숫자 입력'}
+            placeholder={isRequired ? '투입물명을 입력하세요 *' : '투입물명을 입력하세요'}
             className={getInputClassName()}
           />
           {isRequired && (
@@ -205,13 +206,16 @@ const InputFieldRenderer: React.FC<InputFieldRendererProps> = ({
     
     case '생산수량_단위':
     case '투입물_단위':
+    case '단위':
       return (
         <div className='relative'>
           <input
             type='text'
             value={value}
             onChange={(e) => handleInputChange(e.target.value)}
-            placeholder={column === '생산수량_단위' ? '생산수량 단위를 입력하세요 (예: kg, t, 개수)' : '투입물 단위를 입력하세요 (예: kg, t, 개수)'}
+            placeholder={column === '생산수량_단위' ? '생산수량 단위를 입력하세요 (예: kg, t, 개수)' : 
+                       column === '투입물_단위' ? '투입물 단위를 입력하세요 (예: kg, t, 개수)' :
+                       '단위를 입력하세요 (예: kg, t, 개수)'}
             className={getInputClassName()}
           />
           {isRequired && (

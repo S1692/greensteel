@@ -80,6 +80,7 @@ const OutputDataPage: React.FC = () => {
   const inputFileRef = useRef<HTMLInputElement>(null);
   const [isSavingToDB, setIsSavingToDB] = useState(false);
   const [dbSaveStatus, setDbSaveStatus] = useState<string>('');
+  const [editReasons, setEditReasons] = useState<{ [key: string]: string }>({});
   
   // 행별 오류 상태 관리
   const [rowErrors, setRowErrors] = useState<RowErrors>({});
@@ -112,6 +113,12 @@ const OutputDataPage: React.FC = () => {
   // 행 삭제 핸들러
   const deleteRow = (rowId: string) => {
     setEditableInputRows(prev => prev.filter(row => row.id !== rowId));
+    // 수정 사유도 함께 제거
+    setEditReasons(prev => {
+      const newReasons = { ...prev };
+      delete newReasons[rowId];
+      return newReasons;
+    });
     // 행별 오류도 제거
     setRowErrors(prev => {
       const newErrors = { ...prev };
@@ -304,6 +311,12 @@ const OutputDataPage: React.FC = () => {
       );
     }
 
+    // 수정 사유도 제거
+    setEditReasons(prev => {
+      const newReasons = { ...prev };
+      delete newReasons[rowId];
+      return newReasons;
+    });
     // 행별 오류도 제거
     clearRowError(rowId, '');
     setError(null); // 편집 취소 시 오류 메시지 제거
@@ -314,6 +327,11 @@ const OutputDataPage: React.FC = () => {
     const value = row.modifiedData[column] || '';
     const isNewRow = row.isNewlyAdded;
     const isRequired = isNewRow && ['로트번호', '생산품명', '생산수량', '투입일', '종료일', '공정', '산출물명', '수량', '단위'].includes(column);
+    
+    // Excel 데이터는 AI 추천 답변만 편집 가능
+    if (!isNewRow && column !== 'AI추천답변') {
+      return <span className='text-white/60'>{value || '-'}</span>;
+    }
     
     const getInputClassName = () => {
       let baseClass = 'w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
@@ -730,15 +748,15 @@ const OutputDataPage: React.FC = () => {
       };
 
              // 날짜 변환 및 데이터 타입 변환을 적용한 데이터 준비 - 새로운 스키마 기반
-       const processedData = inputData.data.map((row: any) => {
+       const processedData = editableInputRows.map((row: any) => {
          // 수량 칼럼을 찾기 (여러 가능한 칼럼명 시도)
          let 수량 = 0;
-         if (row['수량'] !== undefined) {
-           수량 = parseFloat(row['수량']?.toString() || '0');
-         } else if (row['산출수량'] !== undefined) {
-           수량 = parseFloat(row['산출수량']?.toString() || '0');
-         } else if (row['생산수량'] !== undefined) {
-           수량 = parseFloat(row['생산수량']?.toString() || '0');
+         if (row.modifiedData['수량'] !== undefined) {
+           수량 = parseFloat(row.modifiedData['수량']?.toString() || '0');
+         } else if (row.modifiedData['산출수량'] !== undefined) {
+           수량 = parseFloat(row.modifiedData['산출수량']?.toString() || '0');
+         } else if (row.modifiedData['생산수량'] !== undefined) {
+           수량 = parseFloat(row.modifiedData['생산수량']?.toString() || '0');
          }
          
          // 수량이 0 이하인 경우 오류 처리
@@ -748,17 +766,21 @@ const OutputDataPage: React.FC = () => {
          }
          
          // AI 추천 답변이 있으면 산출물명에 적용, 없으면 원본 산출물명 유지
-         const aiRecommendation = row['AI추천답변'] || '';
-         const final산출물명 = aiRecommendation.trim() !== '' ? aiRecommendation : (row['산출물명'] || '');
+         const aiRecommendation = row.modifiedData['AI추천답변'] || '';
+         const final산출물명 = aiRecommendation.trim() !== '' ? aiRecommendation : (row.modifiedData['산출물명'] || '');
+         
+         // 수정 사유 추가
+         const editReason = editReasons[row.id] || '';
          
          return {
-           ...row,
+           ...row.modifiedData,
            '수량': 수량,
            '산출물명': final산출물명, // AI 추천 답변 적용
-           '투입일': convertExcelDate(row['투입일']),
-           '종료일': convertExcelDate(row['종료일']),
-           '주문처명': row['주문처명'] || '',
-           '오더번호': row['오더번호'] || ''
+           '투입일': convertExcelDate(row.modifiedData['투입일']),
+           '종료일': convertExcelDate(row.modifiedData['종료일']),
+           '주문처명': row.modifiedData['주문처명'] || '',
+           '오더번호': row.modifiedData['오더번호'] || '',
+           '수정사유': editReason // 수정 사유 추가
          };
        });
 
@@ -867,6 +889,15 @@ const OutputDataPage: React.FC = () => {
       }
     }
 
+    // Excel 데이터의 경우 수정 사유 검증
+    if (!row.isNewlyAdded) {
+      const editReason = editReasons[row.id]?.trim();
+      if (!editReason || editReason === '') {
+        setError('AI 추천 답변을 수정할 때는 수정 사유를 입력해주세요.');
+        return;
+      }
+    }
+
     // AI 추천 답변을 산출물명에 적용 (Excel 데이터의 경우)
     if (!row.isNewlyAdded && row.modifiedData['AI추천답변']) {
       const aiRecommendation = row.modifiedData['AI추천답변'].trim();
@@ -890,6 +921,12 @@ const OutputDataPage: React.FC = () => {
       )
     );
 
+    // 수정 사유 초기화
+    setEditReasons(prev => {
+      const newReasons = { ...prev };
+      delete newReasons[rowId];
+      return newReasons;
+    });
     // 행별 오류 제거
     clearRowError(rowId, '');
     setError(null);
@@ -1172,7 +1209,13 @@ const OutputDataPage: React.FC = () => {
                                 </>
                               ) : (
                                 // Excel 데이터는 AI 추천 답변만 편집 가능
-                                <span className='text-yellow-400 text-xs'>AI 추천만 수정 가능</span>
+                                <Button
+                                  onClick={() => toggleRowEdit(row.id)}
+                                  className='bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-xs'
+                                >
+                                  <Edit3 className='w-3 h-3 mr-1' />
+                                  AI 추천 편집
+                                </Button>
                               )}
                             </div>
                           )}
@@ -1194,7 +1237,28 @@ const OutputDataPage: React.FC = () => {
                 </Button>
               </div>
 
-              {/* 수정 사유 입력 제거 - 수기 입력 데이터만 있으므로 불필요 */}
+              {/* 수정 사유 입력 섹션 */}
+              {editableInputRows.some(row => row.isEditing && !row.isNewlyAdded) && (
+                <div className='mt-6 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg'>
+                  <h4 className='text-sm font-medium text-yellow-200 mb-3'>AI 추천 답변 수정 사유</h4>
+                  {editableInputRows
+                    .filter(row => row.isEditing && !row.isNewlyAdded)
+                    .map((row) => (
+                      <div key={row.id} className='mb-3'>
+                        <div className='text-xs text-white/80 mb-1'>
+                          행 {editableInputRows.findIndex(r => r.id === row.id) + 1} - {row.modifiedData['산출물명'] || '산출물명 없음'}
+                        </div>
+                        <textarea
+                          value={editReasons[row.id] || ''}
+                          onChange={(e) => setEditReasons(prev => ({ ...prev, [row.id]: e.target.value }))}
+                          placeholder='AI 추천 답변을 수정하는 이유를 입력해주세요...'
+                          className='w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-yellow-500'
+                          rows={2}
+                        />
+                      </div>
+                    ))}
+                </div>
+              )}
             </div>
           )}
 

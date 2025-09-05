@@ -782,8 +782,16 @@ const CompanySettingsContent: React.FC = () => {
       {/* 주소 검색 모달 */}
       <AddressSearchModal
         isOpen={isAddressModalOpen}
-        onClose={() => setIsAddressModalOpen(false)}
-        onSelect={handleAddressSelect}
+        onClose={() => {
+          console.log('주소 검색 모달 닫힘');
+          setIsAddressModalOpen(false);
+        }}
+        onSelect={async (addressData) => {
+          console.log('주소 선택됨:', addressData);
+          await handleAddressSelect(addressData);
+          // 주소 선택 후 모달 닫기
+          setIsAddressModalOpen(false);
+        }}
       />
 
     </CommonShell>

@@ -12,8 +12,8 @@ import {
 
 interface CompanyInfo {
   company_id: string;
-  Installation: string;
-  Installation_en: string;
+  installation: string;
+  installation_en: string;
   economic_activity: string;
   economic_activity_en: string;
   representative: string;
@@ -44,8 +44,8 @@ const CompanySettingsContent: React.FC = () => {
   // 기업 정보 상태
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({
     company_id: '',
-    Installation: '',
-    Installation_en: '',
+    installation: '',
+    installation_en: '',
     economic_activity: '',
     economic_activity_en: '',
     representative: '',
@@ -145,8 +145,8 @@ const CompanySettingsContent: React.FC = () => {
 
       const requestBody = {
         company_id: currentUser,
-        Installation: tempCompanyInfo.Installation,
-        Installation_en: tempCompanyInfo.Installation_en,
+        installation: tempCompanyInfo.installation,
+        installation_en: tempCompanyInfo.installation_en,
         economic_activity: tempCompanyInfo.economic_activity,
         economic_activity_en: tempCompanyInfo.economic_activity_en,
         representative: tempCompanyInfo.representative,
@@ -272,14 +272,14 @@ const CompanySettingsContent: React.FC = () => {
             </label>
             {isEditing ? (
               <Input
-                value={tempCompanyInfo.Installation}
-                onChange={(e) => handleCompanyInfoChange('Installation', e.target.value)}
+                value={tempCompanyInfo.installation}
+                onChange={(e) => handleCompanyInfoChange('installation', e.target.value)}
                 placeholder="사업장명을 입력하세요"
                 className="p-3 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"
               />
             ) : (
               <div className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200">
-                <span className="text-gray-800 font-medium">{companyInfo.Installation}</span>
+                <span className="text-gray-800 font-medium">{companyInfo.installation}</span>
               </div>
             )}
           </div>
@@ -291,14 +291,14 @@ const CompanySettingsContent: React.FC = () => {
             </label>
             {isEditing ? (
               <Input
-                value={tempCompanyInfo.Installation_en}
-                onChange={(e) => handleCompanyInfoChange('Installation_en', e.target.value)}
+                value={tempCompanyInfo.installation_en}
+                onChange={(e) => handleCompanyInfoChange('installation_en', e.target.value)}
                 placeholder="사업장 영문명을 입력하세요"
                 className="p-3 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200"
               />
             ) : (
               <div className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200">
-                <span className="text-gray-800 font-medium">{companyInfo.Installation_en}</span>
+                <span className="text-gray-800 font-medium">{companyInfo.installation_en}</span>
               </div>
             )}
           </div>

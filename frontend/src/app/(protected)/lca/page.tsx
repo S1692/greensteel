@@ -513,7 +513,7 @@ function LcaPageContent() {
       }
     }
     
-    // 필터 연동 로직
+    // 필터 연동 로직 - 선택된 값은 항상 유지하고 옵션만 제한
     if (filters.주문처명 && !filters.제품명) {
       // 주문처명이 선택된 경우: 해당 주문처명의 제품명만 표시
       const filteredBy주문처명 = currentData.filter(item => item[주문처명필드] === filters.주문처명);
@@ -525,11 +525,19 @@ function LcaPageContent() {
       unique주문처명 = [...new Set(filteredBy제품명.map(item => item[주문처명필드]).filter(Boolean) as string[])];
       unique제품명 = [...new Set(currentData.map(item => item[제품명필드]).filter(Boolean) as string[])];
     } else if (filters.주문처명 && filters.제품명) {
-      // 둘 다 선택된 경우: 교집합만 표시
+      // 둘 다 선택된 경우: 교집합만 표시하되 선택된 값은 유지
       const filteredBy주문처명 = currentData.filter(item => item[주문처명필드] === filters.주문처명);
       const filteredBy제품명 = currentData.filter(item => item[제품명필드] === filters.제품명);
       unique주문처명 = [...new Set(filteredBy제품명.map(item => item[주문처명필드]).filter(Boolean) as string[])];
       unique제품명 = [...new Set(filteredBy주문처명.map(item => item[제품명필드]).filter(Boolean) as string[])];
+      
+      // 선택된 값이 옵션에 없으면 추가 (사용자가 선택한 값 유지)
+      if (!unique주문처명.includes(filters.주문처명)) {
+        unique주문처명.push(filters.주문처명);
+      }
+      if (!unique제품명.includes(filters.제품명)) {
+        unique제품명.push(filters.제품명);
+      }
     } else {
       // 아무것도 선택되지 않은 경우: 전체 표시
       unique주문처명 = [...new Set(currentData.map(item => item[주문처명필드]).filter(Boolean) as string[])];
@@ -551,8 +559,8 @@ function LcaPageContent() {
               value={filters.주문처명}
               onChange={(e) => setFilters(prev => ({ 
                 ...prev, 
-                주문처명: e.target.value,
-                제품명: '' // 주문처명 변경 시 제품명 초기화
+                주문처명: e.target.value
+                // 제품명은 초기화하지 않음 - 사용자가 선택한 값 유지
               }))}
               className="w-full px-3 py-2 border border-ecotrace-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ecotrace-primary"
             >
@@ -570,8 +578,8 @@ function LcaPageContent() {
               value={filters.제품명}
               onChange={(e) => setFilters(prev => ({ 
                 ...prev, 
-                제품명: e.target.value,
-                주문처명: '' // 제품명 변경 시 주문처명 초기화
+                제품명: e.target.value
+                // 주문처명은 초기화하지 않음 - 사용자가 선택한 값 유지
               }))}
               className="w-full px-3 py-2 border border-ecotrace-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ecotrace-primary"
             >

@@ -476,33 +476,64 @@ function LcaPageContent() {
     let unique주문처명: string[] = [];
     let unique제품명: string[] = [];
     
+    // 기본 데이터 소스 결정
+    let currentData: any[] = [];
+    let 주문처명필드 = '주문처명';
+    let 제품명필드 = '생산품명';
+    
     if (activeTab === 'base' || activeTab === 'actual') {
-      // input 데이터 사용
-      unique주문처명 = [...new Set(inputData.map(item => item.주문처명).filter(Boolean) as string[])];
-      unique제품명 = [...new Set(inputData.map(item => item.생산품명).filter(Boolean) as string[])];
+      currentData = inputData;
+      주문처명필드 = '주문처명';
+      제품명필드 = '생산품명';
     } else if (activeTab === 'output') {
-      // output 데이터 사용
-      unique주문처명 = [...new Set(outputData.map(item => item.주문처명).filter(Boolean) as string[])];
-      unique제품명 = [...new Set(outputData.map(item => item.생산품명).filter(Boolean) as string[])];
+      currentData = outputData;
+      주문처명필드 = '주문처명';
+      제품명필드 = '생산품명';
     } else if (activeTab === 'transport') {
-      // transport 데이터 사용
-      unique주문처명 = [...new Set(transportData.map(item => item.주문처명).filter(Boolean) as string[])];
-      unique제품명 = [...new Set(transportData.map(item => item.생산품명).filter(Boolean) as string[])];
+      currentData = transportData;
+      주문처명필드 = '주문처명';
+      제품명필드 = '생산품명';
     } else if (activeTab === 'manage') {
-      // manage 탭의 경우 세그먼트에 따라 다른 데이터 사용
       if (activeSegment === 'mat') {
-        unique주문처명 = [...new Set(processProductData.map(item => item.주문처명).filter(Boolean) as string[])];
-        unique제품명 = [...new Set(processProductData.map(item => item.투입물명).filter(Boolean) as string[])];
+        currentData = processProductData;
+        주문처명필드 = '주문처명';
+        제품명필드 = '투입물명';
       } else if (activeSegment === 'waste') {
-        unique주문처명 = [...new Set(wasteData.map(item => item.주문처명).filter(Boolean) as string[])];
-        unique제품명 = [...new Set(wasteData.map(item => item.투입물명).filter(Boolean) as string[])];
+        currentData = wasteData;
+        주문처명필드 = '주문처명';
+        제품명필드 = '투입물명';
       } else if (activeSegment === 'util') {
-        unique주문처명 = [...new Set(utilityData.map(item => item.주문처명).filter(Boolean) as string[])];
-        unique제품명 = [...new Set(utilityData.map(item => item.투입물명).filter(Boolean) as string[])];
+        currentData = utilityData;
+        주문처명필드 = '주문처명';
+        제품명필드 = '투입물명';
       } else if (activeSegment === 'source') {
-        unique주문처명 = [...new Set(fuelData.map(item => item.주문처명).filter(Boolean) as string[])];
-        unique제품명 = [...new Set(fuelData.map(item => item.투입물명).filter(Boolean) as string[])];
+        currentData = fuelData;
+        주문처명필드 = '주문처명';
+        제품명필드 = '투입물명';
       }
+    }
+    
+    // 필터 연동 로직
+    if (filters.주문처명 && !filters.제품명) {
+      // 주문처명이 선택된 경우: 해당 주문처명의 제품명만 표시
+      const filteredBy주문처명 = currentData.filter(item => item[주문처명필드] === filters.주문처명);
+      unique주문처명 = [...new Set(currentData.map(item => item[주문처명필드]).filter(Boolean) as string[])];
+      unique제품명 = [...new Set(filteredBy주문처명.map(item => item[제품명필드]).filter(Boolean) as string[])];
+    } else if (filters.제품명 && !filters.주문처명) {
+      // 제품명이 선택된 경우: 해당 제품명의 주문처명만 표시
+      const filteredBy제품명 = currentData.filter(item => item[제품명필드] === filters.제품명);
+      unique주문처명 = [...new Set(filteredBy제품명.map(item => item[주문처명필드]).filter(Boolean) as string[])];
+      unique제품명 = [...new Set(currentData.map(item => item[제품명필드]).filter(Boolean) as string[])];
+    } else if (filters.주문처명 && filters.제품명) {
+      // 둘 다 선택된 경우: 교집합만 표시
+      const filteredBy주문처명 = currentData.filter(item => item[주문처명필드] === filters.주문처명);
+      const filteredBy제품명 = currentData.filter(item => item[제품명필드] === filters.제품명);
+      unique주문처명 = [...new Set(filteredBy제품명.map(item => item[주문처명필드]).filter(Boolean) as string[])];
+      unique제품명 = [...new Set(filteredBy주문처명.map(item => item[제품명필드]).filter(Boolean) as string[])];
+    } else {
+      // 아무것도 선택되지 않은 경우: 전체 표시
+      unique주문처명 = [...new Set(currentData.map(item => item[주문처명필드]).filter(Boolean) as string[])];
+      unique제품명 = [...new Set(currentData.map(item => item[제품명필드]).filter(Boolean) as string[])];
     }
     
     return (
@@ -518,7 +549,11 @@ function LcaPageContent() {
             </label>
             <select
               value={filters.주문처명}
-              onChange={(e) => setFilters(prev => ({ ...prev, 주문처명: e.target.value }))}
+              onChange={(e) => setFilters(prev => ({ 
+                ...prev, 
+                주문처명: e.target.value,
+                제품명: '' // 주문처명 변경 시 제품명 초기화
+              }))}
               className="w-full px-3 py-2 border border-ecotrace-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ecotrace-primary"
             >
               <option value="">전체</option>
@@ -533,7 +568,11 @@ function LcaPageContent() {
             </label>
             <select
               value={filters.제품명}
-              onChange={(e) => setFilters(prev => ({ ...prev, 제품명: e.target.value }))}
+              onChange={(e) => setFilters(prev => ({ 
+                ...prev, 
+                제품명: e.target.value,
+                주문처명: '' // 제품명 변경 시 주문처명 초기화
+              }))}
               className="w-full px-3 py-2 border border-ecotrace-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ecotrace-primary"
             >
               <option value="">전체</option>

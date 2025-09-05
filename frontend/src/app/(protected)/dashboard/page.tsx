@@ -152,10 +152,6 @@ const DashboardPage: React.FC = () => {
           </p>
         </div>
 
-        
-
-        
-
         {/* Gateway 상태 */}
         <div className='bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-4 lg:p-6 xl:p-8'>
           <h3 className='text-base lg:text-lg xl:text-xl font-semibold text-white mb-3 lg:mb-4 xl:mb-6 flex items-center gap-2'>

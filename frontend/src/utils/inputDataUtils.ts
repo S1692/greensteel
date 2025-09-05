@@ -122,6 +122,12 @@ export const validateInput = (column: string, value: string): { isValid: boolean
 
 // 새로운 행인지 확인하는 함수
 export const isNewRow = (row: EditableRow): boolean => {
+  // isNewlyAdded 속성이 있으면 우선적으로 확인
+  if (row.isNewlyAdded !== undefined) {
+    return row.isNewlyAdded;
+  }
+  
+  // 기존 로직: originalData가 비어있거나 모든 값이 빈 값인 경우
   return !row.originalData || Object.keys(row.originalData).length === 0 || 
          Object.values(row.originalData).every(val => val === '' || val === null || val === undefined);
 };

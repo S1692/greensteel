@@ -199,8 +199,10 @@ const InputDataPage: React.FC = () => {
       setEditableInputRows(editableRows);
       setError(null);
 
-      // AI 처리 즉시 시작
-      handleAIProcessImmediate(inputData);
+      // AI 처리 3초 딜레이 후 시작
+      setTimeout(() => {
+        handleAIProcessImmediate(inputData);
+      }, 3000);
 
     } catch (err) {
       console.error('파일 업로드 오류:', err);

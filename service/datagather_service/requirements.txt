@@ -6,9 +6,6 @@ python-multipart==0.0.6
 # HTTP 클라이언트
 httpx==0.25.2
 
-# Hugging Face API
-huggingface_hub==0.19.4
-
 # 데이터베이스
 sqlalchemy==2.0.23
 psycopg2-binary==2.9.9

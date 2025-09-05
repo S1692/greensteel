@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, Dict, Any
 import uvicorn
 import httpx
+import pandas as pd
 
 from .infrastructure.database import database
 from .infrastructure.config import settings
@@ -26,91 +27,89 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Hugging Face API 설정
-HF_TOKEN = os.getenv("HF_TOKEN")
-HF_API_URL = os.getenv("HF_API_URL", "https://api-inference.huggingface.co")
-HF_MODEL = os.getenv("HF_MODEL", "Halftotter/flud")
+# 학습 데이터셋 기반 맵핑 시스템
+mapping_dictionary = {}
 
-async def initialize_huggingface_model():
-    """Hugging Face Inference API 초기화"""
+def load_training_dataset():
+    """학습 데이터셋을 로드하여 맵핑 딕셔너리 생성"""
+    global mapping_dictionary
     try:
-        logger.info(f"🔍 Hugging Face API 설정 확인:")
-        logger.info(f"  - HF_TOKEN: {'설정됨' if HF_TOKEN else '설정되지 않음'}")
-        logger.info(f"  - HF_API_URL: {HF_API_URL}")
-        logger.info(f"  - HF_MODEL: {HF_MODEL}")
+        # 학습 데이터셋 파일 경로
+        dataset_path = os.path.join(os.path.dirname(__file__), "..", "..", "학습 데이터셋.xlsx")
         
-        if not HF_TOKEN:
-            logger.warning("⚠️ HF_TOKEN이 설정되지 않았습니다.")
+        if not os.path.exists(dataset_path):
+            logger.warning("⚠️ 학습 데이터셋 파일을 찾을 수 없습니다. 기본 맵핑을 사용합니다.")
             return False
         
-        logger.info(f"🤗 Hugging Face Inference API 초기화 완료")
-        logger.info(f"  - 엔드포인트: {HF_API_URL}")
-        logger.info(f"  - 모델: {HF_MODEL}")
+        # Excel 파일 읽기
+        df = pd.read_excel(dataset_path)
+        logger.info(f"📊 학습 데이터셋 로드: {len(df)}행")
+        logger.info(f"📊 컬럼: {list(df.columns)}")
+        
+        # A열(Label)과 B~K열(input_text1~10) 사용
+        mapping_dictionary = {}
+        
+        for index, row in df.iterrows():
+            label = str(row.iloc[0]) if pd.notna(row.iloc[0]) else ""  # A열 (Label)
+            
+            # B~K열 (input_text1~10) 처리
+            for col_idx in range(1, min(11, len(df.columns))):  # B~K열 (1~10)
+                input_text = str(row.iloc[col_idx]) if pd.notna(row.iloc[col_idx]) else ""
+                if input_text and input_text.strip():
+                    # 입력 텍스트를 키로, 라벨을 값으로 저장
+                    mapping_dictionary[input_text.strip().lower()] = label.strip()
+        
+        logger.info(f"✅ 맵핑 딕셔너리 생성 완료: {len(mapping_dictionary)}개 항목")
+        logger.info(f"📝 샘플 맵핑: {dict(list(mapping_dictionary.items())[:5])}")
         return True
         
     except Exception as e:
-        logger.error(f"❌ Hugging Face API 초기화 실패: {e}")
+        logger.error(f"❌ 학습 데이터셋 로드 실패: {e}")
         return False
 
-async def predict_material_with_huggingface(input_text: str) -> tuple[str, float]:
-    """Hugging Face API 기반 재료 분류"""
+def predict_material_with_mapping(input_text: str) -> tuple[str, float]:
+    """학습 데이터셋 기반 맵핑 분류"""
     try:
-        logger.info(f"🔍 Hugging Face API 분류 시작: '{input_text}'")
+        logger.info(f"🔍 맵핑 기반 분류 시작: '{input_text}'")
         
-        if not HF_TOKEN:
-            logger.warning("⚠️ HF_TOKEN이 설정되지 않았습니다. 원본 텍스트를 반환합니다.")
+        if not mapping_dictionary:
+            logger.warning("⚠️ 맵핑 딕셔너리가 비어있습니다. 원본 텍스트를 반환합니다.")
             return input_text, 0.0
         
-        # Hugging Face API 호출
-        payload = {"inputs": input_text}
-        headers = {
-            "Authorization": f"Bearer {HF_TOKEN}",
-            "Content-Type": "application/json"
-        }
+        # 입력 텍스트 정규화
+        normalized_input = input_text.strip().lower()
         
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                f"{HF_API_URL}/models/{HF_MODEL}",
-                json=payload,
-                headers=headers
-            )
-            
-            logger.info(f"🤗 Hugging Face API 응답 상태: {response.status_code}")
-            
-            if response.status_code == 200:
-                results = response.json()
-                logger.info(f"🤗 API 응답 결과: {results}")
-                
-                if results and len(results) > 0:
-                    # Hugging Face API 형식: [{"label": "...", "score": 0.95}]
-                    if isinstance(results, list) and len(results) > 0:
-                        best_result = results[0]  # 첫 번째 결과 사용
-                        predicted_class = best_result['label']
-                        confidence = best_result['score']
-                    else:
-                        # 기존 형식 처리
-                        best_result = max(results, key=lambda x: x['score'])
-                        predicted_class = best_result['label']
-                        confidence = best_result['score']
-                    
-                    logger.info(f"✅ Hugging Face 분류 완료: '{predicted_class}' (신뢰도: {confidence:.4f})")
-                    return predicted_class, confidence
-                else:
-                    logger.warning("⚠️ 분류 결과가 없습니다. 원본 텍스트를 반환합니다.")
-                    return input_text, 0.0
-            else:
-                logger.warning(f"⚠️ Hugging Face API 호출 실패: {response.status_code} - 원본 텍스트 반환")
-                return input_text, 0.0
-                    
+        # 1. 정확한 매치 확인
+        if normalized_input in mapping_dictionary:
+            predicted_label = mapping_dictionary[normalized_input]
+            logger.info(f"✅ 정확한 매치 발견: '{input_text}' -> '{predicted_label}'")
+            return predicted_label, 1.0
+        
+        # 2. 부분 매치 확인 (포함 관계)
+        for key, value in mapping_dictionary.items():
+            if key in normalized_input or normalized_input in key:
+                logger.info(f"✅ 부분 매치 발견: '{input_text}' -> '{value}' (키: '{key}')")
+                return value, 0.8
+        
+        # 3. 입력값이 이미 라벨과 같은지 확인
+        for key, value in mapping_dictionary.items():
+            if value.lower() == normalized_input:
+                logger.info(f"✅ 입력값이 라벨과 일치: '{input_text}'")
+                return input_text, 1.0
+        
+        # 4. 매치되지 않으면 원본 텍스트 반환
+        logger.info(f"⚠️ 매치되는 라벨이 없습니다. 원본 텍스트 반환: '{input_text}'")
+        return input_text, 0.0
+        
     except Exception as e:
-        logger.error(f"❌ Hugging Face 분류 실패: {str(e)}")
+        logger.error(f"❌ 맵핑 분류 실패: {str(e)}")
         return input_text, 0.0
 
-async def generate_ai_recommendation(input_text: str) -> tuple[str, float]:
-    """AI 추천 답변 생성 (Hugging Face API 사용)"""
+def generate_ai_recommendation(input_text: str) -> tuple[str, float]:
+    """AI 추천 답변 생성 (학습 데이터셋 기반 맵핑 사용)"""
     try:
-        # Hugging Face API 기반 분류 사용
-        return await predict_material_with_huggingface(input_text)
+        # 학습 데이터셋 기반 맵핑 분류 사용
+        return predict_material_with_mapping(input_text)
         
     except Exception as e:
         logger.error(f"❌ AI 추천 생성 중 오류: {e}")
@@ -129,8 +128,8 @@ async def lifespan(app: FastAPI):
     # 데이터베이스 초기화
     await database.init_db()
     
-    # Hugging Face 모델 초기화
-    await initialize_huggingface_model()
+    # 학습 데이터셋 로드
+    load_training_dataset()
     
     logger.info("✅ DataGather Service가 성공적으로 시작되었습니다.")
     
@@ -173,9 +172,9 @@ async def root():
         "version": "1.0.0",
         "description": "Data Collection & Processing Service - DDD Structure",
         "ai_config": {
-            "model": HF_MODEL,
-            "endpoint": HF_API_URL,
-            "token_configured": bool(HF_TOKEN)
+            "model": "학습 데이터셋 기반 맵핑",
+            "mapping_entries": len(mapping_dictionary),
+            "dataset_loaded": bool(mapping_dictionary)
         },
         "endpoints": {
             "health": "/health",
@@ -249,10 +248,10 @@ async def ai_process_data(data: Dict[str, Any]):
             공정 = item.get('공정', '')
             logger.info(f"   - 투입물명: '{투입물명}', 공정: '{공정}'")
             
-            # Hugging Face API를 사용하여 AI 추천 답변 생성
+            # 학습 데이터셋 기반 맵핑을 사용하여 AI 추천 답변 생성
             try:
-                ai_추천답변, actual_confidence = await generate_ai_recommendation(투입물명)
-                logger.info(f"   - Hugging Face AI 분류 결과: '{ai_추천답변}', 신뢰도: {actual_confidence:.3f}")
+                ai_추천답변, actual_confidence = generate_ai_recommendation(투입물명)
+                logger.info(f"   - 맵핑 기반 AI 분류 결과: '{ai_추천답변}', 신뢰도: {actual_confidence:.3f}")
                 
             except Exception as e:
                 logger.error(f"   - AI 분류 실패, 기본값 사용: {e}")
@@ -264,8 +263,8 @@ async def ai_process_data(data: Dict[str, Any]):
                 **item,
                 "AI추천답변": ai_추천답변,
                 "ai_processed": True,
-                "ai_model": HF_MODEL,
-                "ai_task": "text-classification",
+                "ai_model": "학습 데이터셋 기반 맵핑",
+                "ai_task": "mapping-classification",
                 "classification": "processed",
                 "confidence": actual_confidence,
                 "processed_at": "2024-01-01T00:00:00Z"
@@ -290,10 +289,10 @@ async def ai_process_data(data: Dict[str, Any]):
         
         response_data = {
             "success": True,
-            "message": f"Hugging Face Inference API ({HF_MODEL}) AI 분류가 완료되었습니다.",
-            "ai_model": HF_MODEL,
-            "ai_endpoint": HF_API_URL,
-            "ai_task": "text-classification",
+            "message": f"학습 데이터셋 기반 맵핑 AI 분류가 완료되었습니다.",
+            "ai_model": "학습 데이터셋 기반 맵핑",
+            "mapping_entries": len(mapping_dictionary),
+            "ai_task": "mapping-classification",
             "total_classified": len(ai_classification_results),
             "ai_results": ai_classification_results  # AI 분류 결과만
         }

@@ -203,6 +203,7 @@ function LcaPageContent() {
   const filteredOutputData = useMemo(() => {
     if (activeTab === 'output') {
       return outputData.filter(item => {
+        const 주문처명Match = !filters.주문처명 || (item.주문처명 && item.주문처명.includes(filters.주문처명));
         const 제품명Match = !filters.제품명 || item.생산품명.includes(filters.제품명);
         const 기간겹침Match = isDateRangeOverlap(
           filters.생산시작일, 
@@ -210,7 +211,7 @@ function LcaPageContent() {
           item.투입일, 
           item.종료일
         );
-        return 제품명Match && 기간겹침Match;
+        return 주문처명Match && 제품명Match && 기간겹침Match;
       });
     }
     return outputData;
@@ -219,11 +220,12 @@ function LcaPageContent() {
   const filteredTransportData = useMemo(() => {
     if (activeTab === 'transport') {
       return transportData.filter(item => {
+        const 주문처명Match = !filters.주문처명 || (item.주문처명 && item.주문처명.includes(filters.주문처명));
         const 제품명Match = !filters.제품명 || item.생산품명.includes(filters.제품명);
         // 운송 데이터는 운송일자 하나만 있으므로 생산기간과 겹치는지 확인
         const 기간겹침Match = !filters.생산시작일 || !filters.생산종료일 || 
           (item.운송일자 >= filters.생산시작일 && item.운송일자 <= filters.생산종료일);
-        return 제품명Match && 기간겹침Match;
+        return 주문처명Match && 제품명Match && 기간겹침Match;
       });
     }
     return transportData;

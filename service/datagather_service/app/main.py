@@ -34,11 +34,23 @@ def load_training_dataset():
     """학습 데이터셋을 로드하여 맵핑 딕셔너리 생성"""
     global mapping_dictionary
     try:
-        # 학습 데이터셋 파일 경로
-        dataset_path = os.path.join(os.path.dirname(__file__), "..", "..", "학습 데이터셋.xlsx")
+        # 학습 데이터셋 파일 경로 (여러 경로 시도)
+        possible_paths = [
+            os.path.join(os.path.dirname(__file__), "..", "학습 데이터셋.xlsx"),  # app/../학습 데이터셋.xlsx
+            os.path.join(os.path.dirname(__file__), "..", "..", "학습 데이터셋.xlsx"),  # app/../../학습 데이터셋.xlsx
+            "학습 데이터셋.xlsx",  # 현재 작업 디렉토리
+            os.path.join("/app", "학습 데이터셋.xlsx"),  # Docker 컨테이너 내 절대 경로
+        ]
         
-        if not os.path.exists(dataset_path):
+        dataset_path = None
+        for path in possible_paths:
+            if os.path.exists(path):
+                dataset_path = path
+                break
+        
+        if not dataset_path:
             logger.warning("⚠️ 학습 데이터셋 파일을 찾을 수 없습니다. 기본 맵핑을 사용합니다.")
+            logger.warning(f"시도한 경로들: {possible_paths}")
             return False
         
         # Excel 파일 읽기

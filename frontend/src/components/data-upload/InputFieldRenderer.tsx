@@ -38,6 +38,7 @@ const InputFieldRenderer: React.FC<InputFieldRendererProps> = ({
   }
   
   // 새로 추가된 데이터는 모든 필드 편집 가능 (위의 조건을 통과한 경우)
+  // isNewRowData가 true이면 모든 필드가 편집 가능해야 함
   
   const getInputClassName = () => {
     let baseClass = 'w-full px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';

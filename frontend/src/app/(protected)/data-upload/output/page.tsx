@@ -34,6 +34,7 @@ type DataRow = {
   단위?: string;
   주문처명?: string;
   오더번호?: string;
+  AI추천답변?: string; // AI 추천 산출물명
   [key: string]: any;
 };
 
@@ -260,7 +261,8 @@ const OutputDataPage: React.FC = () => {
         '수량': 0,
         '단위': 't',
         '주문처명': '',
-        '오더번호': ''
+        '오더번호': '',
+        'AI추천답변': ''
       },
       modifiedData: {
         '로트번호': '',
@@ -273,7 +275,8 @@ const OutputDataPage: React.FC = () => {
         '수량': 0,
         '단위': 't',
         '주문처명': '',
-        '오더번호': ''
+        '오더번호': '',
+        'AI추천답변': ''
       },
       isEditing: true,
       isNewlyAdded: true
@@ -540,6 +543,24 @@ const OutputDataPage: React.FC = () => {
           </div>
         );
       
+      case 'AI추천답변':
+        return (
+          <div className='relative'>
+            <input
+              type='text'
+              value={value}
+              maxLength={50}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                handleInputChange(row.id, column, newValue);
+              }}
+              placeholder='AI 추천 산출물명을 입력하세요'
+              className={`${getInputClassName()} bg-yellow-50 border-yellow-300`}
+            />
+            <div className='absolute -top-2 -right-2 text-yellow-500 text-xs font-bold'>AI</div>
+          </div>
+        );
+      
       default:
         return (
           <span>{value || '-'}</span>
@@ -611,6 +632,11 @@ const OutputDataPage: React.FC = () => {
         }
       });
 
+      // AI추천답변 컬럼 추가
+      if (!columns.includes('AI추천답변')) {
+        columns.push('AI추천답변');
+      }
+
       // 데이터 읽기 (첫 번째 행 제외)
       const jsonData = XLSX.utils.sheet_to_json(worksheet, {
         header: columns,
@@ -623,6 +649,8 @@ const OutputDataPage: React.FC = () => {
         if (!row.주문처명) row.주문처명 = '';
         if (!row.오더번호) row.오더번호 = '';
         if (!row.단위) row.단위 = 't';
+        // AI 추천 답변 초기화 - 원본 산출물명을 AI 추천 답변으로 사용
+        if (!row.AI추천답변) row.AI추천답변 = row.산출물명 || '';
       });
 
       // 편집 가능한 행 데이터 생성
@@ -719,9 +747,14 @@ const OutputDataPage: React.FC = () => {
            throw new Error('수량은 0보다 큰 값이어야 합니다. 현재 값: ' + 수량);
          }
          
+         // AI 추천 답변이 있으면 산출물명에 적용, 없으면 원본 산출물명 유지
+         const aiRecommendation = row['AI추천답변'] || '';
+         const final산출물명 = aiRecommendation.trim() !== '' ? aiRecommendation : (row['산출물명'] || '');
+         
          return {
            ...row,
            '수량': 수량,
+           '산출물명': final산출물명, // AI 추천 답변 적용
            '투입일': convertExcelDate(row['투입일']),
            '종료일': convertExcelDate(row['종료일']),
            '주문처명': row['주문처명'] || '',
@@ -770,15 +803,14 @@ const OutputDataPage: React.FC = () => {
     );
   };
 
-  // 행 편집 토글 (직접 입력한 데이터만 편집 가능)
+  // 행 편집 토글 (Excel 데이터는 AI 추천 답변만, 새로 추가된 데이터는 모든 필드 편집 가능)
   const toggleRowEdit = (rowId: string) => {
     const row = editableInputRows.find(r => r.id === rowId);
     if (!row) return;
     
-    // Excel 데이터는 편집 불가능
+    // Excel 데이터는 AI 추천 답변만 편집 가능
     if (!row.isNewlyAdded) {
-      setError('Excel 파일로 업로드된 데이터는 수정할 수 없습니다.');
-      return;
+      console.log('편집 모드 활성화 - Excel 데이터, AI 추천 답변만 편집 가능');
     }
     
     setEditableInputRows(prev => 
@@ -832,6 +864,15 @@ const OutputDataPage: React.FC = () => {
         }
         setError(`데이터 확인 실패: ${errorMsg}`);
         return; // 여기서 함수 종료하여 확인 차단
+      }
+    }
+
+    // AI 추천 답변을 산출물명에 적용 (Excel 데이터의 경우)
+    if (!row.isNewlyAdded && row.modifiedData['AI추천답변']) {
+      const aiRecommendation = row.modifiedData['AI추천답변'].trim();
+      if (aiRecommendation !== '') {
+        row.modifiedData['산출물명'] = aiRecommendation;
+        console.log('AI 추천 답변이 산출물명에 적용됨:', aiRecommendation);
       }
     }
 
@@ -1057,8 +1098,17 @@ const OutputDataPage: React.FC = () => {
                   <thead>
                     <tr className='bg-white/10'>
                       {inputData.columns.map((column) => (
-                        <th key={column} className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>
-                          {column}
+                        <th key={column} className={`border border-white/20 px-3 py-2 text-left text-sm font-medium text-white ${
+                          column === 'AI추천답변' ? 'bg-yellow-500/20' : ''
+                        }`}>
+                          {column === 'AI추천답변' ? (
+                            <div className='flex items-center gap-1'>
+                              <span>AI 추천 산출물명</span>
+                              <div className='w-4 h-4 bg-yellow-500 rounded text-xs text-white flex items-center justify-center font-bold'>AI</div>
+                            </div>
+                          ) : (
+                            column
+                          )}
                         </th>
                       ))}
                       <th className='border border-white/20 px-3 py-2 text-left text-sm font-medium text-white'>
@@ -1070,11 +1120,15 @@ const OutputDataPage: React.FC = () => {
                     {editableInputRows.map((row) => (
                       <tr key={row.id} className='border-b border-white/10 hover:bg-white/5'>
                         {inputData.columns.map((column) => (
-                          <td key={column} className='border border-white/20 px-3 py-2 text-sm text-white'>
+                          <td key={column} className={`border border-white/20 px-3 py-2 text-sm text-white ${
+                            column === 'AI추천답변' ? 'bg-yellow-500/10' : ''
+                          }`}>
                             {row.isEditing ? (
                               renderInputField(row, column)
                             ) : (
-                              <span>{row.modifiedData[column] || '-'}</span>
+                              <span className={column === 'AI추천답변' ? 'font-medium text-yellow-200' : ''}>
+                                {row.modifiedData[column] || '-'}
+                              </span>
                             )}
                           </td>
                         ))}
@@ -1117,8 +1171,8 @@ const OutputDataPage: React.FC = () => {
                                   </Button>
                                 </>
                               ) : (
-                                // Excel 데이터는 편집 불가능
-                                <span className='text-white/40 text-xs'>수정 불가</span>
+                                // Excel 데이터는 AI 추천 답변만 편집 가능
+                                <span className='text-yellow-400 text-xs'>AI 추천만 수정 가능</span>
                               )}
                             </div>
                           )}

@@ -5,6 +5,8 @@ import CommonShell from '@/components/common/CommonShell';
 import { Button } from '@/components/atomic/atoms';
 import { Input } from '@/components/atomic/atoms';
 import { authUtils } from '@/lib/axiosClient';
+import AddressSearchModal from '@/components/common/AddressSearchModal';
+import { enhanceAddressWithEnglish } from '@/lib';
 import { 
   Building2, 
   Edit
@@ -35,11 +37,23 @@ interface CompanyInfo {
   source_longitude: number | null;
 }
 
+interface AddressData {
+  roadAddress: string;
+  jibunAddress: string;
+  buildingNumber: string;
+  postalCode: string;
+  cityName: string;
+  latitude: number | null;
+  longitude: number | null;
+  fullAddress?: string; // 전체 주소 (JSON에서 받아옴)
+}
+
 
 const CompanySettingsContent: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
 
   // 기업 정보 상태
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({
@@ -208,6 +222,58 @@ const CompanySettingsContent: React.FC = () => {
 
   const handleCompanyInfoChange = (field: keyof CompanyInfo, value: string) => {
     setTempCompanyInfo(prev => ({ ...prev, [field]: value }));
+  };
+
+  // 주소 선택 핸들러 (회원가입과 동일한 로직)
+  const handleAddressSelect = async (addressData: AddressData) => {
+    try {
+      // 전체 주소 구성 (JSON에서 받아온 전체 주소 사용)
+      const fullAddress = addressData.fullAddress || `${addressData.cityName || ''} ${addressData.roadAddress || ''} ${addressData.buildingNumber || ''}`.trim();
+      
+      console.log('전체 주소로 영문 변환 시작:', fullAddress);
+      
+      // 행정안전부 API를 통해 영문 주소 변환
+      const enhancedAddress = await enhanceAddressWithEnglish({
+        roadAddress: addressData.roadAddress,
+        buildingNumber: addressData.buildingNumber,
+        cityName: addressData.cityName,
+        postalCode: addressData.postalCode,
+        fullAddress: fullAddress, // 전체 주소 전달
+      });
+
+      setTempCompanyInfo(prev => ({
+        ...prev,
+        street: addressData.roadAddress || '', // 국문 도로명
+        street_en: enhancedAddress.englishRoad || '', // 영문 도로명 (직접 사용)
+        number: addressData.buildingNumber || '', // 국문 건물번호
+        number_en: addressData.buildingNumber || '', // 건물번호 영문 = 국문 (동기화)
+        postcode: enhancedAddress.postalCode || addressData.postalCode || '',
+        city: addressData.cityName || '', // 국문 도시명
+        city_en: enhancedAddress.englishCity || '', // 영문 도시명 (직접 사용)
+        source_latitude: addressData.latitude, // 카카오 API에서 받은 위도
+        source_longitude: addressData.longitude, // 카카오 API에서 받은 경도
+      }));
+
+      console.log('영문 주소 변환 완료:', enhancedAddress);
+      console.log('영문 도로명:', enhancedAddress.englishRoad);
+      console.log('영문 도시명:', enhancedAddress.englishCity);
+      console.log('영문 전체 주소:', enhancedAddress.fullAddress_en);
+    } catch (error) {
+      console.error('영문 주소 변환 실패:', error);
+      // 변환 실패 시 기존 방식으로 처리
+      setTempCompanyInfo(prev => ({
+        ...prev,
+        street: addressData.roadAddress || '',
+        street_en: '',
+        number: addressData.buildingNumber || '',
+        number_en: addressData.buildingNumber || '',
+        postcode: addressData.postalCode || '',
+        city: addressData.cityName || '',
+        city_en: '',
+        source_latitude: addressData.latitude,
+        source_longitude: addressData.longitude,
+      }));
+    }
   };
 
 
@@ -428,6 +494,23 @@ const CompanySettingsContent: React.FC = () => {
           </div>
           <h4 className="text-xl font-semibold text-gray-800">주소 정보</h4>
         </div>
+
+        {/* 주소 검색 버튼 (편집 모드일 때만 표시) */}
+        {isEditing && (
+          <div className="mb-6">
+            <Button
+              type="button"
+              onClick={() => setIsAddressModalOpen(true)}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg shadow-md transition-all duration-200 hover:shadow-lg"
+            >
+              주소 검색
+            </Button>
+            <div className="mt-2 text-sm text-blue-600">
+              📍 주소 검색 시 행정안전부 API를 통해 영문 주소가 자동으로 변환되고, 카카오 지도 API를 통해 위도/경도가 자동으로 설정됩니다.
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-3">
             <label className="text-sm font-semibold text-gray-700 flex items-center">
@@ -542,6 +625,108 @@ const CompanySettingsContent: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* 영문 주소 정보 */}
+          <div className="space-y-3">
+            <label className="text-sm font-semibold text-gray-700 flex items-center">
+              <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+              도로명 (영문)
+            </label>
+            {isEditing ? (
+              <Input
+                value={tempCompanyInfo.street_en}
+                onChange={(e) => handleCompanyInfoChange('street_en', e.target.value)}
+                placeholder="영문 도로명 (자동 입력)"
+                className="p-3 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
+                readOnly
+              />
+            ) : (
+              <div className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200">
+                <span className="text-gray-800 font-medium">{companyInfo.street_en}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-sm font-semibold text-gray-700 flex items-center">
+              <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+              건물 번호 (영문)
+            </label>
+            {isEditing ? (
+              <Input
+                value={tempCompanyInfo.number_en}
+                onChange={(e) => handleCompanyInfoChange('number_en', e.target.value)}
+                placeholder="영문 건물 번호 (자동 입력)"
+                className="p-3 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
+                readOnly
+              />
+            ) : (
+              <div className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200">
+                <span className="text-gray-800 font-medium">{companyInfo.number_en}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-sm font-semibold text-gray-700 flex items-center">
+              <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+              도시명 (영문)
+            </label>
+            {isEditing ? (
+              <Input
+                value={tempCompanyInfo.city_en}
+                onChange={(e) => handleCompanyInfoChange('city_en', e.target.value)}
+                placeholder="영문 도시명 (자동 입력)"
+                className="p-3 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
+                readOnly
+              />
+            ) : (
+              <div className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200">
+                <span className="text-gray-800 font-medium">{companyInfo.city_en}</span>
+              </div>
+            )}
+          </div>
+
+          {/* 위도/경도 정보 */}
+          <div className="space-y-3">
+            <label className="text-sm font-semibold text-gray-700 flex items-center">
+              <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+              위도 (Latitude)
+            </label>
+            {isEditing ? (
+              <Input
+                value={tempCompanyInfo.source_latitude || ''}
+                onChange={(e) => handleCompanyInfoChange('source_latitude', e.target.value)}
+                placeholder="위도 (자동 입력)"
+                className="p-3 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
+                readOnly
+              />
+            ) : (
+              <div className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200">
+                <span className="text-gray-800 font-medium">{companyInfo.source_latitude || '-'}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-sm font-semibold text-gray-700 flex items-center">
+              <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+              경도 (Longitude)
+            </label>
+            {isEditing ? (
+              <Input
+                value={tempCompanyInfo.source_longitude || ''}
+                onChange={(e) => handleCompanyInfoChange('source_longitude', e.target.value)}
+                placeholder="경도 (자동 입력)"
+                className="p-3 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
+                readOnly
+              />
+            ) : (
+              <div className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200">
+                <span className="text-gray-800 font-medium">{companyInfo.source_longitude || '-'}</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -593,6 +778,13 @@ const CompanySettingsContent: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* 주소 검색 모달 */}
+      <AddressSearchModal
+        isOpen={isAddressModalOpen}
+        onClose={() => setIsAddressModalOpen(false)}
+        onSelect={handleAddressSelect}
+      />
 
     </CommonShell>
   );

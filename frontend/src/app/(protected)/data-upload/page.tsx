@@ -87,40 +87,7 @@ const DataUploadPage: React.FC = () => {
           </p>
         </div>
 
-        {/* 개요 카드 */}
-        <div className='stitch-card p-6'>
-          <div className='flex items-center gap-3 mb-4'>
-            <div className='w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center'>
-              <Brain className='w-6 h-6 text-white' />
-            </div>
-            <div>
-              <h2 className='text-lg font-semibold text-white'>AI 기반 데이터 관리</h2>
-              <p className='text-sm text-white/60'>
-                업로드된 데이터를 AI가 자동으로 분석하고 표준화하여 일관성 있는 데이터베이스를 구축합니다.
-              </p>
-            </div>
-          </div>
-          
-          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
-            <div className='p-3 bg-white/5 rounded-lg text-center'>
-              <div className='text-2xl font-bold text-blue-400'>4</div>
-              <div className='text-xs text-white/60'>데이터 유형</div>
-            </div>
-            <div className='p-3 bg-white/5 rounded-lg text-center'>
-              <div className='text-2xl font-bold text-green-400'>AI</div>
-              <div className='text-xs text-white/60'>자동 표준화</div>
-            </div>
-            <div className='p-3 bg-white/5 rounded-lg text-center'>
-              <div className='text-2xl font-bold text-purple-400'>실시간</div>
-              <div className='text-xs text-white/60'>편집 및 검증</div>
-            </div>
-            <div className='p-3 bg-white/5 rounded-lg text-center'>
-              <div className='text-2xl font-bold text-orange-400'>템플릿</div>
-              <div className='text-xs text-white/60'>표준 형식</div>
-            </div>
-          </div>
-        </div>
-
+        
         {/* 업로드 페이지 그리드 */}
         <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
           {uploadPages.map((page) => {
@@ -186,24 +153,7 @@ const DataUploadPage: React.FC = () => {
             </div>
           </div>
           
-          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6'>
-            <div className='p-4 bg-white/5 rounded-lg text-center'>
-              <div className='text-2xl font-bold text-red-400'>4</div>
-              <div className='text-xs text-white/60'>데이터 유형</div>
-            </div>
-            <div className='p-4 bg-white/5 rounded-lg text-center'>
-              <div className='text-2xl font-bold text-orange-400'>실시간</div>
-              <div className='text-xs text-white/60'>삭제 처리</div>
-            </div>
-            <div className='p-4 bg-white/5 rounded-lg text-center'>
-              <div className='text-2xl font-bold text-yellow-400'>로그</div>
-              <div className='text-xs text-white/60'>삭제 기록</div>
-            </div>
-            <div className='p-4 bg-white/5 rounded-lg text-center'>
-              <div className='text-2xl font-bold text-purple-400'>복구</div>
-              <div className='text-xs text-white/60'>데이터 추적</div>
-            </div>
-          </div>
+          
 
           <div className='flex items-center gap-3'>
             <Link href='/data-upload/delete'>
@@ -213,36 +163,6 @@ const DataUploadPage: React.FC = () => {
                 <ArrowRight className='w-4 h-4' />
               </Button>
             </Link>
-          </div>
-        </div>
-
-        {/* 추가 정보 */}
-        <div className='stitch-card p-6'>
-          <h3 className='text-lg font-semibold text-white mb-4'>데이터 업로드 가이드</h3>
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-            <div className='p-4 bg-white/5 rounded-lg'>
-              <div className='w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mb-3'>
-                <span className='text-white text-sm font-bold'>1</span>
-              </div>
-              <h4 className='font-medium text-white mb-2'>템플릿 다운로드</h4>
-              <p className='text-xs text-white/60'>각 데이터 유형에 맞는 표준 템플릿을 다운로드합니다.</p>
-            </div>
-            
-            <div className='p-4 bg-white/5 rounded-lg'>
-              <div className='w-8 h-8 bg-green-500 rounded-full flex items-center justify-center mb-3'>
-                <span className='text-white text-sm font-bold'>2</span>
-              </div>
-              <h4 className='font-medium text-white mb-2'>데이터 입력</h4>
-              <p className='text-xs text-white/60'>템플릿에 맞춰 데이터를 입력하고 Excel 파일로 저장합니다.</p>
-            </div>
-            
-            <div className='p-4 bg-white/5 rounded-lg'>
-              <div className='w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center mb-3'>
-                <span className='text-white text-sm font-bold'>3</span>
-              </div>
-              <h4 className='font-medium text-white mb-2'>AI 처리</h4>
-              <p className='text-xs text-white/60'>업로드된 데이터를 AI가 자동으로 분석하고 표준화합니다.</p>
-            </div>
           </div>
         </div>
       </div>

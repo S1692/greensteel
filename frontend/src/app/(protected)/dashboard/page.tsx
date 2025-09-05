@@ -152,54 +152,9 @@ const DashboardPage: React.FC = () => {
           </p>
         </div>
 
-        {/* 환영 메시지 */}
-        <div className='bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-400/30 rounded-xl p-4 lg:p-6 xl:p-8 backdrop-blur-sm'>
-          <div className='flex items-center gap-3 lg:gap-4 mb-3 lg:mb-4'>
-            <div className='p-2 lg:p-3 bg-blue-500/20 rounded-lg'>
-              <Sparkles className='w-5 h-5 lg:w-6 lg:h-6 text-blue-400' />
-            </div>
-            <h2 className='text-lg lg:text-xl xl:text-2xl font-semibold text-white'>
-              AI 어시스턴트와 대화하세요
-            </h2>
-          </div>
-          <p className='text-white/80 text-xs lg:text-sm leading-relaxed'>
-            GreenSteel ESG 플랫폼의 모든 기능에 대해 질문하고, 데이터 분석부터 CBAM 계산까지 
-            AI가 도와드립니다. 자연어로 원하는 기능을 말씀해주세요.
-          </p>
-        </div>
+        
 
-        {/* AI 기능 소개 */}
-        <div className='grid grid-cols-1 md:grid-cols-3 gap-3 lg:gap-4 xl:gap-6'>
-          <div className='bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-3 lg:p-4 xl:p-6 hover:bg-white/10 transition-all duration-200'>
-            <div className='flex items-center space-x-2 lg:space-x-3 mb-2 lg:mb-3'>
-              <div className='p-2 lg:p-3 bg-blue-500/20 rounded-lg'>
-                <Target className='w-4 h-4 lg:w-5 lg:h-5 text-blue-400' />
-              </div>
-              <h3 className='font-semibold text-white text-xs lg:text-sm'>정확한 답변</h3>
-            </div>
-            <p className='text-white/60 text-xs'>플랫폼 정보 기반 정확한 답변 제공</p>
-          </div>
-
-          <div className='bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-3 lg:p-4 xl:p-6 hover:bg-white/10 transition-all duration-200'>
-            <div className='flex items-center space-x-2 lg:space-x-3 mb-2 lg:mb-3'>
-              <div className='p-2 lg:p-3 bg-green-500/20 rounded-lg'>
-                <Zap className='w-4 h-4 lg:w-5 lg:h-5 text-green-400' />
-              </div>
-              <h3 className='font-semibold text-white text-xs lg:text-sm'>빠른 응답</h3>
-            </div>
-            <p className='text-white/60 text-xs'>실시간 AI 응답으로 즉시 문제 해결</p>
-          </div>
-
-          <div className='bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-3 lg:p-4 xl:p-6 hover:bg-white/10 transition-all duration-200'>
-            <div className='flex items-center space-x-2 lg:space-x-3 mb-2 lg:mb-3'>
-              <div className='p-2 lg:p-3 bg-purple-500/20 rounded-lg'>
-                <TrendingUp className='w-4 h-4 lg:w-5 lg:h-5 text-purple-400' />
-              </div>
-              <h3 className='font-semibold text-white text-xs lg:text-sm'>지능형 가이드</h3>
-            </div>
-            <p className='text-white/60 text-xs'>맞춤형 기능 추천 및 사용법 안내</p>
-          </div>
-        </div>
+        
 
         {/* Gateway 상태 */}
         <div className='bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-4 lg:p-6 xl:p-8'>

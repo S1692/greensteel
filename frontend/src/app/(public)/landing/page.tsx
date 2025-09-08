@@ -169,11 +169,11 @@ export default function LandingPage() {
               </Button>
 
               {/* 대시보드 바로가기 버튼 */}
-              <Button
-                onClick={handleGoToDashboard}
-                variant='secondary'
-                className='w-full bg-white/20 text-white hover:bg-white/30 transition-colors py-3'
-              >
+              <Button
+                onClick={handleGoToDashboard}
+                variant='outline'
+                className='w-full bg-white/20 text-white hover:bg-white/30 transition-colors py-3'
+              >
                 대시보드 바로가기
               </Button>
 
@@ -263,12 +263,12 @@ export default function LandingPage() {
           
             {/* 대시보드 바로가기 버튼 */}
             <div className='flex justify-center'>
-              <Button
-                type='button'
-                onClick={handleGoToDashboard}
-                variant='secondary'
-                className='w-full bg-white/20 text-white hover:bg-white/30 transition-colors'
-              >
+              <Button
+                type='button'
+                onClick={handleGoToDashboard}
+                variant='outline'
+                className='w-full bg-white/20 text-white hover:bg-white/30 transition-colors'
+              >
                 대시보드 바로가기
               </Button>
             </div>
